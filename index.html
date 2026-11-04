@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Sài Gòn Q1 Diorama</title>
+    <meta name="claude:viewport-fit-sides" content="cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body data-mode="menu">
+    <div id="stage" data-model="models/saigon_q1.glb" data-nav="models/saigon_q1"></div>
+
+    <!-- start menu: shows the loader first, then the two ways in -->
+    <section class="menu card" id="menu" data-modes="menu" aria-labelledby="menu-title">
+      <div class="eyebrow">Quận 1 · bản thu nhỏ</div>
+      <h1 id="menu-title">Sài Gòn Q1</h1>
+      <p class="lede">Chợ Bến Thành, Nhà hát, Nhà thờ Đức Bà, Bưu điện, Hồ Con Rùa, Bitexco và cầu Ba Son trên một hòn đảo vẽ tay.</p>
+      <p class="status" id="menu-status" role="status" aria-live="polite">Đang dựng Quận 1…</p>
+      <div class="loadrow" id="loadrow">
+        <div class="bar"><i id="loadbar"></i></div>
+        <small id="loadmb">0.0 / 3.6 MB</small>
+      </div>
+      <div class="modes">
+        <button class="mode" id="mode-map" type="button" disabled>
+          <kbd>1</kbd>
+          <span><strong>Xem bản đồ</strong><small>Xoay, zoom, bay tới từng công trình</small></span>
+        </button>
+        <button class="mode mode-primary" id="mode-play" type="button" disabled>
+          <kbd>2</kbd>
+          <span><strong>Vào game</strong><small>Đi bộ tự do từ cổng chợ Bến Thành</small></span>
+        </button>
+      </div>
+    </section>
+
+    <header class="where card" data-modes="map play" aria-live="polite">
+      <div class="eyebrow" id="where-eyebrow">Sài Gòn Q1</div>
+      <h1 id="where">Quận 1</h1>
+      <div class="note" id="wherenote">Sài Gòn</div>
+    </header>
+
+    <div class="tools" data-modes="map play">
+      <button id="ink" type="button" aria-pressed="true" title="Bật hoặc tắt nét mực">Nét mực</button>
+      <button id="respawn" type="button" data-modes="play" title="Quay lại cổng chợ Bến Thành">Về chợ</button>
+      <button id="to-map" type="button" data-modes="play" title="Xem toàn bộ bản đồ">Bản đồ</button>
+      <button id="to-play" class="btn-primary" type="button" data-modes="map" title="Đi bộ trong Quận 1">Vào game</button>
+    </div>
+
+    <div class="toast card" id="toast" role="status" data-modes="play" hidden></div>
+
+    <div class="hint card" id="hint-play" data-modes="play">
+      <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>
+      <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
+      <span class="mouse-only">kéo chuột để xoay</span>
+      <span class="mouse-only">cuộn để zoom</span>
+      <span class="mouse-only"><kbd>Esc</kbd> menu</span>
+      <span class="touch-only">Kéo bên trái để đi, đẩy hết để chạy</span>
+      <span class="touch-only">Vuốt bên phải để xoay, chụm hai ngón để zoom</span>
+    </div>
+
+    <div class="dock" data-modes="map">
+      <div class="hint-line">
+        <span class="mouse-only">Kéo để xoay · cuộn để zoom · chuột phải để kéo bản đồ · <kbd>Esc</kbd> menu</span>
+        <span class="touch-only">Vuốt để xoay · chụm hai ngón để zoom · kéo hai ngón để di chuyển</span>
+      </div>
+      <nav class="chips" id="chips" aria-label="Công trình"></nav>
+    </div>
+
+    <div class="joy" id="joy" data-modes="play" hidden><i id="knob"></i></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

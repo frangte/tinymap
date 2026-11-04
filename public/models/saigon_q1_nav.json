@@ -1,0 +1,14 @@
+{
+ "x0": -72.0,
+ "y0": -142.0,
+ "cell": 0.35,
+ "nx": 674,
+ "ny": 554,
+ "spawn": [
+  8.0,
+  -12.8
+ ],
+ "nav": "saigon_q1_nav.png: R*256+G = floor height cm + 1000, B=255 walkable",
+ "roof": "saigon_q1_roof.png: R*256+G = building top cm (0 = open), camera occluder cells only",
+ "axes": "row 0 = y0 (south); Blender XY metres; three.js x = X, z = -Y"
+}

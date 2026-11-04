@@ -1,0 +1,25 @@
+# dependencies and builds
+node_modules/
+dist/
+dist-single/
+*.tsbuildinfo
+*.log
+
+# Blender: only the main map (sg.tinymap.blend) is versioned
+*.blend1
+*.blend@
+Untitled.blend
+versions/
+
+# exports and old renders (re-create with scripts/blender/*; the game ships public/models/)
+export/
+renders/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Claude Code: per-machine state
+.claude/settings.local.json
+.claude/ecc/install-state.json
