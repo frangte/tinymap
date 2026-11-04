@@ -9,8 +9,8 @@ Writes <out>_nav.png, <out>_roof.png and <out>_nav.json on a 0.35 m grid over th
 
 - nav  (RGBA): R*256+G = floor height in cm + 1000, B = 255 where the player can walk.
   The floor is the lowest upward face with 2 m of headroom (tree crowns ignored); a cell is walkable
-  if it is not water, not under a building, has nothing at body height, and can be reached from the
-  spawn without a step over 0.5 m.
+  if it is not water, above sea level, not under a building, has nothing at body height, and can be
+  reached from the spawn without a step over 0.5 m.
 - roof (RGB): R*256+G = top of the building in cm on non-walkable cells (0 = open). The camera uses it
   to stay out of buildings.
 """
@@ -26,14 +26,17 @@ import numpy as np
 from mathutils import Vector
 
 CS = 0.35
-X0, Y0, X1, Y1 = -72.0, -142.0, 164.0, 52.0
+X0, Y0, X1, Y1 = -84.0, -98.0, 140.0, 130.0    # the island and its beach
 SPAWN = (8.0, -12.8)  # in front of the Ben Thanh south gate
+SEA_LEVEL = -0.45     # the sea is drawn in three.js at this height; sand below it is not walkable
+ISLAND_CENTER = (36.0, 8.0)
 SCENE = 'SaigonDiorama'
 COLLECTIONS = ('SD_World', 'SD_NoInk')
 WATER = {'SD_water', 'SD_waterDeep', 'SD_foam'}
 FOLIAGE = {'SD_leaf', 'SD_leafDark', 'SD_leafLight'}
-# ground and water never count as obstacles
-NOT_OBSTACLE = {'IS_Base', 'IX_Roads_v2', 'IX_RoadMarks_v2', 'IX_River', 'IX_River.001', 'LM_HoConRua_Water', 'CX_LamSon_Water'}
+# ground (IS_ island, IX_ streets) and water never count as obstacles
+NOT_OBSTACLE_PREFIX = ('IS_', 'IX_')
+NOT_OBSTACLE = {'LM_HoConRua_Water', 'CX_LamSon_Water'}
 # objects whose tops occlude the camera, and the subset that are solid buildings (no walking underneath)
 ROOF_PREFIX = ('BT_', 'LM_', 'SH_0', 'CX_Towers', 'CX_LamSon', 'LF_Roundabout')
 SOLID_PREFIX = ('BT_Halls', 'BT_SideGates', 'BT_SouthGate', 'LM_NhaThoDucBa', 'LM_BuuDien', 'LM_NhaHatLon', 'LM_Bitexco', 'CX_Towers', 'SH_0')
@@ -177,7 +180,7 @@ def main():
     roof = np.full((NY, NX), -50.0, np.float32)
     solid = np.full((NY, NX), -50.0, np.float32)
     for o in objs:
-        is_obstacle = o.name not in NOT_OBSTACLE
+        is_obstacle = o.name not in NOT_OBSTACLE and not o.name.startswith(NOT_OBSTACLE_PREFIX)
         is_roof = o.name.startswith(ROOF_PREFIX) and o.name not in NOT_OBSTACLE
         is_solid = o.name.startswith(SOLID_PREFIX)
         if not (is_obstacle or is_roof):
@@ -198,7 +201,7 @@ def main():
     log('obstacles', round(time.time() - t0), 's')
 
     # 3. walkable = floor, not water, not under a building, nothing at body height, reachable from the spawn
-    walk = (~np.isnan(H)) & (~WM) & (H > -0.4) & (~block)
+    walk = (~np.isnan(H)) & (~WM) & (H > SEA_LEVEL + 0.08) & (~block)
     covered = solid > Hf + 2.0
     covered |= erode(dilate(covered, 2), 2)
     w2 = walk & ~covered
@@ -239,6 +242,7 @@ def main():
     with open(base + '_nav.json', 'w') as f:
         json.dump({
             'x0': X0, 'y0': Y0, 'cell': CS, 'nx': NX, 'ny': NY, 'spawn': list(SPAWN),
+            'sea_level': SEA_LEVEL, 'island_center': list(ISLAND_CENTER),
             'nav': 'saigon_q1_nav.png: R*256+G = floor height cm + 1000, B=255 walkable',
             'roof': 'saigon_q1_roof.png: R*256+G = building top cm (0 = open), camera occluder cells only',
             'axes': 'row 0 = y0 (south); Blender XY metres; three.js x = X, z = -Y',

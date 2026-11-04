@@ -6,16 +6,18 @@
 
 ## Dự án là gì
 
-Quận 1 thu gọn dạng diorama low-poly, dựng trong Blender (`sg.tinymap.blend`). Người chơi đi bộ tự do trong Three.js, kiểu game Messenger (messenger.abeto.co). Vào game thì nhân vật đứng trước cổng nam chợ Bến Thành.
+Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong Blender (`sg.tinymap.blend`). Người chơi đi bộ tự do trong Three.js, kiểu game Messenger (messenger.abeto.co). Vào game thì nhân vật đứng trước cổng nam chợ Bến Thành.
 
 - **Đã xong:**
-  - Map v2: một mạng đường liền mạch, 9 công trình bên dưới, cây, ít xe và người.
+  - Map v4: đảo khoảng 200×200 m giữa biển. Map quay theo hướng thật của thành phố (cổng nam chợ nhìn ra bùng binh Quách Thị Trang), nên các công trình nằm bên phải và phía trên chợ, gần giống vị trí thật: Lê Lợi dẫn tới Nhà hát; Đồng Khởi đi từ Nhà thờ xuống biển; Bưu điện cạnh Công xã Paris; Hồ Con Rùa nằm trên đường Phạm Ngọc Thạch; Bitexco ở bờ nước. Không thêm nhà mới. Cây trồng thành hàng dọc phố, chỉ vài xe đậu, không có người (NPC sẽ thêm sau theo cốt truyện).
+  - Biển, mây, hải âu, cây đung đưa và âm thanh nền (sóng, chim) làm trong Three.js, không nằm trong file Blender.
   - Menu mở đầu có 2 chế độ: [1] xem bản đồ (xoay, zoom, bay tới từng công trình) và [2] vào game đi bộ (nhân vật đội nón lá, camera góc thứ 3 tự do, tên địa điểm hiện trên HUD).
 - **Để dành, chưa làm:**
-  - Phố đi bộ Bùi Viện: dùng lại kiểu dãy nhà ống (`SH_01..05`, hàm `house_*` trong script 15b/15c).
-  - UBND ở đầu bắc Nguyễn Huệ, chỗ ngã ba với Lý Tự Trọng, khoảng (46, -26).
+  - Phố đi bộ Bùi Viện: phía tây chợ dọc đường Lê Lai, bãi cỏ ở đó cố ý để trống. Dùng lại kiểu dãy nhà ống (`SH_01..05`, hàm `house_*` trong script 15b/15c).
+  - UBND: ô trống lát gạch ở đầu bắc phố đi bộ Nguyễn Huệ (x 48…72, y 12…31), sát đường Lê Thánh Tôn, giống vị trí thật.
 - **Tiếp theo:** NPC và quest.
-- **Bản cũ:** v1 đóng băng ở `versions/sg.tinymap_v1.blend`. Không sửa đè, muốn đổi lớn thì lưu version mới.
+- **Bản cũ:** trong `versions/`: v1; v2 (có sông, bờ Thủ Thiêm, cầu Ba Son); v3 (công trình xếp vòng quanh chợ). Không sửa đè, muốn đổi lớn thì lưu version mới.
+- **Model công trình không sửa:** v3 và v4 chỉ dời và xoay nguyên khối. Người có sẵn trong model cũ (hàng rong ở Hồ Con Rùa, Lam Sơn, chủ tiệm nhà phố) vẫn còn.
 - **Cách làm việc:** plan lớn phải hỏi Khoa trước khi làm.
 
 ## Style (giữ nguyên khi vẽ thêm)
@@ -28,7 +30,7 @@ Quận 1 thu gọn dạng diorama low-poly, dựng trong Blender (`sg.tinymap.bl
 - **Ánh sáng:** nắng ấm `#FFF2DC`, bóng lạnh `#717BA2`.
 - **Méo tay:**
   - Modifier `SD_HandWobble` (Displace): `LM_*` là 0.045, các object khác 0.07. Chạy `art_pass_geometry()` sau khi thêm object.
-  - Kính và thép hiện đại (Bitexco, cầu Ba Son) để thẳng, không méo.
+  - Kính và thép hiện đại (Bitexco) để thẳng, không méo. Đường (`IX_`) và đảo (`IS_`) cũng không méo.
 - **Tỉ lệ:**
   - Đơn vị mét. Người cao 1.7 m, tầng nhà 3.2–3.6 m.
   - Lòng đường 6–10 m, vỉa hè 2.6–3 m.
@@ -43,7 +45,8 @@ Quận 1 thu gọn dạng diorama low-poly, dựng trong Blender (`sg.tinymap.bl
 | Tường | cream `#EAD9AE`, creamLight `#F4EBD3`, wallGrey `#A0A7AA`, wallTeal `#5E9A96`, wallOchre `#C9A25E`, wallBeige `#CFC1A0`, wallPink `#D29A86`, opWhite `#EEE7D7`, opShade `#D8CDB8`, poYellow `#E0B45A`, brick `#B5523B`, stone `#E6DCC8`, towerPale `#DAD4C8`, concrete `#ABA69C` |
 | Mái | roofRed `#A9492F` (dark `#7D3326`, light `#C0613F`), slate `#646B74`, spire `#6F7780`, tinBlue `#8AA3B6` |
 | Điểm nhấn | poGreen `#3E7F5F`, clockBlue `#4E7CA6`, clockWhite `#F3EEE2`, gold `#C9A24A`, lotusTop `#E6D29C`, turq `#5BA9A1`, archDark `#3B3330`, glassBlue `#7FA0B5`, glassTeal `#4F7A7C`, finSilver `#D3DAE0`, bridgeWhite `#EEF0EE`, statueW `#F2EFE8` |
-| Mặt đất | asphalt `#6F6D69`, paving `#BDB4A2`, curb `#D3CBB8`, roadLine `#ECE6D4`, grass `#86A85E`, water `#6FA9B6` |
+| Mặt đất | asphalt `#6F6D69`, paving `#BDB4A2`, curb `#D3CBB8`, roadLine `#ECE6D4`, grass `#86A85E`, sand `#CDB98F`, water `#6FA9B6` (hồ) |
+| Biển (Three.js, `src/game/sea.ts`) | sâu `#3F8399`, cạn `#86CBC6`, bọt `#F3F1E7`, sương chân trời `#DCDCD0` |
 | Cây | leaf `#6E9B4C`, leafLight `#93B85F`, leafDark `#4D7539`, bark `#6B4C36` |
 | Mực | ink `#2B211C`; lampGlow `#FFE6A8` (không đổ bóng) |
 
@@ -56,24 +59,25 @@ Thêm màu mới thì thêm key vào `PAL`. Nếu cần chỉnh variation hay gr
   - `SD_World` chứa mọi thứ có viền mực; `SD_NoInk` chứa nước và dây điện.
   - Object nằm ngoài hai collection này thì không được export.
 - **Tiền tố tên object:**
-  - `IS_` đế đảo; `IX_` đường, sông, bờ kè.
+  - `IS_` đảo: `IS_Island` (mặt cỏ), `IS_Beach` (bãi cát dốc xuống biển). `IX_` đường: `IX_Roads_v4`, `IX_RoadMarks_v4`.
   - `BT_` chợ Bến Thành; `LM_` công trình lớn; `SH_` nhà ống.
-  - `CX_` phần lấp đầy thành phố (cây, xe, người, công viên, tháp Thủ Thiêm); `LF_` cây và đồ trang trí cũ quanh chợ.
+  - `CX_` phần lấp đầy: `CX_StreetTrees_v4` (cây, đèn dọc đường, bồn cây trên Nguyễn Huệ), `CX_Parks_v4` (công viên 23/9, vài cụm cây nhỏ, dừa trên bãi cát), `CX_Traffic_v4` (vài xe đậu, không người lái). `LF_Roundabout`: trang trí bùng binh trước chợ.
 - **Script nằm trong Text datablock của file `.blend`:**
   - `saigon_mini_lib.py`: bộ dựng `Geo` (`box`, `bc`, `cyl`, `cone`, `ico`, `lathe`, `extrude`, `rod`, `pyramid`, `hip`, `arch`, `text`) và `make_obj`.
   - `saigon_diorama_01_setup.py`: `PAL`, `get_mat`, `SD_Paint`, ink.
   - `saigon_diorama_02…18_*.py`: mỗi bước một công trình.
-  - `20/21/22_v2_*.py`: layout, đường và build của v2. Hai script này cần `shapely` và `mapbox_earcut`.
+  - `20/21/22_v2_*.py`: layout, đường và build của v2.
+  - `30/31/32/33_v3_*.py`: vị trí công trình, layout, đường và build của v3.
+  - `41_v4_layout.py`, `43_v4_build.py`: vị trí công trình, đường và build của v4 (dùng lại `30_v3_place` và bộ dựng đường `32_v3_roads`). Đọc để biết map hiện tại được dựng ra sao. Cần `shapely` và `mapbox_earcut`.
   - `00_ns_loader.py`: `load_ns()` nạp lại toàn bộ hàm mà không chạy các bước build.
   - `saigon_diorama_TODO.md`: ghi chú.
 - **Toạ độ:**
-  - Blender XY, trục Z hướng lên. Đảo rộng khoảng X −69…158, Y −137…46.
-  - Lưới phố nghiêng theo trục `U=(0.6606, 0.7507)` (từ sông lên nhà thờ) và `VL=(0.7507, −0.6606)`.
-  - Hàm `lm(dv, du) = LAMSON + VL·dv + U·du`, với `LAMSON=(49.29, −60.33)`.
-  - Công trình theo lưới phố quay `yaw = −2.2924`.
+  - Blender XY, trục Z hướng lên. Map quay theo hướng của chợ: +Y của map là hướng tây bắc ngoài đời, +X là hướng đông bắc. Tâm đảo (36, 8); mép cỏ khoảng X −71…126, Y −86…117.
+  - Mực nước biển z = −0.45: bãi cát trên mức này đi bộ được, phía dưới là nước.
+  - Mặt cỏ z = 0; vỉa hè và quảng trường 0.18; mặt đường 0.07.
 - **Điểm mốc (Blender XY):**
-  - Bùng binh Bến Thành (8, −24); Lam Sơn (49.3, −54.3); Công xã Paris (79.7, −25.8); Hồ Con Rùa (91.5, 22.4).
-  - Nguyễn Huệ chạy từ (−5.8, −85.1) qua (30.5, −43.8) đến (46.4, −25.8).
+  - Chợ (8, 7.5), bùng binh Quách Thị Trang (8, −24), điểm xuất phát (8, −12.8).
+  - Đường: Lê Lợi (bùng binh → Lam Sơn, trước Nhà hát), Hàm Nghi (bùng binh → bờ nước, cạnh Bitexco), Lê Lai (bùng binh → phía tây, về Bùi Viện), Lê Thánh Tôn (sau chợ), Đồng Khởi (Công xã Paris → qua Lam Sơn → bờ nước), Phạm Ngọc Thạch (Công xã Paris → Hồ Con Rùa). Phố đi bộ Nguyễn Huệ chạy từ ô UBND xuống bờ nước.
 
 Mẫu thêm một công trình (tạo Text mới `saigon_diorama_23_<ten>.py`):
 
@@ -93,16 +97,18 @@ ns['art_pass_geometry']()
 | Công trình | Object · tâm (Blender XY) · cao | Đặc trưng cần giữ | Ảnh |
 |---|---|---|---|
 | Chợ Bến Thành (1914) | `BT_*` · (8, 8) · tháp 24.9 m | Tháp đồng hồ ở giữa cổng nam, mặt đồng hồ xanh, chóp mái ngói đỏ. Các dãy chợ mái ngói đỏ, tường xám kem. Cổng vòm ở 4 mặt, hàng quán dưới mái hiên. Bùng binh Quách Thị Trang phía trước (`LF_Roundabout`: cây tạo hình tầng, 4 cây cọ, bồn hoa) | [model](img/01_cho_ben_thanh.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Ben_Thanh_Market) |
-| Nhà hát Thành phố (1900) | `LM_NhaHatLon` · (65.4, −68.5) · 14.6 m | Tường kem trắng (opWhite, opShade). Vòm lớn giữa mặt tiền có kính hình quạt, hai cánh hai bên, mái xám. Đã có mặt sau và hai mặt bên. Đài phun nước Lam Sơn phía trước | [model](img/02_nha_hat.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Municipal_Theatre_of_Ho_Chi_Minh_City) |
-| Nhà thờ Đức Bà (1880) | `LM_NhaThoDucBa` · (98, −5) · 26.6 m | Gạch đỏ (brick), hai tháp chuông chóp xám nhọn, cửa sổ tròn và đồng hồ giữa hai tháp | [model](img/03_nha_tho_duc_ba.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Notre-Dame_Cathedral_Basilica_of_Saigon) |
-| Bưu điện Thành phố (1891) | `LM_BuuDien` · (94.9, −41.8), yaw −2.2924 · 15.7 m | Tường vàng (poYellow), cửa vòm xanh lá (poGreen), đồng hồ trên vòm cổng chính, hai khối đầu hồi, mái slate. Có sân trước nối ra Công xã Paris; đã có mặt sau | [model](img/04_buu_dien.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Saigon_Central_Post_Office) |
-| Công xã Paris | `LM_TuongDucMe` · (79.7, −25.8) | Bùng binh có tượng Đức Mẹ trắng (statueW) trên bệ, nằm trước nhà thờ | [model](img/08_cong_xa_paris.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Paris_Commune_Square_(Saigon)) |
-| Hồ Con Rùa (1967) | `LM_HoConRua` (+`_Water`) · (91.5, 22.4) · 15.1 m | Hồ tròn có vòi phun, trụ cao với đỉnh hình hoa sen (lotusTop), cầu thang lên vòng đi bộ trên cao, tường xanh ngọc (turq). Sân vòng ngoài có ghế và bồn hoa | [model](img/05_ho_con_rua.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:H%E1%BB%93_Con_R%C3%B9a) |
-| Bitexco (2010) | `LM_Bitexco` · (−15.5, −53.5) · 52.4 m | Tháp kính xanh hình búp sen thuôn dần, đỉnh cắt xiên. Sân đỗ trực thăng nhô ra ở khoảng 2/3 chiều cao, khối đế bên dưới. Không méo tay | [model](img/06_bitexco.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Bitexco_Financial_Tower) |
-| Cầu Ba Son (2022) | `LM_CauBaSon` (+`LF_CauBaSon_Traffic`) · trục từ (95, −88) theo (−0.578, 0.816) · trụ 24.8 m | Cầu dây văng một trụ trắng hình cánh buồm ở bờ Thủ Thiêm, dây xoè hình quạt, cột đèn vàng. Mặt cầu đi bộ được. Không méo tay | [model](img/07_cau_ba_son.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Ba_Son_Bridge) |
-| Quảng trường Lam Sơn | `CX_LamSon` (+`_Water`) · (49.3, −54.3) | Đài phun nước tròn nhiều tầng giữa bồn hoa, thu nhỏ 0.72 lần | [model](img/09_lam_son.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Lam_Son_Square) |
-| Dãy nhà ống | `SH_01..05`, `SH_StreetLife`, `SH_Wires` · x −45…−19, y −17…−7 · 8.8–13.9 m | Mỗi căn một mặt tiền (nhà cầu thang, tiệm sư tử, tiệm lu…). Có ban công, mái tôn, biển hiệu, máy lạnh, dây điện. Đây là mẫu style cho Bùi Viện | [model](img/10_nha_ong.jpg) |
-| Thủ Thiêm | `CX_Towers_ThuThiem` · x 65…151, y −130…−69 · 25.7 m | Các tháp nhạt màu (towerPale) có dải kính teal, nằm bên kia sông | [model](img/11_thu_thiem.jpg) |
+| Nhà hát Thành phố (1900) | `LM_NhaHatLon` · (106, −4), mặt tiền hướng tây, nhìn về chợ dọc Lê Lợi · 14.6 m | Tường kem trắng (opWhite, opShade). Vòm lớn giữa mặt tiền có kính hình quạt, hai cánh hai bên, mái xám. Đã có mặt sau và hai mặt bên. Quảng trường Lam Sơn và đài phun nước phía trước | [model](img/02_nha_hat.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Municipal_Theatre_of_Ho_Chi_Minh_City) |
+| Nhà thờ Đức Bà (1880) | `LM_NhaThoDucBa` · (78, 82), mặt tiền hướng nam, nhìn xuống Đồng Khởi · 26.6 m | Gạch đỏ (brick), hai tháp chuông chóp xám nhọn, cửa sổ tròn và đồng hồ giữa hai tháp | [model](img/03_nha_tho_duc_ba.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Notre-Dame_Cathedral_Basilica_of_Saigon) |
+| Bưu điện Thành phố (1891) | `LM_BuuDien` · (100, 54), mặt tiền hướng tây, nhìn ra Công xã Paris · 15.7 m | Tường vàng (poYellow), cửa vòm xanh lá (poGreen), đồng hồ trên vòm cổng chính, hai khối đầu hồi, mái slate. Sân trước nhìn ra Công xã Paris; đã có mặt sau | [model](img/04_buu_dien.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Saigon_Central_Post_Office) |
+| Công xã Paris | `LM_TuongDucMe` · (78, 50) | Bùng binh có tượng Đức Mẹ trắng (statueW) trên bệ, nằm trước nhà thờ | [model](img/08_cong_xa_paris.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Paris_Commune_Square_(Saigon)) |
+| Hồ Con Rùa (1967) | `LM_HoConRua` (+`_Water`) · (44, 90), cuối đường Phạm Ngọc Thạch · 15.1 m | Hồ tròn có vòi phun, trụ cao với đỉnh hình hoa sen (lotusTop), cầu thang lên vòng đi bộ trên cao, tường xanh ngọc (turq). Sân vòng ngoài có ghế và bồn hoa | [model](img/05_ho_con_rua.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:H%E1%BB%93_Con_R%C3%B9a) |
+| Bitexco (2010) | `LM_Bitexco` · (44, −62), bờ nước giữa Hàm Nghi và Nguyễn Huệ · 52.4 m | Tháp kính xanh hình búp sen thuôn dần, đỉnh cắt xiên. Sân đỗ trực thăng nhô ra ở khoảng 2/3 chiều cao, khối đế bên dưới. Không méo tay | [model](img/06_bitexco.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Bitexco_Financial_Tower) |
+| Quảng trường Lam Sơn | `CX_LamSon` (+`_Water`) · (89, −4) | Đài phun nước tròn nhiều tầng giữa bồn hoa, thu nhỏ 0.72 lần | [model](img/09_lam_son.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Lam_Son_Square) |
+| Phố đi bộ Nguyễn Huệ | lát gạch trong `IX_Roads_v4`, bồn cây và đèn trong `CX_StreetTrees_v4` · từ (60, 12) đến (66, −58) | Dải lát gạch rộng 14 m, không có xe, bồn cây thấp hai bên. Đầu phố phía bắc để trống cho UBND | [model](img/11_nguyen_hue.jpg) |
+| Dãy nhà ống | `SH_01..05`, `SH_StreetLife`, `SH_Wires` · x −45…−19, y −17…−7, dọc Lê Lai · 8.8–13.9 m | Mỗi căn một mặt tiền (nhà cầu thang, tiệm sư tử, tiệm lu…). Có ban công, mái tôn, biển hiệu, máy lạnh, dây điện. Đây là mẫu style cho Bùi Viện | [model](img/10_nha_ong.jpg) |
+| Bãi biển | `IS_Beach`, dừa trong `CX_Parks_v4` · quanh đảo | Cát dốc thoải: khô khoảng 8 m rồi chìm xuống biển. Đường đi bộ lát gạch chạy vòng quanh mép cỏ, dừa nghiêng ra biển. Bọt sóng và màu nước cạn do shader biển tự tính theo độ sâu | [model](img/07_bai_bien.jpg) |
+
+Cầu Ba Son và bờ Thủ Thiêm đã bỏ từ v3; muốn xem lại thì mở `versions/sg.tinymap_v2.blend`.
 
 ## Pipeline: từ Blender ra game
 
@@ -111,8 +117,8 @@ ns['art_pass_geometry']()
    ```bash
    blender sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
    ```
-3. Thu nhỏ file bằng 5 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune`). Ra `export/saigon_q1.glb` (khoảng 3.5 MB), rồi copy sang `public/models/saigon_q1.glb`.
-4. Bake lại bản đồ đi lại, mất khoảng 30 giây:
+3. Thu nhỏ file bằng 5 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune`). Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/saigon_q1.glb`.
+4. Bake lại bản đồ đi lại, mất khoảng 15 giây. Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
    ```bash
    blender sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
    ```

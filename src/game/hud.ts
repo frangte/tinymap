@@ -18,6 +18,7 @@ export class Hud {
   readonly stage = el<HTMLDivElement>('stage');
   readonly joystick: JoystickView = { base: el('joy'), knob: el('knob') };
   readonly inkButton = el<HTMLButtonElement>('ink');
+  readonly soundButton = el<HTMLButtonElement>('sound');
   readonly respawnButton = el<HTMLButtonElement>('respawn');
   readonly toPlayButton = el<HTMLButtonElement>('to-play');
   readonly toMapButton = el<HTMLButtonElement>('to-map');

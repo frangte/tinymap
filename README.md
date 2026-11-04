@@ -1,6 +1,6 @@
 # Sài Gòn Q1
 
-A walkable miniature of District 1, Ho Chi Minh City. The map is modelled in Blender (`sg.tinymap.blend`) and shown in Three.js + TypeScript. The start menu offers two ways in: **[1] map** (orbit, zoom and fly to each landmark) and **[2] play** (start in front of the south gate of Chợ Bến Thành and walk anywhere on the streets, plazas, the Ba Son bridge and the Hồ Con Rùa plaza). Everything is drawn with shaders only: a toon paint shader (colour variation, street grime, rain streaks, paper grain) and a screen-space ink outline.
+A walkable miniature of District 1, Ho Chi Minh City: an island in the sea with Chợ Bến Thành as the starting point and the landmarks laid out east of it roughly as in the real city. The map is modelled in Blender (`sg.tinymap.blend`) and shown in Three.js + TypeScript. The start menu offers two ways in: **[1] map** (orbit, zoom and fly to each landmark) and **[2] play** (start in front of the south gate of Chợ Bến Thành and walk anywhere on the streets, plazas, lawns and the beach). Everything is drawn with shaders only: a toon paint shader (colour variation, street grime, rain streaks, paper grain), a screen-space ink outline and a toon sea that reads the scene depth for shallows and shore foam. Clouds, gulls, swaying trees and code-generated ambient sound (surf, birds) keep it alive.
 
 **Start with [docs/PROJECT.md](docs/PROJECT.md)**: project context, the art style, the Blender file conventions and a sheet of every landmark with renders and reference photos.
 
@@ -37,9 +37,12 @@ src/game/
   app.ts                bootstrap, frame loop, mode switching (menu / map / play) with camera flights
   mapView.ts            map mode: orbit controls, landmark stops, menu idle orbit, camera flights
   play.ts               play mode: input -> player -> follow camera -> place labels
+  sea.ts                toon sea: depth-based shallows, shore foam, wave streaks, horizon haze
+  life.ts               drifting clouds and circling gulls
+  ambient.ts            WebAudio surf and birdsong (no audio files), mute toggle
   world.ts              renderer, paper sky, sun/ambient lighting, GLB loader (plain or base64 .txt)
-  paint.ts              toon paint material (Blender SD_Paint parameters) + see-through foliage
-  ink.ts                colour + normal/depth passes and the ink composite
+  paint.ts              toon paint material (Blender SD_Paint parameters) + foliage wind and see-through
+  ink.ts                normal/depth pass, colour pass and the ink composite
   nav.ts                walkable heightfield: floor height, walkable flag, building tops
   player.ts             movement: acceleration, turning, wall sliding, kerbs and ramps
   character.ts          low-poly pedestrian (nón lá) with procedural idle / walk / run
@@ -66,7 +69,7 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
 
 ## Changing the map
 
-1. Edit `sg.tinymap.blend` (scene `SaigonDiorama`; collections `SD_World` and `SD_NoInk`). Frozen v1: `versions/sg.tinymap_v1.blend`.
+1. Edit `sg.tinymap.blend` (scene `SaigonDiorama`; collections `SD_World` and `SD_NoInk`). Frozen versions: `versions/sg.tinymap_v1.blend`, `_v2`, `_v3`.
 2. Export with `scripts/blender/export_glb.py`, shrink with the `gltf-transform` chain in its header to `export/saigon_q1.glb`, and copy that to `public/models/saigon_q1.glb`.
 3. Re-bake the nav maps:
    ```bash
@@ -79,4 +82,4 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
 
 - NPCs and quests.
 - Bùi Viện walking street (tube-house rows are reserved for it).
-- UBND building at the north end of Nguyễn Huệ.
+- UBND building on the site kept free at the north end of Nguyễn Huệ.

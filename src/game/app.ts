@@ -3,17 +3,23 @@
 //   map   free orbit / zoom / pan with flights to each landmark
 //   play  third-person walking (see play.ts)
 // The URL hash picks the mode (#ban-do, #choi; none = menu), so the back button and shared links work.
+// Around every mode: the sea, drifting clouds and gulls, swaying trees and the ambient sound.
 import * as THREE from 'three';
 import { createRenderer, createScene, loadModel } from './world';
-import { paintWorld, SEE_THROUGH } from './paint';
+import { paintWorld, FOLIAGE } from './paint';
 import { InkPass } from './ink';
 import { NavGrid } from './nav';
 import { PlayMode } from './play';
 import { CameraFlight, MAP_STOPS, MENU_STOP, MapView } from './mapView';
 import { Hud, type Mode } from './hud';
-import { damp } from './coords';
+import { damp, fromBlender, smoothstep } from './coords';
+import { Sea } from './sea';
+import { Life } from './life';
+import { Ambient } from './ambient';
 
-const MODEL_BYTES = 3.55e6;
+const MODEL_BYTES = 2.04e6;
+/** distance from the island centre to the beach (m) */
+const COAST_R = 92;
 const MAX_PIXEL_RATIO = 1.5;
 const HASH: Record<Mode, string> = { menu: '', map: 'ban-do', play: 'choi' };
 /** vertical field of view: base for landscape, widened on portrait screens to keep this half-width (degrees) */
@@ -55,7 +61,7 @@ export async function startApp(): Promise<void> {
   const flight = new CameraFlight(camera);
   map.flyTo(MENU_STOP, true);
   map.idle = true;
-  SEE_THROUGH.uSee.value = 0;
+  FOLIAGE.uSee.value = 0;
 
   let pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
   const resize = (): void => {
@@ -72,6 +78,10 @@ export async function startApp(): Promise<void> {
 
   let mode: Mode = 'menu';
   let play: PlayMode | null = null;
+  let sea: Sea | null = null;
+  let life: Life | null = null;
+  const ambient = new Ambient();
+  const islandCenter = new THREE.Vector3();
   let stop = 0;
   let clock = 0;
   const toPos = new THREE.Vector3();
@@ -105,7 +115,7 @@ export async function startApp(): Promise<void> {
       }, 1600);
       return;
     }
-    SEE_THROUGH.uSee.value = 0;
+    FOLIAGE.uSee.value = 0;
     map.adopt(looking);
     if (next === 'map') {
       map.interactive = true;
@@ -125,9 +135,20 @@ export async function startApp(): Promise<void> {
 
   const tick = (dt: number, now: number, draw: boolean): void => {
     clock += dt;
+    FOLIAGE.uTime.value = clock;
     flight.update(now);
     play?.update(dt, now, clock, mode === 'play' && !flight.active);
     if (mode !== 'play' && !flight.active) map.update(now);
+    sea?.update(clock, camera);
+    life?.update(clock, dt);
+    // surf louder near the beach while walking; a steady mix over the map
+    if (play && mode === 'play') {
+      const p = play.player.position;
+      ambient.setCoast(smoothstep(COAST_R - 30, COAST_R + 4, Math.hypot(p.x - islandCenter.x, p.z - islandCenter.z)));
+    } else {
+      ambient.setCoast(0.45);
+    }
+    ambient.update();
     const fov = fovGoal();
     if (Math.abs(camera.fov - fov) > 0.01) {
       camera.fov += (fov - camera.fov) * damp(4, dt);
@@ -184,6 +205,14 @@ export async function startApp(): Promise<void> {
   scene.add(p.player.avatar.root);
   ink.track(p.player.avatar.root);
 
+  const [icx, icy] = nav.meta.island_center ?? [36, 8];
+  fromBlender(icx, icy, 0, islandCenter);
+  sea = new Sea(ink, camera, nav.meta.sea_level ?? -0.45, islandCenter);
+  scene.add(sea.mesh);
+  life = new Life(islandCenter, COAST_R);
+  scene.add(life.root);
+  ink.track(life.root);
+
   // ---- controls
   hud.buildStops(MAP_STOPS, (i) => {
     stop = i;
@@ -199,6 +228,17 @@ export async function startApp(): Promise<void> {
     p.spawnAtMarket();
     p.follow.snapBehind(p.player.position, p.player.heading);
     renderer.domElement.focus({ preventScroll: true });
+  });
+  // sound starts with the first click (browsers block audio until then)
+  hud.soundButton.setAttribute('aria-pressed', String(ambient.enabled));
+  window.addEventListener('pointerdown', () => {
+    if (ambient.enabled) ambient.start();
+  });
+  window.addEventListener('keydown', () => {
+    if (ambient.enabled) ambient.start();
+  }, { once: true });
+  hud.soundButton.addEventListener('click', () => {
+    hud.soundButton.setAttribute('aria-pressed', String(ambient.toggle()));
   });
   hud.inkButton.addEventListener('click', () => {
     ink.enabled = !ink.enabled;

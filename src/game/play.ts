@@ -6,7 +6,7 @@ import { Player } from './player';
 import { FollowCamera } from './followCamera';
 import { InputController, type LookDelta, type MoveIntent } from './input';
 import { placeAt, type Place } from './places';
-import { SEE_THROUGH } from './paint';
+import { FOLIAGE } from './paint';
 import type { Hud } from './hud';
 
 /** auto-follow resumes this long after the last camera drag (ms) */
@@ -57,7 +57,7 @@ export class PlayMode {
   enter(): void {
     this.follow.snapBehind(this.player.position, this.player.heading);
     this.input.enabled = true;
-    SEE_THROUGH.uSee.value = 1;
+    FOLIAGE.uSee.value = 1;
     this.place = null;
     this.hud.setPlace(null);
   }
@@ -84,7 +84,7 @@ export class PlayMode {
     const steering = now - this.input.lastLook < FOLLOW_DELAY;
     const followAmt = steering ? 0 : Math.max(0, this.move.y) * Math.min(1, this.player.speed / 2.5);
     this.follow.update(dt, this.player.position, this.player.heading, this.look, followAmt);
-    SEE_THROUGH.uPivot.value.copy(this.follow.target);
+    FOLIAGE.uPivot.value.copy(this.follow.target);
 
     const p = placeAt(this.player.position.x, -this.player.position.z, this.place);
     if (p !== this.place) {

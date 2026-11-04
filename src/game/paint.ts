@@ -13,17 +13,42 @@ const PAINT: Record<string, [number, number]> = {
 };
 const NO_GRIME = new Set(['water', 'waterDeep', 'foam', 'lampGlow', 'grass', 'grassDark', 'leaf', 'leafLight', 'leafDark', 'roadLine', 'asphalt']);
 const UNLIT = new Set(['lampGlow']);
-/** foliage that dissolves near the camera and in front of the player */
-const SEE_THROUGH_KEYS = new Set(['leaf', 'leafLight', 'leafDark']);
-
-/** Shared by every see-through material: the point the camera looks at (the player's head). */
-export const SEE_THROUGH = { uPivot: { value: new THREE.Vector3() }, uSee: { value: 1 } };
+/** foliage: sways in the wind, and dissolves near the camera and in front of the player */
+const FOLIAGE_KEYS = new Set(['leaf', 'leafLight', 'leafDark']);
 
 /**
- * GLSL: `seeThrough(worldPos)` discards a dither pattern of fragments close to the camera or near the sight line
- * from the camera to the player, so tree crowns never hide the player or fill the screen.
+ * Shared by every foliage material (colour and ink normal pass): the point the camera looks at (the player's head),
+ * whether the see-through is on (play mode) and the clock for the wind.
  */
-export const SEE_THROUGH_GLSL = /* glsl */ `
+export const FOLIAGE = { uPivot: { value: new THREE.Vector3() }, uSee: { value: 1 }, uTime: { value: 0 } };
+
+/** GLSL (vertex): `sdWind(worldPos)` offsets crowns and fronds in a slow gust; trunks below 1.2 m stay put. */
+export const FOLIAGE_VERT_GLSL = /* glsl */ `
+uniform float uTime;
+vec3 sdWind(vec3 wp){
+  float h = clamp((wp.y - 1.2)/6.0, 0.0, 1.0);
+  float ph = dot(wp.xz, vec2(0.21, 0.17));
+  float gust = 0.65 + 0.35*sin(uTime*0.23 + wp.x*0.013);
+  float s = (sin(uTime*1.25 + ph)*0.7 + sin(uTime*2.1 + ph*1.9)*0.3)*gust;
+  return vec3(s*0.12, 0.0, s*0.08)*h;
+}
+`;
+
+/**
+ * Replaces three's project_vertex for foliage: the wind is added in world space (the GLB's quantized positions
+ * live in a scaled local frame), then projected. Leaves the world position in `sdWorld`.
+ */
+export const FOLIAGE_PROJECT = `
+vec4 sdWorld = modelMatrix * vec4(transformed, 1.0);
+sdWorld.xyz += sdWind(sdWorld.xyz);
+vec4 mvPosition = viewMatrix * sdWorld;
+gl_Position = projectionMatrix * mvPosition;`;
+
+/**
+ * GLSL (fragment): `seeThrough(worldPos)` discards a dither pattern of fragments close to the camera or near the sight
+ * line from the camera to the player, so tree crowns never hide the player or fill the screen.
+ */
+export const FOLIAGE_FRAG_GLSL = /* glsl */ `
 uniform vec3 uPivot;
 uniform float uSee;
 float sdBayer(vec2 p){
@@ -73,8 +98,8 @@ export interface PaintOptions {
   grime?: number;
   /** sample the noise in object space, so it does not swim over moving meshes such as the player */
   local?: boolean;
-  /** dissolve near the camera and in front of the player (foliage) */
-  seeThrough?: boolean;
+  /** sway in the wind and dissolve near the camera / in front of the player (foliage) */
+  foliage?: boolean;
 }
 
 export function paintMaterial(color: THREE.ColorRepresentation, key: string, opts: PaintOptions = {}): THREE.MeshToonMaterial {
@@ -82,7 +107,7 @@ export function paintMaterial(color: THREE.ColorRepresentation, key: string, opt
   const variation = opts.variation ?? baseVar;
   const grime = opts.grime ?? (NO_GRIME.has(key) ? 0 : baseGrime);
   const local = opts.local === true;
-  const see = opts.seeThrough ?? SEE_THROUGH_KEYS.has(key);
+  const see = opts.foliage ?? FOLIAGE_KEYS.has(key);
   const m = new THREE.MeshToonMaterial({ color: new THREE.Color(color), gradientMap: toonRamp(), side: THREE.DoubleSide });
   m.name = key;
   m.defines = { FLAT_SHADED: '' }; // faceted normals from screen derivatives: the GLB ships positions only
@@ -90,12 +115,12 @@ export function paintMaterial(color: THREE.ColorRepresentation, key: string, opt
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uVar = { value: variation };
     sh.uniforms.uGrime = { value: grime };
-    if (see) Object.assign(sh.uniforms, SEE_THROUGH);
+    if (see) Object.assign(sh.uniforms, FOLIAGE);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
-      .replace('#include <project_vertex>', `#include <project_vertex>\nvWPos = ${pos};`);
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\n${see ? FOLIAGE_VERT_GLSL : ''}`)
+      .replace('#include <project_vertex>', see && !local ? `${FOLIAGE_PROJECT}\nvWPos = sdWorld.xyz;` : `#include <project_vertex>\nvWPos = ${pos};`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nuniform float uVar;\nuniform float uGrime;\nfloat gTermN = 0.0;\n${NOISE}${see ? SEE_THROUGH_GLSL : ''}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nuniform float uVar;\nuniform float uGrime;\nfloat gTermN = 0.0;\n${NOISE}${see ? FOLIAGE_FRAG_GLSL : ''}`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\n${see ? 'seeThrough(vWPos);' : ''}`)
       .replace('#include <gradientmap_pars_fragment>', `
         uniform sampler2D gradientMap;
@@ -136,7 +161,7 @@ export function paintWorld(root: THREE.Object3D): PaintStats {
       cache.set(key, mat);
     }
     o.material = mat;
-    o.userData.seeThrough = SEE_THROUGH_KEYS.has(key);
+    o.userData.foliage = FOLIAGE_KEYS.has(key);
     const water = key.startsWith('water') || key === 'foam';
     o.castShadow = !water;
     o.receiveShadow = true;

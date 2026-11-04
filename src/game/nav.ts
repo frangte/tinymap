@@ -14,6 +14,10 @@ export interface NavMeta {
   ny: number;
   /** spawn point, Blender XY */
   spawn: [number, number];
+  /** sea level (Blender z); the sea is drawn at this height */
+  sea_level?: number;
+  /** centre of the island, Blender XY */
+  island_center?: [number, number];
 }
 
 interface Pixels {
