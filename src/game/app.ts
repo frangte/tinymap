@@ -19,6 +19,8 @@ import { Ambient } from './ambient';
 import { DressPanel } from './dressPanel';
 import { defaultProfile, loadProfile, saveProfile, type Profile } from './profile';
 import { isTyping } from './input';
+import { RemotePlayers } from './remotePlayers';
+import { NetClient, socketUrl, type NetStatus } from '../net/client';
 
 const MODEL_BYTES = 2.04e6;
 /** distance from the island centre to the beach (m) */
@@ -84,6 +86,11 @@ export async function startApp(): Promise<void> {
   let dress: DressPanel | null = null;
   /** replaced once the map has loaded and the panel exists */
   let openDress = (): void => {};
+  // multiplayer: created with the world; joins once the player has a character
+  let remotes: RemotePlayers | null = null;
+  let net: NetClient | null = null;
+  /** replaced once the map has loaded */
+  let goOnline = (): void => {};
   // the saved character, or a fresh one that the dressing panel asks about on the first "Vào game"
   const saved = loadProfile();
   let profile: Profile = saved ?? defaultProfile();
@@ -127,6 +134,7 @@ export async function startApp(): Promise<void> {
         if (mode !== 'play') return;
         p.enter();
         if (!dressed) openDress();
+        else goOnline();
       }, 1600);
       return;
     }
@@ -154,6 +162,12 @@ export async function startApp(): Promise<void> {
     flight.update(now);
     play?.update(dt, now, clock, mode === 'play' && !flight.active);
     if (mode !== 'play' && !flight.active) map.update(now);
+    // others: hidden beyond walking distance in play mode, all of them over the map
+    remotes?.update(dt, now, clock, mode === 'play' ? camera.position : null);
+    if (net && play && mode === 'play') {
+      const pp = play.player.position;
+      net.sendState(pp.x, pp.y, pp.z, play.player.heading, now);
+    }
     sea?.update(clock, camera);
     life?.update(clock, dt);
     // surf louder near the beach while walking; a steady mix over the map
@@ -234,6 +248,8 @@ export async function startApp(): Promise<void> {
       saveProfile(next);
       p.player.avatar.setLook(next.look);
       closeDress();
+      goOnline();
+      netClient.setProfile(next);
     },
     cancel: () => {
       p.player.avatar.setLook(profile.look);
@@ -247,6 +263,45 @@ export async function startApp(): Promise<void> {
     panel.open(profile, !dressed);
   };
   hud.dressButton.addEventListener('click', () => openDress());
+
+  // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
+  const others = new RemotePlayers(scene, ink);
+  remotes = others;
+  let netStatus: NetStatus = 'connecting';
+  const showOnline = (): void => hud.setOnline(netStatus, others.count + 1);
+  const netClient: NetClient = new NetClient(socketUrl(hud.stage), {
+    status: (s) => {
+      netStatus = s;
+      showOnline();
+    },
+    welcome: (players) => {
+      others.clear();
+      const now = performance.now();
+      for (const info of players) others.add(info, now);
+      showOnline();
+    },
+    join: (info) => {
+      others.add(info, performance.now());
+      showOnline();
+    },
+    leave: (id) => {
+      others.remove(id);
+      showOnline();
+    },
+    profile: (id, name, look) => others.setProfile(id, name, look),
+    snap: (rows, receivedAt) => others.applySnap(rows, receivedAt, netClient.selfId),
+    // chat box and bubbles: phase 5
+    chat: () => {},
+    rateLimited: () => {},
+    reset: () => {
+      others.clear();
+      showOnline();
+    },
+  });
+  net = netClient;
+  goOnline = (): void => {
+    if (dressed) netClient.start(profile);
+  };
 
   const [icx, icy] = nav.meta.island_center ?? [36, 8];
   fromBlender(icx, icy, 0, islandCenter);
@@ -311,7 +366,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

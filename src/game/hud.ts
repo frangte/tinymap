@@ -4,6 +4,7 @@
 import type { Place } from './places';
 import type { JoystickView } from './input';
 import type { MapStop } from './mapView';
+import type { NetStatus } from '../net/client';
 
 export type Mode = 'menu' | 'map' | 'play';
 
@@ -13,7 +14,14 @@ export function el<T extends HTMLElement>(id: string): T {
   return e as T;
 }
 
-const EYEBROW: Record<Mode, string> = { menu: 'Sài Gòn Q1', map: 'Sài Gòn Q1 · bản đồ', play: 'Sài Gòn Q1 · đang ở' };
+const ONLINE_TEXT: Record<NetStatus, (n: number) => string> = {
+  online: (n) => (n > 1 ? `${n} người đang ở Q1` : 'Chỉ có bạn ở Q1'),
+  connecting: () => 'Đang kết nối…',
+  offline: () => 'Mất kết nối, đang thử lại…',
+  full: () => 'Phố đông quá, chờ chút…',
+};
+
+const EYEBROW: Record<Mode, string> ={ menu: 'Sài Gòn Q1', map: 'Sài Gòn Q1 · bản đồ', play: 'Sài Gòn Q1 · đang ở' };
 
 export class Hud {
   readonly stage = el<HTMLDivElement>('stage');
@@ -29,6 +37,8 @@ export class Hud {
   private readonly eyebrow = el('where-eyebrow');
   private readonly where = el('where');
   private readonly whereNote = el('wherenote');
+  private readonly online = el('online');
+  private readonly onlineText = el('online-text');
   private readonly toastEl = el('toast');
   private readonly hint = el('hint-play');
   private readonly chips = el('chips');
@@ -63,6 +73,13 @@ export class Hud {
     el('loadrow').hidden = true;
     this.modeMapButton.disabled = true;
     this.modePlayButton.disabled = true;
+  }
+
+  /** Multiplayer status under the place name; `players` counts everyone here, this player included. */
+  setOnline(status: NetStatus, players: number): void {
+    this.online.hidden = false;
+    this.online.dataset.status = status;
+    this.onlineText.textContent = ONLINE_TEXT[status](players);
   }
 
   setPlace(p: Place | null): void {

@@ -2,6 +2,7 @@
 node_modules/
 dist/
 dist-single/
+server/bin/
 *.tsbuildinfo
 *.log
 
