@@ -28,7 +28,7 @@ export class DressPanel {
   private readonly cancelButton = el<HTMLButtonElement>('dress-cancel');
   private readonly doneButton = el<HTMLButtonElement>('dress-done');
   private readonly bodyButtons = new Map<Body, HTMLButtonElement>();
-  private readonly outfitButtons = new Map<OutfitId, { button: HTMLButtonElement; top: HTMLElement; bottom: HTMLElement }>();
+  private readonly outfitButtons = new Map<OutfitId, { button: HTMLButtonElement; top: HTMLElement; bottom: HTMLElement; name: HTMLElement }>();
   private readonly hatButtons = new Map<HatId, HTMLButtonElement>();
   private look: Look = { body: 'man', outfit: 'thun', hat: 'nonla' };
   private first = false;
@@ -54,9 +54,8 @@ export class DressPanel {
       const bottom = document.createElement('i');
       sw.append(top, bottom);
       const name = document.createElement('span');
-      name.textContent = outfitStyle(outfit, 'man').name;
       b.append(sw, name);
-      this.outfitButtons.set(outfit, { button: b, top, bottom });
+      this.outfitButtons.set(outfit, { button: b, top, bottom, name });
       outfits.appendChild(b);
     }
     const hats = el('dress-hat');
@@ -133,6 +132,8 @@ export class DressPanel {
       o.button.setAttribute('aria-pressed', String(k === outfit));
       o.top.style.background = s.top;
       o.bottom.style.background = s.bottom;
+      // some outfits are named per body (Bikini / Quần bơi)
+      o.name.textContent = s.name;
     }
   }
 }

@@ -45,7 +45,7 @@ const (
 
 var (
 	bodies  = map[string]bool{"man": true, "woman": true}
-	outfits = map[string]bool{"thun": true, "aodai": true, "baba": true, "somi": true, "xeom": true}
+	outfits = map[string]bool{"thun": true, "aodai": true, "baba": true, "somi": true, "xeom": true, "bikini": true}
 	hats    = map[string]bool{"nonla": true, "cap": true, "none": true}
 )
 

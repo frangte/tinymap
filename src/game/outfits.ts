@@ -2,7 +2,7 @@
 // so `parseLook` is the one gate for anything that did not come from this module.
 
 export const BODIES = ['man', 'woman'] as const;
-export const OUTFITS = ['thun', 'aodai', 'baba', 'somi', 'xeom'] as const;
+export const OUTFITS = ['thun', 'aodai', 'baba', 'somi', 'xeom', 'bikini'] as const;
 export const HATS = ['nonla', 'cap', 'none'] as const;
 
 export type Body = (typeof BODIES)[number];
@@ -16,7 +16,10 @@ export interface Look {
 }
 
 export type Sleeves = 'short' | 'long';
-export type Legs = 'shorts' | 'pants' | 'skirt';
+/** shorts: bare shins; bare: bare thighs too (swimwear) */
+export type Legs = 'shorts' | 'pants' | 'skirt' | 'bare';
+/** shirt: the torso in the top colour; bikini: bare with a top band; bare: no top (swim trunks) */
+export type Torso = 'shirt' | 'bikini' | 'bare';
 
 /** Colours and cut of one outfit; `woman` / `man` override fields for that body. */
 export interface OutfitStyle {
@@ -33,6 +36,7 @@ export interface OutfitStyle {
   legs: Legs;
   /** áo dài: long front and back panels from the waist to the shins */
   flaps: boolean;
+  torso: Torso;
 }
 
 interface OutfitDef extends OutfitStyle {
@@ -44,27 +48,34 @@ interface OutfitDef extends OutfitStyle {
 const OUTFIT_DEFS: Record<OutfitId, OutfitDef> = {
   thun: {
     name: 'Áo thun', top: '#B5523B', bottom: '#38465C', shoe: '#2B211C', accent: '#4F8F88', bag: '#4F8F88',
-    sleeves: 'short', legs: 'shorts', flaps: false,
+    sleeves: 'short', legs: 'shorts', flaps: false, torso: 'shirt',
     woman: { top: '#D29A86', bottom: '#4E7CA6', legs: 'skirt', bag: '#E0B45A' },
   },
   aodai: {
     name: 'Áo dài', top: '#5BA9A1', bottom: '#F3EEE2', shoe: '#2B211C', accent: '#C9A24A', bag: null,
-    sleeves: 'long', legs: 'pants', flaps: true,
+    sleeves: 'long', legs: 'pants', flaps: true, torso: 'shirt',
     man: { top: '#4E7CA6', bottom: '#EEE7D7' },
   },
   baba: {
     name: 'Áo bà ba', top: '#E6D29C', bottom: '#2E2A2B', shoe: '#6B4C36', accent: '#7D3326', bag: null,
-    sleeves: 'long', legs: 'pants', flaps: false,
+    sleeves: 'long', legs: 'pants', flaps: false, torso: 'shirt',
     woman: { top: '#C0613F' },
   },
   somi: {
     name: 'Sơ mi', top: '#EEF0EE', bottom: '#4A4F57', shoe: '#2B211C', accent: '#4E7CA6', bag: '#3B3330',
-    sleeves: 'short', legs: 'pants', flaps: false,
+    sleeves: 'short', legs: 'pants', flaps: false, torso: 'shirt',
     woman: { top: '#F4EBD3', bottom: '#646B74', legs: 'skirt' },
   },
   xeom: {
     name: 'Áo khoác xe ôm', top: '#3E7F5F', bottom: '#4E6A8A', shoe: '#2B211C', accent: '#E0B45A', bag: null,
-    sleeves: 'long', legs: 'pants', flaps: false,
+    sleeves: 'long', legs: 'pants', flaps: false, torso: 'shirt',
+  },
+  // for the beach: a bikini, or swim trunks and no shirt; dép tông on the feet. `top` is the swatch colour,
+  // so the men's swatch shows bare skin over the trunks
+  bikini: {
+    name: 'Quần bơi', top: '#C68D66', bottom: '#4E7CA6', shoe: '#B5523B', accent: '#E0B45A', bag: null,
+    sleeves: 'short', legs: 'shorts', flaps: false, torso: 'bare',
+    woman: { name: 'Bikini', top: '#5BA9A1', bottom: '#5BA9A1', shoe: '#E0B45A', accent: '#B5523B', legs: 'bare', torso: 'bikini' },
   },
 };
 

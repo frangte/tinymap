@@ -48,6 +48,12 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("got %+v", m)
 				}
 			}},
+		{name: "swimwear", in: `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"bikini","hat":"none"}}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Look.Outfit != "bikini" {
+					t.Fatalf("got %+v", m)
+				}
+			}},
 		{name: "hello without look", in: `{"t":"hello","name":"Lan"}`, wantErr: ErrBadLook},
 		{name: "unknown outfit", in: `{"t":"profile","name":"a","look":{"body":"man","outfit":"suit","hat":"none"}}`, wantErr: ErrBadLook},
 		{name: "state wraps heading", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":7}`,

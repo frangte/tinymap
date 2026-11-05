@@ -46,7 +46,7 @@ internal/protocol/msg.go    message types and validation (the rules below)
 
 JSON text frames, one message per frame, the type in `t`. The client mirrors this in `src/net/protocol.ts`. Positions are three.js metres (Y up) and the heading is radians (0 = facing +Z), which matches `Player.position` and `Player.heading` in the game.
 
-`look` is `{"body": "man"|"woman", "outfit": "thun"|"aodai"|"baba"|"somi"|"xeom", "hat": "nonla"|"cap"|"none"}` (`src/game/outfits.ts`).
+`look` is `{"body": "man"|"woman", "outfit": "thun"|"aodai"|"baba"|"somi"|"xeom"|"bikini", "hat": "nonla"|"cap"|"none"}` (`src/game/outfits.ts`).
 
 ### Client to server
 

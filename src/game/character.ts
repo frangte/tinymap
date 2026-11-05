@@ -83,6 +83,8 @@ interface Side {
   shin: THREE.Mesh;
   upperArm: THREE.Mesh;
   forearm: THREE.Mesh;
+  /** the cap of the sleeve over the shoulder joint */
+  pad: THREE.Mesh;
 }
 
 export class Pedestrian {
@@ -95,6 +97,8 @@ export class Pedestrian {
   private readonly right: Side;
   private readonly mat = materials();
   private readonly torso: THREE.Mesh;
+  /** bikini top: a band around the chest */
+  private readonly bra: THREE.Mesh;
   private readonly bag: THREE.Mesh;
   private readonly skirt: THREE.Mesh;
   private readonly flapFront = new THREE.Group();
@@ -133,6 +137,12 @@ export class Pedestrian {
     torsoGeo.translate(0, 0.25, 0);
     this.torso = new THREE.Mesh(torsoGeo, m.top);
     this.spine.add(this.torso);
+    // bikini top: a slice of the torso shape, a hair wider, across the chest (a child, so it narrows with the torso)
+    const braGeo = new THREE.CylinderGeometry(0.283, 0.268, 0.12, 4, 1);
+    braGeo.rotateY(Math.PI / 4);
+    braGeo.scale(1, 1, 0.62);
+    this.bra = at(new THREE.Mesh(braGeo, m.top), 0, 0.36, 0);
+    this.torso.add(this.bra);
     this.bag = at(new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.3, 0.11), m.bag), 0, 0.27, -0.16);
     this.spine.add(this.bag);
 
@@ -184,15 +194,19 @@ export class Pedestrian {
     m.cap.color.set(s.accent);
     if (s.bag) m.bag.color.set(s.bag);
 
-    const legSkin = s.legs === 'skirt';
+    const legSkin = s.legs === 'skirt' || s.legs === 'bare';
     const shinSkin = s.legs !== 'pants';
     const armSkin = s.sleeves === 'short';
+    const chest = s.torso === 'shirt' ? m.top : m.skin;
+    this.torso.material = chest;
+    this.bra.visible = s.torso === 'bikini';
     const frame = FRAME[look.body];
     for (const side of [this.left, this.right]) {
       side.thigh.material = legSkin ? m.skin : m.bottom;
       side.shin.material = shinSkin ? m.skin : m.bottom;
       side.upperArm.material = armSkin ? m.skin : m.top;
       side.forearm.material = armSkin ? m.skin : m.top;
+      side.pad.material = chest;
     }
     this.left.shoulder.position.x = frame.shoulderX;
     this.right.shoulder.position.x = -frame.shoulderX;
@@ -231,7 +245,8 @@ export class Pedestrian {
     this.body.add(hip);
 
     const shoulder = at(new THREE.Group(), sx * FRAME.man.shoulderX, 0.455, 0);
-    shoulder.add(at(hanging(0.13, 0.15, 0.13, m.top), 0, 0.03, 0));
+    const pad = at(hanging(0.13, 0.15, 0.13, m.top), 0, 0.03, 0);
+    shoulder.add(pad);
     const upperArm = hanging(0.082, 0.27, 0.085, m.skin);
     shoulder.add(upperArm);
     const elbow = at(new THREE.Group(), 0, -0.27, 0);
@@ -240,7 +255,7 @@ export class Pedestrian {
     elbow.add(forearm);
     elbow.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.085, 0.085), m.skin), 0, -0.27, 0));
     this.spine.add(shoulder);
-    return { hip, knee, shoulder, elbow, thigh, shin, upperArm, forearm };
+    return { hip, knee, shoulder, elbow, thigh, shin, upperArm, forearm, pad };
   }
 
   /** Advance the gait. `speed` is the actual ground speed in m/s, `time` seconds since start. */
