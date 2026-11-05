@@ -178,6 +178,59 @@ button:disabled { cursor: progress; opacity: 0.55; transform: none; }
   to { opacity: 1; transform: none; }
 }
 
+/* dressing panel: a card on the right on wide screens, a bottom sheet on phones (play.ts frames the player to match) */
+.dress {
+  position: fixed;
+  right: var(--edge-r);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(344px, calc(100vw - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 14px;
+  border-width: 2px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
+}
+.dress h2 { margin: -8px 0 0; font: 800 28px/1.05 var(--display); letter-spacing: -0.02em; }
+.dress fieldset { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 7px; }
+.dress legend,
+.field > span { padding: 0; font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.dress legend { margin-bottom: 7px; }
+.field { display: grid; gap: 7px; }
+/* 16px keeps iOS from zooming into the field */
+.field input {
+  font: 600 16px/1.2 var(--body);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 9px 11px;
+  box-shadow: inset 1px 1px 0 var(--shade);
+  min-width: 0;
+}
+.field input::placeholder { color: color-mix(in srgb, var(--ink-soft) 70%, transparent); }
+.field input:focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.seg button { padding: 10px 8px; }
+.outfits { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.outfit { display: grid; justify-items: start; align-content: start; gap: 7px; padding: 9px 9px 10px; text-align: left; font-size: 12px; line-height: 1.2; }
+/* shirt over trousers, the two colours the outfit is recognised by */
+.outfit .sw { display: grid; grid-template-rows: 9px 7px; width: 30px; border: 1.2px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.outfit[aria-pressed='true'] .sw { border-color: var(--paper); }
+.dress-actions { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 2px; }
+.dress-actions button { padding: 11px 14px; font-size: 14px; }
+.dress-actions .btn-primary { grid-column: 2; font: 800 16px/1 var(--display); }
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+body.is-dressing .hint,
+body.is-dressing .toast,
+body.is-dressing #dress-open { display: none !important; }
+
 /* control hint */
 .hint {
   position: fixed;
@@ -258,8 +311,42 @@ kbd {
   }
   .menu h1 { font-size: 32px; }
   .menu .lede { font-size: 14px; }
+  .dress {
+    left: var(--edge-l);
+    right: var(--edge-r);
+    top: auto;
+    bottom: var(--edge-b);
+    translate: none;
+    width: auto;
+    max-height: 50%;
+    padding: 12px 12px 0;
+    gap: 9px;
+    animation-name: sheet-up;
+  }
+  /* the sheet must leave the player visible above it: no title, swatch beside the label, the confirm button pinned */
+  .dress .eyebrow,
+  .dress h2 { display: none; }
+  .dress legend { margin-bottom: 5px; }
+  .field { grid-template-columns: auto 1fr; align-items: center; gap: 10px; }
+  .field input { padding: 7px 10px; }
+  .seg button { padding: 9px 6px; }
+  .outfits { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .outfit { grid-template-columns: auto 1fr; align-items: center; gap: 6px; padding: 8px 6px; font-size: 11px; }
+  .outfit .sw { width: 18px; grid-template-rows: 8px 6px; }
+  .dress-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -12px;
+    padding: 9px 12px 10px;
+    background: var(--paper);
+    border-top: 1.5px solid var(--ink);
+  }
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   button, .bar i, .toast, .hint, .menu { transition: none; }
-  .toast { animation: none; }
+  .toast, .dress { animation: none; }
 }

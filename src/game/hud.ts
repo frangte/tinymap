@@ -1,4 +1,5 @@
 // DOM overlay: start menu (with the loader), place card, map stops, tool buttons, landmark toasts, hints.
+// The dressing panel has its own controller (dressPanel.ts).
 // Which elements show in which mode is CSS: <body data-mode> against each element's data-modes list.
 import type { Place } from './places';
 import type { JoystickView } from './input';
@@ -6,7 +7,7 @@ import type { MapStop } from './mapView';
 
 export type Mode = 'menu' | 'map' | 'play';
 
-function el<T extends HTMLElement>(id: string): T {
+export function el<T extends HTMLElement>(id: string): T {
   const e = document.getElementById(id);
   if (!e) throw new Error(`#${id} missing in index.html`);
   return e as T;
@@ -20,6 +21,7 @@ export class Hud {
   readonly inkButton = el<HTMLButtonElement>('ink');
   readonly soundButton = el<HTMLButtonElement>('sound');
   readonly respawnButton = el<HTMLButtonElement>('respawn');
+  readonly dressButton = el<HTMLButtonElement>('dress-open');
   readonly toPlayButton = el<HTMLButtonElement>('to-play');
   readonly toMapButton = el<HTMLButtonElement>('to-map');
   readonly modeMapButton = el<HTMLButtonElement>('mode-map');

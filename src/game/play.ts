@@ -3,14 +3,26 @@
 import * as THREE from 'three';
 import type { NavGrid } from './nav';
 import { Player } from './player';
-import { FollowCamera } from './followCamera';
+import { FollowCamera, type Framing } from './followCamera';
 import { InputController, type LookDelta, type MoveIntent } from './input';
 import { placeAt, type Place } from './places';
 import { FOLIAGE } from './paint';
+import { damp, wrapAngle } from './coords';
 import type { Hud } from './hud';
 
 /** auto-follow resumes this long after the last camera drag (ms) */
 const FOLLOW_DELAY = 1400;
+/**
+ * dressing: whole body beside the side panel (wide screens) or above the bottom sheet (phones). The phone framing
+ * looks down from about 2.4 m at a point below the feet, which lifts the player clear of the sheet and keeps
+ * low props the camera does not collide with (the roundabout decoration) under the frame.
+ */
+const FRAME_WIDE: Framing = { height: 0.9, dist: 4.4, pitch: 0.16 };
+const FRAME_TALL: Framing = { height: -0.5, dist: 5.4, pitch: 0.55 };
+/** the panel is a bottom sheet below this width (keep in sync with style.css) */
+const SHEET_MAX_WIDTH = 560;
+/** how fast the player turns round to face the camera while dressing (1/s) */
+const FACE_RATE = 6;
 
 export class PlayMode {
   readonly player: Player;
@@ -24,6 +36,9 @@ export class PlayMode {
   private readonly savePos = new THREE.Vector3();
   private readonly saveQuat = new THREE.Quaternion();
   private hintHidden = false;
+  /** between enter() and exit() */
+  private active = false;
+  private dressing = false;
 
   constructor(private readonly nav: NavGrid, private readonly camera: THREE.PerspectiveCamera, private readonly hud: Hud, surface: HTMLElement) {
     this.player = new Player(nav);
@@ -56,14 +71,23 @@ export class PlayMode {
   /** Start taking input; the camera should already sit at entryPose(). */
   enter(): void {
     this.follow.snapBehind(this.player.position, this.player.heading);
-    this.input.enabled = true;
+    this.active = true;
+    this.input.enabled = !this.dressing;
     FOLIAGE.uSee.value = 1;
     this.place = null;
     this.hud.setPlace(null);
   }
 
   exit(): void {
+    this.active = false;
     this.input.enabled = false;
+  }
+
+  /** While dressing the player stands still, turns to face the camera and the camera frames the whole body. */
+  setDressing(on: boolean): void {
+    this.dressing = on;
+    this.input.enabled = this.active && !on;
+    if (!on) this.follow.portrait = null;
   }
 
   /** Current look-at point of the follow camera. */
@@ -77,6 +101,12 @@ export class PlayMode {
   update(dt: number, now: number, clock: number, driveCamera: boolean): void {
     this.input.readMove(this.move);
     this.input.consumeLook(this.look);
+    if (this.dressing) {
+      // the model faces +Z rotated by heading; the camera sits along (sin yaw, cos yaw), so heading = yaw faces it
+      const h = this.player.heading;
+      this.player.heading = wrapAngle(h + wrapAngle(this.follow.yaw - h) * damp(FACE_RATE, dt));
+      this.follow.portrait = window.innerWidth <= SHEET_MAX_WIDTH ? FRAME_TALL : FRAME_WIDE;
+    }
     this.follow.forward(this.forward);
     this.player.update(dt, this.move, this.forward, clock);
     if (!driveCamera) return;

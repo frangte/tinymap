@@ -33,6 +33,12 @@ export interface JoystickView {
   knob: HTMLElement;
 }
 
+/** True while the key goes into a text field (the name field, the chat box): it must not walk or switch modes. */
+export function isTyping(e: KeyboardEvent): boolean {
+  const t = e.target;
+  return t instanceof HTMLElement && (t.isContentEditable || t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement);
+}
+
 interface Drag {
   x: number;
   y: number;
@@ -99,7 +105,7 @@ export class InputController {
   }
 
   private onKey(e: KeyboardEvent, down: boolean): void {
-    if (!this.on) return;
+    if (!this.on || (down && isTyping(e))) return;
     if (e.key === 'Shift') this.shift = down;
     if (!(e.code in KEYS)) return;
     if (down && (e.metaKey || e.ctrlKey || e.altKey)) return;

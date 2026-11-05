@@ -100,6 +100,15 @@ export class InkPass {
     });
   }
 
+  /** Stop drawing the meshes under `root` (call before removing it from the scene for good). */
+  untrack(root: THREE.Object3D): void {
+    const gone = new Set<THREE.Object3D>();
+    root.traverse((o) => gone.add(o));
+    let keep = 0;
+    for (const t of this.tracked) if (!gone.has(t.mesh)) this.tracked[keep++] = t;
+    this.tracked.length = keep;
+  }
+
   /** Leave `o` out of the normal/depth pass. */
   skip(o: THREE.Object3D): void {
     this.skipped.push(o);

@@ -43,12 +43,39 @@
     <div class="tools" data-modes="map play">
       <button id="sound" type="button" aria-pressed="true" title="Bật hoặc tắt tiếng sóng và chim">Âm thanh</button>
       <button id="ink" type="button" aria-pressed="true" title="Bật hoặc tắt nét mực">Nét mực</button>
+      <button id="dress-open" type="button" data-modes="play" title="Đổi nhân vật và trang phục">Đổi đồ</button>
       <button id="respawn" type="button" data-modes="play" title="Quay lại cổng chợ Bến Thành">Về chợ</button>
       <button id="to-map" type="button" data-modes="play" title="Xem toàn bộ bản đồ">Bản đồ</button>
       <button id="to-play" class="btn-primary" type="button" data-modes="map" title="Đi bộ trong Quận 1">Vào game</button>
     </div>
 
     <div class="toast card" id="toast" role="status" data-modes="play" hidden></div>
+
+    <!-- dressing: opens on the first "Vào game" and from "Đổi đồ"; buttons are filled in by dressPanel.ts -->
+    <section class="dress card" id="dress" data-modes="play" aria-labelledby="dress-title" hidden>
+      <div class="eyebrow">Nhân vật</div>
+      <h2 id="dress-title">Chọn nhân vật</h2>
+      <label class="field">
+        <span>Tên hiển thị</span>
+        <input id="dress-name" type="text" autocomplete="nickname" spellcheck="false" enterkeyhint="done" placeholder="Khách 123" />
+      </label>
+      <fieldset>
+        <legend>Giới tính</legend>
+        <div class="seg" id="dress-body"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Trang phục</legend>
+        <div class="outfits" id="dress-outfit"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Nón</legend>
+        <div class="seg" id="dress-hat"></div>
+      </fieldset>
+      <div class="dress-actions">
+        <button id="dress-cancel" type="button">Huỷ</button>
+        <button id="dress-done" class="btn-primary" type="button">Vào phố</button>
+      </div>
+    </section>
 
     <div class="hint card" id="hint-play" data-modes="play">
       <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>

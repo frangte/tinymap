@@ -16,6 +16,9 @@ import { damp, fromBlender, smoothstep } from './coords';
 import { Sea } from './sea';
 import { Life } from './life';
 import { Ambient } from './ambient';
+import { DressPanel } from './dressPanel';
+import { defaultProfile, loadProfile, saveProfile, type Profile } from './profile';
+import { isTyping } from './input';
 
 const MODEL_BYTES = 2.04e6;
 /** distance from the island centre to the beach (m) */
@@ -78,6 +81,13 @@ export async function startApp(): Promise<void> {
 
   let mode: Mode = 'menu';
   let play: PlayMode | null = null;
+  let dress: DressPanel | null = null;
+  /** replaced once the map has loaded and the panel exists */
+  let openDress = (): void => {};
+  // the saved character, or a fresh one that the dressing panel asks about on the first "Vào game"
+  const saved = loadProfile();
+  let profile: Profile = saved ?? defaultProfile();
+  let dressed = saved !== null;
   let sea: Sea | null = null;
   let life: Life | null = null;
   const ambient = new Ambient();
@@ -102,7 +112,10 @@ export async function startApp(): Promise<void> {
     hud.setMode(next);
     map.interactive = false;
     map.idle = false;
-    if (prev === 'play') play.exit();
+    if (prev === 'play') {
+      dress?.dismiss();
+      play.exit();
+    }
     // where the camera is looking now, whoever was driving it
     const looking = flight.active ? flight.lookAt.clone() : prev === 'play' ? play.target.clone() : map.controls.target.clone();
     flight.cancel();
@@ -111,7 +124,9 @@ export async function startApp(): Promise<void> {
       const p = play;
       p.entryPose(toPos, toTarget);
       flight.start(looking, toPos, toTarget, () => {
-        if (mode === 'play') p.enter();
+        if (mode !== 'play') return;
+        p.enter();
+        if (!dressed) openDress();
       }, 1600);
       return;
     }
@@ -202,8 +217,36 @@ export async function startApp(): Promise<void> {
 
   const p = new PlayMode(nav, camera, hud, renderer.domElement);
   play = p;
+  p.player.avatar.setLook(profile.look);
   scene.add(p.player.avatar.root);
   ink.track(p.player.avatar.root);
+
+  // ---- dressing: live preview on the player, saved on "Vào phố", reverted on "Huỷ"
+  const closeDress = (): void => {
+    p.setDressing(false);
+    renderer.domElement.focus({ preventScroll: true });
+  };
+  const panel = new DressPanel({
+    preview: (look) => p.player.avatar.setLook(look),
+    done: (next) => {
+      profile = next;
+      dressed = true;
+      saveProfile(next);
+      p.player.avatar.setLook(next.look);
+      closeDress();
+    },
+    cancel: () => {
+      p.player.avatar.setLook(profile.look);
+      closeDress();
+    },
+  });
+  dress = panel;
+  openDress = (): void => {
+    if (mode !== 'play' || flight.active || panel.isOpen) return;
+    p.setDressing(true);
+    panel.open(profile, !dressed);
+  };
+  hud.dressButton.addEventListener('click', () => openDress());
 
   const [icx, icy] = nav.meta.island_center ?? [36, 8];
   fromBlender(icx, icy, 0, islandCenter);
@@ -246,6 +289,13 @@ export async function startApp(): Promise<void> {
   });
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // Esc closes the dressing panel first (also from inside its name field); other keys typed into a field stay there
+    if (panel.isOpen && e.key === 'Escape') {
+      e.preventDefault();
+      panel.dismiss();
+      return;
+    }
+    if (isTyping(e)) return;
     if (mode === 'menu' && (e.key === '1' || e.key === '2')) request(e.key === '1' ? 'map' : 'play');
     else if (mode !== 'menu' && e.key === 'Escape') request('menu');
   });
@@ -261,7 +311,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

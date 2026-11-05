@@ -42,7 +42,9 @@ export class Player {
   private readonly wish = new THREE.Vector3();
   private floor = 0;
 
-  constructor(private readonly nav: NavGrid, private readonly tuning: PlayerTuning = DEFAULT_TUNING) {}
+  constructor(private readonly nav: NavGrid, private readonly tuning: PlayerTuning = DEFAULT_TUNING) {
+    this.avatar.root.name = 'Player';
+  }
 
   /** Place the player at three.js (x, z), or the nearest spot that fits, facing `heading` (0 = +Z). */
   spawn(x: number, z: number, heading: number): void {
