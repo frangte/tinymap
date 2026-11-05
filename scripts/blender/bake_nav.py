@@ -26,10 +26,10 @@ import numpy as np
 from mathutils import Vector
 
 CS = 0.35
-X0, Y0, X1, Y1 = -84.0, -98.0, 140.0, 130.0    # the island and its beach
-SPAWN = (8.0, -12.8)  # in front of the Ben Thanh south gate
+X0, Y0, X1, Y1 = -124.0, -106.0, 124.0, 56.0    # the v5 island, its beach and the Me Linh pier
+SPAWN = (8.0, -14.0)  # on the central plaza, in front of the Ben Thanh south gate
 SEA_LEVEL = -0.45     # the sea is drawn in three.js at this height; sand below it is not walkable
-ISLAND_CENTER = (36.0, 8.0)
+ISLAND_CENTER = (-4.0, -16.0)
 SCENE = 'SaigonDiorama'
 COLLECTIONS = ('SD_World', 'SD_NoInk')
 WATER = {'SD_water', 'SD_waterDeep', 'SD_foam'}
