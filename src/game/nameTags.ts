@@ -1,6 +1,7 @@
 // Names and chat bubbles over heads: HTML labels on a layer above the canvas, moved every frame to the projected
 // head position. HTML rather than 3D text keeps Vietnamese diacritics sharp at any size and needs no InkPass
 // tracking or textures. Text only ever goes in through textContent.
+// Everyone, us included, shows a name; while someone has a chat bubble up, the bubble takes the name's place.
 // Labels are not hidden behind buildings (no per-frame raycasts against the city): they fade out with distance.
 import * as THREE from 'three';
 import { clamp, smoothstep } from './coords';
@@ -76,6 +77,7 @@ class Tag {
   say(text: string, now: number): void {
     this.bubble.textContent = text;
     this.bubble.hidden = false;
+    this.root.classList.add('is-speaking');
     this.bubbleUntil = now + Math.min(BUBBLE_MAX, BUBBLE_MIN + BUBBLE_PER_CHAR * Array.from(text).length);
     this.w = this.h = -1;
     // restart the pop-in animation
@@ -84,13 +86,12 @@ class Tag {
     this.bubble.classList.add('is-new');
   }
 
-  /** a bubble is up (expired ones are taken down here) */
-  speaking(now: number): boolean {
-    if (!this.bubble.hidden && now > this.bubbleUntil) {
-      this.bubble.hidden = true;
-      this.w = this.h = -1;
-    }
-    return !this.bubble.hidden;
+  /** take an expired bubble down: the name shows again */
+  private expire(now: number): void {
+    if (this.bubble.hidden || now <= this.bubbleUntil) return;
+    this.bubble.hidden = true;
+    this.root.classList.remove('is-speaking');
+    this.w = this.h = -1;
   }
 
   hide(): void {
@@ -101,10 +102,7 @@ class Tag {
 
   /** shown this frame at its projected spot; `write` puts it on screen once overlaps are settled */
   show(x: number, y: number, scale: number, alpha: number, dist: number, now: number): void {
-    if (!this.bubble.hidden && now > this.bubbleUntil) {
-      this.bubble.hidden = true;
-      this.w = this.h = -1;
-    }
+    this.expire(now);
     if (!this.shown) {
       this.shown = true;
       this.root.hidden = false;
@@ -161,6 +159,11 @@ export class NameTags {
     this.height = height;
   }
 
+  /** our own name, as the server cleaned it */
+  setSelfName(name: string): void {
+    this.self.setName(name);
+  }
+
   /** A chat bubble over a head: `SELF` for our own lines. Unknown ids are ignored (not placed yet). */
   say(id: number, text: string, now: number): void {
     (id === SELF ? this.self : this.tags.get(id))?.say(text, now);
@@ -186,9 +189,7 @@ export class NameTags {
       if (r.avatar.root.visible) this.project(tag, camera, r.position, now);
       else tag.hide();
     }
-    // our own label is only ever a bubble
-    if (this.self.speaking(now)) this.project(this.self, camera, selfPos, now);
-    else this.self.hide();
+    this.project(this.self, camera, selfPos, now);
     this.declutter();
     for (const tag of this.visible) tag.write();
   }
@@ -196,7 +197,7 @@ export class NameTags {
   /**
    * Players standing together would stack their labels on top of each other: nearest first, each label that
    * overlaps one already settled moves up above it (a few dozen labels at most, so pairwise is fine).
-   * Our own bubble goes first and never moves: it has no name under it, so it must stay on our own head.
+   * Our own label goes first and never moves, so it always sits on our own head.
    */
   private declutter(): void {
     const tags = this.visible;

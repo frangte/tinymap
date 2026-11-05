@@ -242,6 +242,7 @@ export async function startApp(): Promise<void> {
   const p = new PlayMode(nav, camera, hud, renderer.domElement);
   play = p;
   p.player.avatar.setLook(profile.look);
+  tags.setSelfName(profile.name);
   scene.add(p.player.avatar.root);
   ink.track(p.player.avatar.root);
 
@@ -257,6 +258,7 @@ export async function startApp(): Promise<void> {
       dressed = true;
       saveProfile(next);
       p.player.avatar.setLook(next.look);
+      tags.setSelfName(next.name);
       menu.setBody(next.look.body);
       closeDress();
       goOnline();

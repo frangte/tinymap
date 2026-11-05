@@ -325,7 +325,10 @@ kbd {
   background: color-mix(in srgb, var(--paper) 86%, transparent);
   box-shadow: 0 0 0 1.2px var(--ink), 1px 2px 0 var(--shade);
 }
-.tag.is-self .tag-name { display: none; }
+/* a bubble up: it stands in for the name */
+.tag.is-speaking .tag-name { display: none; }
+/* our own name: ink on paper the other way round, so it reads as "you" */
+.tag.is-self .tag-name { color: var(--paper); background: color-mix(in srgb, var(--ink) 82%, transparent); }
 .bubble {
   position: relative;
   margin: 0 0 4px;
