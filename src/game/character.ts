@@ -197,8 +197,7 @@ export class Pedestrian {
     const legSkin = s.legs === 'skirt' || s.legs === 'bare';
     const shinSkin = s.legs !== 'pants';
     const armSkin = s.sleeves === 'short';
-    const chest = s.torso === 'shirt' ? m.top : m.skin;
-    this.torso.material = chest;
+    this.torso.material = s.torso === 'shirt' ? m.top : m.skin;
     this.bra.visible = s.torso === 'bikini';
     const frame = FRAME[look.body];
     for (const side of [this.left, this.right]) {
@@ -206,7 +205,8 @@ export class Pedestrian {
       side.shin.material = shinSkin ? m.skin : m.bottom;
       side.upperArm.material = armSkin ? m.skin : m.top;
       side.forearm.material = armSkin ? m.skin : m.top;
-      side.pad.material = chest;
+      // the sleeve cap over the shoulder joint: on bare shoulders it would read as a shoulder pad
+      side.pad.visible = s.torso === 'shirt';
     }
     this.left.shoulder.position.x = frame.shoulderX;
     this.right.shoulder.position.x = -frame.shoulderX;
