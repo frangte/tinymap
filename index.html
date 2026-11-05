@@ -11,6 +11,8 @@
   </head>
   <body data-mode="menu">
     <div id="stage" data-model="models/saigon_q1.glb" data-nav="models/saigon_q1"></div>
+    <!-- names and chat bubbles over the other players (nameTags.ts), under every card -->
+    <div class="tags" id="tags" data-modes="play" aria-hidden="true"></div>
 
     <!-- start menu: shows the loader first, then the two ways in -->
     <section class="menu card" id="menu" data-modes="menu" aria-labelledby="menu-title">
@@ -78,15 +80,39 @@
       </div>
     </section>
 
-    <div class="hint card" id="hint-play" data-modes="play">
-      <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>
-      <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
-      <span class="mouse-only">kéo chuột để xoay</span>
-      <span class="mouse-only">cuộn để zoom</span>
-      <span class="mouse-only"><kbd>Esc</kbd> menu</span>
-      <span class="touch-only">Kéo bên trái để đi, đẩy hết để chạy</span>
-      <span class="touch-only">Vuốt bên phải để xoay, chụm hai ngón để zoom</span>
+    <!-- bottom left in play: the chat (chatBox.ts) stacked over the control hint -->
+    <div class="corner" data-modes="play">
+      <section class="chat" id="chat" aria-label="Trò chuyện">
+        <ol class="chat-log" id="chat-log" aria-live="polite"></ol>
+        <p class="chat-note" id="chat-note" role="status" hidden></p>
+        <form class="chat-form" id="chat-form" hidden>
+          <input id="chat-input" type="text" autocomplete="off" spellcheck="false" enterkeyhint="send" aria-label="Tin nhắn" />
+          <button type="submit" class="btn-primary">Gửi</button>
+        </form>
+      </section>
+      <div class="hint card" id="hint-play" data-modes="play">
+        <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>
+        <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
+        <span class="mouse-only">kéo chuột để xoay</span>
+        <span class="mouse-only">cuộn để zoom</span>
+        <span class="mouse-only"><kbd>Enter</kbd> chat</span>
+        <span class="mouse-only"><kbd>Esc</kbd> menu</span>
+        <span class="touch-only">Kéo bên trái để đi, đẩy hết để chạy</span>
+        <span class="touch-only">Vuốt bên phải để xoay, chụm hai ngón để zoom</span>
+      </div>
     </div>
+
+    <!-- phones: the play actions behind one round button, bottom right (actionMenu.ts) -->
+    <nav class="actions" id="actions" data-modes="play" aria-label="Hành động">
+      <div class="actions-list" id="actions-list" hidden>
+        <button id="act-dress" type="button">Đổi đồ</button>
+        <button id="act-body" type="button">Đổi sang Nữ</button>
+        <button id="act-chat" type="button">Chat</button>
+      </div>
+      <button class="actions-toggle btn-primary" id="actions-toggle" type="button" aria-expanded="false" aria-controls="actions-list" aria-label="Mở menu">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none" /></svg>
+      </button>
+    </nav>
 
     <div class="dock" data-modes="map">
       <div class="hint-line">

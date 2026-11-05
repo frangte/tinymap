@@ -11,7 +11,7 @@ import { InkPass } from './ink';
 import { NavGrid } from './nav';
 import { PlayMode } from './play';
 import { CameraFlight, MAP_STOPS, MENU_STOP, MapView } from './mapView';
-import { Hud, type Mode } from './hud';
+import { Hud, el, type Mode } from './hud';
 import { damp, fromBlender, smoothstep } from './coords';
 import { Sea } from './sea';
 import { Life } from './life';
@@ -20,6 +20,9 @@ import { DressPanel } from './dressPanel';
 import { defaultProfile, loadProfile, saveProfile, type Profile } from './profile';
 import { isTyping } from './input';
 import { RemotePlayers } from './remotePlayers';
+import { NameTags, SELF } from './nameTags';
+import { ChatBox } from './chatBox';
+import { ActionMenu } from './actionMenu';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
 
 const MODEL_BYTES = 2.04e6;
@@ -62,6 +65,7 @@ export async function startApp(): Promise<void> {
   const scene = createScene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.25, 1500);
   const ink = new InkPass(camera);
+  const tags = new NameTags(el('tags'));
   const map = new MapView(camera, renderer.domElement);
   const flight = new CameraFlight(camera);
   map.flyTo(MENU_STOP, true);
@@ -76,6 +80,7 @@ export async function startApp(): Promise<void> {
     renderer.setSize(w, h, false);
     camera.aspect = w / Math.max(1, h);
     camera.updateProjectionMatrix();
+    tags.setSize(w, h);
     ink.setSize(Math.floor(w * pixelRatio), Math.floor(h * pixelRatio), pixelRatio);
   };
   window.addEventListener('resize', resize);
@@ -84,6 +89,8 @@ export async function startApp(): Promise<void> {
   let mode: Mode = 'menu';
   let play: PlayMode | null = null;
   let dress: DressPanel | null = null;
+  let chat: ChatBox | null = null;
+  let actions: ActionMenu | null = null;
   /** replaced once the map has loaded and the panel exists */
   let openDress = (): void => {};
   // multiplayer: created with the world; joins once the player has a character
@@ -121,6 +128,8 @@ export async function startApp(): Promise<void> {
     map.idle = false;
     if (prev === 'play') {
       dress?.dismiss();
+      chat?.close(false);
+      actions?.close();
       play.exit();
     }
     // where the camera is looking now, whoever was driving it
@@ -164,6 +173,7 @@ export async function startApp(): Promise<void> {
     if (mode !== 'play' && !flight.active) map.update(now);
     // others: hidden beyond walking distance in play mode, all of them over the map
     remotes?.update(dt, now, clock, mode === 'play' ? camera.position : null);
+    if (draw && remotes && play && mode === 'play') tags.update(camera, now, remotes, play.player.position);
     if (net && play && mode === 'play') {
       const pp = play.player.position;
       net.sendState(pp.x, pp.y, pp.z, play.player.heading, now);
@@ -247,6 +257,7 @@ export async function startApp(): Promise<void> {
       dressed = true;
       saveProfile(next);
       p.player.avatar.setLook(next.look);
+      menu.setBody(next.look.body);
       closeDress();
       goOnline();
       netClient.setProfile(next);
@@ -259,10 +270,38 @@ export async function startApp(): Promise<void> {
   dress = panel;
   openDress = (): void => {
     if (mode !== 'play' || flight.active || panel.isOpen) return;
+    chatBox.close(false);
     p.setDressing(true);
     panel.open(profile, !dressed);
   };
   hud.dressButton.addEventListener('click', () => openDress());
+
+  // ---- chat: the log bottom left, bubbles over heads (tags); lines show when the server sends them back
+  const backToGame = (): void => renderer.domElement.focus({ preventScroll: true });
+  const chatBox: ChatBox = new ChatBox({
+    send: (text) => netClient.sendChat(text),
+    opened: () => p.input.release(),
+    closed: backToGame,
+  });
+  chat = chatBox;
+  const openChat = (): void => {
+    if (mode !== 'play' || flight.active || panel.isOpen || !dressed) return;
+    chatBox.open();
+  };
+
+  // ---- phones: Đổi đồ / Nam·Nữ / Chat behind the round button bottom right
+  const switchBody = (): void => {
+    if (mode !== 'play' || flight.active || panel.isOpen || !dressed) return;
+    const body = profile.look.body === 'man' ? 'woman' : 'man';
+    profile = { ...profile, look: { ...profile.look, body } };
+    saveProfile(profile);
+    p.player.avatar.setLook(profile.look);
+    menu.setBody(body);
+    netClient.setProfile(profile);
+  };
+  const menu = new ActionMenu({ dress: () => openDress(), switchBody, chat: openChat });
+  menu.setBody(profile.look.body);
+  actions = menu;
 
   // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
   const others = new RemotePlayers(scene, ink);
@@ -272,27 +311,39 @@ export async function startApp(): Promise<void> {
   const netClient: NetClient = new NetClient(socketUrl(hud.stage), {
     status: (s) => {
       netStatus = s;
+      chatBox.setOnline(s === 'online');
       showOnline();
     },
-    welcome: (players) => {
+    welcome: (players, lines) => {
       others.clear();
       const now = performance.now();
       for (const info of players) others.add(info, now);
+      chatBox.history(lines, netClient.selfId);
       showOnline();
     },
     join: (info) => {
       others.add(info, performance.now());
+      chatBox.system(`${info.name} vào phố`);
       showOnline();
     },
     leave: (id) => {
+      const gone = others.get(id);
+      if (gone) chatBox.system(`${gone.name} rời phố`);
       others.remove(id);
       showOnline();
     },
-    profile: (id, name, look) => others.setProfile(id, name, look),
+    profile: (id, name, look) => {
+      const before = others.get(id)?.name;
+      if (before !== undefined && before !== name) chatBox.system(`${before} đổi tên thành ${name}`);
+      others.setProfile(id, name, look);
+    },
     snap: (rows, receivedAt) => others.applySnap(rows, receivedAt, netClient.selfId),
-    // chat box and bubbles: phase 5
-    chat: () => {},
-    rateLimited: () => {},
+    chat: (line) => {
+      const self = line.id === netClient.selfId;
+      chatBox.line(line, netClient.selfId);
+      tags.say(self ? SELF : line.id, line.text, performance.now());
+    },
+    rateLimited: () => chatBox.rateLimited(),
     reset: () => {
       others.clear();
       showOnline();
@@ -351,6 +402,13 @@ export async function startApp(): Promise<void> {
       return;
     }
     if (isTyping(e)) return;
+    // Enter / T: chat (Enter on a focused button presses the button instead)
+    if (mode === 'play' && (e.key === 'Enter' || e.code === 'KeyT') && !(e.target instanceof HTMLButtonElement)) {
+      // keep the T out of the field that is about to take focus
+      e.preventDefault();
+      openChat();
+      return;
+    }
     if (mode === 'menu' && (e.key === '1' || e.key === '2')) request(e.key === '1' ? 'map' : 'play');
     else if (mode !== 'menu' && e.key === 'Escape') request('menu');
   });
@@ -366,7 +424,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, chat: chatBox, tags, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

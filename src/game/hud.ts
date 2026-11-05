@@ -140,5 +140,9 @@ export class Hud {
   /** Fade the play hint once the player has found their feet. */
   hideHint(): void {
     this.hint.classList.add('is-out');
+    // then out of the layout, so the chat above it drops into the corner
+    window.setTimeout(() => {
+      this.hint.hidden = true;
+    }, 900);
   }
 }

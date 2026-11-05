@@ -237,12 +237,21 @@ body.is-dressing .hint,
 body.is-dressing .toast,
 body.is-dressing #dress-open { display: none !important; }
 
-/* control hint */
-.hint {
+/* bottom-left corner in play: the chat over the control hint; lifted above the phone keyboard (--kb, chatBox.ts) */
+.corner {
   position: fixed;
   left: var(--edge-l);
-  bottom: var(--edge-b);
-  max-width: calc(100vw - 32px);
+  bottom: calc(var(--edge-b) + var(--kb, 0px));
+  width: min(380px, calc(100vw - 32px));
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  pointer-events: none;
+}
+
+/* control hint */
+.hint {
+  max-width: 100%;
   padding: 8px 11px;
   display: flex;
   flex-wrap: wrap;
@@ -293,6 +302,167 @@ kbd {
   background: var(--brick);
   border: 1.5px solid var(--ink);
   box-shadow: 2px 2px 0 var(--shade);
+}
+
+/* names and chat bubbles over heads, placed with a transform by nameTags.ts (under every card) */
+.tags { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.tag-name {
+  font: 700 12px/1 var(--body);
+  color: var(--ink);
+  white-space: nowrap;
+  padding: 3px 7px 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  box-shadow: 0 0 0 1.2px var(--ink), 1px 2px 0 var(--shade);
+}
+.tag.is-self .tag-name { display: none; }
+.bubble {
+  position: relative;
+  margin: 0 0 4px;
+  width: max-content;
+  max-width: 210px;
+  padding: 6px 10px 7px;
+  font: 600 13px/1.35 var(--body);
+  color: var(--ink);
+  text-align: center;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+/* the tail, pointing down at the speaker */
+.bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 9px;
+  height: 9px;
+  translate: -50% 0;
+  rotate: 45deg;
+  background: var(--paper);
+  border: solid var(--ink);
+  border-width: 0 1.5px 1.5px 0;
+}
+.bubble.is-new { animation: pop 0.28s cubic-bezier(0.2, 1.5, 0.4, 1) backwards; }
+@keyframes pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+
+/* chat: the last few lines as paper strips; opened, a card with the whole log and an input */
+.chat { display: grid; gap: 6px; width: 100%; transition: opacity 0.8s ease; }
+.chat.is-quiet .chat-log { opacity: 0; }
+.chat-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  transition: opacity 0.8s ease;
+}
+.chat-log:empty { display: none; }
+.chat-log li {
+  max-width: 100%;
+  padding: 3px 8px 4px;
+  border-radius: 3px;
+  font: 500 13px/1.35 var(--body);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 84%, transparent);
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* closed, only the newest lines show */
+.chat:not(.is-open) .chat-log li:nth-last-child(n + 6) { display: none; }
+.chat-log b { font-weight: 800; }
+.chat-log b[data-c='self'] { color: var(--ink); }
+.chat-log b[data-c='0'] { color: var(--brick); }
+.chat-log b[data-c='1'] { color: #3d7770; }
+.chat-log b[data-c='2'] { color: #42679a; }
+.chat-log b[data-c='3'] { color: #7d3326; }
+.chat-log b[data-c='4'] { color: #86621a; }
+.chat-log b[data-c='5'] { color: #6a4a86; }
+.chat-log li.sys { font-style: italic; font-size: 12px; color: var(--ink-soft); }
+.chat-note {
+  margin: 0;
+  padding: 4px 9px;
+  border-radius: 3px;
+  font: 600 12px/1.3 var(--body);
+  color: var(--paper);
+  background: var(--brick);
+}
+.chat.is-open {
+  pointer-events: auto;
+  padding: 8px;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.chat.is-open .chat-log { max-height: min(40vh, 300px); overflow-y: auto; overscroll-behavior: contain; justify-items: stretch; }
+.chat.is-open .chat-log li { background: none; padding: 1px 2px; }
+.chat-form { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.chat-form input {
+  min-width: 0;
+  font: 500 16px/1.2 var(--body);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 8px 10px;
+  box-shadow: inset 1px 1px 0 var(--shade);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.chat-form input:focus-visible { outline: 2px solid var(--brick); outline-offset: 1px; }
+.chat-form button { padding: 8px 14px; font-size: 14px; }
+body.is-chatting .hint,
+body.is-dressing .corner,
+body.is-dressing .actions,
+body.is-chatting .actions { display: none !important; }
+
+/* phone actions: a round button bottom right, the actions stacked above it */
+.actions {
+  position: fixed;
+  right: var(--edge-r);
+  bottom: var(--edge-b);
+  display: none;
+  justify-items: end;
+  gap: 8px;
+}
+.actions-toggle {
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border-width: 2px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.actions-toggle[aria-expanded='true'] { background: var(--ink); }
+.actions-list { display: grid; justify-items: end; gap: 6px; animation: sheet-up 0.2s ease-out backwards; }
+.actions-list button { min-height: 44px; padding: 10px 14px; font-size: 14px; }
+@media (pointer: coarse) {
+  .actions { display: grid; }
+  /* the menu has it; the short tool row keeps its room */
+  #dress-open { display: none !important; }
+  .corner { width: min(380px, calc(100vw - 32px - 70px)); }
+  body.is-chatting .corner { width: auto; right: var(--edge-r); }
 }
 
 /* loader (inside the menu) */
@@ -353,6 +523,6 @@ kbd {
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  button, .bar i, .toast, .hint, .menu { transition: none; }
-  .toast, .dress { animation: none; }
+  button, .bar i, .toast, .hint, .menu, .chat, .chat-log { transition: none; }
+  .toast, .dress, .bubble.is-new, .actions-list { animation: none; }
 }

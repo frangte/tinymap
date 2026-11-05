@@ -92,6 +92,11 @@ export class InputController {
     this.look.yaw = this.look.pitch = this.look.zoom = 0;
   }
 
+  /** Let go of every held key and gesture (a text field took the keyboard: its key-ups never reach us as moves). */
+  release(): void {
+    this.reset();
+  }
+
   dispose(): void {
     this.off.forEach((f) => f());
     this.off.length = 0;
