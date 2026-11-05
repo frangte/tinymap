@@ -33,10 +33,20 @@ const BACKOFF_MAX = 15000;
 /** when the server is full, wait this long before trying again (ms) */
 const FULL_RETRY = 30000;
 
-/** ws(s)://<page host>/ws, or the `data-ws` attribute of #stage when the server lives elsewhere. */
+/**
+ * Where the multiplayer server is, first match wins:
+ *   1. `data-ws` on #stage in index.html     (change a deployed page without rebuilding)
+ *   2. VITE_WS_URL at build time             (`VITE_WS_URL=wss://server.tinymap.live/ws npm run build`, or .env.production)
+ *   3. ws(s)://<page host>/ws                (the page and the server on the same host, and the Vite dev proxy)
+ * The server must accept the page's origin: see ALLOWED_ORIGINS in server/README.md.
+ */
 export function socketUrl(stage: HTMLElement): string {
-  const override = stage.dataset.ws;
-  if (override) return override;
+  const configured = stage.dataset.ws || import.meta.env.VITE_WS_URL;
+  if (configured) {
+    if (!/^wss?:\/\//.test(configured)) console.error(`multiplayer socket URL must start with ws:// or wss://, got "${configured}"`);
+    else if (location.protocol === 'https:' && configured.startsWith('ws://')) console.error(`an https page cannot open ${configured}: use wss://`);
+    return configured;
+  }
   return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 }
 

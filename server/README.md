@@ -17,13 +17,15 @@ cd server && go build -o bin/server ./cmd/server
 STATIC_DIR=../dist ./bin/server
 ```
 
+Deploying to the server (nginx + systemd, `npm run deploy`): see [DEPLOY.md](DEPLOY.md).
+
 ## Configuration (environment)
 
 | Variable | Default | |
 |---|---|---|
 | `PORT` | `8787` | listen port |
 | `STATIC_DIR` | (none) | serve this directory (the Vite build) for every path other than `/ws` and `/healthz` |
-| `ALLOWED_ORIGINS` | same host | comma-separated page origins (`https://game.vn`) allowed to open the socket, for when the page is hosted elsewhere |
+| `ALLOWED_ORIGINS` | (none) | extra page origins allowed to open the socket, comma-separated, exact `scheme://host[:port]` (`https://tinymap.live,https://www.tinymap.live`). Use it when the page is served from another domain. A page on the server's own host is always allowed. |
 | `TRUSTED_PROXIES` | none | reverse proxy IPs/CIDRs whose `X-Forwarded-For` gin trusts |
 | `MAX_PLAYERS` | `40` | player cap; the next one gets `{"t":"error","code":"full"}` |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |

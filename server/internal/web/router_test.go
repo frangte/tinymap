@@ -39,6 +39,9 @@ func TestOriginAllowed(t *testing.T) {
 		{"garbage origin", "game.vn", "::", nil, false},
 		{"listed origin", "api.game.vn", "https://game.vn", []string{"https://game.vn/"}, true},
 		{"unlisted origin", "api.game.vn", "https://other.vn", []string{"https://game.vn"}, false},
+		{"same host still allowed with a list", "api.game.vn", "https://api.game.vn", []string{"https://game.vn"}, true},
+		{"listed host, wrong scheme", "api.game.vn", "http://game.vn", []string{"https://game.vn"}, false},
+		{"several listed", "api.game.vn", "http://localhost:5173", []string{"https://game.vn", "http://localhost:5173"}, true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

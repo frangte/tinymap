@@ -17,8 +17,8 @@ import (
 type Options struct {
 	// StaticDir, if set, is served for every path that is not an API route (the Vite build in dist/).
 	StaticDir string
-	// AllowedOrigins lists page origins (scheme://host[:port]) that may open the socket.
-	// Empty means the same host as the server, which covers both the Vite dev proxy and serving dist/.
+	// AllowedOrigins lists extra page origins (scheme://host[:port]) that may open the socket, for a page hosted
+	// on another domain. A page on the server's own host is always allowed (the Vite dev proxy, nginx serving dist/).
 	AllowedOrigins []string
 	// TrustedProxies are the reverse proxies whose X-Forwarded-For gin may believe; none by default.
 	TrustedProxies []string
@@ -81,8 +81,8 @@ func originAllowed(req *http.Request, allowed []string) bool {
 	if err != nil || u.Host == "" {
 		return false
 	}
-	if len(allowed) == 0 {
-		return strings.EqualFold(u.Host, req.Host)
+	if strings.EqualFold(u.Host, req.Host) {
+		return true
 	}
 	self := strings.ToLower(u.Scheme + "://" + u.Host)
 	for _, a := range allowed {

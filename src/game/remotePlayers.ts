@@ -9,8 +9,12 @@ import type { InkPass } from './ink';
 import type { Look } from './outfits';
 import type { PlayerInfo, SnapRow } from '../net/protocol';
 
-/** draw others this far in the past, so there are normally two samples to blend between (ms) */
-const RENDER_DELAY = 150;
+/**
+ * Draw others this far in the past, so the next sample has always arrived (ms). Worst case: the sender's send
+ * interval (100 ms, up to ~133 ms on a 30 fps sender, which sends on frame boundaries) plus the wait for the
+ * server's next 12 Hz snapshot (up to 83 ms) ≈ 216 ms. Measured: 150 ms stalled about one frame in 17.
+ */
+const RENDER_DELAY = 230;
 /** senders stream at 10 Hz; a longer silence means they stood still (ms) */
 const SEND_INTERVAL = 100;
 const MAX_SAMPLES = 24;

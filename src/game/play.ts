@@ -23,6 +23,8 @@ const FRAME_TALL: Framing = { height: -0.5, dist: 5.4, pitch: 0.55 };
 const SHEET_MAX_WIDTH = 560;
 /** how fast the player turns round to face the camera while dressing (1/s) */
 const FACE_RATE = 6;
+/** spawn up to this far (m) from the market spawn point on each axis */
+const SPAWN_SPREAD = 1.5;
 
 export class PlayMode {
   readonly player: Player;
@@ -48,10 +50,14 @@ export class PlayMode {
     this.spawnAtMarket();
   }
 
-  /** Back to the square in front of the south gate, facing the market (Blender +Y = three -Z). */
+  /**
+   * Back to the square in front of the south gate, facing the market (Blender +Y = three -Z). A small random
+   * offset keeps players who arrive together from standing inside each other; spawn() snaps it to a walkable cell.
+   */
   spawnAtMarket(): void {
     const [bx, by] = this.nav.meta.spawn;
-    this.player.spawn(bx, -by, Math.PI);
+    const jitter = (): number => (Math.random() - 0.5) * 2 * SPAWN_SPREAD;
+    this.player.spawn(bx + jitter(), -by + jitter(), Math.PI);
   }
 
   /**
