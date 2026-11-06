@@ -26,3 +26,4 @@ renders/
 # Claude Code: per-machine state
 .claude/settings.local.json
 .claude/ecc/install-state.json
+server/cmd/server/app
