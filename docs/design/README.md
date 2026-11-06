@@ -1,0 +1,54 @@
+# Saigon Virtual City: design docs
+
+Gameplay, multiplayer and backend design for turning the Sài Gòn Q1 diorama into a shared multiplayer city. Written on 2026-11-06 as a plan for review: **nothing here is implemented yet** unless the code says so. The map and art brief stays in [../PROJECT.md](../PROJECT.md).
+
+**Core principle:** every player shares the same world and the same core systems. The archetype (Traveler, Citizen, Crab Bike driver) only changes how they experience the city and take part in it.
+
+| File | What's in it |
+|---|---|
+| [00-brief.md](00-brief.md) | The original request, condensed to its requirements, plus the answers given since |
+| [01-gameplay.md](01-gameplay.md) | Core loop, onboarding, the three archetypes, questline examples, progression, retention |
+| [02-architecture.md](02-architecture.md) | Module map, how modules talk, NPC sessions, quest flow, ride-hailing as a future module, runtime layout |
+| [03-domain-model.md](03-domain-model.md) | Entities, Go types, YAML content examples, SQLite schema |
+| [04-backend.md](04-backend.md) | Go packages, libraries, REST and WebSocket messages, transactions, validation, storage, chat |
+| [05-frontend.md](05-frontend.md) | How the Three.js client uses all of it: entities, animation, phone, dialogue, quests, chat, mobile |
+| [06-mvp-roadmap.md](06-mvp-roadmap.md) | MVP scope (must / should / future), phases with acceptance criteria, estimate |
+| [07-tradeoffs.md](07-tradeoffs.md) | Notes on the brief, trade-offs, risks, and the existing code patterns to follow |
+
+## Decisions
+
+Update the status when a proposed decision is confirmed or changed.
+
+| # | Decision | Status |
+|---|---|---|
+| D1 | The archetype is fixed per character; capabilities can be earned on top. The schema allows several characters per account; the MVP uses one. | accepted 2026-11-06 |
+| D2 | **SQLite** (pure-Go `modernc.org/sqlite`) for now; move to Postgres when the game runs on more than one process | **decided 2026-11-06**, built in phase 0 |
+| D3 | Guest accounts first (an anonymous token), real login linked later | accepted 2026-11-06, built in phase 0 |
+| D4 | The client moves and the server checks every move against the nav grid; the server owns quests, rewards, items and interactions | accepted 2026-11-06 |
+| D5 | One process, an interest grid, copies of the city later; no Redis until there is more than one process | accepted 2026-11-06 |
+| D6 | Quests, NPCs, dialogue, items, archetypes and phone apps are data files in the repo, in `server/content/` (embedded in the binary), checked at startup and in `go test`. Files the game also reads are JSON (Vite imports them); server-only files can be YAML. | accepted 2026-11-06; places moved in phase 0 |
+| D7 | NPCs are spawned at runtime as animated pedestrians; the baked figures they replace are removed in Blender | accepted 2026-11-06 |
+| D8 | Keep procedural avatars behind an `Avatar` interface; GLB skinned models only if they become necessary | accepted 2026-11-06 |
+| D9 | The driver brand is **Crab Bike**, a made-up brand with a **yellow uniform**. Code ids stay generic (`driver`, `ridehail`); the brand lives only in content (names, colours). | **decided 2026-11-06** |
+| D10 | Keep the ~200 m District 1 island for now; it may grow (Bùi Viện and UBND are already reserved). The driver gets riding and route quests in the MVP. Until the map grows, ride-hailing is about the shared ride, not saving time. | **decided 2026-11-06** |
+
+## Where the code is today (2026-11-06, branch v4)
+
+| Area | What exists | What it means for the design |
+|---|---|---|
+| World server | One Go process (gin + gorilla/websocket). One goroutine owns the whole world, with no locks (`server/internal/hub/hub.go:2`, `Run` at `:93`). Snapshots go out at 12 Hz to every player (`broadcastSnap`, `:196`). Cap of 40 players. | Keep it: it becomes the world loop. Sending everything to everyone has to change before hundreds of players. |
+| Protocol | Flat JSON messages `{"t":…}`. All client input goes through `protocol.Decode` (`server/internal/protocol/msg.go:90`). Names and chat are cleaned; rate limits per connection (`server/internal/hub/client.go:21`). | Keep the format; add a request id so commands can get replies. |
+| Movement | Client-side, on the nav grid baked in Blender (`public/models/saigon_q1_nav.png`: R·256+G = floor height in cm + 1000, B = walkable, 0.35 m cells). The server only checks world bounds. Walk 3.1 m/s, run 6.8 m/s (`src/game/player.ts:23`). No jump yet. | Go can load the same PNG, so the server can check movement with no physics engine. |
+| World content | The island is ~200×200 m. 19 places in Blender XY are defined in TypeScript (`src/game/places.ts:25`). No NPCs yet, but the GLB has baked static people (vendors at Hồ Con Rùa and Lam Sơn, shopkeepers on Lê Lai). | Places move into shared data both sides read. The baked figures mark good NPC spots. |
+| Characters | Procedural low-poly pedestrians built from primitives and animated from speed (`src/game/character.ts`). A look is body/outfit/hat; one outfit is already `xeom`. | Not GLB skeletal animation. Emotes, riding and the Crab Bike uniform need new procedural parts and poses. |
+| Identity | Name and look in `localStorage` (`src/game/profile.ts:10`). No accounts, no database; ids are per connection. | Persistent identity is the first real dependency. |
+| UI | DOM HUD, chat log and speech bubbles, a mobile action menu, the dressing panel, the map view. All Vietnamese. | The phone grows out of the mobile action menu; UI stays in the DOM. |
+| Ops | One VPS, nginx + systemd, a static binary cross-compiled with `CGO_ENABLED=0` (`scripts/deploy.sh:116`). The unit is locked down (`ProtectSystem=strict`, `ProtectHome=read-only`); releases are pruned to the last 5. | SQLite needs the pure-Go driver and a systemd `StateDirectory` for the database file (see [04-backend.md](04-backend.md#storage-sqlite)). |
+
+## Progress
+
+- **Phase 0 (foundations): done 2026-11-06, not deployed yet.** What was built, and what moved to later phases, is in [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-0-foundations-152-weeks). The table above describes the code as it was before phase 0.
+
+## Open questions
+
+- Crab Bike art: the yellow shade for the jacket and helmet, and whether the bike itself is branded yellow too.

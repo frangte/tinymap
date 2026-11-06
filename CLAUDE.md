@@ -4,6 +4,8 @@ Walkable low-poly District 1 diorama: map modelled in Blender (`sg.tinymap.blend
 
 Read `docs/PROJECT.md` first for any map or modelling work: project status, art style rules, palette, Blender file conventions, and a landmark sheet with renders (`docs/img/`) and reference photos. Keep it up to date when a landmark changes or a new one is added (re-render its image). Ask Khoa before starting a big plan.
 
+For gameplay, multiplayer and backend work (archetypes, quests, NPCs, phone, chat, persistence), read `docs/design/README.md` first: the agreed design, the decision log (which decisions are confirmed, which are only proposed), and the roadmap. Update the decision log when a decision changes.
+
 ## Commands
 
 - `npm run dev` — dev server at http://localhost:5173 (`?debug` exposes `window.sgGame`, `?debug&manual` stops the loop for stepping)

@@ -81,6 +81,15 @@ Environment variables for `scripts/deploy.sh` (defaults in brackets):
 
 The Go server's own settings (`MAX_PLAYERS`, `LOG_LEVEL`, …, see `README.md`) are `Environment=` lines in `deploy/systemd/app.service.template`. Change them there and deploy; the changed unit triggers a restart.
 
+## Database
+
+The player database is one SQLite file, `/var/lib/sg-tinymap/game.db`. It lives outside `releases/` (which every deploy swaps and prunes), so deploys and rollbacks keep it. The unit's `StateDirectory=sg-tinymap` makes systemd create that folder, owned by the service user, and it is the only place the locked-down service may write.
+
+- **Backups** are in `/var/lib/sg-tinymap/backup/`. The server takes one a day (`game-<UTC time>.db`, the last 7 kept), going by the newest file, so restarts don't skip it. It also takes one before any schema migration (`pre-v<N>-<time>.db`, kept until you delete them). Copy them off the machine now and then: `rsync -a iris:/var/lib/sg-tinymap/backup/ ./backups/`.
+- **Restore:** `ssh iris sudo systemctl stop sg-tinymap`, then copy the backup over `game.db` and delete any `game.db-wal` / `game.db-shm` next to it. Then `sudo systemctl start sg-tinymap`.
+- **Rollback** keeps the database. Migrations only add tables and columns, so the older server runs against the newer schema and ignores what it doesn't know.
+- **Losing it** isn't fatal for players. Their stored tokens stop matching, the server answers `error auth`, and the game asks for a new guest account by itself.
+
 ## Day to day
 
 ```bash
@@ -101,6 +110,7 @@ curl -s https://sg.tinymap.live/healthz                # {"ok":true,"players":3}
 | Page 403 | nginx can't reach the files: the deploy fixes the folder permissions, so check that `DEPLOY_DIR` is right |
 | Status stays "Đang kết nối…", `/ws` gives 403 | the page origin isn't the server's host: the page is served from another domain. Add `Environment=ALLOWED_ORIGINS=https://that-domain` to the unit template. |
 | `/ws` gives 502 | the service is down: `ssh iris systemctl status sg-tinymap` |
+| The service won't start, `database:` in `journalctl -u sg-tinymap` | it can't open or migrate `/var/lib/sg-tinymap/game.db`: a full disk, or the unit installed without `StateDirectory` (check `systemctl cat sg-tinymap`) |
 | Healthy on the server, not from your machine | DNS, or ports 80/443 closed in the firewall |
 
 ## Tested

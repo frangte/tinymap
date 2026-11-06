@@ -14,10 +14,15 @@ Environment=TRUSTED_PROXIES=127.0.0.1,::1
 Environment=MAX_PLAYERS=40
 Environment=ALLOWED_ORIGINS=https://sg.tinymap.live
 Environment=LOG_LEVEL=info
+# the player database and its backups live outside releases/ (which deploys swap and prune), in the one
+# folder this unit may write: systemd creates /var/lib/sg-tinymap for StateDirectory, owned by User
+StateDirectory=sg-tinymap
+StateDirectoryMode=0750
+Environment=DB_PATH=/var/lib/sg-tinymap/game.db
 Restart=on-failure
 RestartSec=2
 
-# the server writes nothing to disk and needs no privileges
+# the server writes only its StateDirectory and needs no privileges
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only

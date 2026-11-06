@@ -1,4 +1,5 @@
-// Command server runs the Sài Gòn Q1 multiplayer hub: a WebSocket at /ws, /healthz, and optionally the built game.
+// Command server runs the Sài Gòn Q1 multiplayer server: a WebSocket at /ws, the account API under /api,
+// /healthz, and optionally the built game.
 //
 // Environment:
 //
@@ -7,6 +8,8 @@
 //	ALLOWED_ORIGINS  comma-separated page origins allowed to connect (default: same host as the server)
 //	TRUSTED_PROXIES  comma-separated reverse proxy IPs/CIDRs whose X-Forwarded-For is trusted (default: none)
 //	MAX_PLAYERS      player cap (default 40)
+//	DB_PATH          the SQLite database file (default data/game.db, from the working directory)
+//	BACKUP_DIR       where database backups go (default: a backup folder next to the database)
 //	LOG_LEVEL        debug | info | warn | error (default info)
 package main
 
@@ -25,11 +28,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"saigon-noir/server/internal/hub"
+	"saigon-noir/server/internal/identity"
+	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/web"
+	"saigon-noir/server/internal/world"
+	"saigon-noir/server/internal/ws"
 )
 
-const shutdownGrace = 5 * time.Second
+const (
+	shutdownGrace = 5 * time.Second
+	// backupsKept daily database backups stay on disk
+	backupsKept = 7
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -52,7 +62,7 @@ func run() error {
 	if err != nil || port <= 0 || port > 65535 {
 		return fmt.Errorf("PORT must be a port number, got %q", os.Getenv("PORT"))
 	}
-	cfg := hub.DefaultConfig()
+	cfg := world.DefaultConfig()
 	if v := os.Getenv("MAX_PLAYERS"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 {
@@ -73,17 +83,29 @@ func run() error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	h := hub.New(cfg, log)
-	go h.Run(ctx)
 
-	router, err := web.NewRouter(h, opt)
+	// a database that cannot open stops the server here, so a bad deploy fails its health check
+	dbPath := envOr("DB_PATH", "data/game.db")
+	db, err := store.Open(ctx, store.Options{Path: dbPath, BackupDir: os.Getenv("BACKUP_DIR")}, log)
+	if err != nil {
+		return fmt.Errorf("database: %w", err)
+	}
+	defer db.Close()
+	go db.BackupDaily(ctx, backupsKept)
+	accounts := identity.New(db)
+
+	w := world.New(cfg, log)
+	go w.Run(ctx)
+	sockets := ws.New(w, accounts, ws.DefaultConfig(), log)
+
+	router, err := web.NewRouter(w, sockets, accounts, opt)
 	if err != nil {
 		return err
 	}
 	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: router, ReadHeaderTimeout: 10 * time.Second}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
-	log.Info("listening", "addr", srv.Addr, "static", opt.StaticDir, "max_players", cfg.MaxPlayers)
+	log.Info("listening", "addr", srv.Addr, "static", opt.StaticDir, "max_players", cfg.MaxPlayers, "db", dbPath)
 
 	select {
 	case err := <-errc:

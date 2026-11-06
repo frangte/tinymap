@@ -3,6 +3,8 @@ node_modules/
 dist/
 dist-single/
 server/bin/
+# the dev database (npm run server); production keeps it in /var/lib/sg-tinymap
+server/data/
 *.tsbuildinfo
 *.log
 

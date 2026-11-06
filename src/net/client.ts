@@ -1,8 +1,10 @@
-// WebSocket client for the multiplayer server: says hello with the player's profile, streams the player's pose,
-// and reconnects with backoff. The game keeps working offline (a static host, the server down): it just walks alone.
+// WebSocket client for the multiplayer server: says hello with the player's profile and account token, streams the
+// player's pose, and reconnects with backoff. The game keeps working offline (a static host, the server down): it
+// just walks alone.
 import type { Profile } from '../game/profile';
 import { wrapAngle } from '../game/coords';
 import type { Look } from '../game/outfits';
+import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
 import { parseServerMsg, type ChatLine, type ClientMsg, type PlayerInfo, type SnapRow } from './protocol';
 
 export type NetStatus = 'connecting' | 'online' | 'offline' | 'full';
@@ -64,8 +66,15 @@ export class NetClient {
   private retryTimer = 0;
   private lastSend = -1e9;
   private readonly lastPose = [NaN, NaN, NaN, NaN];
+  /** the guest account (src/net/auth.ts); null until the server has given one */
+  private token: string | null = loadToken();
+  /** the HTTP API next to the socket, null if the socket URL is unusable */
+  private readonly api: string | null;
+  /** asking for a guest token before opening the socket */
+  private opening = false;
 
   constructor(private readonly url: string, private readonly on: NetEvents) {
+    this.api = apiUrl(url);
     // back on the network: try now rather than at the end of the backoff
     window.addEventListener('online', () => {
       if (this.started && !this.ws) this.connectNow();
@@ -121,7 +130,25 @@ export class NetClient {
   }
 
   private connect(): void {
+    if (this.ws || this.opening) return;
+    this.opening = true;
     this.on.status('connecting');
+    void this.ensureToken().then(() => {
+      this.opening = false;
+      this.open();
+    });
+  }
+
+  /** Get a guest account on the first connection. Without one (no server, an older server) the game still plays. */
+  private async ensureToken(): Promise<void> {
+    if (this.token || !this.api) return;
+    const token = await fetchGuestToken(this.api);
+    if (!token) return;
+    this.token = token;
+    saveToken(token);
+  }
+
+  private open(): void {
     let ws: WebSocket;
     try {
       ws = new WebSocket(this.url);
@@ -134,7 +161,9 @@ export class NetClient {
     this.ws = ws;
     ws.onopen = () => {
       const p = this.profile;
-      if (p) ws.send(JSON.stringify({ t: 'hello', name: p.name, look: p.look } satisfies ClientMsg));
+      if (!p) return;
+      const hello: ClientMsg = this.token ? { t: 'hello', token: this.token, name: p.name, look: p.look } : { t: 'hello', name: p.name, look: p.look };
+      ws.send(JSON.stringify(hello));
     };
     ws.onmessage = (e: MessageEvent) => this.receive(e.data);
     // a failed connect fires error then close; close does the bookkeeping
@@ -171,7 +200,11 @@ export class NetClient {
       case 'error':
         if (m.code === 'full') this.full = true;
         else if (m.code === 'rate') this.on.rateLimited();
-        else console.error('game server refused the connection:', m.code);
+        else if (m.code === 'auth') {
+          // the server no longer knows this account (its database was reset): forget it, the reconnect gets a new one
+          this.token = null;
+          clearToken();
+        } else console.error('game server refused the connection:', m.code);
         break;
     }
   }

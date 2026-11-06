@@ -1,0 +1,29 @@
+{
+  "about": "Named places on the v4 island, shared by the server (server/content) and the game (src/game/places.ts). Points are Blender XY in metres (three.js x = X, z = -Y); pts is one point, or a polyline for streets and the coast; r is the reach in metres from it. Ids are stable: quests refer to them. Landmarks first, then streets, then areas wins when places overlap.",
+  "places": [
+    { "id": "cho_ben_thanh", "name": "Chợ Bến Thành", "note": "xây năm 1914", "kind": "landmark", "pts": [[8, 8]], "r": 25 },
+    { "id": "nha_hat_thanh_pho", "name": "Nhà hát Thành phố", "note": "xây năm 1900", "kind": "landmark", "pts": [[106, -4]], "r": 16 },
+    { "id": "quang_truong_lam_son", "name": "Quảng trường Lam Sơn", "note": "trước Nhà hát", "kind": "landmark", "pts": [[89, -4]], "r": 8 },
+    { "id": "nha_tho_duc_ba", "name": "Nhà thờ Đức Bà", "note": "xây năm 1880", "kind": "landmark", "pts": [[78, 82]], "r": 20 },
+    { "id": "buu_dien_thanh_pho", "name": "Bưu điện Thành phố", "note": "xây năm 1891", "kind": "landmark", "pts": [[100, 54]], "r": 15 },
+    { "id": "cong_xa_paris", "name": "Công xã Paris", "note": "tượng Đức Mẹ", "kind": "landmark", "pts": [[78, 50]], "r": 10 },
+    { "id": "ho_con_rua", "name": "Hồ Con Rùa", "note": "công trường Quốc tế", "kind": "landmark", "pts": [[44, 90]], "r": 16 },
+    { "id": "bitexco", "name": "Bitexco", "note": "tháp tài chính, 2010", "kind": "landmark", "pts": [[44, -62]], "r": 18 },
+    { "id": "day_nha_pho_le_lai", "name": "Dãy nhà phố", "note": "đường Lê Lai", "kind": "landmark", "pts": [[-32, -12]], "r": 13 },
+    { "id": "pho_di_bo_nguyen_hue", "name": "Phố đi bộ Nguyễn Huệ", "note": "đầu phố để dành cho UBND", "kind": "street", "pts": [[60, 22], [66, -58]], "r": 8.5 },
+    { "id": "duong_le_loi", "name": "Đường Lê Lợi", "note": "chợ ra Nhà hát", "kind": "street", "pts": [[8, -24], [44, -15], [81, -6]], "r": 7.5 },
+    { "id": "duong_ham_nghi", "name": "Đường Hàm Nghi", "note": "chợ ra biển", "kind": "street", "pts": [[8, -24], [36, -37], [62, -50]], "r": 7.5 },
+    { "id": "duong_le_lai", "name": "Đường Lê Lai", "note": "về phía Bùi Viện", "kind": "street", "pts": [[8, -24], [-40, -24.5], [-70, -25]], "r": 7.5 },
+    { "id": "duong_le_thanh_ton", "name": "Đường Lê Thánh Tôn", "note": "sau chợ", "kind": "street", "pts": [[-14, 34], [30, 35], [80, 34.5]], "r": 6.5 },
+    { "id": "duong_dong_khoi", "name": "Đường Đồng Khởi", "note": "Nhà thờ ra biển", "kind": "street", "pts": [[78, 50], [80, 10], [84, -60]], "r": 6.5 },
+    { "id": "duong_pham_ngoc_thach", "name": "Đường Phạm Ngọc Thạch", "note": "Nhà thờ lên Hồ Con Rùa", "kind": "street", "pts": [[78, 50], [62, 60], [52, 74], [44, 90]], "r": 6 },
+    { "id": "cong_vien_23_9", "name": "Công viên 23/9", "note": "dọc Lê Lai", "kind": "area", "pts": [[-28, -40]], "r": 14 },
+    { "id": "bung_binh_quach_thi_trang", "name": "Bùng binh Quách Thị Trang", "note": "trước chợ Bến Thành", "kind": "street", "pts": [[8, -24]], "r": 13 },
+    { "id": "bai_bien", "name": "Bãi biển", "note": "quanh đảo", "kind": "area", "r": 12, "pts": [
+      [-65.1, -7.6], [-56.2, -4.7], [-45.2, 7.1], [-43.5, 37.0], [-27.8, 69.4], [-13.1, 80.5], [13.7, 87.1], [21.5, 105.6],
+      [32.9, 115.1], [46.2, 117.3], [64.5, 110.1], [90.6, 109.4], [96.0, 103.1], [99.3, 82.7], [115.7, 72.4], [116.6, 37.2],
+      [125.6, 9.2], [125.5, -17.3], [101.6, -39.6], [100.6, -64.7], [90.9, -75.8], [68.7, -73.5], [56.7, -83.6], [47.3, -85.6],
+      [4.1, -71.4], [-31.9, -43.1], [-63.4, -39.5], [-71.4, -19.4], [-65.1, -7.6]
+    ] }
+  ]
+}

@@ -2,11 +2,13 @@ package web
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +16,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
-	"saigon-noir/server/internal/hub"
+	"saigon-noir/server/internal/identity"
+	"saigon-noir/server/internal/store"
+	"saigon-noir/server/internal/world"
+	"saigon-noir/server/internal/ws"
 )
 
 const waitFor = 2 * time.Second
@@ -84,12 +89,27 @@ type chatLine struct {
 	Text string `json:"text"`
 }
 
-func startServer(t *testing.T, cfg hub.Config) *httptest.Server {
+// testServer is the whole server over HTTP, with its own database in a temporary folder.
+type testServer struct {
+	*httptest.Server
+	db *store.DB
+}
+
+func startServer(t *testing.T, cfg world.Config) *testServer { return startWith(t, cfg, Options{}) }
+
+func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
-	h := hub.New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	go h.Run(ctx)
-	r, err := NewRouter(h, Options{})
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	db, err := store.Open(ctx, store.Options{Path: filepath.Join(t.TempDir(), "game.db")}, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts := identity.New(db)
+	w := world.New(cfg, log)
+	go w.Run(ctx)
+	sockets := ws.New(w, accounts, ws.Config{HelloTimeout: 300 * time.Millisecond}, log)
+	r, err := NewRouter(w, sockets, accounts, opt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,20 +117,20 @@ func startServer(t *testing.T, cfg hub.Config) *httptest.Server {
 	t.Cleanup(func() {
 		cancel()
 		srv.Close()
+		db.Close()
 	})
-	return srv
+	return &testServer{Server: srv, db: db}
 }
 
-func testConfig() hub.Config {
-	cfg := hub.DefaultConfig()
+func testConfig() world.Config {
+	cfg := world.DefaultConfig()
 	cfg.MaxPlayers = 2
 	cfg.SnapInterval = 20 * time.Millisecond
-	cfg.HelloTimeout = 300 * time.Millisecond
 	cfg.ChatHistory = 2
 	return cfg
 }
 
-func dial(t *testing.T, srv *httptest.Server) *websocket.Conn {
+func dial(t *testing.T, srv *testServer) *websocket.Conn {
 	t.Helper()
 	url := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
@@ -326,4 +346,117 @@ func TestHealthzAndForeignOrigin(t *testing.T) {
 		t.Fatalf("status = %v", r2)
 	}
 	r2.Body.Close()
+}
+
+// ---- accounts
+
+// postGuest asks for a guest token, from a page at origin ("" for no Origin header, like curl).
+func postGuest(t *testing.T, srv *testServer, origin string) (status int, header http.Header, token string) {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/auth/guest", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if origin != "" {
+		req.Header.Set("Origin", origin)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var body struct {
+		Token string `json:"token"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&body)
+	return resp.StatusCode, resp.Header, body.Token
+}
+
+// eventually polls ok until it holds, or fails the test after waitFor.
+func eventually(t *testing.T, what string, ok func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(waitFor)
+	for !ok() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// storedCharacter is the character behind a token, read straight from the database.
+func storedCharacter(srv *testServer, token string) (identity.Character, error) {
+	sum := sha256.Sum256([]byte(token))
+	account, err := srv.db.AccountByToken(context.Background(), sum[:], 0)
+	if err != nil {
+		return identity.Character{}, err
+	}
+	return srv.db.CharacterOf(context.Background(), account)
+}
+
+func TestGuestTokenKeepsTheCharacter(t *testing.T) {
+	srv := startServer(t, testConfig())
+	status, _, token := postGuest(t, srv, "")
+	if status != http.StatusOK || len(token) != 43 {
+		t.Fatalf("guest = %d %q", status, token)
+	}
+	hello := `{"t":"hello","token":"` + token + `","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`
+
+	a := dial(t, srv)
+	send(t, a, hello)
+	if w := next(t, a, "welcome"); w.Name != "Lan" {
+		t.Fatalf("welcome = %+v", w)
+	}
+	send(t, a, `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"xeom","hat":"none"}}`)
+	var first identity.Character
+	eventually(t, "the outfit change to be stored", func() bool {
+		c, err := storedCharacter(srv, token)
+		first = c
+		return err == nil && c.Look.Outfit == "xeom"
+	})
+	a.Close()
+
+	// the next visit with the same token is the same character
+	b := dial(t, srv)
+	send(t, b, hello)
+	next(t, b, "welcome")
+	if again, err := storedCharacter(srv, token); err != nil || again.ID != first.ID {
+		t.Fatalf("character after reconnecting = %+v, %v; want id %s", again, err, first.ID)
+	}
+}
+
+func TestUnknownTokenIsTurnedAway(t *testing.T) {
+	srv := startServer(t, testConfig())
+	c := dial(t, srv)
+	send(t, c, `{"t":"hello","token":"made-up-token","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`)
+	if e := next(t, c, "error"); e.Code != "auth" {
+		t.Fatalf("error = %+v", e)
+	}
+	closed(t, c)
+}
+
+func TestGuestEndpointOriginsAndRate(t *testing.T) {
+	srv := startWith(t, testConfig(), Options{AllowedOrigins: []string{"https://game.vn"}})
+
+	// a listed page origin may call it, and its script may read the answer
+	status, h, token := postGuest(t, srv, "https://game.vn")
+	if status != http.StatusOK || token == "" || h.Get("Access-Control-Allow-Origin") != "https://game.vn" {
+		t.Fatalf("listed origin: %d %q, ACAO %q", status, token, h.Get("Access-Control-Allow-Origin"))
+	}
+	if h.Get("Cache-Control") != "no-store" {
+		t.Fatalf("Cache-Control = %q", h.Get("Cache-Control"))
+	}
+	// another site may not
+	if status, _, _ := postGuest(t, srv, "https://evil.example"); status != http.StatusForbidden {
+		t.Fatalf("foreign origin: %d", status)
+	}
+	// one address gets a burst, then has to wait
+	for i := 1; i < guestBurst; i++ {
+		if status, _, _ := postGuest(t, srv, ""); status != http.StatusOK {
+			t.Fatalf("request %d of the burst: %d", i+1, status)
+		}
+	}
+	if status, _, _ := postGuest(t, srv, ""); status != http.StatusTooManyRequests {
+		t.Fatalf("after the burst: %d", status)
+	}
 }

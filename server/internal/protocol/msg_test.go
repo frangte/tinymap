@@ -54,6 +54,19 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("got %+v", m)
 				}
 			}},
+		{name: "hello with token", in: `{"t":"hello","token":"abc_-123","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Token != "abc_-123" {
+					t.Fatalf("token = %q", m.Token)
+				}
+			}},
+		{name: "token too long", in: `{"t":"hello","token":"` + strings.Repeat("a", TokenMax+1) + `","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`, wantErr: ErrBadToken},
+		{name: "token only counts in hello", in: `{"t":"profile","token":"x","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Token != "" {
+					t.Fatalf("token = %q", m.Token)
+				}
+			}},
 		{name: "hello without look", in: `{"t":"hello","name":"Lan"}`, wantErr: ErrBadLook},
 		{name: "unknown outfit", in: `{"t":"profile","name":"a","look":{"body":"man","outfit":"suit","hat":"none"}}`, wantErr: ErrBadLook},
 		{name: "state wraps heading", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":7}`,

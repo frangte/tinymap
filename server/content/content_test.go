@@ -1,0 +1,54 @@
+package content
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestEmbeddedPlacesAreValid(t *testing.T) {
+	places, err := Places()
+	if err != nil {
+		t.Fatal(err)
+	}
+	byID := make(map[string]Place, len(places))
+	for _, p := range places {
+		byID[p.ID] = p
+	}
+	// ids the design docs and the game rely on
+	for _, id := range []string{"cho_ben_thanh", "nha_tho_duc_ba", "bung_binh_quach_thi_trang", "duong_ham_nghi", "day_nha_pho_le_lai", "bai_bien"} {
+		if _, ok := byID[id]; !ok {
+			t.Errorf("place %q is missing", id)
+		}
+	}
+	if coast := byID["bai_bien"]; len(coast.Pts) < 3 || coast.Kind != Area {
+		t.Errorf("bai_bien should be the coast polyline, got %+v", coast)
+	}
+}
+
+func TestParsePlacesRejects(t *testing.T) {
+	const ok = `{"id":"cho","name":"Chợ","note":"","kind":"landmark","pts":[[8,8]],"r":25}`
+	cases := []struct {
+		name string
+		json string
+		want string
+	}{
+		{"no places", `{"places":[]}`, "no places"},
+		{"unknown field", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,0]],"r":1,"radius":3}]}`, "unknown field"},
+		{"bad id", `{"places":[{"id":"Chợ","name":"A","kind":"area","pts":[[0,0]],"r":1}]}`, "lower_snake_case"},
+		{"duplicate id", `{"places":[` + ok + `,` + ok + `]}`, "duplicate"},
+		{"no name", `{"places":[{"id":"a","name":"","kind":"area","pts":[[0,0]],"r":1}]}`, "no name"},
+		{"unknown kind", `{"places":[{"id":"a","name":"A","kind":"cafe","pts":[[0,0]],"r":1}]}`, "unknown kind"},
+		{"no points", `{"places":[{"id":"a","name":"A","kind":"area","pts":[],"r":1}]}`, "no points"},
+		{"zero reach", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,0]],"r":0}]}`, "reach"},
+		{"3d point", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,0,0]],"r":1}]}`, "[x, y]"},
+		{"off the map", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,9000]],"r":1}]}`, "within"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := parsePlaces([]byte(c.json))
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("err = %v, want it to mention %q", err, c.want)
+			}
+		})
+	}
+}

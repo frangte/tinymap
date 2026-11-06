@@ -7,7 +7,11 @@ import { defineConfig } from 'vite';
 export default defineConfig(({ mode }) => ({
   server: {
     host: true,
-    proxy: { '/ws': { target: 'ws://localhost:8787', ws: true } },
+    proxy: {
+      '/ws': { target: 'ws://localhost:8787', ws: true },
+      // the account API (guest tokens), on the same server
+      '/api': { target: 'http://localhost:8787' },
+    },
   },
   build: {
     target: 'es2020',

@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/vitest.config.*"
+---
 # Testing Requirements
 
 ## Minimum Test Coverage: 80%

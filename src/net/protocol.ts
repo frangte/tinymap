@@ -23,7 +23,8 @@ export interface ChatLine {
   at: number;
 }
 
-export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'unknown';
+/** auth: the hello's account token is unknown to the server (forget it and get a new one) */
+export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'auth' | 'unknown';
 
 /** [id, x, y, z, heading, age]: age = ms between the server receiving this pose and sending the snapshot */
 export type SnapRow = [number, number, number, number, number, number];
@@ -38,7 +39,9 @@ export type ServerMsg =
   | { t: 'error'; code: ErrorCode };
 
 export type ClientMsg =
-  | { t: 'hello' | 'profile'; name: string; look: Look }
+  /** token: the guest account (src/net/auth.ts); absent plays as a guest without one */
+  | { t: 'hello'; token?: string; name: string; look: Look }
+  | { t: 'profile'; name: string; look: Look }
   | { t: 'state'; x: number; y: number; z: number; h: number }
   | { t: 'chat'; text: string };
 
@@ -87,7 +90,7 @@ function list<T>(v: unknown, item: (x: unknown) => T | null): T[] | null {
   return out;
 }
 
-const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate'];
+const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth'];
 
 /** One server frame, or null if it is not a message this client understands. */
 export function parseServerMsg(data: unknown): ServerMsg | null {

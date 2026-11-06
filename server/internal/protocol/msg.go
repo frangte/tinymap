@@ -14,6 +14,8 @@ import (
 const (
 	NameMax = 16
 	ChatMax = 140
+	// TokenMax caps the account token in a hello; the server issues 43-character tokens (POST /api/auth/guest).
+	TokenMax = 64
 	// MaxMessageBytes caps one client frame; the largest legal one (a 140-character chat) is far below it.
 	MaxMessageBytes = 1024
 	// WorldHalf bounds |x| and |z| in three.js metres; the island spans roughly -120…130.
@@ -41,6 +43,9 @@ const (
 	ErrBadHello = "bad_hello"
 	ErrRate     = "rate"
 	ErrSlow     = "slow"
+	// ErrAuth: the hello's token belongs to no account (the database was reset, or it was made up). The client
+	// should forget the token, get a new one and connect again; the socket is closed after this.
+	ErrAuth = "auth"
 )
 
 var (
@@ -68,20 +73,23 @@ type Pose struct {
 
 // ClientMsg is any message a client sends; which fields matter depends on T.
 type ClientMsg struct {
-	T    string  `json:"t"`
-	Name string  `json:"name"`
-	Look *Look   `json:"look"`
-	X    float64 `json:"x"`
-	Y    float64 `json:"y"`
-	Z    float64 `json:"z"`
-	H    float64 `json:"h"`
-	Text string  `json:"text"`
+	T string `json:"t"`
+	// Token is the account token, in hello only; empty for a guest without an account.
+	Token string  `json:"token"`
+	Name  string  `json:"name"`
+	Look  *Look   `json:"look"`
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
+	Z     float64 `json:"z"`
+	H     float64 `json:"h"`
+	Text  string  `json:"text"`
 }
 
-// Validation errors; the hub drops the message (or the connection, for a bad hello).
+// Validation errors; the world drops the message (or the connection, for a bad hello).
 var (
 	ErrUnknownType = errors.New("unknown message type")
 	ErrBadLook     = errors.New("invalid look")
+	ErrBadToken    = errors.New("token too long")
 	ErrBadPose     = errors.New("pose out of bounds")
 	ErrEmptyChat   = errors.New("empty chat")
 )
@@ -92,10 +100,16 @@ func Decode(data []byte) (ClientMsg, error) {
 	if err := json.Unmarshal(data, &m); err != nil {
 		return m, err
 	}
+	if m.T != TypeHello {
+		m.Token = "" // only a hello carries the account
+	}
 	switch m.T {
 	case TypeHello, TypeProfile:
 		if m.Look == nil || !m.Look.Valid() {
 			return m, ErrBadLook
+		}
+		if len(m.Token) > TokenMax {
+			return m, ErrBadToken
 		}
 		m.Name = CleanName(m.Name)
 	case TypeState:
