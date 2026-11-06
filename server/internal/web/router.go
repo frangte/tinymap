@@ -5,6 +5,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -36,6 +37,8 @@ type Options struct {
 	AllowedOrigins []string
 	// TrustedProxies are the reverse proxies whose X-Forwarded-For gin may believe; none by default.
 	TrustedProxies []string
+	// Log gets a warning for every page origin refused (nil: slog.Default()).
+	Log *slog.Logger
 }
 
 // Guests issues anonymous accounts; identity.Service in production.
@@ -47,6 +50,19 @@ type Guests interface {
 func NewRouter(w *world.World, sockets *ws.Server, guests Guests, opt Options) (*gin.Engine, error) {
 	r := gin.New()
 	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/healthz"}}), gin.Recovery(), securityHeaders)
+	log := opt.Log
+	if log == nil {
+		log = slog.Default()
+	}
+	allowed := func(req *http.Request) bool {
+		if originAllowed(req, opt.AllowedOrigins) {
+			return true
+		}
+		// the usual cause: the page is open on another address than the one that reaches the server (a tunnel, a
+		// preview pane, a port forward that rewrites Host), so say both
+		log.Warn("page origin refused: add it to ALLOWED_ORIGINS if it is yours", "origin", req.Header.Get("Origin"), "host", req.Host, "path", req.URL.Path)
+		return false
+	}
 	if err := r.SetTrustedProxies(opt.TrustedProxies); err != nil {
 		return nil, fmt.Errorf("trusted proxies: %w", err)
 	}
@@ -54,7 +70,7 @@ func NewRouter(w *world.World, sockets *ws.Server, guests Guests, opt Options) (
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 4096,
-		CheckOrigin:     func(req *http.Request) bool { return originAllowed(req, opt.AllowedOrigins) },
+		CheckOrigin:     allowed,
 	}
 	r.GET("/ws", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -68,7 +84,7 @@ func NewRouter(w *world.World, sockets *ws.Server, guests Guests, opt Options) (
 		c.JSON(http.StatusOK, gin.H{"ok": true, "players": w.Players()})
 	})
 
-	api := r.Group("/api", apiOrigin(opt.AllowedOrigins), noStore)
+	api := r.Group("/api", apiOrigin(allowed), noStore)
 	limit := newIPLimiter(rate.Every(guestEvery), guestBurst)
 	api.POST("/auth/guest", func(c *gin.Context) {
 		if !limit.allow(c.ClientIP(), time.Now()) {
@@ -113,9 +129,9 @@ func noStore(c *gin.Context) {
 // apiOrigin lets the same pages that may open the socket call the API: the server's own host always, other
 // origins only when listed. Those get Access-Control-Allow-Origin so their scripts can read the answer; the
 // game only sends simple requests (a POST without a body), so there is no preflight to answer.
-func apiOrigin(allowed []string) gin.HandlerFunc {
+func apiOrigin(allowed func(*http.Request) bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !originAllowed(c.Request, allowed) {
+		if !allowed(c.Request) {
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}

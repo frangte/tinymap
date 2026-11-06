@@ -75,6 +75,7 @@ func run() error {
 		StaticDir:      os.Getenv("STATIC_DIR"),
 		AllowedOrigins: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		TrustedProxies: splitList(os.Getenv("TRUSTED_PROXIES")),
+		Log:            log,
 	}
 	if opt.StaticDir != "" {
 		if st, err := os.Stat(opt.StaticDir); err != nil || !st.IsDir() {
