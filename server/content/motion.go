@@ -51,6 +51,9 @@ const MaxEmoteCode = 15
 // sane bounds for speeds (m/s): a typo of 110 for 11 should fail the tests, not reach players
 const maxSpeed = 30
 
+// maxEmoteSeconds bounds an emote's length: a gesture, not a state
+const maxEmoteSeconds = 30
+
 func parseMotion(f files, c *Catalog) error {
 	if err := decodeStrict(f.movement, &c.Movement); err != nil {
 		return fmt.Errorf("movement.json: %w", err)
@@ -100,8 +103,8 @@ func (c *Catalog) checkMotion(caps map[string]bool) error {
 			return fmt.Errorf("emotes.json: emote %q: needs a unique lower_snake_case id", e.ID)
 		case e.Code < 1 || e.Code > MaxEmoteCode || codes[e.Code]:
 			return fmt.Errorf("emotes.json: emote %q: code must be unique and in 1…%d", e.ID, MaxEmoteCode)
-		case e.Name.VI == "" || e.Seconds < 0:
-			return fmt.Errorf("emotes.json: emote %q: needs a Vietnamese name and seconds ≥ 0", e.ID)
+		case e.Name.VI == "" || !(e.Seconds >= 0 && e.Seconds <= maxEmoteSeconds):
+			return fmt.Errorf("emotes.json: emote %q: needs a Vietnamese name and seconds in [0, %d] (0 loops)", e.ID, maxEmoteSeconds)
 		case e.Requires != "" && !caps[e.Requires]:
 			return fmt.Errorf("emotes.json: emote %q requires unknown capability %q", e.ID, e.Requires)
 		}

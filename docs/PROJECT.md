@@ -17,7 +17,7 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
   - UBND: ô trống lát gạch ở đầu bắc phố đi bộ Nguyễn Huệ (x 48…72, y 12…31), sát đường Lê Thánh Tôn, giống vị trí thật.
 - **Tiếp theo:** NPC và quest.
 - **Bản cũ:** trong `versions/`: v1; v2 (có sông, bờ Thủ Thiêm, cầu Ba Son); v3 (công trình xếp vòng quanh chợ). Không sửa đè, muốn đổi lớn thì lưu version mới.
-- **Model công trình không sửa:** v3 và v4 chỉ dời và xoay nguyên khối. Người có sẵn trong model cũ (hàng rong ở Hồ Con Rùa, Lam Sơn, chủ tiệm nhà phố) vẫn còn.
+- **Model công trình không sửa:** v3 và v4 chỉ dời và xoay nguyên khối. Người có sẵn trong model cũ (người ngồi chơi quanh Hồ Con Rùa, người đứng ở Lam Sơn, chủ tiệm nhà phố) vẫn còn, trừ hai người đã nhường chỗ cho NPC (2026-11-06): cô đội nón lá đứng ở quầy tiệm trên Lê Lai (giờ là Chú Tư) và người áo xanh ở Lam Sơn (giờ là Chị Hạnh). NPC nằm trong `server/content/npcs.json`.
 - **Cách làm việc:** plan lớn phải hỏi Khoa trước khi làm.
 
 ## Style (giữ nguyên khi vẽ thêm)
@@ -112,13 +112,13 @@ Cầu Ba Son và bờ Thủ Thiêm đã bỏ từ v3; muốn xem lại thì mở
 
 ## Pipeline: từ Blender ra game
 
-1. Sửa `sg.tinymap.blend`.
+1. Sửa map. Đảo v4 là `new.sg.tinymap.blend`: file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` xuất được file này; `bake_nav.py` thì không, vì nó phân loại đất, nước, nhà và mái theo tên object gốc, nên chưa nướng lại nav từ file này được (đổi hình mà không đổi chỗ đi được thì vẫn xuất GLB bình thường). `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
 2. Export GLB, file `.blend` không bị đổi:
    ```bash
-   blender sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
+   blender new.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
    ```
 3. Thu nhỏ file bằng 5 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune`). Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/saigon_q1.glb`.
-4. Bake lại bản đồ đi lại, mất khoảng 15 giây. Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
+4. Bake lại bản đồ đi lại (chỉ chạy được trên file còn object gốc, xem bước 1), mất khoảng 15 giây. Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
    ```bash
    blender sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
    ```

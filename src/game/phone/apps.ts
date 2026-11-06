@@ -116,7 +116,7 @@ const chat: AppFactory = (root, ctx) => {
 
 const map: AppFactory = (root, ctx) => {
   const m = new MiniMap();
-  root.append(m.canvas, h('p', 'app-note', 'Chấm màu là người đang ở ngoài phố, theo vai của họ.'));
+  root.append(m.canvas, h('p', 'app-note', 'Chấm màu là người đang ở ngoài phố, theo vai của họ. Hình thoi vàng là người quen để ghé nói chuyện: Cô Ba, Chú Tư, Dì Năm…'));
   const draw = (): void => {
     const s = ctx.self();
     m.draw({ x: s.position.x, z: s.position.z, heading: s.heading }, ctx.others());

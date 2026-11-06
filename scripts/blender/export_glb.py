@@ -4,7 +4,12 @@
 
 Each SD_* material is swapped for a plain Principled BSDF in its real colour (otherwise the exporter writes
 identical default materials and `gltf-transform join` merges everything into one). The game rebuilds the
-paint shader from the material name. Then shrink it (see docs/PROJECT.md, "Pipeline"):
+paint shader from the material name.
+
+It also exports a file made by importing the shipped GLB back into Blender (new.sg.tinymap.blend: one scene,
+one collection, meshes merged by material, Principled materials already in their colours): without the
+SaigonDiorama scene it takes every visible mesh of the active scene. Then shrink it (see docs/PROJECT.md,
+"Pipeline"):
 
     npx @gltf-transform/cli@4.1.1 flatten  export/saigon_q1_raw.glb /tmp/a.glb
     npx @gltf-transform/cli@4.1.1 join     /tmp/a.glb /tmp/b.glb
@@ -30,7 +35,8 @@ def srgb2lin(c):
 
 
 def material_colour(m):
-    """sRGB 0..1 colour of an SD_* material: the SD_Paint group input, an emission colour, or the viewport colour."""
+    """sRGB 0..1 colour of an SD_* material: the SD_Paint group input, an emission colour, an imported
+    Principled BSDF's base colour (and whether it glows), or the viewport colour."""
     if m.node_tree:
         for n in m.node_tree.nodes:
             if n.type == 'GROUP' and n.node_tree and n.node_tree.name.startswith('SD_Paint'):
@@ -38,15 +44,24 @@ def material_colour(m):
         for n in m.node_tree.nodes:
             if n.type == 'EMISSION':
                 return [lin2srgb(x) for x in n.inputs['Color'].default_value[:3]], True
+        for n in m.node_tree.nodes:
+            if n.type == 'BSDF_PRINCIPLED' and not n.inputs['Base Color'].is_linked:
+                glow = n.inputs['Emission Strength'].default_value > 0 and any(c > 0 for c in n.inputs['Emission Color'].default_value[:3])
+                return [lin2srgb(x) for x in n.inputs['Base Color'].default_value[:3]], glow
     return [lin2srgb(x) for x in m.diffuse_color[:3]], False
 
 
 def main():
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
     out = os.path.abspath(argv[0] if argv else bpy.path.abspath('//export/saigon_q1_raw.glb'))
-    sc = bpy.data.scenes[SCENE]
+    sc = bpy.data.scenes.get(SCENE)
+    if sc:
+        objs = [o for c in COLLECTIONS for o in bpy.data.collections[c].all_objects if o.type == 'MESH']
+    else:
+        # a re-imported GLB: everything visible in the active scene
+        sc = bpy.context.scene
+        objs = [o for o in sc.objects if o.type == 'MESH' and not o.hide_render and not o.hide_get()]
     vl = sc.view_layers[0]
-    objs = [o for c in COLLECTIONS for o in bpy.data.collections[c].all_objects if o.type == 'MESH']
     for o in sc.objects:
         o.select_set(False, view_layer=vl)
     for o in objs:

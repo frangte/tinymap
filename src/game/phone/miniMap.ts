@@ -1,6 +1,8 @@
-// The phone's map: the island drawn flat (north up), its streets and landmarks, everyone out right now as a dot in
-// their archetype's colour, and an arrow for the player. Redrawn a few times a second while the app is open.
+// The phone's map: the island drawn flat (north up), its streets and landmarks, the NPCs to talk to as diamonds,
+// everyone out right now as a dot in their archetype's colour, and an arrow for the player. Redrawn a few times a
+// second while the app is open.
 import { PLACES } from '../places';
+import { NPC_DEFS } from '../npcs';
 import { archetypeById } from '../archetypes';
 import type { RemotePlayer } from '../remotePlayers';
 
@@ -11,6 +13,8 @@ const INK = '#2B211C';
 const SELF = '#B5523B';
 /** dot colour of a player without an archetype */
 const NONE = '#6A5A4C';
+/** the NPCs' diamonds */
+const NPC_MARK = '#E0B45A';
 /** margin around the coast (m) */
 const PAD = 6;
 /** a landmark label closer than this (CSS px) to one already drawn is left out */
@@ -88,6 +92,22 @@ export class MiniMap {
       if (labelled.some(([lx, ly]) => Math.hypot(lx - x, ly - y) < LABEL_GAP * dpr)) continue;
       labelled.push([x, y]);
       g.fillText(l.name, x, y - 5 * dpr);
+    }
+    // NPCs stand at their spots (they only turn round), so the shared list says where they are
+    g.fillStyle = NPC_MARK;
+    g.strokeStyle = INK;
+    g.lineWidth = dpr;
+    for (const n of NPC_DEFS) {
+      const [x, y] = this.px(n.at[0], n.at[1]);
+      const r = 4 * dpr;
+      g.beginPath();
+      g.moveTo(x, y - r);
+      g.lineTo(x + r, y);
+      g.lineTo(x, y + r);
+      g.lineTo(x - r, y);
+      g.closePath();
+      g.fill();
+      g.stroke();
     }
     for (const r of others) {
       // the server only says where the players near us are

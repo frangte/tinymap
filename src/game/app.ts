@@ -31,9 +31,11 @@ import { Vehicles, type RiderView } from './vehicles';
 import { Riding } from './riding';
 import { ActionPad } from './actionPad';
 import { emotesFor } from './motion';
+import { Npcs } from './npcs';
+import { Talk } from './talk';
 import { loadPose, savePose } from './lastPose';
 
-const MODEL_BYTES = 2.04e6;
+const MODEL_BYTES = 2.01e6;
 /** distance from the island centre to the beach (m) */
 const COAST_R = 92;
 const MAX_PIXEL_RATIO = 1.5;
@@ -107,12 +109,15 @@ export async function startApp(): Promise<void> {
   let phone: Phone | null = null;
   /** closes the archetype picker when leaving play (replaced once the map has loaded) */
   let closePicker = (): void => {};
+  /** walks out of a conversation when leaving play (replaced once the map has loaded) */
+  let closeTalk = (): void => {};
   /** what happens when play starts: pick an archetype, dress, or go straight online (replaced once loaded) */
   let arrive = (): void => {};
   /** replaced once the map has loaded and the panel exists */
   let openDress = (): void => {};
   // multiplayer: created with the world; joins once the player has a character
   let remotes: RemotePlayers | null = null;
+  let npcs: Npcs | null = null;
   let net: NetClient | null = null;
   let vehicles: Vehicles | null = null;
   /** where each vehicle's rider is drawn this frame (replaced once the map has loaded) */
@@ -160,6 +165,7 @@ export async function startApp(): Promise<void> {
       chat?.close(false);
       phone?.close();
       closePicker();
+      closeTalk();
       play.exit();
     }
     // where the camera is looking now, whoever was driving it
@@ -202,8 +208,9 @@ export async function startApp(): Promise<void> {
     if (mode !== 'play' && !flight.active) map.update(now);
     // others: hidden beyond walking distance in play mode, all of them over the map
     remotes?.update(dt, now, clock, mode === 'play' ? camera.position : null);
+    npcs?.update(dt, now, clock, mode === 'play' ? camera.position : null);
     vehicles?.update(dt, riderView, mode === 'play' ? camera.position : null);
-    if (draw && remotes && play && mode === 'play') tags.update(camera, now, remotes, play.player.position);
+    if (draw && remotes && npcs && play && mode === 'play') tags.update(camera, now, remotes, npcs, play.player.position);
     if (play && mode === 'play') {
       const pl = play.player;
       const pp = pl.position;
@@ -329,6 +336,8 @@ export async function startApp(): Promise<void> {
   openDress = (): void => {
     if (mode !== 'play' || flight.active || panel.isOpen) return;
     chatBox.close(false);
+    // the dressing panel takes over the screen: the conversation ends
+    talk.close();
     p.setDressing(true);
     panel.open(profile, !dressed, caps);
   };
@@ -343,7 +352,8 @@ export async function startApp(): Promise<void> {
   });
   chat = chatBox;
   const openChat = (): void => {
-    if (mode !== 'play' || flight.active || panel.isOpen || !dressed) return;
+    // while talking the chat log makes room for the conversation sheet
+    if (mode !== 'play' || flight.active || panel.isOpen || !dressed || talk.isOpen) return;
     chatBox.open();
   };
 
@@ -398,6 +408,9 @@ export async function startApp(): Promise<void> {
   // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
   const others = new RemotePlayers(scene, ink, (x, z) => nav.smoothFloor(x, z, 0));
   remotes = others;
+  // ---- NPCs: drawn at their spots from the start; online the server's take their place
+  const cast = new Npcs(scene, ink, (x, z) => nav.smoothFloor(x, z, 0));
+  npcs = cast;
   let netStatus: NetStatus = 'connecting';
   const showOnline = (): void => hud.setOnline(netStatus, others.count + 1);
   const netClient: NetClient = new NetClient(socketUrl(hud.stage), {
@@ -406,8 +419,10 @@ export async function startApp(): Promise<void> {
       chatBox.setOnline(s === 'online');
       showOnline();
     },
-    welcome: (players, lines, arch, apps, pose, list) => {
+    welcome: (players, lines, arch, apps, pose, list, npcList) => {
       others.clear();
+      talk.reset();
+      cast.reset(npcList);
       const now = performance.now();
       for (const info of players) others.add(info, now);
       chatBox.history(lines, netClient.selfId);
@@ -449,7 +464,10 @@ export async function startApp(): Promise<void> {
       if (before !== undefined && before !== name) chatBox.system(`${before} đổi tên thành ${name}`);
       others.setProfile(id, name, look);
     },
-    snap: (rows, receivedAt, out) => others.applySnap(rows, receivedAt, netClient.selfId, out),
+    snap: (rows, receivedAt, out) => {
+      others.applySnap(rows, receivedAt, netClient.selfId, out);
+      cast.applySnap(rows, receivedAt);
+    },
     correct: (pose) => p.player.correct(pose[0], pose[1], pose[2]),
     vehicle: (v) => riding.vehicle(v),
     vehicleGone: (id) => riding.gone(id),
@@ -459,9 +477,13 @@ export async function startApp(): Promise<void> {
       chatBox.line(line, netClient.selfId);
       tags.say(self ? SELF : line.id, line.text, performance.now());
     },
+    interaction: (i) => talk.interaction(i),
+    interactionEnd: (sid, reason) => talk.ended(sid, reason),
     rateLimited: () => chatBox.rateLimited(),
     reset: () => {
       others.clear();
+      talk.reset();
+      cast.local();
       riding.offline();
       showOnline();
     },
@@ -496,9 +518,17 @@ export async function startApp(): Promise<void> {
     view.lean = r.lean;
     return view;
   };
-  actionLabel = () => riding.label();
+  // ---- talking to NPCs: next to one on foot, the action button (E) says hello; the sheet shows the conversation
+  const talk: Talk = new Talk({ net: netClient, npcs: cast, player: p.player, notify: (text) => chatBox.system(text), done: backToGame });
+  closeTalk = (): void => talk.close();
+  // on the bike the button gets off; on foot an NPC in reach comes before the bike
+  actionLabel = () => (p.player.riding ? riding.label() : talk.label() ?? riding.label());
   updateRiding = (now) => riding.update(now);
-  p.onUse = () => riding.use();
+  p.onUse = () => {
+    if (!p.player.riding && talk.near()) talk.use();
+    else riding.use();
+  };
+  p.pressDigit = (n) => talk.press(n);
   pad = new ActionPad({
     jump: () => p.jump(),
     use: () => p.use(),
@@ -601,6 +631,11 @@ export async function startApp(): Promise<void> {
       return;
     }
     if (isTyping(e)) return;
+    if (mode === 'play' && talk.isOpen && e.key === 'Escape') {
+      e.preventDefault();
+      talk.close();
+      return;
+    }
     if (mode === 'play' && ph.isOpen && e.key === 'Escape') {
       e.preventDefault();
       ph.close();
@@ -635,7 +670,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

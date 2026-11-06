@@ -26,11 +26,12 @@ func DefaultView() View { return View{Radius: 60, Leave: 68, Max: 40} }
 // maxAgeMs caps the age in a snapshot row: someone who stood still for an hour is simply standing there.
 const maxAgeMs = 60_000
 
-// view is what one member's client has been shown.
+// view is what one member's client has been shown, and how the entity itself is shown to others.
 type view struct {
-	// seen are the ids in view at the last snapshot; next is scratch for the one being built
+	// seen are the ids in view at the last snapshot; next is scratch for the one being built (nil for an NPC,
+	// which sees nobody)
 	seen, next map[uint32]struct{}
-	// moved: the member moved (or changed flags) since the last snapshot, so viewers need a new row
+	// moved: the entity moved (or changed flags) since the last snapshot, so viewers need a new row
 	moved bool
 	// row is the member's snapshot row for snapshot number rowOf, built once and shared by every viewer
 	row   []byte
@@ -44,14 +45,14 @@ func newView() view {
 type cellKey struct{ i, j int32 }
 
 type candidate struct {
-	m  *member
+	e  *entity
 	d2 float64
 }
 
 // snapScratch is reused from one snapshot to the next, so a snapshot allocates only what it sends.
 type snapScratch struct {
 	n     uint64
-	cells map[cellKey][]*member
+	cells map[cellKey][]*entity
 	cands []candidate
 	rows  [][]byte
 	out   []uint32
@@ -63,20 +64,24 @@ func (w *World) cellOf(p protocol.Pose) cellKey {
 	return cellKey{int32(math.Floor(p.X / c)), int32(math.Floor(p.Z / c))}
 }
 
-// sendSnapshots gives every member the rows of the others in its view that moved or just came into view, and
-// the ids of those that left it. A member with nothing new gets nothing.
+// sendSnapshots gives every member the rows of the others in its view (players and NPCs) that moved or just
+// came into view, and the ids of those that left it. A member with nothing new gets nothing.
 func (w *World) sendSnapshots() {
 	s := &w.snaps
 	s.n++
 	if s.cells == nil {
-		s.cells = map[cellKey][]*member{}
+		s.cells = map[cellKey][]*entity{}
 	}
-	for k, ms := range s.cells {
-		s.cells[k] = ms[:0]
+	for k, es := range s.cells {
+		s.cells[k] = es[:0]
 	}
 	for _, m := range w.members {
 		k := w.cellOf(m.pose)
-		s.cells[k] = append(s.cells[k], m)
+		s.cells[k] = append(s.cells[k], &m.entity)
+	}
+	for _, n := range w.npcs {
+		k := w.cellOf(n.pose)
+		s.cells[k] = append(s.cells[k], &n.entity)
 	}
 	now := w.now()
 	at := now.UnixMilli()
@@ -87,7 +92,7 @@ func (w *World) sendSnapshots() {
 		w.lookAround(m)
 		s.rows, s.out = s.rows[:0], s.out[:0]
 		for _, c := range s.cands {
-			o := c.m
+			o := c.e
 			m.view.next[o.id] = struct{}{}
 			if _, was := m.view.seen[o.id]; was && !o.view.moved {
 				continue
@@ -116,6 +121,9 @@ func (w *World) sendSnapshots() {
 	for _, m := range w.members {
 		m.view.moved = false
 	}
+	for _, n := range w.npcs {
+		n.view.moved = false
+	}
 	for _, p := range slow {
 		if m, ok := w.members[p]; ok {
 			w.log.Warn("dropping slow client", "id", m.id)
@@ -124,8 +132,8 @@ func (w *World) sendSnapshots() {
 	}
 }
 
-// lookAround fills the scratch candidates with the others in m's view: those within Radius, those already in
-// view within Leave, the nearest Max of them.
+// lookAround fills the scratch candidates with the others in m's view (players and NPCs): those within Radius,
+// those already in view within Leave, the nearest Max of them.
 func (w *World) lookAround(m *member) {
 	s := &w.snaps
 	s.cands = s.cands[:0]
@@ -135,7 +143,7 @@ func (w *World) lookAround(m *member) {
 	for dj := int32(-1); dj <= 1; dj++ {
 		for di := int32(-1); di <= 1; di++ {
 			for _, o := range s.cells[cellKey{k.i + di, k.j + dj}] {
-				if o == m {
+				if o == &m.entity {
 					continue
 				}
 				dx, dz := o.pose.X-m.pose.X, o.pose.Z-m.pose.Z

@@ -43,10 +43,12 @@ export class PlayMode {
   private home: Spawn | null = null;
   /** a landmark seen for the first time this visit (the phone notes it) */
   onLandmark: (p: Place) => void = () => {};
-  /** E or the action button: the action at hand (getting on or off the bike) */
+  /** E or the action button: the action at hand (talking to an NPC, getting on or off the bike) */
   onUse: () => void = () => {};
   /** the emote codes keys 1-9 play, in order */
   emoteKeys: readonly number[] = [];
+  /** a digit key (1-9) goes here first (an answer in a conversation); false leaves it to the emotes */
+  pressDigit: (n: number) => boolean = () => false;
   /** between enter() and exit() */
   private active = false;
   private dressing = false;
@@ -154,7 +156,7 @@ export class PlayMode {
     if (this.input.consumeJump()) this.jump();
     if (this.input.consumeUse()) this.use();
     const key = this.input.consumeEmoteKey();
-    if (key > 0 && key <= this.emoteKeys.length) this.emote(this.emoteKeys[key - 1]);
+    if (key > 0 && !(this.controlling && this.pressDigit(key)) && key <= this.emoteKeys.length) this.emote(this.emoteKeys[key - 1]);
     if (this.dressing) {
       // the model faces +Z rotated by heading; the camera sits along (sin yaw, cos yaw), so heading = yaw faces it
       const h = this.player.heading;

@@ -50,11 +50,59 @@ export interface ChatLine {
   name: string;
   /** the sender's archetype id ('' for none) */
   arch: string;
+  /** an NPC said it (a call to passers-by, or a line of a public conversation); id is the NPC's then */
+  npc: boolean;
   ch: Channel;
   text: string;
   /** server time, ms since the epoch */
   at: number;
 }
+
+/** A line in each language the game speaks; Vietnamese is always there. */
+export interface Text {
+  vi: string;
+  en: string;
+}
+
+/** An NPC on the island: `npc` is its id in server/content/npcs.json (name, look and role come from there). */
+export interface NpcInfo {
+  id: number;
+  npc: string;
+  pose: Pose;
+}
+
+/** private: one player and the NPC; public: the NPC's lines are also heard nearby; group: shared, led by one */
+export type TalkMode = 'private' | 'public' | 'group';
+
+/** Where a conversation is: the NPC's line and the answers on offer (none: only goodbye is left). */
+export interface Interaction {
+  sid: number;
+  /** the NPC's id */
+  n: number;
+  mode: TalkMode;
+  /** counts the conversation's lines: an answer names the step of the line it answers */
+  step: number;
+  /** we pick the answers (always, outside a group) */
+  lead: boolean;
+  /** how many players share the conversation */
+  size: number;
+  say: Text;
+  choices: Text[];
+}
+
+/** done: it reached its end; left: we closed it; far: we walked away; other: we started another one */
+export type EndReason = 'done' | 'left' | 'far' | 'other' | 'unknown';
+
+/** The answer to a command that carried a request id. code says why it failed (offline / timeout: no answer came). */
+export interface Result {
+  ok: boolean;
+  code: string;
+}
+
+/** NPC lines and answers are capped like this (SayMax, ChoiceMax, ChoicesMax in server/content/cast.go) */
+const SAY_MAX = 320;
+const CHOICE_MAX = 90;
+const CHOICES_MAX = 6;
 
 /** archetype and app ids are short lower_snake_case words (server/content); anything else is dropped */
 const ID_RE = /^[a-z0-9_]{1,32}$/;
@@ -73,7 +121,7 @@ export type ServerMsg =
    * arch: our archetype as the server keeps it ('' for none); apps: our phone apps in phone order (null: an older
    * server); pose: where the server placed us (null: an older server, which lets us stand where we like)
    */
-  | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; chat: ChatLine[] }
+  | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; npcs: NpcInfo[]; chat: ChatLine[] }
   | { t: 'join'; p: PlayerInfo }
   | { t: 'leave'; id: number }
   | { t: 'profile'; id: number; name: string; look: Look }
@@ -84,6 +132,9 @@ export type ServerMsg =
   | ({ t: 'vehicle' } & VehicleInfo)
   | { t: 'vehicle_gone'; id: number }
   | ({ t: 'chat' } & ChatLine)
+  | ({ t: 'interaction' } & Interaction)
+  | { t: 'interaction_end'; sid: number; reason: EndReason }
+  | { t: 'result'; rid: number; ok: boolean; code: string }
   | { t: 'error'; code: ErrorCode };
 
 export type ClientMsg =
@@ -97,6 +148,11 @@ export type ClientMsg =
   | { t: 'respawn'; x: number; y: number; z: number; h: number; k: number }
   | { t: 'mount'; v: number }
   | { t: 'dismount' }
+  /** n: the NPC to talk to; rid: the request id the result comes back with */
+  | { t: 'interact'; n: number; rid: number }
+  /** c: the index of the answer among the choices shown; step: that line's step */
+  | { t: 'choose'; sid: number; c: number; step: number; rid: number }
+  | { t: 'interact_leave'; sid: number }
   | { t: 'chat'; ch: Channel; text: string };
 
 type Obj = Record<string, unknown>;
@@ -144,7 +200,39 @@ function chatLine(v: unknown): ChatLine | null {
   const body = str(v.text, CHAT_MAX);
   if (name === null || !body) return null;
   // older servers send no channel: everything was global then
-  return { id: v.id, name, arch: idOf(v.arch), ch: v.ch === 'nearby' ? 'nearby' : 'global', text: body, at: v.at };
+  return { id: v.id, name, arch: idOf(v.arch), npc: v.npc === true, ch: v.ch === 'nearby' ? 'nearby' : 'global', text: body, at: v.at };
+}
+
+function text(v: unknown, max: number): Text | null {
+  if (!isObj(v)) return null;
+  const vi = str(v.vi, max);
+  if (!vi) return null;
+  return { vi, en: str(v.en, max) ?? '' };
+}
+
+function npcInfo(v: unknown): NpcInfo | null {
+  if (!isObj(v) || !isId(v.id)) return null;
+  const p = pose(v.pose);
+  const key = idOf(v.npc);
+  return p && key ? { id: v.id, npc: key, pose: p } : null;
+}
+
+const MODES: readonly TalkMode[] = ['private', 'public', 'group'];
+const REASONS: readonly EndReason[] = ['done', 'left', 'far', 'other'];
+
+function interaction(m: Obj): Interaction | null {
+  const mode = MODES.find((x) => x === m.mode);
+  const say = text(m.say, SAY_MAX);
+  if (!isId(m.sid) || !isId(m.n) || !mode || !say || !Number.isInteger(m.size) || !Number.isInteger(m.step) || !Array.isArray(m.choices)) return null;
+  // answers are picked by index: dropping a bad one would shift the rest, so a bad one drops the whole line
+  if (m.choices.length > CHOICES_MAX) return null;
+  const choices: Text[] = [];
+  for (const c of m.choices) {
+    const t = text(c, CHOICE_MAX);
+    if (!t) return null;
+    choices.push(t);
+  }
+  return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices };
 }
 
 /** the valid items of an array (bad ones are skipped), or null if it is not an array */
@@ -179,7 +267,8 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       // an older server sends no apps: null lets the game work them out from the archetype itself
       const apps = Array.isArray(m.apps) ? m.apps.map(idOf).filter((a) => a !== '') : null;
       const vehicles = list(m.vehicles, vehicle) ?? [];
-      return { t: 'welcome', id: m.id, name, arch: idOf(m.arch), apps, max: m.max, pose: pose(m.pose), players, vehicles, chat };
+      const npcs = list(m.npcs, npcInfo) ?? [];
+      return { t: 'welcome', id: m.id, name, arch: idOf(m.arch), apps, max: m.max, pose: pose(m.pose), players, vehicles, npcs, chat };
     }
     case 'join': {
       const p = player(m.p);
@@ -217,6 +306,14 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       const line = chatLine(m);
       return line ? { t: 'chat', ...line } : null;
     }
+    case 'interaction': {
+      const i = interaction(m);
+      return i ? { t: 'interaction', ...i } : null;
+    }
+    case 'interaction_end':
+      return isId(m.sid) ? { t: 'interaction_end', sid: m.sid, reason: REASONS.find((r) => r === m.reason) ?? 'unknown' } : null;
+    case 'result':
+      return isId(m.rid) ? { t: 'result', rid: m.rid, ok: m.ok === true, code: typeof m.code === 'string' ? m.code.slice(0, 16) : '' } : null;
     case 'error': {
       const code = ERROR_CODES.find((c) => c === m.code) ?? 'unknown';
       return { t: 'error', code };

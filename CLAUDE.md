@@ -1,6 +1,6 @@
 # Sài Gòn Q1
 
-Walkable low-poly District 1 diorama: map modelled in Blender (`sg.tinymap.blend`), game in Three.js 0.160 + TypeScript (strict), built with Vite 5. README.md has the full structure and the map pipeline.
+Walkable low-poly District 1 diorama: map modelled in Blender (the v4 island is `new.sg.tinymap.blend`; the root `sg.tinymap.blend` is an older layout), game in Three.js 0.160 + TypeScript (strict), built with Vite 5. README.md has the full structure and the map pipeline.
 
 Read `docs/PROJECT.md` first for any map or modelling work: project status, art style rules, palette, Blender file conventions, and a landmark sheet with renders (`docs/img/`) and reference photos. Keep it up to date when a landmark changes or a new one is added (re-render its image). Ask Khoa before starting a big plan.
 
@@ -12,8 +12,8 @@ For gameplay, multiplayer and backend work (archetypes, quests, NPCs, phone, cha
 - `npm run typecheck` — `tsc --noEmit`
 - `npm run build` — type-check + production build into `dist/`
 - `npm run build:single` — one HTML file at `dist-single/saigon-noir.html` (serve `models/` next to it)
-- `blender sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb` — export the GLB (then the gltf-transform chain in that file's header)
-- `blender sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1` — re-bake the nav maps after a map change, then `npm run nav:sync` (the server checks moves against its own embedded copy; `go test` fails until they match)
+- `blender new.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb` — export the GLB (then the gltf-transform chain in that file's header)
+- `blender <file>.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1` — re-bake the nav maps after a map change, then `npm run nav:sync` (the server checks moves against its own embedded copy; `go test` fails until they match). It needs a file with the original objects (scene `SaigonDiorama`): `new.sg.tinymap.blend` is the shipped GLB imported back, its meshes merged by material, so the bake cannot run on it (see docs/PROJECT.md, Pipeline)
 
 No test runner and no linter. Verify changes with `npm run typecheck`, then play in the browser.
 

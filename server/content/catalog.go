@@ -25,11 +25,9 @@ const (
 	fallbackHat    = "none"
 )
 
-// Text is a string in each language the game speaks; Vietnamese is required.
-type Text struct {
-	VI string `json:"vi"`
-	EN string `json:"en,omitempty"`
-}
+// Text is a string in each language the game speaks; Vietnamese is required. It is the protocol's Text, so
+// content can go out on the wire as it is.
+type Text = protocol.Text
 
 type Capability struct {
 	ID    string `json:"id"`
@@ -53,9 +51,12 @@ type Spawn struct {
 
 // ThreePose is the spawn in three.js terms: x and z (Blender (X, Y) is three.js (x, -y)) and the heading that
 // faces Face (0 faces +z), as src/game/play.ts spawns it.
-func (s Spawn) ThreePose() (x, z, heading float64) {
-	x, z = s.At[0], -s.At[1]
-	return x, z, math.Atan2(s.Face[0]-s.At[0], -(s.Face[1] - s.At[1]))
+func (s Spawn) ThreePose() (x, z, heading float64) { return threePose(s.At, s.Face) }
+
+// threePose turns a Blender XY point and the point it faces into three.js x, z and a heading (0 faces +z).
+func threePose(at, face []float64) (x, z, heading float64) {
+	x, z = at[0], -at[1]
+	return x, z, math.Atan2(face[0]-at[0], -(face[1] - at[1]))
 }
 
 type StarterLook struct {
@@ -100,6 +101,8 @@ type Catalog struct {
 	Movement     Movement
 	Vehicles     []Vehicle
 	Emotes       []Emote
+	NPCs         []NPC
+	Dialogues    map[string]Dialogue
 	byID         map[string]Archetype
 	vehicleByID  map[string]Vehicle
 }
@@ -111,11 +114,14 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, archetypes, apps, movement, vehicles, emotes []byte
+	places, archetypes, apps, movement, vehicles, emotes, npcs []byte
+	// dialogues are the files of dialogue/, by name
+	dialogues map[string][]byte
 }
 
 func embedded() files {
-	return files{places: placesJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON, emotes: emotesJSON}
+	return files{places: placesJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
+		emotes: emotesJSON, npcs: npcsJSON, dialogues: dialogueFiles()}
 }
 
 // Load parses and checks the embedded data files.
@@ -144,6 +150,9 @@ func load(f files) (*Catalog, error) {
 		return nil, fmt.Errorf("apps.json: %w", err)
 	}
 	if err := parseMotion(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseCast(f, c); err != nil {
 		return nil, err
 	}
 	c.Capabilities, c.Archetypes, c.Restricted, c.Apps = a.Capabilities, a.Archetypes, a.Restricted, p.Apps
@@ -205,7 +214,7 @@ func (c *Catalog) check() error {
 			return errors.New("archetypes.json: the fallback outfit and hat must not be restricted")
 		}
 	}
-	return nil
+	return c.checkCast(caps, places)
 }
 
 func checkRestricted(r RestrictedLook, caps map[string]bool) error {

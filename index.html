@@ -88,6 +88,24 @@
       <div class="picker-cards" id="picker-cards"></div>
     </section>
 
+    <!-- a conversation with an NPC (dialogueSheet.ts): bottom centre, the answers as big buttons -->
+    <section class="talk card" id="talk" data-modes="play" role="dialog" aria-modal="false" aria-labelledby="talk-name" hidden>
+      <header class="talk-head">
+        <div class="talk-who">
+          <h2 id="talk-name"></h2>
+          <span class="talk-role" id="talk-role"></span>
+        </div>
+        <span class="talk-group" id="talk-group" hidden></span>
+        <button class="talk-close" id="talk-close" type="button" aria-label="Thôi nói chuyện" title="Thôi nói chuyện (Esc)">×</button>
+      </header>
+      <div class="talk-line" aria-live="polite" aria-atomic="true">
+        <p class="talk-say" id="talk-say"></p>
+        <p class="talk-gloss" id="talk-gloss" lang="en" hidden></p>
+      </div>
+      <p class="talk-wait" id="talk-wait" hidden>Người dẫn nhóm đang chọn câu hỏi…</p>
+      <div class="talk-choices" id="talk-choices" role="group" aria-label="Trả lời"></div>
+    </section>
+
     <!-- bottom left in play: the chat (chatBox.ts) stacked over the control hint -->
     <div class="corner" data-modes="play">
       <section class="chat" id="chat" aria-label="Trò chuyện">
@@ -104,6 +122,7 @@
         <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
         <span class="mouse-only"><kbd>Space</kbd> nhảy</span>
         <span class="mouse-only"><kbd>1</kbd>…<kbd>4</kbd> điệu bộ</span>
+        <span class="mouse-only"><kbd>E</kbd> nói chuyện, lên xe</span>
         <span class="mouse-only">kéo chuột để xoay</span>
         <span class="mouse-only">cuộn để zoom</span>
         <span class="mouse-only"><kbd>Enter</kbd> chat</span>

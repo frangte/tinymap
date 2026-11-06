@@ -24,7 +24,10 @@ type harness struct {
 	clock time.Time
 }
 
-func newHarness(t *testing.T) *harness {
+func newHarness(t *testing.T) *harness { return newHarnessWith(t, nil) }
+
+// newHarnessWith lets a test change the configuration first (place NPCs, say).
+func newHarnessWith(t *testing.T, tune func(*Config)) *harness {
 	t.Helper()
 	grid, err := content.Nav()
 	if err != nil {
@@ -32,6 +35,9 @@ func newHarness(t *testing.T) *harness {
 	}
 	cfg := DefaultConfig()
 	cfg.SendBuffer = 4096
+	if tune != nil {
+		tune(&cfg)
+	}
 	h := &harness{t: t, grid: grid, clock: time.Unix(1_700_000_000, 0)}
 	h.w = New(cfg, grid, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	h.w.now = func() time.Time { return h.clock }
@@ -67,6 +73,22 @@ type frame struct {
 	P     json.RawMessage `json:"p"`
 	Out   []uint32        `json:"out"`
 	V     json.RawMessage `json:"vehicles"`
+	NPCs  []protocol.NPC  `json:"npcs"`
+	// conversations, results and chat
+	Sid     uint32          `json:"sid"`
+	N       uint32          `json:"n"`
+	Mode    string          `json:"mode"`
+	Step    uint32          `json:"step"`
+	Lead    bool            `json:"lead"`
+	Size    int             `json:"size"`
+	Say     protocol.Text   `json:"say"`
+	Choices []protocol.Text `json:"choices"`
+	Reason  string          `json:"reason"`
+	Rid     uint32          `json:"rid"`
+	OK      bool            `json:"ok"`
+	Name    string          `json:"name"`
+	Text    string          `json:"text"`
+	NPC     bool            `json:"npc"`
 }
 
 // drain returns every frame queued for p, and how many bytes they were.

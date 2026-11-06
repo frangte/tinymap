@@ -6,7 +6,8 @@
 // events; the world answers by queueing frames on the peer, which the connection writes out.
 //
 // The files: move.go checks every reported move against the nav grid, view.go decides who sees whom and sends
-// the snapshots, vehicle.go parks and mounts vehicles.
+// the snapshots, vehicle.go parks and mounts vehicles, npc.go places the NPCs and runs what they do, talk.go
+// runs the conversations players have with them.
 package world
 
 import (
@@ -17,6 +18,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"saigon-noir/server/internal/capability"
+	"saigon-noir/server/internal/dialogue"
 	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/protocol"
 )
@@ -34,6 +37,14 @@ type Config struct {
 	NearbyRadius float64
 	Move         Movement
 	View         View
+	Talk         Talk
+	// NPCs are placed when the world starts (server/content/npcs.json). Dialogue runs what they say; without
+	// one they stand there but do not talk.
+	NPCs     []NPCSpec
+	Dialogue dialogue.Provider
+	// OnSignal hears every signal an answer sends (quests listen for them). It runs on the world goroutine, so
+	// it must not block; nil drops them.
+	OnSignal func(Signal)
 }
 
 func DefaultConfig() Config {
@@ -45,6 +56,7 @@ func DefaultConfig() Config {
 		NearbyRadius: 20,
 		Move:         DefaultMovement(),
 		View:         DefaultView(),
+		Talk:         DefaultTalk(),
 	}
 }
 
@@ -59,6 +71,8 @@ type Arrival struct {
 	Look      protocol.Look
 	Arch      string
 	Apps      []string
+	// Caps are what the archetype grants: which answers NPCs offer, for one
+	Caps capability.Set
 	// Home is the start that respawns go back to (x, z and the heading; Y is taken from the floor); nil for the
 	// nav grid's spawn, facing the market.
 	Home *protocol.Pose
@@ -128,22 +142,31 @@ type event struct {
 	code string
 }
 
-type member struct {
-	id        uint32
-	character string
-	name      string
-	arch      string
-	look      protocol.Look
+// entity is what others see of anything in the world, a player or an NPC: where it is and what it is doing.
+type entity struct {
+	id uint32
 	// pose is the last accepted position, poseAt when it arrived; flags are the state flags shown to others
 	pose   protocol.Pose
 	poseAt time.Time
 	flags  int
-	home   protocol.Pose
-	gait   gait
+	view   view
+}
+
+type member struct {
+	entity
+	peer      *Peer
+	character string
+	name      string
+	arch      string
+	look      protocol.Look
+	caps      capability.Set
+	home      protocol.Pose
+	gait      gait
 	// owns is the vehicle that came with this player (nil for none), riding the one they sit on
 	owns   *vehicle
 	riding *vehicle
-	view   view
+	// talk is the conversation the player is in, nil for none
+	talk *session
 }
 
 type World struct {
@@ -159,13 +182,21 @@ type World struct {
 	// owned by Run
 	members  map[*Peer]*member
 	vehicles map[uint32]*vehicle
+	npcs     []*npc
+	npcByID  map[uint32]*npc
+	sessions map[uint32]*session
 	nextID   uint32
+	// nextSession numbers conversations
+	nextSession uint32
+	// lastTick is when NPCs last acted
+	lastTick time.Time
 	history  []protocol.ChatLine
 	snaps    snapScratch
 }
 
+// New makes the world and places its NPCs. NPC ids come first, then players'.
 func New(cfg Config, grid *nav.Grid, log *slog.Logger) *World {
-	return &World{
+	w := &World{
 		cfg:      cfg,
 		grid:     grid,
 		log:      log,
@@ -174,7 +205,13 @@ func New(cfg Config, grid *nav.Grid, log *slog.Logger) *World {
 		now:      time.Now,
 		members:  make(map[*Peer]*member),
 		vehicles: make(map[uint32]*vehicle),
+		npcByID:  make(map[uint32]*npc),
+		sessions: make(map[uint32]*session),
 	}
+	for _, spec := range cfg.NPCs {
+		w.addNPC(spec)
+	}
+	return w
 }
 
 // NewPeer makes the link for a new connection; it joins the world with Join.
@@ -219,6 +256,7 @@ func (w *World) Run(ctx context.Context) {
 		case e := <-w.events:
 			w.handle(e)
 		case <-ticker.C:
+			w.tickNPCs()
 			w.sendSnapshots()
 		}
 	}
@@ -266,7 +304,8 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 		return
 	}
 	w.nextID++
-	m := &member{id: w.nextID, character: a.Character, name: a.Name, arch: a.Arch, look: a.Look, view: newView()}
+	m := &member{entity: entity{id: w.nextID, view: newView()}, peer: p, character: a.Character, name: a.Name, arch: a.Arch,
+		look: a.Look, caps: a.Caps}
 	if m.name == "" {
 		m.name = fmt.Sprintf("Khách %d", m.id)
 	}
@@ -288,7 +327,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	}
 	w.sendTo(p, protocol.Encode(protocol.Welcome{
 		T: protocol.TypeWelcome, ID: m.id, Name: m.name, Arch: m.arch, Apps: apps, MaxPlayers: w.cfg.MaxPlayers,
-		Pose: protocol.PoseArray(m.pose), Players: others, Vehicles: w.vehicleList(),
+		Pose: protocol.PoseArray(m.pose), Players: others, Vehicles: w.vehicleList(), NPCs: w.npcList(),
 		Chat: append([]protocol.ChatLine{}, w.history...),
 	}))
 	w.broadcast(protocol.Encode(protocol.Join{T: protocol.TypeJoin, P: m.player()}), p)
@@ -330,6 +369,14 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 		w.onMount(p, m, msg.V)
 	case protocol.TypeDismount:
 		w.dismount(m)
+	case protocol.TypeInteract:
+		w.onInteract(p, m, msg)
+	case protocol.TypeChoose:
+		w.onChoose(p, m, msg)
+	case protocol.TypeInteractLeave:
+		if m.talk != nil && m.talk.id == msg.Sid {
+			w.leaveTalk(m, protocol.EndLeft)
+		}
 	case protocol.TypeProfile:
 		if msg.Name != "" {
 			m.name = msg.Name
@@ -427,6 +474,8 @@ func (w *World) remove(p *Peer) {
 	}
 	delete(w.members, p)
 	w.count.Add(-1)
+	// the peer is closed: nothing more is sent to it, the others in a group conversation hear it left
+	w.leaveTalk(m, "")
 	w.broadcast(protocol.Encode(protocol.Leave{T: protocol.TypeLeave, ID: m.id}), nil)
 	if v := m.owns; v != nil {
 		w.removeVehicle(v)

@@ -1,0 +1,77 @@
+{
+  "id": "chu_tu",
+  "about": "Chú Tư's café on Lê Lai. Ordering a cà phê sữa đá sends order_ca_phe_sua_da, the first step of the Traveler's quest Một ly cà phê sữa đá.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": { "vi": "Vô ngồi đi con, uống gì chú pha?", "en": "Come sit down. What can I make you?" },
+        "traveler": { "vi": "Khách mới hả? Ngồi ghế nhựa cho đúng chất Sài Gòn nghen!", "en": "New here? Take a plastic stool, that's the real Saigon way!" },
+        "citizen": { "vi": "{name}! Như cũ hả con? Đen đá không đường?", "en": "{name}! The usual? Black, iced, no sugar?" },
+        "driver": { "vi": "Nghỉ tay làm ly cà phê rồi chạy tiếp con.", "en": "Take a break, have a coffee, then back on the road." }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Cho con một ly cà phê sữa đá.", "en": "One iced milk coffee, please." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
+        { "text": { "vi": "Cà phê sữa đá là sao chú?", "en": "What is cà phê sữa đá?" }, "goto": "explain" },
+        { "text": { "vi": "Quán mở lâu chưa chú?", "en": "How long has the café been here?" }, "goto": "history" },
+        { "text": { "vi": "Dạ thôi, lát con ghé.", "en": "Not now, I'll come back later." }, "goto": "bye" }
+      ]
+    },
+    "explain": {
+      "say": {
+        "default": { "vi": "Cà phê đen pha phin, thêm sữa đặc có đường rồi đổ lên đá. Đậm mà ngọt, uống một ly tỉnh tới chiều.", "en": "Black coffee dripped through a phin, sweet condensed milk, poured over ice. Strong and sweet: one glass keeps you awake till evening." }
+      },
+      "choices": [
+        { "text": { "vi": "Nghe ngon quá, cho con một ly!", "en": "Sounds great, one for me!" }, "goto": "order", "emit": "order_ca_phe_sua_da" },
+        { "text": { "vi": "Dạ, để bữa khác.", "en": "Maybe another day." }, "goto": "bye" }
+      ]
+    },
+    "order": {
+      "say": {
+        "default": { "vi": "Có liền! Phin nhỏ giọt từ từ, thêm sữa đặc, đá nhiều. Ngồi chờ phin chảy hết nha.", "en": "Coming up! The phin drips slowly, then condensed milk and lots of ice. Sit and wait for it to finish dripping." }
+      },
+      "choices": [
+        { "text": { "vi": "Phải chờ bao lâu vậy chú?", "en": "How long do I wait?" }, "goto": "wait" },
+        { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "enjoy" }
+      ]
+    },
+    "wait": {
+      "say": {
+        "default": { "vi": "Chừng năm phút. Ở Sài Gòn uống cà phê là để ngồi, ngó người ta đi qua đi lại, đâu có vội.", "en": "About five minutes. In Saigon coffee is for sitting and watching the street go by. No hurry." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "enjoy" }
+      ]
+    },
+    "enjoy": {
+      "say": {
+        "default": { "vi": "Khuấy đều rồi uống. Ngon thì mai ghé nữa nghen!", "en": "Stir it well and drink. If you like it, come back tomorrow!" },
+        "citizen": { "vi": "Uống đi con, chú ghi sổ. Cuối tháng tính.", "en": "Drink up, I'll put it on your tab." }
+      }
+    },
+    "history": {
+      "say": {
+        "default": { "vi": "Chú bán ở đây hơn hai chục năm rồi. Hồi đó dãy nhà ống này toàn người quen, giờ khách du lịch ghé quá trời.", "en": "Over twenty years. Back then this row of tube houses was all neighbours; now travellers drop in all day." }
+      },
+      "choices": [
+        { "text": { "vi": "Quanh đây có chỗ nào hay không chú?", "en": "Anything worth seeing around here?" }, "goto": "tips" },
+        { "text": { "vi": "Cho con một ly cà phê sữa đá.", "en": "One iced milk coffee, please." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
+        { "text": { "vi": "Dạ, con đi nha chú.", "en": "I'll be off now." }, "goto": "bye" }
+      ]
+    },
+    "tips": {
+      "say": {
+        "default": { "vi": "Sáng sớm ra công viên 23/9 coi người ta tập thể dục. Chiều thì lên Hồ Con Rùa ăn bánh tráng trộn của dì Năm.", "en": "Early morning, watch people exercise in 23/9 Park. In the afternoon, go to Turtle Lake for Dì Năm's bánh tráng trộn." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "bye" }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": { "vi": "Ừ, đi đâu thì đi, nhớ ghé uống cà phê nghen!", "en": "Go wherever you like, just come back for coffee!" }
+      }
+    }
+  }
+}

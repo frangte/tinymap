@@ -134,6 +134,34 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("v = %d", m.V)
 				}
 			}},
+		{name: "interact", in: `{"t":"interact","n":3,"rid":9,"sid":4,"c":2}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.N != 3 || m.Rid != 9 || m.Sid != 0 || m.C != 0 {
+					t.Fatalf("got n=%d rid=%d sid=%d c=%d, want only n and rid", m.N, m.Rid, m.Sid, m.C)
+				}
+			}},
+		{name: "interact with nobody", in: `{"t":"interact","rid":1}`, wantErr: ErrBadTarget},
+		{name: "choose", in: `{"t":"choose","sid":4,"c":2,"rid":10,"n":3}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Sid != 4 || m.C != 2 || m.Rid != 10 || m.N != 0 {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "choose without a conversation", in: `{"t":"choose","c":1}`, wantErr: ErrBadSession},
+		{name: "choose past the last answer", in: `{"t":"choose","sid":4,"c":16}`, wantErr: ErrBadChoice},
+		{name: "choose a negative answer", in: `{"t":"choose","sid":4,"c":-1}`, wantErr: ErrBadChoice},
+		{name: "leave a conversation", in: `{"t":"interact_leave","sid":4,"c":7,"rid":2}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Sid != 4 || m.C != 0 || m.Rid != 0 {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "a request id only counts on commands that are answered", in: `{"t":"state","x":0,"y":0,"z":0,"h":0,"rid":5}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Rid != 0 {
+					t.Fatalf("rid = %d", m.Rid)
+				}
+			}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

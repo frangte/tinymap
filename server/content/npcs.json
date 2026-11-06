@@ -1,0 +1,75 @@
+{
+  "about": "The NPCs on the island (docs/design/03-domain-model.md, NPC). Shared by the server (server/content), which places them and runs their conversations, and the game (src/game/npcs.ts), which draws them. Points are Blender XY metres (three.js x = X, z = -Y); face is the point they look toward when nobody talks to them. mode: private (one player and the NPC), public (private, but the NPC's lines are heard nearby: keep its lines within 140 characters), group (one conversation for everyone who joins, its first member picks the answers). reach is how close a player must stand to start talking (m). barks are called out to passers-by. vehicle is parked beside them for the look of it. What they say is in dialogue/<dialogue>.json. Ids are stable: quests refer to them.",
+  "npcs": [
+    {
+      "id": "co_ba",
+      "name": "Cô Ba",
+      "role": { "vi": "bán hàng ở chợ Bến Thành", "en": "Bến Thành market vendor" },
+      "look": { "body": "woman", "outfit": "baba", "hat": "nonla" },
+      "place": "cho_ben_thanh",
+      "at": [2, -11.5],
+      "face": [8, -17],
+      "mode": "private",
+      "dialogue": "co_ba",
+      "reach": 3
+    },
+    {
+      "id": "chu_tu",
+      "name": "Chú Tư",
+      "role": { "vi": "chủ quán cà phê Lê Lai", "en": "runs the café on Lê Lai" },
+      "look": { "body": "man", "outfit": "thun", "hat": "none" },
+      "place": "day_nha_pho_le_lai",
+      "at": [-23.5, -19.3],
+      "face": [-23.5, -26],
+      "mode": "private",
+      "dialogue": "chu_tu",
+      "reach": 3
+    },
+    {
+      "id": "di_nam",
+      "name": "Dì Năm",
+      "role": { "vi": "bán bánh tráng trộn", "en": "sells bánh tráng trộn" },
+      "look": { "body": "woman", "outfit": "thun", "hat": "nonla" },
+      "place": "ho_con_rua",
+      "at": [47.5, 80.5],
+      "face": [52, 74],
+      "mode": "public",
+      "dialogue": "di_nam",
+      "reach": 3,
+      "barks": [
+        { "vi": "Bánh tráng trộn đây! Ăn là ghiền nha!", "en": "Bánh tráng trộn here! One bite and you're hooked!" },
+        { "vi": "Ai ăn bánh tráng trộn hông? Có trứng cút, khô bò nè!", "en": "Who wants bánh tráng trộn? Quail eggs, beef jerky!" },
+        { "vi": "Ngồi Hồ Con Rùa mà hông ăn bánh tráng là uổng lắm à!", "en": "Sitting at Turtle Lake without bánh tráng? What a waste!" }
+      ]
+    },
+    {
+      "id": "chi_hanh",
+      "name": "Chị Hạnh",
+      "role": { "vi": "hướng dẫn viên du lịch", "en": "tour guide" },
+      "look": { "body": "woman", "outfit": "aodai", "hat": "none" },
+      "place": "quang_truong_lam_son",
+      "at": [86.5, -7.7],
+      "face": [70, -8],
+      "mode": "group",
+      "dialogue": "chi_hanh",
+      "reach": 4
+    },
+    {
+      "id": "chu_sau",
+      "name": "Chú Sáu",
+      "role": { "vi": "chạy xe ôm ở bùng binh", "en": "xe ôm driver at the roundabout" },
+      "look": { "body": "man", "outfit": "xeom", "hat": "cap" },
+      "place": "bung_binh_quach_thi_trang",
+      "at": [-3, -21],
+      "face": [8, -24],
+      "mode": "private",
+      "dialogue": "chu_sau",
+      "reach": 3,
+      "barks": [
+        { "vi": "Xe ôm hông? Đi đâu chú chở!", "en": "Need a ride? I'll take you anywhere!" },
+        { "vi": "Đi đâu đó con? Hỏi đường chú chỉ cho!", "en": "Where are you off to? Ask me the way!" }
+      ],
+      "vehicle": "xe_so_110"
+    }
+  ]
+}

@@ -20,8 +20,10 @@ import (
 	"github.com/gorilla/websocket"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/dialogue"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/nav"
+	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/world"
 	"saigon-noir/server/internal/ws"
@@ -89,6 +91,17 @@ type msg struct {
 	Vehicles []vehicle `json:"vehicles"`
 	Owner    uint32    `json:"owner"`
 	Rider    uint32    `json:"rider"`
+	// conversations
+	NPCs    []protocol.NPC  `json:"npcs"`
+	Sid     uint32          `json:"sid"`
+	Mode    string          `json:"mode"`
+	Step    uint32          `json:"step"`
+	Lead    bool            `json:"lead"`
+	Say     protocol.Text   `json:"say"`
+	Choices []protocol.Text `json:"choices"`
+	Reason  string          `json:"reason"`
+	Rid     uint32          `json:"rid"`
+	OK      bool            `json:"ok"`
 }
 type look struct{ Body, Outfit, Hat string }
 type player struct {
@@ -674,4 +687,83 @@ func TestTheDriverGetsOnTheirBike(t *testing.T) {
 	if g := next(t, b, "vehicle_gone"); g.ID != bike {
 		t.Fatalf("vehicle_gone = %+v", g)
 	}
+}
+
+// ---- NPCs
+
+// The phase 3 check over real sockets: walk up to Cô Ba, talk, answer, walk away and the conversation ends.
+func TestTalkingToCoBa(t *testing.T) {
+	catalog, err := content.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := testConfig()
+	cfg.NPCs, cfg.Dialogue = world.NPCsFrom(catalog), dialogue.NewScript(catalog)
+	srv := startServer(t, cfg)
+	a := dial(t, srv)
+	send(t, a, helloAs("", "traveler", "thun", "cap"))
+	w := next(t, a, "welcome")
+	var coBa protocol.NPC
+	for _, n := range w.NPCs {
+		if n.Key == "co_ba" {
+			coBa = n
+		}
+	}
+	if coBa.ID == 0 || len(w.NPCs) != len(catalog.NPCs) {
+		t.Fatalf("welcome npcs = %+v", w.NPCs)
+	}
+	// from too far away she does not hear us
+	send(t, a, fmt.Sprintf(`{"t":"interact","n":%d,"rid":1}`, coBa.ID))
+	if r := next(t, a, "result"); r.Rid != 1 || r.OK || r.Code != protocol.ResFar {
+		t.Fatalf("talking from %v m: %+v", math.Hypot(w.Pose[0]-coBa.Pose[0], w.Pose[2]-coBa.Pose[2]), r)
+	}
+	walkTo := func(x, z float64) {
+		t.Helper()
+		// the server lets a player cover a second's worth of walking at once, after standing still that long
+		time.Sleep(time.Second)
+		y, _ := navGrid(t).Floor(x, z)
+		send(t, a, fmt.Sprintf(`{"t":"state","x":%.2f,"y":%.2f,"z":%.2f,"h":0}`, x, y, z))
+	}
+	// the traveller starts at the roundabout, ~10 m from her: walk up in steps along a clear line
+	from := [2]float64{w.Pose[0], w.Pose[2]}
+	for _, d := range []float64{6, 3, 1.5} {
+		x, z := spotToward(t, coBa.Pose, from, d)
+		walkTo(x, z)
+		from = [2]float64{x, z}
+	}
+	send(t, a, fmt.Sprintf(`{"t":"interact","n":%d,"rid":2}`, coBa.ID))
+	in := next(t, a, "interaction")
+	if in.Mode != protocol.ModePrivate || !in.Lead || len(in.Choices) == 0 || !strings.Contains(in.Say.VI, "Sài Gòn") {
+		t.Fatalf("interaction = %+v", in)
+	}
+	if r := next(t, a, "result"); r.Rid != 2 || !r.OK {
+		t.Fatalf("result = %+v", r)
+	}
+	send(t, a, fmt.Sprintf(`{"t":"choose","sid":%d,"c":0,"step":%d,"rid":3}`, in.Sid, in.Step))
+	if l := next(t, a, "interaction"); l.Sid != in.Sid || l.Say.VI == in.Say.VI {
+		t.Fatalf("after the answer = %+v", l)
+	}
+	// walk away: 3 m reach + 2 m slack
+	x, z := spotToward(t, coBa.Pose, from, 6)
+	walkTo(x, z)
+	if e := next(t, a, "interaction_end"); e.Sid != in.Sid || e.Reason != protocol.EndFar {
+		t.Fatalf("end = %+v", e)
+	}
+}
+
+// spotToward finds a spot `dist` metres from the npc on the side of `from`, where a body fits and the line from
+// `from` is clear.
+func spotToward(t *testing.T, npc [4]float64, from [2]float64, dist float64) (x, z float64) {
+	t.Helper()
+	g := navGrid(t)
+	base := math.Atan2(from[0]-npc[0], from[1]-npc[2])
+	for i := 0; i < 64; i++ {
+		a := base + float64((i+1)/2)*math.Pi/32*float64(1-2*(i%2))
+		x, z = npc[0]+math.Sin(a)*dist, npc[2]+math.Cos(a)*dist
+		if g.Fits(x, z, 0.3) && g.Clear(from[0], from[1], x, z, 0) {
+			return x, z
+		}
+	}
+	t.Fatalf("no clear spot %v m from %v toward %v", dist, npc, from)
+	return
 }

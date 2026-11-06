@@ -5,7 +5,7 @@ import type { Profile } from '../game/profile';
 import { wrapAngle } from '../game/coords';
 import type { Look } from '../game/outfits';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
-import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type PlayerInfo, type Pose, type SnapRow, type VehicleInfo } from './protocol';
+import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Result, type SnapRow, type VehicleInfo } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
 export type NetStatus = 'connecting' | 'online' | 'offline' | 'full' | 'replaced';
@@ -14,9 +14,9 @@ export interface NetEvents {
   status(s: NetStatus): void;
   /**
    * joined (again): everyone else who is here, the recent chat, our archetype as the server keeps it, our phone
-   * apps (null from an older server), where the server placed us (null from an older one) and the vehicles
+   * apps (null from an older server), where the server placed us (null from an older one), the vehicles and the NPCs
    */
-  welcome(players: PlayerInfo[], chat: ChatLine[], arch: string, apps: string[] | null, pose: Pose | null, vehicles: VehicleInfo[]): void;
+  welcome(players: PlayerInfo[], chat: ChatLine[], arch: string, apps: string[] | null, pose: Pose | null, vehicles: VehicleInfo[], npcs: NpcInfo[]): void;
   join(p: PlayerInfo): void;
   leave(id: number): void;
   profile(id: number, name: string, look: Look): void;
@@ -30,6 +30,9 @@ export interface NetEvents {
   /** getting on a vehicle was refused */
   mountRefused(): void;
   chat(line: ChatLine): void;
+  /** a conversation with an NPC started or moved on (or, in a group, someone joined or left it) */
+  interaction(i: Interaction): void;
+  interactionEnd(sid: number, reason: EndReason): void;
   /** the last chat line was refused for being too fast */
   rateLimited(): void;
   /** the connection dropped: every remote player is gone until the next welcome */
@@ -45,6 +48,8 @@ const BACKOFF_MIN = 1000;
 const BACKOFF_MAX = 15000;
 /** when the server is full, wait this long before trying again (ms) */
 const FULL_RETRY = 30000;
+/** a command the server has not answered by then is given up (ms): it drops commands that come too fast */
+const REQUEST_TIMEOUT = 3000;
 
 /**
  * Where the multiplayer server is, first match wins:
@@ -88,6 +93,9 @@ export class NetClient {
   private readonly api: string | null;
   /** asking for a guest token before opening the socket */
   private opening = false;
+  /** commands waiting for their result, by request id */
+  private readonly pending = new Map<number, { done: (r: Result) => void; timer: number }>();
+  private nextRid = 0;
 
   constructor(private readonly url: string, private readonly on: NetEvents) {
     this.api = apiUrl(url);
@@ -146,6 +154,41 @@ export class NetClient {
 
   sendDismount(): void {
     if (this.online) this.send({ t: 'dismount' });
+  }
+
+  /** Start talking to an NPC (or join its group); the conversation itself arrives as `interaction` events. */
+  interact(npc: number): Promise<Result> {
+    return this.request((rid) => ({ t: 'interact', n: npc, rid }));
+  }
+
+  /** Pick an answer: its index among the choices of the line at `step` (the server refuses it once the line is gone). */
+  choose(sid: number, step: number, choice: number): Promise<Result> {
+    return this.request((rid) => ({ t: 'choose', sid, c: choice, step, rid }));
+  }
+
+  /** Close a conversation; the server answers with `interactionEnd`. */
+  leaveTalk(sid: number): void {
+    if (this.online) this.send({ t: 'interact_leave', sid });
+  }
+
+  /** Send a command that the server answers with a result; offline, or with no answer in time, it fails. */
+  private request(build: (rid: number) => ClientMsg): Promise<Result> {
+    if (!this.online) return Promise.resolve({ ok: false, code: 'offline' });
+    this.nextRid = (this.nextRid % 0x7fffffff) + 1;
+    const rid = this.nextRid;
+    return new Promise((resolve) => {
+      const timer = window.setTimeout(() => this.settle(rid, { ok: false, code: 'timeout' }), REQUEST_TIMEOUT);
+      this.pending.set(rid, { done: resolve, timer });
+      this.send(build(rid));
+    });
+  }
+
+  private settle(rid: number, r: Result): void {
+    const p = this.pending.get(rid);
+    if (!p) return;
+    this.pending.delete(rid);
+    window.clearTimeout(p.timer);
+    p.done(r);
   }
 
   /** false when offline (the line was not sent) */
@@ -218,7 +261,7 @@ export class NetClient {
         this.lastPose.fill(NaN);
         this.lastFlags = -1;
         this.corrections = 0;
-        this.on.welcome(m.players, m.chat, m.arch, m.apps, m.pose, m.vehicles);
+        this.on.welcome(m.players, m.chat, m.arch, m.apps, m.pose, m.vehicles, m.npcs);
         this.on.status('online');
         break;
       case 'join':
@@ -249,6 +292,17 @@ export class NetClient {
       case 'chat':
         this.on.chat(m);
         break;
+      case 'interaction': {
+        const { t: _t, ...i } = m;
+        this.on.interaction(i);
+        break;
+      }
+      case 'interaction_end':
+        this.on.interactionEnd(m.sid, m.reason);
+        break;
+      case 'result':
+        this.settle(m.rid, { ok: m.ok, code: m.code });
+        break;
       case 'error':
         if (m.code === 'full') this.full = true;
         else if (m.code === 'rate') this.on.rateLimited();
@@ -266,6 +320,7 @@ export class NetClient {
   private closed(ws: WebSocket): void {
     if (ws !== this.ws) return;
     this.ws = null;
+    for (const rid of [...this.pending.keys()]) this.settle(rid, { ok: false, code: 'offline' });
     if (this.online) this.on.reset();
     this.online = false;
     this.selfId = null;

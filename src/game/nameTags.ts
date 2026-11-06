@@ -2,10 +2,12 @@
 // head position. HTML rather than 3D text keeps Vietnamese diacritics sharp at any size and needs no InkPass
 // tracking or textures. Text only ever goes in through textContent.
 // Everyone, us included, shows a name; while someone has a chat bubble up, the bubble takes the name's place.
+// NPCs show what they do under the name, so they read as people to go and talk to.
 // Labels are not hidden behind buildings (no per-frame raycasts against the city): they fade out with distance.
 import * as THREE from 'three';
 import { clamp, smoothstep } from './coords';
 import type { RemotePlayers } from './remotePlayers';
+import type { Npcs } from './npcs';
 import { archetypeById } from './archetypes';
 
 /** the local player's key: server ids start at 1 */
@@ -26,6 +28,7 @@ class Tag {
   readonly root = document.createElement('div');
   private readonly bubble = document.createElement('p');
   private readonly label = document.createElement('span');
+  private role: HTMLElement | null = null;
   private name = '';
   private dot: string | null = null;
   private bubbleUntil = 0;
@@ -58,6 +61,19 @@ class Tag {
     if (name === this.name) return;
     this.name = name;
     this.label.textContent = name;
+    this.w = this.h = -1;
+  }
+
+  /** what an NPC does, in small print under the name */
+  setRole(text: string): void {
+    if (!this.role) {
+      this.role = document.createElement('small');
+      this.role.className = 'tag-role';
+      this.root.classList.add('is-npc');
+      this.root.append(this.role);
+    }
+    if (this.role.textContent === text) return;
+    this.role.textContent = text;
     this.w = this.h = -1;
   }
 
@@ -185,15 +201,26 @@ export class NameTags {
     (id === SELF ? this.self : this.tags.get(id))?.say(text, now);
   }
 
-  /** Follow the players: labels are created, renamed and dropped from `others` itself. */
-  update(camera: THREE.PerspectiveCamera, now: number, others: RemotePlayers, selfPos: THREE.Vector3): void {
+  /** Follow the players and the NPCs: labels are created, renamed and dropped from the lists themselves. */
+  update(camera: THREE.PerspectiveCamera, now: number, others: RemotePlayers, npcs: Npcs, selfPos: THREE.Vector3): void {
     camera.updateMatrixWorld();
     this.visible.length = 0;
     for (const [id, tag] of this.tags) {
-      if (!others.get(id)) {
+      if (!others.get(id) && !npcs.get(id)) {
         tag.dispose();
         this.tags.delete(id);
       }
+    }
+    for (const n of npcs.values()) {
+      let tag = this.tags.get(n.id);
+      if (!tag) {
+        tag = new Tag(this.layer, false);
+        tag.setName(n.def.name);
+        tag.setRole(n.def.role.vi);
+        this.tags.set(n.id, tag);
+      }
+      if (n.actor.avatar.root.visible) this.project(tag, camera, n.position, now);
+      else tag.hide();
     }
     for (const r of others.values()) {
       let tag = this.tags.get(r.id);

@@ -36,15 +36,25 @@ const (
 	TypeMount    = "mount"
 	TypeDismount = "dismount"
 	TypeRespawn  = "respawn"
-	TypeWelcome  = "welcome"
-	TypeJoin     = "join"
-	TypeLeave    = "leave"
-	TypeSnap     = "snap"
-	TypeCorrect  = "correct"
-	TypeVehicle  = "vehicle"
+	// TypeInteract starts a conversation with an NPC (or joins its group); TypeChoose answers the line shown;
+	// TypeInteractLeave walks out of it
+	TypeInteract      = "interact"
+	TypeChoose        = "choose"
+	TypeInteractLeave = "interact_leave"
+	TypeWelcome       = "welcome"
+	TypeJoin          = "join"
+	TypeLeave         = "leave"
+	TypeSnap          = "snap"
+	TypeCorrect       = "correct"
+	TypeVehicle       = "vehicle"
 	// TypeVehicleGone: a vehicle left the world (its owner did)
 	TypeVehicleGone = "vehicle_gone"
-	TypeError       = "error"
+	// TypeInteraction shows a conversation's current line; TypeInteractionEnd closes it
+	TypeInteraction    = "interaction"
+	TypeInteractionEnd = "interaction_end"
+	// TypeResult answers a command that carried a request id (rid)
+	TypeResult = "result"
+	TypeError  = "error"
 )
 
 // State flags (the "s" field of a state, and of every snapshot row).
@@ -77,6 +87,48 @@ const (
 	// dropped, or a second tab); this one is closed. The client should not reconnect on its own.
 	ErrReplaced = "replaced"
 )
+
+// Result codes, in {"t":"result","ok":false} answers.
+const (
+	// ResFar: too far from the NPC to start talking
+	ResFar = "far"
+	// ResTarget: no NPC with that id
+	ResTarget = "target"
+	// ResFull: the NPC's group conversation has no room
+	ResFull = "full"
+	// ResMute: the NPC has nothing to say (the server runs without dialogue)
+	ResMute = "mute"
+	// ResStale: that conversation is over, or is not yours
+	ResStale = "stale"
+	// ResLead: in a group conversation only its leader picks the answers
+	ResLead = "lead"
+	// ResChoice: no such answer to the line shown
+	ResChoice = "choice"
+)
+
+// Conversation modes (the "mode" of an interaction, server/content/npcs.json): private is between one player and
+// the NPC; public is private too, but the NPC's lines are also heard nearby; group is one conversation several
+// players share, its first member picking the answers.
+const (
+	ModePrivate = "private"
+	ModePublic  = "public"
+	ModeGroup   = "group"
+)
+
+// Why a conversation closed (interaction_end's "reason").
+const (
+	// EndDone: the conversation reached its end
+	EndDone = "done"
+	// EndLeft: the player closed it
+	EndLeft = "left"
+	// EndFar: the player walked away from the NPC
+	EndFar = "far"
+	// EndOther: the player started talking to someone else
+	EndOther = "other"
+)
+
+// MaxChoice bounds a choice index: no line offers more answers.
+const MaxChoice = 15
 
 // Chat channels (the "ch" field): global reaches everyone, nearby only the players within NearbyRadius.
 const (
@@ -135,6 +187,15 @@ type ClientMsg struct {
 	K uint32 `json:"k"`
 	// V is the vehicle to get on, in mount only
 	V uint32 `json:"v"`
+	// N is the NPC to talk to, in interact only
+	N uint32 `json:"n"`
+	// Sid is the conversation, in choose and interact_leave; C the answer picked, in choose (an index into the
+	// choices of the line shown) and Step that line's step, so an answer to a line already gone is refused
+	Sid  uint32 `json:"sid"`
+	C    int    `json:"c"`
+	Step uint32 `json:"step"`
+	// Rid is a request id, in interact and choose: the server answers {"t":"result","rid":…} (0: no answer wanted)
+	Rid uint32 `json:"rid"`
 }
 
 // Validation errors; the world drops the message (or the connection, for a bad hello).
@@ -147,6 +208,9 @@ var (
 	ErrBadPose     = errors.New("pose out of bounds")
 	ErrBadFlags    = errors.New("unknown state flags")
 	ErrBadVehicle  = errors.New("no vehicle id")
+	ErrBadTarget   = errors.New("no npc id")
+	ErrBadSession  = errors.New("no conversation id")
+	ErrBadChoice   = errors.New("choice out of range")
 	ErrEmptyChat   = errors.New("empty chat")
 )
 
@@ -170,6 +234,18 @@ func Decode(data []byte) (ClientMsg, error) {
 	}
 	if m.T != TypeMount {
 		m.V = 0
+	}
+	if m.T != TypeInteract {
+		m.N = 0
+	}
+	if m.T != TypeChoose && m.T != TypeInteractLeave {
+		m.Sid = 0
+	}
+	if m.T != TypeChoose {
+		m.C, m.Step = 0, 0
+	}
+	if m.T != TypeInteract && m.T != TypeChoose {
+		m.Rid = 0
 	}
 	switch m.T {
 	case TypeHello, TypeProfile:
@@ -196,6 +272,17 @@ func Decode(data []byte) (ClientMsg, error) {
 			return m, ErrBadVehicle
 		}
 	case TypeDismount:
+	case TypeInteract:
+		if m.N == 0 {
+			return m, ErrBadTarget
+		}
+	case TypeChoose, TypeInteractLeave:
+		if m.Sid == 0 {
+			return m, ErrBadSession
+		}
+		if m.C < 0 || m.C > MaxChoice {
+			return m, ErrBadChoice
+		}
 	case TypeChat:
 		switch m.Ch {
 		case "":
@@ -280,9 +367,58 @@ type ChatLine struct {
 	Name string `json:"name"`
 	// Arch is the sender's archetype, so the line keeps its badge after they leave
 	Arch string `json:"arch,omitempty"`
+	// NPC: an NPC said it (a call to passers-by, or a line of a public conversation); ID is the NPC's then
+	NPC  bool   `json:"npc,omitempty"`
 	Ch   string `json:"ch"`
 	Text string `json:"text"`
 	At   int64  `json:"at"`
+}
+
+// Text is a line in each language the game speaks; Vietnamese is always there.
+type Text struct {
+	VI string `json:"vi"`
+	EN string `json:"en,omitempty"`
+}
+
+// NPC is a non-player character, sent to everyone on welcome (NPCs never leave). Key is its id in
+// server/content/npcs.json, which the game also has: its name, look and role come from there. Pose is where it
+// stands; when it turns or plays an emote, snapshots carry that like a player's.
+type NPC struct {
+	ID   uint32     `json:"id"`
+	Key  string     `json:"npc"`
+	Pose [4]float64 `json:"pose"`
+}
+
+// Interaction shows the line a conversation is at. It is sent when the conversation starts, after every answer,
+// and to a group whenever someone joins or leaves it.
+type Interaction struct {
+	T   string `json:"t"`
+	Sid uint32 `json:"sid"`
+	// N is the NPC's id
+	N    uint32 `json:"n"`
+	Mode string `json:"mode"`
+	// Step counts the lines of the conversation: a choose must name the step of the line it answers
+	Step uint32 `json:"step"`
+	// Lead: this player picks the answers (always, outside a group); Size is how many players share it
+	Lead bool `json:"lead"`
+	Size int  `json:"size"`
+	// Say is the NPC's line, Choices the answers on offer, by index; none means only goodbye is left
+	Say     Text   `json:"say"`
+	Choices []Text `json:"choices"`
+}
+
+type InteractionEnd struct {
+	T      string `json:"t"`
+	Sid    uint32 `json:"sid"`
+	Reason string `json:"reason"`
+}
+
+// Result answers a command that carried a request id; Code says why it failed (a Res… code).
+type Result struct {
+	T    string `json:"t"`
+	Rid  uint32 `json:"rid"`
+	OK   bool   `json:"ok"`
+	Code string `json:"code,omitempty"`
 }
 
 type Welcome struct {
@@ -298,6 +434,7 @@ type Welcome struct {
 	Pose     [4]float64 `json:"pose"`
 	Players  []Player   `json:"players"`
 	Vehicles []Vehicle  `json:"vehicles"`
+	NPCs     []NPC      `json:"npcs"`
 	Chat     []ChatLine `json:"chat"`
 }
 

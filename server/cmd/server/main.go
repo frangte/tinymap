@@ -29,6 +29,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/dialogue"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/web"
@@ -94,6 +95,11 @@ func run() error {
 		return fmt.Errorf("content: %w", err)
 	}
 	cfg.Move.RunSpeed, cfg.Move.Tolerance = catalog.Movement.RunSpeed, catalog.Movement.Tolerance
+	cfg.NPCs, cfg.Dialogue = world.NPCsFrom(catalog), dialogue.NewScript(catalog)
+	// quests listen for these from phase 4 on (docs/design/06-mvp-roadmap.md); until then they are only logged
+	cfg.OnSignal = func(s world.Signal) {
+		log.Info("dialogue signal", "character", s.Character, "player", s.Player, "npc", s.NPC, "signal", s.Signal)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

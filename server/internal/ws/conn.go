@@ -41,6 +41,9 @@ var (
 	// mount, dismount and respawn: a few presses a second is already more than anyone does
 	actionRate  = rate.Every(250 * time.Millisecond)
 	actionBurst = 4
+	// interact, choose, interact_leave: reading a line and picking an answer takes a moment
+	talkRate  = rate.Every(150 * time.Millisecond)
+	talkBurst = 6
 )
 
 type Config struct {
@@ -175,6 +178,7 @@ func (c *client) readLoop() {
 	chats := rate.NewLimiter(chatRate, chatBurst)
 	profiles := rate.NewLimiter(profileRate, profileBurst)
 	actions := rate.NewLimiter(actionRate, actionBurst)
+	talks := rate.NewLimiter(talkRate, talkBurst)
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
@@ -201,6 +205,12 @@ func (c *client) readLoop() {
 			ok = w.Handle(c.peer, msg)
 		case protocol.TypeMount, protocol.TypeDismount, protocol.TypeRespawn:
 			if !actions.Allow() {
+				continue
+			}
+			ok = w.Handle(c.peer, msg)
+		case protocol.TypeInteract, protocol.TypeChoose, protocol.TypeInteractLeave:
+			// a dropped command gets no result: the game gives up waiting for it after a while
+			if !talks.Allow() {
 				continue
 			}
 			ok = w.Handle(c.peer, msg)
@@ -257,7 +267,7 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 			c.saveProfile(protocol.ClientMsg{Name: hello.Name, Look: &look})
 		}
 	}
-	a := world.Arrival{Character: found.ID, Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(c.caps), Start: found.Pose}
+	a := world.Arrival{Character: found.ID, Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(c.caps), Caps: c.caps, Start: found.Pose}
 	if at, ok := cat.Archetype(kept); ok {
 		x, z, h := at.Spawn.ThreePose()
 		a.Home = &protocol.Pose{X: x, Z: z, H: h}

@@ -69,7 +69,7 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
 
 ## Changing the map
 
-1. Edit `sg.tinymap.blend` (scene `SaigonDiorama`; collections `SD_World` and `SD_NoInk`). Frozen versions: `versions/sg.tinymap_v1.blend`, `_v2`, `_v3`.
+1. Edit the map. The v4 island is `new.sg.tinymap.blend`: the shipped GLB imported back into Blender (one scene, meshes merged by material). `export_glb.py` exports it as it is; `bake_nav.py` needs the original objects (scene `SaigonDiorama`; collections `SD_World` and `SD_NoInk`), so the nav maps cannot be re-baked from it. The root `sg.tinymap.blend` has that structure but an older layout. Frozen versions: `versions/sg.tinymap_v1.blend`, `_v2`, `_v3`.
 2. Export with `scripts/blender/export_glb.py`, shrink with the `gltf-transform` chain in its header to `export/saigon_q1.glb`, and copy that to `public/models/saigon_q1.glb`.
 3. Re-bake the nav maps:
    ```bash

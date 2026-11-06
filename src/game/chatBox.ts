@@ -141,9 +141,10 @@ export class ChatBox {
     const li = document.createElement('li');
     const name = document.createElement('b');
     name.textContent = l.name;
-    name.dataset.c = l.id === selfId ? 'self' : String(l.id % COLOURS);
+    name.dataset.c = l.npc ? 'npc' : l.id === selfId ? 'self' : String(l.id % COLOURS);
     li.append(name);
-    const b = badge(l.arch);
+    if (l.npc) li.classList.add('is-npc');
+    const b = l.npc ? null : badge(l.arch);
     if (b) li.append(' ', b);
     if (l.ch === 'nearby') {
       // only the players around heard it

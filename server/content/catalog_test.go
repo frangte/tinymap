@@ -165,6 +165,9 @@ func TestMotionRejects(t *testing.T) {
 		{"two emotes on one code", func(f *files) {
 			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 1, "name": {"vi": "A"}, "seconds": 1}, {"id": "b", "code": 1, "name": {"vi": "B"}, "seconds": 1}]}`)
 		}, "code"},
+		{"an emote that lasts an hour", func(f *files) {
+			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 1, "name": {"vi": "A"}, "seconds": 3600}]}`)
+		}, "seconds"},
 		{"an emote code past four bits", func(f *files) {
 			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 16, "name": {"vi": "A"}, "seconds": 1}]}`)
 		}, "code"},
