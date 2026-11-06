@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -23,8 +24,10 @@ const (
 	writeWait  = 10 * time.Second
 	pongWait   = 60 * time.Second
 	pingPeriod = pongWait * 9 / 10
-	// identityWait bounds the account lookup in a hello, and each profile save
+	// identityWait bounds the account lookup in a hello, and each profile or pose save
 	identityWait = 3 * time.Second
+	// poseSaveEvery: where a character stands is saved this often while it plays, and when it leaves
+	poseSaveEvery = 30 * time.Second
 )
 
 // Per-connection limits: states arrive at 10 Hz, so 20 Hz leaves room for jitter; chat about one line a second.
@@ -35,6 +38,9 @@ var (
 	chatBurst    = 3
 	profileRate  = rate.Every(250 * time.Millisecond)
 	profileBurst = 4
+	// mount, dismount and respawn: a few presses a second is already more than anyone does
+	actionRate  = rate.Every(250 * time.Millisecond)
+	actionBurst = 4
 )
 
 type Config struct {
@@ -47,11 +53,13 @@ func DefaultConfig() Config { return Config{HelloTimeout: 10 * time.Second} }
 // Identity says who a connection is; identity.Service in production.
 type Identity interface {
 	// Arrive finds the character behind a hello's token, stores the profile it came with and returns the
-	// character's id and archetype (kept once chosen). An empty token is a guest without an account (no id, the
-	// hello's archetype); a token that no account has is identity.ErrUnknownToken.
-	Arrive(ctx context.Context, token string, p identity.Profile) (characterID, archetype string, err error)
+	// character's id, archetype (kept once chosen) and last pose. An empty token is a guest without an account
+	// (no id, the hello's archetype); a token that no account has is identity.ErrUnknownToken.
+	Arrive(ctx context.Context, token string, p identity.Profile) (identity.Arrived, error)
 	// SaveProfile stores a changed name or look.
 	SaveProfile(ctx context.Context, characterID, name string, look protocol.Look) error
+	// SavePose stores where the character stands, for its next visit.
+	SavePose(ctx context.Context, characterID string, p protocol.Pose) error
 }
 
 type Server struct {
@@ -60,10 +68,45 @@ type Server struct {
 	catalog *content.Catalog
 	cfg     Config
 	log     *slog.Logger
+	// saving counts the connections that still have a pose to save; closing (under mu) stops new ones once
+	// Drain has started
+	mu      sync.Mutex
+	closing bool
+	saving  sync.WaitGroup
+}
+
+// track counts one more connection with a pose to save, unless the server is draining.
+func (s *Server) track() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closing {
+		return false
+	}
+	s.saving.Add(1)
+	return true
 }
 
 func New(w *world.World, ids Identity, catalog *content.Catalog, cfg Config, log *slog.Logger) *Server {
 	return &Server{world: w, ids: ids, catalog: catalog, cfg: cfg, log: log}
+}
+
+// Drain waits until every connection that has left has saved where its character stood, or ctx ends. Call it
+// after the world has stopped and before closing the database.
+func (s *Server) Drain(ctx context.Context) error {
+	s.mu.Lock()
+	s.closing = true
+	s.mu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		s.saving.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // Serve runs a connection until it closes. Call it from the HTTP handler after the upgrade.
@@ -111,9 +154,17 @@ func (c *client) readLoop() {
 		leave(code)
 		return
 	}
+	// counted before joining, so a Drain that starts after the join waits for this connection's last save
+	saves := c.character != "" && c.s.track()
 	if !w.Join(c.peer, arrival) {
+		if saves {
+			c.s.saving.Done()
+		}
 		c.conn.Close()
 		return
+	}
+	if saves {
+		go c.keepPose()
 	}
 
 	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -123,6 +174,7 @@ func (c *client) readLoop() {
 	states := rate.NewLimiter(stateRate, stateBurst)
 	chats := rate.NewLimiter(chatRate, chatBurst)
 	profiles := rate.NewLimiter(profileRate, profileBurst)
+	actions := rate.NewLimiter(actionRate, actionBurst)
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
@@ -140,6 +192,15 @@ func (c *client) readLoop() {
 		switch msg.T {
 		case protocol.TypeState:
 			if !states.Allow() {
+				continue
+			}
+			// an emote this character may not play only comes from a tampered client: the others never see it
+			if !c.s.catalog.EmoteAllowed(protocol.EmoteOf(msg.S), c.caps) {
+				msg.S &^= protocol.EmoteMask
+			}
+			ok = w.Handle(c.peer, msg)
+		case protocol.TypeMount, protocol.TypeDismount, protocol.TypeRespawn:
+			if !actions.Allow() {
 				continue
 			}
 			ok = w.Handle(c.peer, msg)
@@ -177,16 +238,17 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	look := cat.AllowedLook(*hello.Look, cat.Grants(arch))
 	ctx, cancel := context.WithTimeout(context.Background(), identityWait)
 	defer cancel()
-	id, kept, err := c.s.ids.Arrive(ctx, hello.Token, identity.Profile{Name: hello.Name, Look: look, Archetype: arch})
+	found, err := c.s.ids.Arrive(ctx, hello.Token, identity.Profile{Name: hello.Name, Look: look, Archetype: arch})
 	switch {
 	case errors.Is(err, identity.ErrUnknownToken):
 		return world.Arrival{}, protocol.ErrAuth
 	case err != nil:
 		// the database is down or slow: better to play as a guest than not at all
 		c.s.log.Error("account lookup failed, playing as a guest", "err", err)
-		kept = arch
+		found = identity.Arrived{Archetype: arch}
 	}
-	c.character = id
+	kept := found.Archetype
+	c.character = found.ID
 	c.caps = cat.Grants(kept)
 	if kept != arch {
 		// the character already had another archetype: what it may wear follows that one
@@ -195,7 +257,47 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 			c.saveProfile(protocol.ClientMsg{Name: hello.Name, Look: &look})
 		}
 	}
-	return world.Arrival{Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(c.caps)}, ""
+	a := world.Arrival{Character: found.ID, Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(c.caps), Start: found.Pose}
+	if at, ok := cat.Archetype(kept); ok {
+		x, z, h := at.Spawn.ThreePose()
+		a.Home = &protocol.Pose{X: x, Z: z, H: h}
+	}
+	if v, ok := cat.StarterVehicle(kept, c.caps); ok {
+		a.Vehicle = &world.VehicleSpec{Kind: v.ID, Speed: v.Speed}
+	}
+	return a, ""
+}
+
+// keepPose saves where the character stands every poseSaveEvery while it plays, and once more when the world
+// has dropped it (its pose cannot change after that).
+// Saving is best effort: a failure is logged and the game goes on.
+func (c *client) keepPose() {
+	defer c.s.saving.Done()
+	ticker := time.NewTicker(poseSaveEvery)
+	defer ticker.Stop()
+	var saved protocol.Pose
+	save := func() {
+		p, ok := c.peer.LastPose()
+		if !ok || p == saved {
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), identityWait)
+		defer cancel()
+		if err := c.s.ids.SavePose(ctx, c.character, p); err != nil {
+			c.s.log.Warn("saving pose", "character", c.character, "err", err)
+			return
+		}
+		saved = p
+	}
+	for {
+		select {
+		case <-ticker.C:
+			save()
+		case <-c.peer.Gone():
+			save()
+			return
+		}
+	}
 }
 
 // saveProfile stores a name or look change; it only ever logs, the game goes on either way.

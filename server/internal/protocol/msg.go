@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -28,16 +29,38 @@ const (
 
 // Message types (the "t" field).
 const (
-	TypeHello   = "hello"
-	TypeState   = "state"
-	TypeProfile = "profile"
-	TypeChat    = "chat"
-	TypeWelcome = "welcome"
-	TypeJoin    = "join"
-	TypeLeave   = "leave"
-	TypeSnap    = "snap"
-	TypeError   = "error"
+	TypeHello    = "hello"
+	TypeState    = "state"
+	TypeProfile  = "profile"
+	TypeChat     = "chat"
+	TypeMount    = "mount"
+	TypeDismount = "dismount"
+	TypeRespawn  = "respawn"
+	TypeWelcome  = "welcome"
+	TypeJoin     = "join"
+	TypeLeave    = "leave"
+	TypeSnap     = "snap"
+	TypeCorrect  = "correct"
+	TypeVehicle  = "vehicle"
+	// TypeVehicleGone: a vehicle left the world (its owner did)
+	TypeVehicleGone = "vehicle_gone"
+	TypeError       = "error"
 )
+
+// State flags (the "s" field of a state, and of every snapshot row).
+const (
+	// FlagAir: in the air (jumping)
+	FlagAir = 1 << 0
+	// FlagRide: on a vehicle. The server sets it from its own record; what a client says is ignored.
+	FlagRide = 1 << 1
+	// EmoteShift and EmoteMask place the emote code (server/content/emotes.json, 0 for none) in bits 4–7.
+	EmoteShift = 4
+	EmoteMask  = 0xF << EmoteShift
+	flagsKnown = FlagAir | FlagRide | EmoteMask
+)
+
+// EmoteOf is the emote code in state flags (0 for none).
+func EmoteOf(s int) int { return (s & EmoteMask) >> EmoteShift }
 
 // Error codes sent in {"t":"error"}.
 const (
@@ -48,6 +71,11 @@ const (
 	// ErrAuth: the hello's token belongs to no account (the database was reset, or it was made up). The client
 	// should forget the token, get a new one and connect again; the socket is closed after this.
 	ErrAuth = "auth"
+	// ErrMount: a mount was refused (not your vehicle, too far away, already riding)
+	ErrMount = "mount"
+	// ErrReplaced: the same character joined again from another connection (a reconnect after the network
+	// dropped, or a second tab); this one is closed. The client should not reconnect on its own.
+	ErrReplaced = "replaced"
 )
 
 // Chat channels (the "ch" field): global reaches everyone, nearby only the players within NearbyRadius.
@@ -100,6 +128,13 @@ type ClientMsg struct {
 	Z    float64 `json:"z"`
 	H    float64 `json:"h"`
 	Text string  `json:"text"`
+	// S is the state flags, in state only: FlagAir and the emote code
+	S int `json:"s"`
+	// K is how many corrections the client has applied, in state and respawn: one sent before the client applied
+	// the server's latest correction is stale and ignored
+	K uint32 `json:"k"`
+	// V is the vehicle to get on, in mount only
+	V uint32 `json:"v"`
 }
 
 // Validation errors; the world drops the message (or the connection, for a bad hello).
@@ -110,6 +145,8 @@ var (
 	ErrBadArch     = errors.New("archetype id too long")
 	ErrBadChannel  = errors.New("unknown chat channel")
 	ErrBadPose     = errors.New("pose out of bounds")
+	ErrBadFlags    = errors.New("unknown state flags")
+	ErrBadVehicle  = errors.New("no vehicle id")
 	ErrEmptyChat   = errors.New("empty chat")
 )
 
@@ -125,6 +162,15 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeChat {
 		m.Ch = ""
 	}
+	if m.T != TypeState {
+		m.S = 0
+	}
+	if m.T != TypeState && m.T != TypeRespawn {
+		m.K = 0
+	}
+	if m.T != TypeMount {
+		m.V = 0
+	}
 	switch m.T {
 	case TypeHello, TypeProfile:
 		if m.Look == nil || !m.Look.Valid() {
@@ -137,11 +183,19 @@ func Decode(data []byte) (ClientMsg, error) {
 			return m, ErrBadArch
 		}
 		m.Name = CleanName(m.Name)
-	case TypeState:
+	case TypeState, TypeRespawn:
 		if !finite(m.X, m.Y, m.Z, m.H) || math.Abs(m.X) > WorldHalf || math.Abs(m.Z) > WorldHalf || m.Y < MinY || m.Y > MaxY {
 			return m, ErrBadPose
 		}
+		if m.S < 0 || m.S&^flagsKnown != 0 {
+			return m, ErrBadFlags
+		}
 		m.H = math.Atan2(math.Sin(m.H), math.Cos(m.H))
+	case TypeMount:
+		if m.V == 0 {
+			return m, ErrBadVehicle
+		}
+	case TypeDismount:
 	case TypeChat:
 		switch m.Ch {
 		case "":
@@ -209,15 +263,14 @@ func CleanChat(s string) string { return clean(s, ChatMax) }
 
 // ---- server -> client
 
-// Player is a full description of someone in the world, sent on welcome and join.
-// Pose is [x, y, z, h], absent until the player has sent its first state.
+// Player is a full description of someone in the world, sent on welcome and join to everyone. Where they are
+// comes in snapshots, and only to the players near them.
 type Player struct {
 	ID   uint32 `json:"id"`
 	Name string `json:"name"`
 	// Arch is the archetype id, absent for a player who has none (an older client)
-	Arch string      `json:"arch,omitempty"`
-	Look Look        `json:"look"`
-	Pose *[4]float64 `json:"pose,omitempty"`
+	Arch string `json:"arch,omitempty"`
+	Look Look   `json:"look"`
 }
 
 // ChatLine is one chat message, live (with T set) or inside the welcome history (global lines only).
@@ -238,11 +291,38 @@ type Welcome struct {
 	Name string `json:"name"`
 	// Arch is the player's archetype as the server keeps it (an archetype is chosen once); Apps the phone apps
 	// its capabilities give, in phone order
-	Arch       string     `json:"arch,omitempty"`
-	Apps       []string   `json:"apps"`
-	MaxPlayers int        `json:"max"`
-	Players    []Player   `json:"players"`
-	Chat       []ChatLine `json:"chat"`
+	Arch       string   `json:"arch,omitempty"`
+	Apps       []string `json:"apps"`
+	MaxPlayers int      `json:"max"`
+	// Pose is where the server placed the player: the last visit's position, or the archetype's start
+	Pose     [4]float64 `json:"pose"`
+	Players  []Player   `json:"players"`
+	Vehicles []Vehicle  `json:"vehicles"`
+	Chat     []ChatLine `json:"chat"`
+}
+
+// Vehicle is a vehicle in the world, sent to everyone on welcome and whenever it changes. While Rider is set it
+// moves with the rider (whose snapshot rows carry FlagRide); Pose is where it was last parked.
+type Vehicle struct {
+	T     string     `json:"t,omitempty"`
+	ID    uint32     `json:"id"`
+	Kind  string     `json:"kind"`
+	Owner uint32     `json:"owner"`
+	Rider uint32     `json:"rider"`
+	Pose  [4]float64 `json:"pose"`
+}
+
+type VehicleGone struct {
+	T  string `json:"t"`
+	ID uint32 `json:"id"`
+}
+
+// Correct tells a client its last move was refused: it goes back to Pose and counts the correction in K, which
+// its states echo from then on.
+type Correct struct {
+	T    string     `json:"t"`
+	K    uint32     `json:"k"`
+	Pose [4]float64 `json:"pose"`
 }
 
 type Join struct {
@@ -262,12 +342,56 @@ type Profile struct {
 	Look Look   `json:"look"`
 }
 
-// Snap carries every placed player as [id, x, y, z, h, age]: age is how many ms before this snapshot the
-// server received that pose, so a client can place it on the sender's timeline instead of the snapshot tick's.
-type Snap struct {
-	T  string       `json:"t"`
-	At int64        `json:"at"`
-	P  [][6]float64 `json:"p"`
+// A snapshot is {"t":"snap","at":ms,"p":[row…],"out":[id…]}, built by hand because it is the one message sent
+// to every player twelve times a second. p has a row [id, x, y, z, h, s, age] for each player near the receiver
+// that moved since the last snapshot or just came into view; age is how many ms before this snapshot the server
+// received that pose, so a client can place it on the sender's timeline instead of the snapshot tick's. out lists
+// the players that left the receiver's view (omitted when empty).
+
+// AppendSnapRow appends one snapshot row.
+func AppendSnapRow(b []byte, id uint32, p Pose, s int, ageMs int64) []byte {
+	a := PoseArray(p)
+	b = append(b, '[')
+	b = strconv.AppendUint(b, uint64(id), 10)
+	for _, v := range a {
+		b = append(b, ',')
+		b = strconv.AppendFloat(b, v, 'f', -1, 64)
+	}
+	b = append(b, ',')
+	b = strconv.AppendInt(b, int64(s), 10)
+	b = append(b, ',')
+	b = strconv.AppendInt(b, max(0, ageMs), 10)
+	return append(b, ']')
+}
+
+// EncodeSnap builds a snapshot from rows made by AppendSnapRow.
+func EncodeSnap(at int64, rows [][]byte, out []uint32) []byte {
+	n := 40 + 8*len(out)
+	for _, r := range rows {
+		n += len(r) + 1
+	}
+	b := make([]byte, 0, n)
+	b = append(b, `{"t":"snap","at":`...)
+	b = strconv.AppendInt(b, at, 10)
+	b = append(b, `,"p":[`...)
+	for i, r := range rows {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		b = append(b, r...)
+	}
+	b = append(b, ']')
+	if len(out) > 0 {
+		b = append(b, `,"out":[`...)
+		for i, id := range out {
+			if i > 0 {
+				b = append(b, ',')
+			}
+			b = strconv.AppendUint(b, uint64(id), 10)
+		}
+		b = append(b, ']')
+	}
+	return append(b, '}')
 }
 
 type Error struct {

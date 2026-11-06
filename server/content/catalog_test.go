@@ -106,7 +106,77 @@ func TestCatalogRejects(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := load(placesJSON, c.archetypes, c.apps)
+			f := embedded()
+			// the shipped vehicles need capabilities these small files do not define
+			f.archetypes, f.apps, f.vehicles = c.archetypes, c.apps, []byte(`{"vehicles": []}`)
+			_, err := load(f)
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("err = %v, want it to mention %q", err, c.want)
+			}
+		})
+	}
+}
+
+func TestMotionContent(t *testing.T) {
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Movement.RunSpeed <= c.Movement.WalkSpeed || c.Movement.Tolerance < 1 {
+		t.Fatalf("movement = %+v", c.Movement)
+	}
+	var riders []string
+	for _, a := range c.Archetypes {
+		if v, ok := c.StarterVehicle(a.ID, c.Grants(a.ID)); ok {
+			if v.Speed <= c.Movement.RunSpeed {
+				t.Errorf("%s's vehicle is no faster than running", a.ID)
+			}
+			riders = append(riders, a.ID)
+		}
+	}
+	if len(riders) == 0 {
+		t.Fatal("no archetype starts with a vehicle: the driver should")
+	}
+	if !c.EmoteAllowed(0, c.Grants("")) || c.EmoteAllowed(MaxEmoteCode+1, c.Grants("")) {
+		t.Fatal("code 0 is no emote and always allowed; unknown codes are not")
+	}
+	for _, e := range c.Emotes {
+		if !c.EmoteAllowed(e.Code, c.Grants("")) && e.Requires == "" {
+			t.Errorf("emote %s needs nothing but is refused", e.ID)
+		}
+	}
+}
+
+func TestMotionRejects(t *testing.T) {
+	cases := []struct {
+		name string
+		edit func(*files)
+		want string
+	}{
+		{"running slower than walking", func(f *files) {
+			f.movement = []byte(`{"walk_speed": 7, "run_speed": 3, "jump_speed": 4, "gravity": 15, "tolerance": 1.25}`)
+		}, "movement.json"},
+		{"a vehicle at 110 m/s", func(f *files) {
+			f.vehicles = []byte(`{"vehicles": [{"id": "x", "name": {"vi": "X"}, "speed": 110, "seats": 1, "requires": "vehicle.motorbike.ride"}]}`)
+		}, "speed"},
+		{"a vehicle needing an unknown capability", func(f *files) {
+			f.vehicles = []byte(`{"vehicles": [{"id": "xe_so_110", "name": {"vi": "X"}, "speed": 11, "seats": 1, "requires": "nope.nope"}]}`)
+		}, "unknown capability"},
+		{"two emotes on one code", func(f *files) {
+			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 1, "name": {"vi": "A"}, "seconds": 1}, {"id": "b", "code": 1, "name": {"vi": "B"}, "seconds": 1}]}`)
+		}, "code"},
+		{"an emote code past four bits", func(f *files) {
+			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 16, "name": {"vi": "A"}, "seconds": 1}]}`)
+		}, "code"},
+		{"a starter vehicle that does not exist", func(f *files) {
+			f.vehicles = []byte(`{"vehicles": []}`)
+		}, "starter vehicle"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			f := embedded()
+			c.edit(&f)
+			_, err := load(f)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err = %v, want it to mention %q", err, c.want)
 			}

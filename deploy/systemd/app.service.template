@@ -11,7 +11,7 @@ ExecStart=/home/ubuntu/apps/sg.tinymap.live/server
 Environment=PORT=8787
 # nginx on this machine is the only client
 Environment=TRUSTED_PROXIES=127.0.0.1,::1
-Environment=MAX_PLAYERS=40
+Environment=MAX_PLAYERS=150
 Environment=ALLOWED_ORIGINS=https://sg.tinymap.live
 Environment=LOG_LEVEL=info
 # the player database and its backups live outside releases/ (which deploys swap and prune), in the one

@@ -1,5 +1,6 @@
-// Keyboard (WASD / arrows, Shift to run), mouse drag + wheel for the camera, and on touch screens a
-// floating joystick on the left half with one-finger orbit and two-finger pinch on the right.
+// Keyboard (WASD / arrows, Shift to run, Space to jump, E for the action at hand, 1-9 for emotes), mouse drag +
+// wheel for the camera, and on touch screens a floating joystick on the left half with one-finger orbit and
+// two-finger pinch on the right (the jump, action and emote buttons are DOM buttons: src/game/actionPad.ts).
 import { clamp } from './coords';
 
 export interface MoveIntent {
@@ -59,6 +60,10 @@ export class InputController {
   lastLook = -1e9;
   /** performance.now() of the first movement input, or null until the player moves */
   firstMove: number | null = null;
+  /** presses waiting for the next frame */
+  private jumpPressed = false;
+  private usePressed = false;
+  private emoteKey = 0;
   private readonly off: Array<() => void> = [];
   private on = true;
 
@@ -105,6 +110,8 @@ export class InputController {
   private reset(): void {
     this.keys.clear();
     this.shift = false;
+    this.jumpPressed = this.usePressed = false;
+    this.emoteKey = 0;
     this.drags.clear();
     this.endJoystick();
   }
@@ -112,6 +119,10 @@ export class InputController {
   private onKey(e: KeyboardEvent, down: boolean): void {
     if (!this.on || (down && isTyping(e))) return;
     if (e.key === 'Shift') this.shift = down;
+    if (down && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey && this.onPress(e)) {
+      e.preventDefault();
+      return;
+    }
     if (!(e.code in KEYS)) return;
     if (down && (e.metaKey || e.ctrlKey || e.altKey)) return;
     if (down) {
@@ -122,6 +133,48 @@ export class InputController {
     }
     this.shift = e.shiftKey;
     e.preventDefault();
+  }
+
+  /** Space, E and the digits: one action per press. */
+  private onPress(e: KeyboardEvent): boolean {
+    // a focused control (a phone button, a link) keeps its keys: Space presses it, digits and E are not for us
+    const t = e.target;
+    if (t instanceof Element && t !== this.surface && t.closest('button, a, select, summary, [role="button"], [tabindex]')) return false;
+    if (e.code === 'Space') {
+      this.jumpPressed = true;
+      return true;
+    }
+    if (e.code === 'KeyE') {
+      this.usePressed = true;
+      return true;
+    }
+    const digit = /^Digit([1-9])$/.exec(e.code);
+    if (digit) {
+      this.emoteKey = Number(digit[1]);
+      return true;
+    }
+    return false;
+  }
+
+  /** Whether jump was pressed since the last call. */
+  consumeJump(): boolean {
+    const v = this.jumpPressed;
+    this.jumpPressed = false;
+    return v;
+  }
+
+  /** Whether the action key (E) was pressed since the last call. */
+  consumeUse(): boolean {
+    const v = this.usePressed;
+    this.usePressed = false;
+    return v;
+  }
+
+  /** The digit key (1-9) pressed since the last call, 0 for none. */
+  consumeEmoteKey(): number {
+    const v = this.emoteKey;
+    this.emoteKey = 0;
+    return v;
   }
 
   private markMove(): void {

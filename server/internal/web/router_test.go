@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -19,6 +21,7 @@ import (
 
 	"saigon-noir/server/content"
 	"saigon-noir/server/internal/identity"
+	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/world"
 	"saigon-noir/server/internal/ws"
@@ -80,13 +83,25 @@ type msg struct {
 	Arch    string          `json:"arch"`
 	Apps    []string        `json:"apps"`
 	Ch      string          `json:"ch"`
+	// welcome: where the server placed us; correct: where to go back to; vehicle: where it is parked
+	Pose     []float64 `json:"pose"`
+	K        uint32    `json:"k"`
+	Vehicles []vehicle `json:"vehicles"`
+	Owner    uint32    `json:"owner"`
+	Rider    uint32    `json:"rider"`
 }
 type look struct{ Body, Outfit, Hat string }
 type player struct {
-	ID   uint32      `json:"id"`
-	Name string      `json:"name"`
-	Look look        `json:"look"`
-	Pose *[4]float64 `json:"pose"`
+	ID   uint32 `json:"id"`
+	Name string `json:"name"`
+	Look look   `json:"look"`
+}
+type vehicle struct {
+	ID    uint32    `json:"id"`
+	Kind  string    `json:"kind"`
+	Owner uint32    `json:"owner"`
+	Rider uint32    `json:"rider"`
+	Pose  []float64 `json:"pose"`
 }
 type chatLine struct {
 	ID   uint32 `json:"id"`
@@ -111,12 +126,12 @@ func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 		t.Fatal(err)
 	}
 	accounts := identity.New(db)
-	w := world.New(cfg, log)
-	go w.Run(ctx)
 	catalog, err := content.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
+	w := world.New(cfg, navGrid(t), log)
+	go w.Run(ctx)
 	sockets := ws.New(w, accounts, catalog, ws.Config{HelloTimeout: 300 * time.Millisecond}, log)
 	r, err := NewRouter(w, sockets, accounts, opt)
 	if err != nil {
@@ -129,6 +144,54 @@ func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 		db.Close()
 	})
 	return &testServer{Server: srv, db: db}
+}
+
+func navGrid(t *testing.T) *nav.Grid {
+	t.Helper()
+	g, err := content.Nav()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return g
+}
+
+// stateNear is a state message a short walk from where the welcome placed the player: dist metres along the
+// first heading where the way is clear.
+func stateNear(t *testing.T, welcome msg, dist float64) (state string, x, z float64) {
+	t.Helper()
+	g := navGrid(t)
+	x0, z0 := welcome.Pose[0], welcome.Pose[2]
+	for a := 0.0; a < 2*math.Pi; a += math.Pi / 12 {
+		x, z = x0+math.Sin(a)*dist, z0+math.Cos(a)*dist
+		if g.Fits(x, z, 0.3) && g.Clear(x0, z0, x, z, 0) {
+			y, _ := g.Floor(x, z)
+			return fmt.Sprintf(`{"t":"state","x":%.2f,"y":%.2f,"z":%.2f,"h":0}`, x, y, z), math.Round(x*100) / 100, math.Round(z*100) / 100
+		}
+	}
+	t.Fatalf("nowhere to walk %v m from %v", dist, welcome.Pose)
+	return
+}
+
+// snapRows reads snapshots until one has a row for id, and returns that row.
+func snapRow(t *testing.T, c *websocket.Conn, id uint32) []float64 {
+	t.Helper()
+	for {
+		var rows [][]float64
+		if err := json.Unmarshal(next(t, c, "snap").P, &rows); err != nil {
+			t.Fatal(err)
+		}
+		for _, r := range rows {
+			if len(r) != 7 {
+				t.Fatalf("row %v: want [id,x,y,z,h,s,age]", r)
+			}
+			if r[6] < 0 || r[6] > 60_000 {
+				t.Fatalf("age %v ms out of range", r[6])
+			}
+			if uint32(r[0]) == id {
+				return r
+			}
+		}
+	}
 }
 
 func testConfig() world.Config {
@@ -201,44 +264,27 @@ func TestPlayersSeeEachOther(t *testing.T) {
 	a := dial(t, srv)
 	send(t, a, helloLan)
 	wa := next(t, a, "welcome")
-	if wa.ID == 0 || wa.Name != "Lan" || len(wa.Players) != 0 || wa.Max != 2 {
+	if wa.ID == 0 || wa.Name != "Lan" || len(wa.Players) != 0 || wa.Max != 2 || len(wa.Pose) != 4 {
 		t.Fatalf("welcome A = %+v", wa)
 	}
-	send(t, a, `{"t":"state","x":1.234,"y":0.18,"z":-5,"h":3.1}`)
-	next(t, a, "snap") // the hub has A's pose before B arrives
-
+	// both start at the market gate (no archetype): they see each other from the start
 	b := dial(t, srv)
 	send(t, b, helloMinh)
 	wb := next(t, b, "welcome")
 	if len(wb.Players) != 1 || wb.Players[0].Name != "Lan" || wb.Players[0].Look.Outfit != "aodai" {
 		t.Fatalf("welcome B players = %+v", wb.Players)
 	}
-	if p := wb.Players[0].Pose; p == nil || p[0] != 1.23 {
-		t.Fatalf("A's pose in B's welcome = %v", p)
+	if r := snapRow(t, b, wa.ID); r[1] != wa.Pose[0] || r[3] != wa.Pose[2] {
+		t.Fatalf("A's row seen by B = %v, A's welcome pose %v", r, wa.Pose)
 	}
 	if j := next(t, a, "join"); !strings.Contains(string(j.P), `"Minh"`) {
 		t.Fatalf("join seen by A = %s", j.P)
 	}
 
-	// positions: B moves, A gets it in a snapshot
-	send(t, b, `{"t":"state","x":4,"y":0.2,"z":2,"h":0}`)
-	for found := false; !found; {
-		s := next(t, a, "snap")
-		var rows [][]float64
-		if err := json.Unmarshal(s.P, &rows); err != nil {
-			t.Fatal(err)
-		}
-		for _, r := range rows {
-			if len(r) != 6 {
-				t.Fatalf("row %v: want [id,x,y,z,h,age]", r)
-			}
-			if r[5] < 0 || r[5] > 1000 {
-				t.Fatalf("age %v ms out of range", r[5])
-			}
-			if uint32(r[0]) == wb.ID && r[1] == 4 && r[3] == 2 {
-				found = true
-			}
-		}
+	// positions: B walks a little, A gets it in a snapshot
+	state, x, z := stateNear(t, wb, 2)
+	send(t, b, state)
+	for r := snapRow(t, a, wb.ID); r[1] != x || r[3] != z; r = snapRow(t, a, wb.ID) {
 	}
 
 	// outfit change reaches the other player
@@ -530,22 +576,14 @@ func TestNearbyChatStaysNearby(t *testing.T) {
 	cfg := testConfig()
 	cfg.MaxPlayers = 3
 	srv := startServer(t, cfg)
+	// two travellers start at the roundabout, a citizen at home on Lê Lai, 38 m away
 	conns := make([]*websocket.Conn, 3)
-	for i, x := range []string{"0", "10", "100"} {
+	for i, arch := range []string{"traveler", "traveler", "citizen"} {
 		conns[i] = dial(t, srv)
-		send(t, conns[i], helloLan)
+		send(t, conns[i], helloAs("", arch, "thun", "none"))
 		next(t, conns[i], "welcome")
-		send(t, conns[i], `{"t":"state","x":`+x+`,"y":0.2,"z":0,"h":0}`)
 	}
 	near, mid, far := conns[0], conns[1], conns[2]
-	// wait until the world has placed all three
-	for placed := 0; placed < 3; {
-		var rows [][]float64
-		if err := json.Unmarshal(next(t, far, "snap").P, &rows); err != nil {
-			t.Fatal(err)
-		}
-		placed = len(rows)
-	}
 
 	send(t, near, `{"t":"chat","ch":"nearby","text":"gần đây"}`)
 	for _, c := range []*websocket.Conn{near, mid} {
@@ -556,5 +594,84 @@ func TestNearbyChatStaysNearby(t *testing.T) {
 	send(t, near, `{"t":"chat","text":"cả phố"}`)
 	if m := next(t, far, "chat"); m.Text != "cả phố" || m.Ch != "global" {
 		t.Fatalf("100 m away, the first line heard should be the global one: %+v", m)
+	}
+}
+
+// ---- movement, vehicles and the last position
+
+func TestMovesAreChecked(t *testing.T) {
+	srv := startServer(t, testConfig())
+	a := dial(t, srv)
+	send(t, a, helloLan)
+	w := next(t, a, "welcome")
+	// 40 m in one report
+	send(t, a, fmt.Sprintf(`{"t":"state","x":%v,"y":%v,"z":%v,"h":0}`, w.Pose[0]+40, w.Pose[1], w.Pose[2]))
+	c := next(t, a, "correct")
+	if c.K != 1 || c.Pose[0] != w.Pose[0] || c.Pose[2] != w.Pose[2] {
+		t.Fatalf("correct = %+v, welcome pose %v", c, w.Pose)
+	}
+	// still k=0: sent before the correction arrived, ignored without another one
+	state, _, _ := stateNear(t, w, 1)
+	send(t, a, state)
+	// echoing k=1 it is accepted: a second player sees it there
+	state, x, z := stateNear(t, w, 1.5)
+	send(t, a, strings.Replace(state, `"h":0`, `"h":0,"k":1`, 1))
+	b := dial(t, srv)
+	send(t, b, helloMinh)
+	next(t, b, "welcome")
+	for r := snapRow(t, b, w.ID); r[1] != x || r[3] != z; r = snapRow(t, b, w.ID) {
+	}
+}
+
+func TestTheNextVisitStartsWhereTheLastEnded(t *testing.T) {
+	srv := startServer(t, testConfig())
+	_, _, token := postGuest(t, srv, "")
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "traveler", "thun", "cap"))
+	w := next(t, a, "welcome")
+	state, x, z := stateNear(t, w, 2)
+	send(t, a, state)
+	a.Close() // the world reads the state before it hears of the close
+	eventually(t, "the pose to be saved", func() bool {
+		c, err := storedCharacter(srv, token)
+		return err == nil && c.Pose != nil && math.Abs(c.Pose.X-x) < 0.01 && math.Abs(c.Pose.Z-z) < 0.01
+	})
+	b := dial(t, srv)
+	send(t, b, helloAs(token, "traveler", "thun", "cap"))
+	if w := next(t, b, "welcome"); math.Abs(w.Pose[0]-x) > 0.01 || math.Abs(w.Pose[2]-z) > 0.01 {
+		t.Fatalf("second visit starts at %v, want (%v, %v)", w.Pose, x, z)
+	}
+}
+
+func TestTheDriverGetsOnTheirBike(t *testing.T) {
+	srv := startServer(t, testConfig())
+	a := dial(t, srv)
+	send(t, a, helloAs("", "driver", "crab", "helmet"))
+	w := next(t, a, "welcome")
+	if len(w.Vehicles) != 1 || w.Vehicles[0].Owner != w.ID || w.Vehicles[0].Kind != "xe_so_110" || w.Vehicles[0].Rider != 0 {
+		t.Fatalf("welcome vehicles = %+v", w.Vehicles)
+	}
+	bike := w.Vehicles[0].ID
+	send(t, a, fmt.Sprintf(`{"t":"mount","v":%d}`, bike+100))
+	if e := next(t, a, "error"); e.Code != "mount" {
+		t.Fatalf("mounting nothing = %+v", e)
+	}
+	send(t, a, fmt.Sprintf(`{"t":"mount","v":%d}`, bike))
+	if v := next(t, a, "vehicle"); v.ID != bike || v.Rider != w.ID {
+		t.Fatalf("vehicle after mounting = %+v", v)
+	}
+	// a traveller arriving sees the bike, ridden
+	b := dial(t, srv)
+	send(t, b, helloAs("", "traveler", "thun", "cap"))
+	if wb := next(t, b, "welcome"); len(wb.Vehicles) != 1 || wb.Vehicles[0].Rider != w.ID {
+		t.Fatalf("vehicles seen by B = %+v", wb.Vehicles)
+	}
+	send(t, a, `{"t":"dismount"}`)
+	if v := next(t, b, "vehicle"); v.Rider != 0 {
+		t.Fatalf("vehicle after dismounting = %+v", v)
+	}
+	a.Close()
+	if g := next(t, b, "vehicle_gone"); g.ID != bike {
+		t.Fatalf("vehicle_gone = %+v", g)
 	}
 }

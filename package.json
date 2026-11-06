@@ -7,6 +7,7 @@
     "dev": "vite",
     "server": "cd server && go run ./cmd/server",
     "server:test": "cd server && go vet ./... && go test -race ./...",
+    "nav:sync": "cp public/models/saigon_q1_nav.png public/models/saigon_q1_nav.json server/content/nav/",
     "deploy": "scripts/deploy.sh",
     "deploy:check": "scripts/deploy.sh check",
     "deploy:rollback": "scripts/deploy.sh rollback",

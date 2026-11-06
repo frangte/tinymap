@@ -1,6 +1,11 @@
 package content
 
 import (
+	"bytes"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -50,5 +55,25 @@ func TestParsePlacesRejects(t *testing.T) {
 				t.Fatalf("err = %v, want it to mention %q", err, c.want)
 			}
 		})
+	}
+}
+
+// TestNavMatchesTheGame: the server checks moves against its own copy of the nav map, so it must be the map the
+// game walks on. After re-baking the nav maps in Blender, run `npm run nav:sync`.
+func TestNavMatchesTheGame(t *testing.T) {
+	for name, embedded := range map[string][]byte{"saigon_q1_nav.png": navPNG, "saigon_q1_nav.json": navMeta} {
+		game, err := os.ReadFile(filepath.Join("..", "..", "public", "models", name))
+		if errors.Is(err, fs.ErrNotExist) {
+			t.Skipf("no game checkout next to the server (%v)", err)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(game, embedded) {
+			t.Errorf("server/content/nav/%s differs from public/models/%s: run `npm run nav:sync`", name, name)
+		}
+	}
+	if _, err := Nav(); err != nil {
+		t.Fatal(err)
 	}
 }

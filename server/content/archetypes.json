@@ -1,10 +1,11 @@
 {
-  "about": "Who a player can be (docs/design/01-gameplay.md). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities, and systems only ever check capabilities, never the archetype id. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
+  "about": "Who a player can be (docs/design/01-gameplay.md). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities, and systems only ever check capabilities, never the archetype id. vehicle is the starter vehicle (vehicles.json), parked next to the player on arrival. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
   "capabilities": [
     { "id": "traveler.guide_app", "about": "the Cẩm nang phone app: the landmarks of Quận 1 to discover" },
     { "id": "citizen.community_app", "about": "the Hàng Xóm phone app: who is out on the street right now" },
     { "id": "driver.app", "about": "the Crab Driver phone app (ride requests arrive with ride-hailing)" },
-    { "id": "uniform.crab", "about": "may wear the yellow Crab Bike jacket and helmet" }
+    { "id": "uniform.crab", "about": "may wear the yellow Crab Bike jacket and helmet" },
+    { "id": "vehicle.motorbike.ride", "about": "may ride a motorbike (vehicles.json); later also bought as an item" }
   ],
   "archetypes": [
     {
@@ -41,7 +42,8 @@
       "badge": { "short": "Crab", "color": "#D9A21B", "text": "#2B211C" },
       "spawn": { "place": "duong_ham_nghi", "at": [36, -37], "face": [62, -50], "button": { "vi": "Về bãi xe", "en": "Back to the bike stand" } },
       "look": { "outfit": "crab", "hat": "helmet" },
-      "capabilities": ["driver.app", "uniform.crab"]
+      "vehicle": "xe_so_110",
+      "capabilities": ["driver.app", "uniform.crab", "vehicle.motorbike.ride"]
     }
   ],
   "restricted_looks": [

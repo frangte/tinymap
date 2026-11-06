@@ -30,7 +30,7 @@ From `CLAUDE.md`:
 
 ## Crab Bike assets
 
-The yellow Crab Bike uniform and the motorbike (D9). The brand is content only: code ids stay `driver` / `ridehail`. The uniform and helmet were built in phase 1 (yellow `#D9A21B`); the motorbike comes with phase 2.
+The yellow Crab Bike uniform and the motorbike (D9). The brand is content only: code ids stay `driver` / `ridehail`. The uniform and helmet were built in phase 1 (yellow `#D9A21B`); the motorbike in phase 2 (`src/game/motorbike.ts`, its handling in `src/game/player.ts`, mounting in `src/game/riding.ts`).
 
 | Asset | Where it goes |
 |---|---|

@@ -458,6 +458,50 @@ body.is-chatting .phone-toggle { display: none !important; }
   box-shadow: 2px 3px 0 var(--shade);
 }
 .phone-toggle[aria-expanded='true'] { background: var(--ink); }
+
+/* jump, the action at hand and the emotes, in a column above the phone button */
+.actions {
+  position: fixed;
+  right: var(--edge-r);
+  bottom: calc(var(--edge-b) + 66px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.actions > *, .act-row > * { pointer-events: auto; }
+.act {
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border-width: 2px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.act[aria-expanded='true'] { background: var(--ink); color: var(--paper); }
+.act-use {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 22px;
+  border-width: 2px;
+  font-weight: 700;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.act-row { display: flex; align-items: center; gap: 8px; pointer-events: none; }
+.emote-menu { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 6px; max-width: min(360px, calc(100vw - 32px - 70px)); }
+.emote-menu[hidden] { display: none; }
+.emote { min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.actions kbd, .emote kbd { font: 700 11px var(--mono); padding: 1px 5px; border: 1.5px solid currentColor; border-radius: 3px; }
+#phone:not([hidden]) ~ .actions,
+body.is-dressing .actions,
+body.is-picking .actions,
+body.is-chatting .actions { display: none !important; }
 .phone-dot { position: absolute; top: 3px; right: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--ochre); border: 1.5px solid var(--ink); }
 @media (pointer: coarse) {
   /* the phone's profile app has it; the short tool row keeps its room */
@@ -622,3 +666,4 @@ body.is-chatting .phone-toggle { display: none !important; }
   .arch-card { padding: 9px 11px 10px; }
   .arch-pitch { font-size: 12px; }
 }
+.act.touch-only { justify-content: center; align-items: center; }

@@ -43,6 +43,10 @@ export class PlayMode {
   private home: Spawn | null = null;
   /** a landmark seen for the first time this visit (the phone notes it) */
   onLandmark: (p: Place) => void = () => {};
+  /** E or the action button: the action at hand (getting on or off the bike) */
+  onUse: () => void = () => {};
+  /** the emote codes keys 1-9 play, in order */
+  emoteKeys: readonly number[] = [];
   /** between enter() and exit() */
   private active = false;
   private dressing = false;
@@ -119,6 +123,23 @@ export class PlayMode {
     if (!on) this.follow.portrait = null;
   }
 
+  /** Whether the player is in control: playing, not dressing or picking. */
+  get controlling(): boolean {
+    return this.active && !this.dressing;
+  }
+
+  jump(): void {
+    if (this.controlling) this.player.jump();
+  }
+
+  emote(code: number): void {
+    if (this.controlling) this.player.playEmote(code);
+  }
+
+  use(): void {
+    if (this.controlling) this.onUse();
+  }
+
   /** Current look-at point of the follow camera. */
   get target(): THREE.Vector3 {
     return this.follow.target;
@@ -130,6 +151,10 @@ export class PlayMode {
   update(dt: number, now: number, clock: number, driveCamera: boolean): void {
     this.input.readMove(this.move);
     this.input.consumeLook(this.look);
+    if (this.input.consumeJump()) this.jump();
+    if (this.input.consumeUse()) this.use();
+    const key = this.input.consumeEmoteKey();
+    if (key > 0 && key <= this.emoteKeys.length) this.emote(this.emoteKeys[key - 1]);
     if (this.dressing) {
       // the model faces +Z rotated by heading; the camera sits along (sin yaw, cos yaw), so heading = yaw faces it
       const h = this.player.heading;
@@ -142,7 +167,8 @@ export class PlayMode {
 
     const steering = now - this.input.lastLook < FOLLOW_DELAY;
     const followAmt = steering ? 0 : Math.max(0, this.move.y) * Math.min(1, this.player.speed / 2.5);
-    this.follow.update(dt, this.player.position, this.player.heading, this.look, followAmt);
+    // the drawn position: after a correction the camera eases back with the avatar
+    this.follow.update(dt, this.player.drawn, this.player.heading, this.look, followAmt);
     FOLIAGE.uPivot.value.copy(this.follow.target);
 
     const p = placeAt(this.player.position.x, -this.player.position.z, this.place);

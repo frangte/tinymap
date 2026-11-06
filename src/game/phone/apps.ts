@@ -168,8 +168,9 @@ const community: AppFactory = (root, ctx) => {
   root.append(intro, ol);
   const draw = (): void => {
     const me = ctx.self().position;
+    // the server only says where the players near us are: the others are somewhere further off
     const people = [...ctx.others()]
-      .map((r) => ({ r, d: Math.hypot(r.position.x - me.x, r.position.z - me.z) }))
+      .map((r) => ({ r, d: r.inView ? Math.hypot(r.position.x - me.x, r.position.z - me.z) : Infinity }))
       .sort((a, b) => a.d - b.d);
     intro.textContent = !ctx.online()
       ? 'Đang mất kết nối, chưa thấy ai.'
@@ -181,7 +182,7 @@ const community: AppFactory = (root, ctx) => {
       li.append(h('strong', '', r.name));
       const b = badge(r.arch);
       if (b) li.append(b);
-      li.append(h('small', '', `${Math.round(d)} m`));
+      li.append(h('small', '', Number.isFinite(d) ? `${Math.round(d)} m` : 'ở xa'));
       return li;
     }));
   };

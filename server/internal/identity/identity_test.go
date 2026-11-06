@@ -46,11 +46,11 @@ func TestGuestKeepsItsCharacterAcrossRestarts(t *testing.T) {
 	if len(token) != 43 || len(token) > protocol.TokenMax {
 		t.Fatalf("token %q: want 43 characters", token)
 	}
-	first, _, err := svc.Arrive(ctx, token, lan(""))
+	first, _, err := arrive(ctx, svc, token, lan(""))
 	if err != nil || first == "" {
 		t.Fatalf("first arrival = %q, %v", first, err)
 	}
-	if again, _, err := svc.Arrive(ctx, token, lan("")); err != nil || again != first {
+	if again, _, err := arrive(ctx, svc, token, lan("")); err != nil || again != first {
 		t.Fatalf("second arrival = %q, %v; want %q", again, err, first)
 	}
 	if err := svc.SaveProfile(ctx, first, "Lan Anh", xeomLook); err != nil {
@@ -61,7 +61,7 @@ func TestGuestKeepsItsCharacterAcrossRestarts(t *testing.T) {
 	// the server restarts
 	db = openDB(t, path)
 	svc = identity.New(db)
-	if after, _, err := svc.Arrive(ctx, token, identity.Profile{Look: xeomLook}); err != nil || after != first {
+	if after, _, err := arrive(ctx, svc, token, identity.Profile{Look: xeomLook}); err != nil || after != first {
 		t.Fatalf("after a restart = %q, %v; want %q", after, err, first)
 	}
 
@@ -99,7 +99,7 @@ func TestArchetypeIsChosenOnce(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, arch, err := svc.Arrive(ctx, token, lan(c.asks))
+			_, arch, err := arrive(ctx, svc, token, lan(c.asks))
 			if err != nil || arch != c.wantArch {
 				t.Fatalf("archetype = %q, %v; want %q", arch, err, c.wantArch)
 			}
@@ -107,7 +107,7 @@ func TestArchetypeIsChosenOnce(t *testing.T) {
 	}
 	// a new account takes the archetype of its first hello
 	other, _ := svc.NewGuest(ctx)
-	if _, arch, err := svc.Arrive(ctx, other, lan("citizen")); err != nil || arch != "citizen" {
+	if _, arch, err := arrive(ctx, svc, other, lan("citizen")); err != nil || arch != "citizen" {
 		t.Fatalf("new character = %q, %v", arch, err)
 	}
 }
@@ -127,7 +127,7 @@ func TestArrive(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			id, arch, err := svc.Arrive(ctx, c.token, lan("driver"))
+			id, arch, err := arrive(ctx, svc, c.token, lan("driver"))
 			if !errors.Is(err, c.wantErr) || (id != "") != c.wantID || arch != c.wantArch {
 				t.Fatalf("Arrive = %q, %q, %v", id, arch, err)
 			}
@@ -149,9 +149,41 @@ func TestGuestsAreSeparate(t *testing.T) {
 	if a == b {
 		t.Fatal("two guests got the same token")
 	}
-	ca, _, _ := svc.Arrive(ctx, a, lan(""))
-	cb, _, _ := svc.Arrive(ctx, b, identity.Profile{Name: "Minh", Look: lanLook})
+	ca, _, _ := arrive(ctx, svc, a, lan(""))
+	cb, _, _ := arrive(ctx, svc, b, identity.Profile{Name: "Minh", Look: lanLook})
 	if ca == "" || ca == cb {
 		t.Fatalf("characters %q and %q should differ", ca, cb)
+	}
+}
+
+// arrive is Service.Arrive as an id and an archetype.
+func arrive(ctx context.Context, svc *identity.Service, token string, p identity.Profile) (id, arch string, err error) {
+	a, err := svc.Arrive(ctx, token, p)
+	return a.ID, a.Archetype, err
+}
+
+func TestTheLastPoseIsKept(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "game.db")
+	svc := identity.New(openDB(t, path))
+	token, err := svc.NewGuest(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := svc.Arrive(ctx, token, lan("citizen"))
+	if err != nil || first.Pose != nil {
+		t.Fatalf("a new character has no pose yet: %+v, %v", first, err)
+	}
+	at := protocol.Pose{X: -30.5, Y: 0.18, Z: 19.25, H: 1.5}
+	if err := svc.SavePose(ctx, first.ID, at); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SavePose(ctx, "no-such-character", at); !errors.Is(err, identity.ErrNotFound) {
+		t.Fatalf("saving an unknown character = %v", err)
+	}
+	svc = identity.New(openDB(t, path))
+	again, err := svc.Arrive(ctx, token, lan("citizen"))
+	if err != nil || again.Pose == nil || *again.Pose != at {
+		t.Fatalf("next visit = %+v, %v; want the pose %+v", again, err, at)
 	}
 }

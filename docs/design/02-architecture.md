@@ -107,7 +107,9 @@ sequenceDiagram
   Note over C,Q: the client never says "objective done"; it only moves, talks, picks choices and uses items
 ```
 
-## Ride-hailing (future): how it plugs in without touching the core
+## Ride-hailing (future): how it plugs in
+
+The detailed plan, decided after phase 2, is [08-ride-hailing.md](08-ride-hailing.md): the trip states there replace the sketch below, and the core gains a few generic pieces (seat 1, carried players, view pins, a module hook, the wallet) rather than none.
 
 ```mermaid
 stateDiagram-v2
@@ -127,7 +129,7 @@ stateDiagram-v2
 It only needs pieces the MVP already builds:
 
 - **Vehicle and seat entities.** The passenger's place is just seat 1 on the motorbike.
-- **The `driver.on_duty` capability** decides who gets offers.
+- **The `ridehail.drive` capability** lets a character go on duty; being on duty is a toggle in the Crab Driver app.
 - **A phone notification type** routed to the Crab Driver app.
 - **A `trip.completed` event** that quest objectives can listen for.
 

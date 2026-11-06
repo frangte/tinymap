@@ -27,12 +27,23 @@ import { Phone } from './phone/phone';
 import { allowedLook, appsFor, archetypeById, grants, type Archetype } from './archetypes';
 import { sameLook } from './outfits';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
+import { Vehicles, type RiderView } from './vehicles';
+import { Riding } from './riding';
+import { ActionPad } from './actionPad';
+import { emotesFor } from './motion';
+import { loadPose, savePose } from './lastPose';
 
 const MODEL_BYTES = 2.04e6;
 /** distance from the island centre to the beach (m) */
 const COAST_R = 92;
 const MAX_PIXEL_RATIO = 1.5;
 const HASH: Record<Mode, string> = { menu: '', map: 'ban-do', play: 'choi' };
+/** a welcome placing us further than this from where we stand moves us there (m); closer, we stay put */
+const WELCOME_MOVE = 0.3;
+/** up to this far the move eases (the avatar slides over); further, the player and camera cut there (m) */
+const WELCOME_EASE = 6;
+/** how often the player's spot is kept in this browser for the next visit (ms) */
+const POSE_SAVE_EVERY = 5000;
 /** vertical field of view: base for landscape, widened on portrait screens to keep this half-width (degrees) */
 const FOV: Record<Mode, { base: number; halfWidth: number; max: number }> = {
   menu: { base: 35, halfWidth: 21, max: 75 },
@@ -103,6 +114,15 @@ export async function startApp(): Promise<void> {
   // multiplayer: created with the world; joins once the player has a character
   let remotes: RemotePlayers | null = null;
   let net: NetClient | null = null;
+  let vehicles: Vehicles | null = null;
+  /** where each vehicle's rider is drawn this frame (replaced once the map has loaded) */
+  let riderView = (_id: number): RiderView | null => null;
+  /** the label of the action button, refreshed every frame (replaced once loaded) */
+  let actionLabel = (): string | null => null;
+  /** riding bookkeeping every frame (replaced once loaded) */
+  let updateRiding = (_now: number): void => {};
+  let pad: ActionPad | null = null;
+  let poseSavedAt = 0;
   /** replaced once the map has loaded */
   let goOnline = (): void => {};
   // the saved character, or a fresh one that the dressing panel asks about on the first "Vào game"
@@ -182,10 +202,18 @@ export async function startApp(): Promise<void> {
     if (mode !== 'play' && !flight.active) map.update(now);
     // others: hidden beyond walking distance in play mode, all of them over the map
     remotes?.update(dt, now, clock, mode === 'play' ? camera.position : null);
+    vehicles?.update(dt, riderView, mode === 'play' ? camera.position : null);
     if (draw && remotes && play && mode === 'play') tags.update(camera, now, remotes, play.player.position);
-    if (net && play && mode === 'play') {
-      const pp = play.player.position;
-      net.sendState(pp.x, pp.y, pp.z, play.player.heading, now);
+    if (play && mode === 'play') {
+      const pl = play.player;
+      const pp = pl.position;
+      net?.sendState(pp.x, pp.y, pp.z, pl.heading, pl.flags, now);
+      pad?.setUse(play.controlling ? actionLabel() : null);
+      updateRiding(now);
+      if (now - poseSavedAt > POSE_SAVE_EVERY) {
+        poseSavedAt = now;
+        savePose(pp.x, pp.z, pl.heading);
+      }
     }
     sea?.update(clock, camera);
     life?.update(clock, dt);
@@ -260,13 +288,18 @@ export async function startApp(): Promise<void> {
     hud.respawnButton.title = a ? 'Quay lại chỗ xuất phát' : 'Quay lại cổng chợ Bến Thành';
     tags.setSelfArch(profile.archetype);
     phone?.setApps(serverApps ?? appsFor(caps));
+    if (pad) setEmotes();
   };
   /** the phone apps the server sent; null until it has (offline, an older server): then the archetype decides */
   let serverApps: string[] | null = null;
   applyArchetype();
-  p.spawnAtHome();
+  // back where we left off, if this browser remembers and the spot is still walkable (the server may move us)
+  const lastSpot = profile.archetype ? loadPose() : null;
+  if (lastSpot && nav.isWalkable(lastSpot.x, lastSpot.z)) p.player.spawn(lastSpot.x, lastSpot.z, lastSpot.h);
+  else p.spawnAtHome();
   scene.add(p.player.avatar.root);
   ink.track(p.player.avatar.root);
+  window.addEventListener('pagehide', () => savePose(p.player.position.x, p.player.position.z, p.player.heading));
 
   // ---- dressing: live preview on the player, saved on "Vào phố", reverted on "Huỷ"
   const closeDress = (): void => {
@@ -327,6 +360,7 @@ export async function startApp(): Promise<void> {
   // ---- "Bạn là ai?": once, before the first dressing (and once for players from before archetypes)
   const choose = (a: Archetype): void => {
     caps = grants(a.id);
+    riding.leave();
     // a new player starts in the archetype's clothes; a returning one keeps theirs, minus what it may not wear
     const look = dressed ? allowedLook(profile.look, caps) : { body: profile.look.body, outfit: a.look.outfit, hat: a.look.hat };
     profile = { ...profile, archetype: a.id, look };
@@ -335,6 +369,7 @@ export async function startApp(): Promise<void> {
     applyArchetype();
     p.spawnAtHome();
     p.follow.snapBehind(p.player.position, p.player.heading);
+    riding.start();
     p.setDressing(false);
     // the dressing panel next, so a returning player also sees what the archetype adds
     openDress();
@@ -361,7 +396,7 @@ export async function startApp(): Promise<void> {
   };
 
   // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
-  const others = new RemotePlayers(scene, ink);
+  const others = new RemotePlayers(scene, ink, (x, z) => nav.smoothFloor(x, z, 0));
   remotes = others;
   let netStatus: NetStatus = 'connecting';
   const showOnline = (): void => hud.setOnline(netStatus, others.count + 1);
@@ -371,7 +406,7 @@ export async function startApp(): Promise<void> {
       chatBox.setOnline(s === 'online');
       showOnline();
     },
-    welcome: (players, lines, arch, apps) => {
+    welcome: (players, lines, arch, apps, pose, list) => {
       others.clear();
       const now = performance.now();
       for (const info of players) others.add(info, now);
@@ -379,6 +414,18 @@ export async function startApp(): Promise<void> {
       adoptArchetype(arch);
       serverApps = apps;
       applyArchetype();
+      riding.welcome(list);
+      // the server says where we are: where we left off last time, or the start
+      if (pose) {
+        const pp = p.player.position;
+        const off = Math.hypot(pose[0] - pp.x, pose[2] - pp.z);
+        if (off > WELCOME_EASE) {
+          p.player.spawn(pose[0], pose[2], pose[3]);
+          p.follow.snapBehind(p.player.position, p.player.heading);
+        } else if (off > WELCOME_MOVE) {
+          p.player.correct(pose[0], pose[1], pose[2]);
+        }
+      }
       if (!welcomed) {
         welcomed = true;
         const a = archetypeById(profile.archetype);
@@ -402,7 +449,11 @@ export async function startApp(): Promise<void> {
       if (before !== undefined && before !== name) chatBox.system(`${before} đổi tên thành ${name}`);
       others.setProfile(id, name, look);
     },
-    snap: (rows, receivedAt) => others.applySnap(rows, receivedAt, netClient.selfId),
+    snap: (rows, receivedAt, out) => others.applySnap(rows, receivedAt, netClient.selfId, out),
+    correct: (pose) => p.player.correct(pose[0], pose[1], pose[2]),
+    vehicle: (v) => riding.vehicle(v),
+    vehicleGone: (id) => riding.gone(id),
+    mountRefused: () => riding.refused(),
     chat: (line) => {
       const self = line.id === netClient.selfId;
       chatBox.line(line, netClient.selfId);
@@ -411,10 +462,57 @@ export async function startApp(): Promise<void> {
     rateLimited: () => chatBox.rateLimited(),
     reset: () => {
       others.clear();
+      riding.offline();
       showOnline();
     },
   });
   net = netClient;
+
+  // ---- vehicles: parked bikes, and bikes under their riders; the action pad and E get on and off
+  const bikes = new Vehicles(scene, ink);
+  vehicles = bikes;
+  const riding: Riding = new Riding({
+    player: p.player,
+    vehicles: bikes,
+    net: netClient,
+    nav,
+    starter: () => archetypeById(profile.archetype)?.vehicle ?? '',
+    notify: (text) => chatBox.system(text),
+  });
+  const view: RiderView = { position: new THREE.Vector3(), heading: 0, speed: 0, lean: 0 };
+  riderView = (id) => {
+    if (id === riding.self) {
+      view.position.copy(p.player.drawn);
+      view.heading = p.player.heading;
+      view.speed = p.player.speed;
+      view.lean = p.player.lean;
+      return view;
+    }
+    const r = others.get(id);
+    if (!r || !r.inView || !r.avatar.root.visible) return null;
+    view.position.copy(r.position);
+    view.heading = r.heading;
+    view.speed = r.speed;
+    view.lean = r.lean;
+    return view;
+  };
+  actionLabel = () => riding.label();
+  updateRiding = (now) => riding.update(now);
+  p.onUse = () => riding.use();
+  pad = new ActionPad({
+    jump: () => p.jump(),
+    use: () => p.use(),
+    emote: (code) => p.emote(code),
+    done: () => renderer.domElement.focus({ preventScroll: true }),
+  });
+  const setEmotes = (): void => {
+    const list = emotesFor(caps);
+    pad?.setEmotes(list);
+    p.emoteKeys = list.map((e) => e.code);
+  };
+  setEmotes();
+  // a returning driver finds their bike beside them (the server's replaces it once online)
+  riding.start();
   goOnline = (): void => {
     if (dressed) netClient.start(profile);
   };
@@ -470,8 +568,13 @@ export async function startApp(): Promise<void> {
   hud.toMapButton.addEventListener('click', () => request('map'));
   hud.toPlayButton.addEventListener('click', () => request('play'));
   hud.respawnButton.addEventListener('click', () => {
+    // the one jump the server allows: home, and the bike comes along
+    riding.leave();
     p.spawnAtHome();
     p.follow.snapBehind(p.player.position, p.player.heading);
+    const pp = p.player.position;
+    netClient.sendRespawn(pp.x, pp.y, pp.z, p.player.heading);
+    riding.bringBike();
     renderer.domElement.focus({ preventScroll: true });
   });
   // sound starts with the first click (browsers block audio until then)
@@ -532,7 +635,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, chat: chatBox, phone: ph, tags, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

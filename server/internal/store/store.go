@@ -318,8 +318,10 @@ func (db *DB) AccountByToken(ctx context.Context, tokenHash []byte, at int64) (s
 func (db *DB) CharacterOf(ctx context.Context, accountID string) (identity.Character, error) {
 	c := identity.Character{AccountID: accountID}
 	var look string
-	err := db.sql.QueryRowContext(ctx, `select id, name, appearance, archetype_id, created_at from characters
-		where account_id = ? order by created_at, id limit 1`, accountID).Scan(&c.ID, &c.Name, &look, &c.Archetype, &c.CreatedAt)
+	var x, y, z, h sql.NullFloat64
+	err := db.sql.QueryRowContext(ctx, `select id, name, appearance, archetype_id, created_at, last_x, last_y, last_z, last_h
+		from characters where account_id = ? order by created_at, id limit 1`, accountID).
+		Scan(&c.ID, &c.Name, &look, &c.Archetype, &c.CreatedAt, &x, &y, &z, &h)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c, identity.ErrNotFound
 	}
@@ -328,6 +330,9 @@ func (db *DB) CharacterOf(ctx context.Context, accountID string) (identity.Chara
 	}
 	if err := json.Unmarshal([]byte(look), &c.Look); err != nil {
 		return c, fmt.Errorf("store: character %s appearance: %w", c.ID, err)
+	}
+	if x.Valid && y.Valid && z.Valid && h.Valid {
+		c.Pose = &protocol.Pose{X: x.Float64, Y: y.Float64, Z: z.Float64, H: h.Float64}
 	}
 	return c, nil
 }
@@ -348,6 +353,21 @@ func (db *DB) SetArchetype(ctx context.Context, characterID, archetype string, a
 	if _, err := db.sql.ExecContext(ctx, `update characters set archetype_id = ?, updated_at = ?
 		where id = ? and archetype_id = ''`, archetype, at, characterID); err != nil {
 		return fmt.Errorf("store: set archetype: %w", err)
+	}
+	return nil
+}
+
+// SavePose stores where the character stands, for its next visit.
+func (db *DB) SavePose(ctx context.Context, characterID string, p protocol.Pose, at int64) error {
+	res, err := db.sql.ExecContext(ctx, `update characters set last_x = ?, last_y = ?, last_z = ?, last_h = ?, updated_at = ?
+		where id = ?`, p.X, p.Y, p.Z, p.H, at, characterID)
+	if err != nil {
+		return fmt.Errorf("store: save pose: %w", err)
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return fmt.Errorf("store: save pose: %w", err)
+	} else if n == 0 {
+		return identity.ErrNotFound
 	}
 	return nil
 }

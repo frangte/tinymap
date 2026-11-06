@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 	"strings"
@@ -105,6 +106,34 @@ func TestDecode(t *testing.T) {
 			}},
 		{name: "blank chat", in: `{"t":"chat","text":" \n "}`, wantErr: ErrEmptyChat},
 		{name: "unknown type", in: `{"t":"teleport"}`, wantErr: ErrUnknownType},
+		{name: "state flags and corrections", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":0,"s":33,"k":4}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.S != 33 || m.K != 4 || EmoteOf(m.S) != 2 || m.S&FlagAir == 0 {
+					t.Fatalf("got s=%d k=%d", m.S, m.K)
+				}
+			}},
+		{name: "unknown state flag", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":0,"s":4}`, wantErr: ErrBadFlags},
+		{name: "negative state flags", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":0,"s":-1}`, wantErr: ErrBadFlags},
+		{name: "a respawn keeps k, not flags", in: `{"t":"respawn","x":1,"y":0.2,"z":-3,"h":0,"s":33,"k":4}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.S != 0 || m.K != 4 {
+					t.Fatalf("got s=%d k=%d, want 0 and 4", m.S, m.K)
+				}
+			}},
+		{name: "respawn out of bounds", in: `{"t":"respawn","x":1e6,"y":0,"z":0,"h":0}`, wantErr: ErrBadPose},
+		{name: "mount", in: `{"t":"mount","v":12}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.V != 12 {
+					t.Fatalf("v = %d", m.V)
+				}
+			}},
+		{name: "mount without a vehicle", in: `{"t":"mount"}`, wantErr: ErrBadVehicle},
+		{name: "dismount", in: `{"t":"dismount","v":3}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.V != 0 {
+					t.Fatalf("v = %d", m.V)
+				}
+			}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -134,5 +163,28 @@ func TestPoseArrayRounds(t *testing.T) {
 	want := [4]float64{1.23, 0.18, -9.88, 3.142}
 	if got != want {
 		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+func TestEncodeSnap(t *testing.T) {
+	row := AppendSnapRow(nil, 7, Pose{X: 1.234, Y: 0.181, Z: -5, H: 3.14159}, FlagAir|2<<EmoteShift, 40)
+	if string(row) != `[7,1.23,0.18,-5,3.142,33,40]` {
+		t.Fatalf("row = %s", row)
+	}
+	var m struct {
+		T   string      `json:"t"`
+		At  int64       `json:"at"`
+		P   [][]float64 `json:"p"`
+		Out []uint32    `json:"out"`
+	}
+	b := EncodeSnap(1730790000000, [][]byte{row, AppendSnapRow(nil, 8, Pose{}, 0, -5)}, []uint32{3, 4})
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatalf("%s: %v", b, err)
+	}
+	if m.T != TypeSnap || m.At != 1730790000000 || len(m.P) != 2 || len(m.P[0]) != 7 || m.P[1][6] != 0 || len(m.Out) != 2 {
+		t.Fatalf("decoded %+v from %s", m, b)
+	}
+	if b := EncodeSnap(1, nil, nil); string(b) != `{"t":"snap","at":1,"p":[]}` {
+		t.Fatalf("empty snap = %s", b)
 	}
 }

@@ -1,4 +1,5 @@
-// Low-poly Saigon pedestrian built from primitives, with a procedural idle / walk / run cycle driven by ground speed.
+// Low-poly Saigon pedestrian built from primitives, with a procedural idle / walk / run cycle driven by ground speed,
+// and poses blended over it: in the air, riding a motorbike, and the emotes (server/content/emotes.json).
 // Every optional part (long hair, skirt, áo dài panels, backpack, every hat) is built once; `setLook` only toggles
 // visibility, swaps a limb between the skin and the cloth material and recolours the cloth, so nothing is rebuilt
 // and the ink pass (which re-reads `mesh.material` every frame) keeps working. The model faces +Z in its local frame.
@@ -35,6 +36,29 @@ const FRAME = {
 } as const;
 const SKIRT_DEPTH = 0.78;
 const FLAP_REST = 0.05;
+/** riding: the hips sit this far below standing hip height, and this far behind the bike's middle (m) */
+const SEAT_DROP = -0.04;
+const BLOB_Y = 0.025;
+const BLOB_OPACITY = 0.5;
+const SEAT_BACK = -0.2;
+
+/** What the body does on top of walking; the state flags of a snapshot row say which. */
+export interface AvatarPose {
+  air: boolean;
+  ride: boolean;
+  /** emote id (server/content/emotes.json), '' for none */
+  emote: string;
+  /** seconds since the emote started */
+  emoteTime: number;
+}
+
+export function idlePose(): AvatarPose {
+  return { air: false, ride: false, emote: '', emoteTime: 0 };
+}
+
+const IDLE: Readonly<AvatarPose> = idlePose();
+
+const mix = (a: number, b: number, w: number): number => a + (b - a) * w;
 
 function materials(): Record<Slot, THREE.MeshToonMaterial> {
   const out = {} as Record<Slot, THREE.MeshToonMaterial>;
@@ -108,9 +132,20 @@ export class Pedestrian {
   private readonly nonLa: THREE.Mesh;
   private readonly cap = new THREE.Group();
   private readonly helmet = new THREE.Group();
+  /** a phone in the right hand, for the photo emote */
+  private readonly phone: THREE.Mesh;
+  /** the contact shadow, kept on the ground in a jump */
+  private readonly blob: THREE.Mesh;
+  private readonly blobMat: THREE.MeshBasicMaterial;
   private current: Look = { ...DEFAULT_LOOK };
   private phase = 0;
   private walkAmt = 0;
+  /** how far each overlay pose is blended in (0…1) */
+  private airW = 0;
+  private rideW = 0;
+  private emoteW = 0;
+  /** the emote being shown, kept while it fades out */
+  private emote = '';
 
   constructor(look: Look = DEFAULT_LOOK) {
     const m = this.mat;
@@ -119,6 +154,9 @@ export class Pedestrian {
     this.body.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.31, 0.15, 0.2), m.bottom), 0, HIP_Y - 0.02, 0));
     this.left = this.side(1);
     this.right = this.side(-1);
+    this.phone = at(new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.12, 0.014), m.eye), 0, -0.27, 0.05);
+    this.phone.visible = false;
+    this.right.elbow.add(this.phone);
 
     // skirt: a flared 8-sided tube from the waist to just above the knee
     const skirtGeo = new THREE.CylinderGeometry(0.19, 0.27, 0.36, 8, 1, true);
@@ -175,16 +213,23 @@ export class Pedestrian {
     this.neck.add(this.helmet);
 
     // blob shadow: the sun shadow map is baked once, so pedestrians get a soft contact shadow instead
-    const blob = new THREE.Mesh(
-      new THREE.CircleGeometry(0.42, 20),
-      new THREE.MeshBasicMaterial({ map: blobTexture(), color: '#2A2338', transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
-    );
+    this.blobMat = new THREE.MeshBasicMaterial({ map: blobTexture(), color: '#2A2338', transparent: true, opacity: BLOB_OPACITY, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const blob = new THREE.Mesh(new THREE.CircleGeometry(0.42, 20), this.blobMat);
     blob.rotation.x = -Math.PI / 2;
-    blob.position.y = 0.025;
+    blob.position.y = BLOB_Y;
     blob.renderOrder = 1;
+    this.blob = blob;
     this.root.add(blob);
 
     this.setLook(look);
+  }
+
+  /** The feet are `h` metres above the ground (a jump): the shadow stays down there, smaller and fainter. */
+  setHeight(h: number): void {
+    const k = Math.max(0, h);
+    this.blob.position.y = BLOB_Y - k;
+    this.blob.scale.setScalar(1 / (1 + 0.8 * k));
+    this.blobMat.opacity = BLOB_OPACITY / (1 + k);
   }
 
   get look(): Readonly<Look> {
@@ -267,8 +312,28 @@ export class Pedestrian {
     return { hip, knee, shoulder, elbow, thigh, shin, upperArm, forearm, pad };
   }
 
-  /** Advance the gait. `speed` is the actual ground speed in m/s, `time` seconds since start. */
-  update(dt: number, speed: number, time: number): void {
+  /**
+   * Advance the gait. `speed` is the actual ground speed in m/s, `time` seconds since start; `pose` says what to
+   * blend in on top.
+   */
+  update(dt: number, speed: number, time: number, pose: Readonly<AvatarPose> = IDLE): void {
+    this.gait(dt, pose.ride ? 0 : speed, time);
+    const playing = pose.emote !== '' && !pose.ride;
+    if (playing) this.emote = pose.emote;
+    this.emoteW += ((playing ? 1 : 0) - this.emoteW) * damp(8, dt);
+    this.airW += ((pose.air && !pose.ride ? 1 : 0) - this.airW) * damp(14, dt);
+    this.rideW += ((pose.ride ? 1 : 0) - this.rideW) * damp(12, dt);
+    if (this.emoteW > 0.002) this.emotePose(this.emote, pose.emoteTime, this.emoteW);
+    this.phone.visible = this.emote === 'photo' && this.emoteW > 0.4;
+    if (this.airW > 0.002) this.airPose(this.airW);
+    this.ridePose(this.rideW);
+  }
+
+  /** The walk / run / idle cycle. */
+  private gait(dt: number, speed: number, time: number): void {
+    // only the overlay poses turn these; walking keeps them straight
+    this.left.hip.rotation.z = this.right.hip.rotation.z = 0;
+    this.left.elbow.rotation.z = this.right.elbow.rotation.z = 0;
     this.walkAmt += (smoothstep(0.12, 1.3, speed) - this.walkAmt) * damp(10, dt);
     const walk = this.walkAmt;
     const run = smoothstep(3.6, 6.2, speed);
@@ -312,4 +377,107 @@ export class Pedestrian {
     this.neck.rotation.y = idle * 0.32 * Math.sin(time * 0.47) * Math.sin(time * 0.19 + 1.3);
     this.neck.rotation.x = -0.05 * run;
   }
+
+  /** Emotes, by id (server/content/emotes.json); `t` is seconds since it started, `w` how far it is blended in. */
+  private emotePose(id: string, t: number, w: number): void {
+    const { left: l, right: r } = this;
+    switch (id) {
+      case 'wave': {
+        // right hand up by the head, waving from the elbow
+        const s = Math.sin(t * 10);
+        r.shoulder.rotation.z = mix(r.shoulder.rotation.z, -2.5 + 0.12 * s, w);
+        r.shoulder.rotation.x = mix(r.shoulder.rotation.x, -0.25, w);
+        r.elbow.rotation.x = mix(r.elbow.rotation.x, -0.2, w);
+        r.elbow.rotation.z = mix(r.elbow.rotation.z, -0.45 * s, w);
+        this.neck.rotation.y = mix(this.neck.rotation.y, 0.12, w);
+        break;
+      }
+      case 'bow': {
+        // down and up again, arms hanging straight; the spine carries the arms, so they turn back by as much
+        const b = smoothstep(0, 0.45, t) * (1 - smoothstep(1.15, 1.75, t));
+        this.spine.rotation.x = mix(this.spine.rotation.x, 0.8 * b, w);
+        for (let i = 0; i < 2; i++) {
+          const side = i === 0 ? l : r;
+          side.shoulder.rotation.x = mix(side.shoulder.rotation.x, -0.7 * b, w);
+          side.elbow.rotation.x = mix(side.elbow.rotation.x, -0.1, w);
+        }
+        this.neck.rotation.x = mix(this.neck.rotation.x, 0.25 * b, w);
+        this.neck.rotation.y = mix(this.neck.rotation.y, 0, w);
+        break;
+      }
+      case 'photo':
+        // both hands hold the phone up in front of the face
+        l.shoulder.rotation.x = mix(l.shoulder.rotation.x, -1.35, w);
+        r.shoulder.rotation.x = mix(r.shoulder.rotation.x, -1.35, w);
+        l.shoulder.rotation.z = mix(l.shoulder.rotation.z, -0.32, w);
+        r.shoulder.rotation.z = mix(r.shoulder.rotation.z, 0.32, w);
+        l.elbow.rotation.x = mix(l.elbow.rotation.x, -1.3, w);
+        r.elbow.rotation.x = mix(r.elbow.rotation.x, -1.3, w);
+        this.neck.rotation.y = mix(this.neck.rotation.y, 0, w);
+        this.neck.rotation.x = mix(this.neck.rotation.x, 0.08, w);
+        break;
+      case 'exercise': {
+        // morning exercise in the park: arms swing up overhead and down while the knees bend
+        const c = Math.sin(t * 3.2);
+        const up = 0.25 + 1.25 * (1 + c);
+        const squat = 0.5 * (1 - c);
+        l.shoulder.rotation.z = mix(l.shoulder.rotation.z, up, w);
+        r.shoulder.rotation.z = mix(r.shoulder.rotation.z, -up, w);
+        for (let i = 0; i < 2; i++) {
+          const side = i === 0 ? l : r;
+          side.shoulder.rotation.x = mix(side.shoulder.rotation.x, 0, w);
+          side.elbow.rotation.x = mix(side.elbow.rotation.x, -0.1, w);
+          side.hip.rotation.x = mix(side.hip.rotation.x, -0.45 * squat, w);
+          side.knee.rotation.x = mix(side.knee.rotation.x, 0.9 * squat, w);
+        }
+        this.body.position.y = mix(this.body.position.y, -0.1 * squat * this.body.scale.y, w);
+        this.spine.rotation.x = mix(this.spine.rotation.x, 0.12 * squat, w);
+        this.neck.rotation.y = mix(this.neck.rotation.y, 0, w);
+        break;
+      }
+    }
+  }
+
+  /** In the air: knees up, arms out for balance. */
+  private airPose(w: number): void {
+    const { left: l, right: r } = this;
+    l.hip.rotation.x = mix(l.hip.rotation.x, -0.75, w);
+    r.hip.rotation.x = mix(r.hip.rotation.x, -0.3, w);
+    l.knee.rotation.x = mix(l.knee.rotation.x, 1.15, w);
+    r.knee.rotation.x = mix(r.knee.rotation.x, 0.7, w);
+    l.shoulder.rotation.z = mix(l.shoulder.rotation.z, 0.55, w);
+    r.shoulder.rotation.z = mix(r.shoulder.rotation.z, -0.55, w);
+    l.shoulder.rotation.x = mix(l.shoulder.rotation.x, -0.45, w);
+    r.shoulder.rotation.x = mix(r.shoulder.rotation.x, -0.45, w);
+    l.elbow.rotation.x = mix(l.elbow.rotation.x, -0.7, w);
+    r.elbow.rotation.x = mix(r.elbow.rotation.x, -0.7, w);
+    // the gait's walking bob would push the body down into the jump
+    this.body.position.y = mix(this.body.position.y, 0, w);
+  }
+
+  /** Sitting on a motorbike (src/game/motorbike.ts): feet on the footrests, hands on the handlebar. */
+  private ridePose(w: number): void {
+    this.body.position.z = SEAT_BACK * w;
+    if (w <= 0.002) return;
+    for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? this.left : this.right;
+      const sx = i === 0 ? 1 : -1;
+      side.hip.rotation.x = mix(side.hip.rotation.x, -1.4, w);
+      side.hip.rotation.z = mix(side.hip.rotation.z, 0.13 * sx, w);
+      side.knee.rotation.x = mix(side.knee.rotation.x, 1.5, w);
+      side.shoulder.rotation.x = mix(side.shoulder.rotation.x, -1.0, w);
+      side.shoulder.rotation.z = mix(side.shoulder.rotation.z, 0.12 * sx, w);
+      side.elbow.rotation.x = mix(side.elbow.rotation.x, -0.55, w);
+    }
+    this.body.position.y = mix(this.body.position.y, SEAT_DROP * this.body.scale.y, w);
+    this.spine.rotation.x = mix(this.spine.rotation.x, 0.24, w);
+    this.spine.rotation.y = mix(this.spine.rotation.y, 0, w);
+    this.neck.rotation.x = mix(this.neck.rotation.x, -0.18, w);
+    this.neck.rotation.y = mix(this.neck.rotation.y, 0, w);
+    // the áo dài front panel lies over the thighs, the skirt spreads over the seat
+    this.flapFront.rotation.x = mix(this.flapFront.rotation.x, -1.35, w);
+    this.flapBack.rotation.x = mix(this.flapBack.rotation.x, 0.35, w);
+    this.skirt.scale.z = mix(this.skirt.scale.z, 1.45, w);
+  }
 }
+

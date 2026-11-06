@@ -1,0 +1,12 @@
+{
+  "about": "Vehicles a character can ride (docs/design/05-frontend.md, \"Crab Bike assets\"). Speeds in m/s; the server allows speed times the tolerance in movement.json. Seat 0 is the rider (who must have the capability in requires and own the vehicle); seat 1 waits for ride-hailing. Ids are stable: archetypes and later items refer to them.",
+  "vehicles": [
+    {
+      "id": "xe_so_110",
+      "name": { "vi": "Xe số 110", "en": "110cc motorbike" },
+      "speed": 11,
+      "seats": 2,
+      "requires": "vehicle.motorbike.ride"
+    }
+  ]
+}

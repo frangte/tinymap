@@ -90,6 +90,8 @@ export class MiniMap {
       g.fillText(l.name, x, y - 5 * dpr);
     }
     for (const r of others) {
+      // the server only says where the players near us are
+      if (!r.inView) continue;
       // three.js (x, z) is Blender (x, -z)
       const [x, y] = this.px(r.position.x, -r.position.z);
       g.fillStyle = archetypeById(r.arch)?.badge.color ?? NONE;

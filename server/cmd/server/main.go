@@ -7,7 +7,7 @@
 //	STATIC_DIR       serve this directory (the Vite build, e.g. ../dist) for every other path
 //	ALLOWED_ORIGINS  comma-separated page origins allowed to connect (default: same host as the server)
 //	TRUSTED_PROXIES  comma-separated reverse proxy IPs/CIDRs whose X-Forwarded-For is trusted (default: none)
-//	MAX_PLAYERS      player cap (default 40)
+//	MAX_PLAYERS      player cap (default 150)
 //	DB_PATH          the SQLite database file (default data/game.db, from the working directory)
 //	BACKUP_DIR       where database backups go (default: a backup folder next to the database)
 //	LOG_LEVEL        debug | info | warn | error (default info)
@@ -83,11 +83,17 @@ func run() error {
 		}
 	}
 
-	// the game data (archetypes, apps, places) is embedded; tests keep it valid, this catches a broken build
+	// the game data (archetypes, apps, places, speeds, the nav map) is embedded; tests keep it valid, this catches
+	// a broken build
 	catalog, err := content.Load()
 	if err != nil {
 		return fmt.Errorf("content: %w", err)
 	}
+	grid, err := content.Nav()
+	if err != nil {
+		return fmt.Errorf("content: %w", err)
+	}
+	cfg.Move.RunSpeed, cfg.Move.Tolerance = catalog.Movement.RunSpeed, catalog.Movement.Tolerance
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -102,7 +108,7 @@ func run() error {
 	go db.BackupDaily(ctx, backupsKept)
 	accounts := identity.New(db)
 
-	w := world.New(cfg, log)
+	w := world.New(cfg, grid, log)
 	go w.Run(ctx)
 	sockets := ws.New(w, accounts, catalog, ws.DefaultConfig(), log)
 
@@ -125,6 +131,10 @@ func run() error {
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("shutdown: %w", err)
+	}
+	// the world closed every connection when ctx ended; let them save where their characters stood
+	if err := sockets.Drain(shutdownCtx); err != nil {
+		log.Warn("some positions were not saved", "err", err)
 	}
 	return nil
 }

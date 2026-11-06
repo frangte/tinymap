@@ -1,13 +1,18 @@
 // Other players: one Pedestrian each, placed from server snapshots. Every pose is put on the sender's own timeline
 // (receive time minus the server-reported age) and the avatar is drawn RENDER_DELAY in the past, blending between
 // the two samples around that moment, so movement stays smooth through network jitter. The gait speed comes from
-// that blended motion, so the walk / run animation matches what others actually see.
+// that blended motion, so the walk / run animation matches what others actually see; the state flags of each
+// sample say whether they are jumping, riding or playing an emote.
+//
+// Everyone on the island is listed here (join / leave), but the server only sends positions of the players near
+// us: one that leaves our view is hidden until it comes back.
 import * as THREE from 'three';
-import { Pedestrian } from './character';
-import { damp, wrapAngle } from './coords';
+import { idlePose, Pedestrian, type AvatarPose } from './character';
+import { clamp, damp, wrapAngle } from './coords';
 import type { InkPass } from './ink';
 import type { Look } from './outfits';
-import type { PlayerInfo, SnapRow } from '../net/protocol';
+import { emoteByCode } from './motion';
+import { emoteOf, FLAG_AIR, FLAG_RIDE, type PlayerInfo, type SnapRow } from '../net/protocol';
 
 /**
  * Draw others this far in the past, so the next sample has always arrived (ms). Worst case: the sender's send
@@ -29,6 +34,8 @@ interface Sample {
   y: number;
   z: number;
   h: number;
+  /** state flags */
+  s: number;
 }
 
 export class RemotePlayer {
@@ -39,27 +46,44 @@ export class RemotePlayer {
   speed = 0;
   /** archetype id, '' for none */
   arch = '';
+  /** roll into a turn while riding (rad), worked out from how fast the heading turns */
+  lean = 0;
+  readonly pose: AvatarPose = idlePose();
   private readonly samples: Sample[] = [];
   private placed = false;
+  private yawRate = 0;
+  private emoteCode = 0;
 
-  constructor(readonly id: number, public name: string, look: Look) {
+  /** @param floorAt the ground height under a point, for the shadow of someone jumping */
+  constructor(readonly id: number, public name: string, look: Look, private readonly floorAt: (x: number, z: number) => number) {
     this.avatar = new Pedestrian(look);
     this.avatar.root.name = `Remote ${id}`;
     this.avatar.root.visible = false;
   }
 
+  /** Whether it is in our view: the server has sent where it is, and it has not left since. */
+  get inView(): boolean {
+    return this.samples.length > 0;
+  }
+
   /** Add a pose received at `t` (performance.now() timeline). Repeats of the last pose are ignored. */
-  push(t: number, x: number, y: number, z: number, h: number): void {
+  push(t: number, x: number, y: number, z: number, h: number, flags = 0): void {
     const s = this.samples;
     const last = s[s.length - 1];
-    if (last && last.x === x && last.y === y && last.z === z && last.h === h) return;
+    if (last && last.x === x && last.y === y && last.z === z && last.h === h && last.s === flags) return;
     if (last) {
       t = Math.max(t, last.t + 1);
       // set off after standing still: hold the old spot until just before the new sample
       if (t - last.t > 2.5 * SEND_INTERVAL) s.push({ ...last, t: t - SEND_INTERVAL });
     }
-    s.push({ t, x, y, z, h });
+    s.push({ t, x, y, z, h, s: flags });
     if (s.length > MAX_SAMPLES) s.splice(0, s.length - MAX_SAMPLES);
+  }
+
+  /** It left our view: hide it until the server sends it again. */
+  forget(): void {
+    this.samples.length = 0;
+    this.placed = false;
   }
 
   /** @returns false while there is no pose yet */
@@ -89,21 +113,42 @@ export class RemotePlayer {
     const moved = this.placed ? Math.hypot(x - this.position.x, z - this.position.z) : 0;
     const measured = dt > 0 && moved < TELEPORT ? moved / dt : 0;
     this.speed += (measured - this.speed) * damp(10, dt);
+    const turn = this.placed && dt > 0 ? wrapAngle(h - this.heading) / dt : 0;
+    this.yawRate += (turn - this.yawRate) * damp(8, dt);
     this.placed = true;
     this.position.set(x, y, z);
     this.heading = h;
+    this.flags(a.s, dt);
+    const lean = this.pose.ride ? clamp(-this.yawRate * this.speed * 0.07, -0.42, 0.42) : 0;
+    this.lean += (lean - this.lean) * damp(6, dt);
     const root = this.avatar.root;
     root.position.copy(this.position);
     root.rotation.y = h;
-    this.avatar.update(dt, this.speed, clock);
+    root.rotation.z = this.lean;
+    this.avatar.setHeight(this.pose.air ? y - this.floorAt(x, z) : 0);
+    this.avatar.update(dt, this.speed, clock, this.pose);
     return true;
+  }
+
+  /** Turn the state flags of the sample being shown into the avatar's pose. */
+  private flags(s: number, dt: number): void {
+    this.pose.air = (s & FLAG_AIR) !== 0;
+    this.pose.ride = (s & FLAG_RIDE) !== 0;
+    const code = emoteOf(s);
+    if (code !== this.emoteCode) {
+      this.emoteCode = code;
+      this.pose.emote = emoteByCode(code)?.id ?? '';
+      this.pose.emoteTime = 0;
+    } else {
+      this.pose.emoteTime += dt;
+    }
   }
 }
 
 export class RemotePlayers {
   private readonly players = new Map<number, RemotePlayer>();
 
-  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass) {}
+  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass, private readonly floorAt: (x: number, z: number) => number) {}
 
   get count(): number {
     return this.players.size;
@@ -119,8 +164,9 @@ export class RemotePlayers {
 
   add(info: PlayerInfo, now: number): void {
     this.remove(info.id);
-    const r = new RemotePlayer(info.id, info.name, info.look);
+    const r = new RemotePlayer(info.id, info.name, info.look, this.floorAt);
     r.arch = info.arch;
+    // an older server sent the pose with the player; a current one sends it in the next snapshot
     if (info.pose) r.push(now - RENDER_DELAY, ...info.pose);
     this.players.set(info.id, r);
     this.scene.add(r.avatar.root);
@@ -147,11 +193,15 @@ export class RemotePlayers {
     r.avatar.setLook(look);
   }
 
-  /** @param selfId our own row is in every snapshot; skip it */
-  applySnap(rows: SnapRow[], receivedAt: number, selfId: number | null): void {
-    for (const [id, x, y, z, h, age] of rows) {
+  /**
+   * @param selfId an older server put our own row in every snapshot; skip it
+   * @param out players that left our view
+   */
+  applySnap(rows: SnapRow[], receivedAt: number, selfId: number | null, out: readonly number[]): void {
+    for (const id of out) this.players.get(id)?.forget();
+    for (const [id, x, y, z, h, s, age] of rows) {
       if (id === selfId) continue;
-      this.players.get(id)?.push(receivedAt - age, x, y, z, h);
+      this.players.get(id)?.push(receivedAt - age, x, y, z, h, s);
     }
   }
 

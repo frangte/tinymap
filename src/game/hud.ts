@@ -19,6 +19,7 @@ const ONLINE_TEXT: Record<NetStatus, (n: number) => string> = {
   connecting: () => 'Đang kết nối…',
   offline: () => 'Mất kết nối, đang thử lại…',
   full: () => 'Phố đông quá, chờ chút…',
+  replaced: () => 'Bạn đang chơi ở tab khác. Tải lại trang để chơi ở đây.',
 };
 
 const EYEBROW: Record<Mode, string> ={ menu: 'Sài Gòn Q1', map: 'Sài Gòn Q1 · bản đồ', play: 'Sài Gòn Q1 · đang ở' };

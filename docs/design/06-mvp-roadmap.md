@@ -84,6 +84,33 @@ The original plan:
 
 ### Phase 2: Movement and presence (2–3 weeks)
 
+**Status: done 2026-11-06 (not deployed yet).**
+
+- **Built:**
+  - The server loads the game's nav map (`server/internal/nav`, a copy embedded from `server/content/nav/`; a test fails when it drifts from `public/models/`, `npm run nav:sync` copies it) and checks every reported move (`server/internal/world/move.go`): distance within top speed × 1.25 averaged over 1 s (a saved-up second, so bunched reports pass), the end on a walkable cell, the line between two reports crossing at most 0.2 m of blocked ground and no floor step over 1.2 m (a ledge), and the height within 0.6 m below to 1.5 m above the floor nearby, with no more than 2.5 s spent over 0.3 m up (hovering is put back on the ground; 2.5 s because a slow device runs the game behind the clock, and a jump at 8 fps takes 1.5 s). A refused move gets `correct` back to the last accepted pose; states carry the count of corrections applied (`k`), so the ones sent before the client heard are dropped instead of refused again. The one teleport is a respawn to the player's home.
+  - Speeds are content: `server/content/movement.json` (walk 3.1, run 6.8, jump) and `vehicles.json` (the `xe_so_110` at 11 m/s), read by the game and the server.
+  - State flags in `state` and in every snapshot row: in the air, riding (set by the server), and the emote code. Emotes are content (`emotes.json`: wave, bow, photo, exercise; keys 1–4 or the smiley button); an emote needing a capability a character lacks is stripped by the server.
+  - Jump (Space or the arrow button): a jump can land on something up to its height plus a step higher. Procedural poses for the jump, the four emotes and riding, blended over the walk cycle.
+  - The interest grid (`server/internal/world/view.go`): positions go only to players within 60 m (out again past 68 m), the nearest 40, and only for those who moved; a snapshot lists who left your view. Join, leave, profile and vehicle messages still go to everyone. Each player's row is encoded once per tick and shared.
+  - Vehicles: the driver archetype grants `vehicle.motorbike.ride` and arrives with an `xe_so_110` parked beside them (`vehicle.go`). Only the owner rides it, in seat 0, within 2.5 m to get on (E or the "Lên xe" button); moves are then checked at bike speed, and the bike leaves with its owner. The motorbike model is built from primitives (slate-blue body, yellow Crab Bike top box) with spinning wheels, steering and lean. Offline, a driver gets a local bike.
+  - Arrivals at home are scattered by the server (up to 1.5 m), and the bike parks beside that spot; the game eases onto the pose the welcome gives.
+  - The last position: saved with the character (migration `0003_last_pose.sql`) every 30 s and when the player leaves, and the next visit starts there; `welcome` carries the pose the server chose. The browser also remembers it, so the player spawns there before the server answers and the welcome rarely moves them.
+  - The same character joining again (a reconnect after the network dropped, or a second tab) replaces the earlier connection and starts where it stood; the replaced tab shows a message and stops reconnecting.
+  - `MAX_PLAYERS` defaults to 150, and `server/cmd/loadbots` connects walking bots and reports what each receives.
+- **Verified:**
+  - Go tests with `-race`: honest walking, running and riding are never refused; speeding, teleporting, walking into a building, flying, sinking and hovering are corrected while a slow jump passes; stale states are ignored; respawn only goes home, and gets the player off the bike even when it is dropped; 11 m/s is fine on the bike and refused on foot; only the owner can mount; positions only reach players nearby, and leaving view shows up in `out`; the last pose survives a restart; a rejoin replaces the earlier connection.
+  - Bandwidth: 150 players at 12 Hz in the world tests, 12.1 KB/s at most spread over the island and 12.0 KB/s all in one square (the view's cap of 40 holds it). Over real sockets with `loadbots`, 150 bots for 20 s: 13.0 KB/s on average, 14.3 KB/s at most, no move refused.
+  - Two independent code reviews (server and client) before sign-off; their findings were fixed: the ledge and hover checks, a respawn that the server dropped leaving it thinking the player still rode (now it always dismounts, and the game resends a dismount if the two ever disagree), a mount that was never answered, keys acting while a button had focus, a slow client removed in the middle of a snapshot, the last save waiting for the world to drop the player, and shutdown waiting for those saves.
+  - Two headless browsers (a driver and a traveller): the bike parked beside the driver, getting on and off with E, the traveller seeing the driver ride and the bike under them, the bike reaching 11 m/s without a correction, jump and wave seen by the other player, a 40 m tampered move corrected back to the exact spot, respawn accepted with the bike brought home, and the second visit starting where the first ended; the only move the server refused was the tampered one; no console errors.
+- **Changed from the plan:**
+  - There is no drivable mask yet: a bike may go wherever a pedestrian may (pavements included). The nav bake would need a road layer for it.
+  - Seat 1 (a passenger) is in the model but not usable: it comes with ride-hailing, where the passenger's own client has to follow the driver's bike.
+  - Guests without an account start at home on every visit; only characters keep their position.
+  - The world view radius (60 m) is smaller than the island, so the phone's map and Hàng Xóm only place the players near you (the others show as "ở xa"), and the map view only draws those.
+  - Mobile draw calls with many avatars were not prototyped: the server's cap of 40 visible players bounds what a phone draws; merged avatar meshes wait for phase 5's performance pass.
+
+The original plan:
+
 - **Goal:** richer movement that the server checks, and a world that scales past 40 players.
 - **Features:**
   - Jump, emotes and the `s` state flags.
@@ -140,8 +167,9 @@ The original plan:
 
 ### Future
 
-- Ride-hailing (needs Phase 2 seats and Phase 4 events), the economy, city copies with Postgres + Redis, AI NPCs, a bigger map.
-- **Done when (ride-hailing):** it adds the `ridehail` package, the Crab and Crab Driver apps, and new quest objectives, **without editing any core package**.
+- **Ride-hailing, next after phase 4 (D13):** planned in [08-ride-hailing.md](08-ride-hailing.md), about 2 weeks. It needs phase 2's seats and phase 4's character workers and events, and brings the xu wallet (D11).
+- **Done when (ride-hailing):** a traveller books, a driver picks them up and drops them off, and the fare moves between their wallets. Three drivers accepting at once gives one winner, and every cancel path refunds. The ride logic lives in the `ridehail` package and the Crab apps; the core gains only generic pieces (seat 1, carried players, view pins, a module hook, the wallet) with no ride-specific code. (The first plan said "without editing any core package"; the seat, the view and money turned out to be core.)
+- The rest of the economy, city copies with Postgres + Redis, AI NPCs, a bigger map.
 
 ## Estimate
 

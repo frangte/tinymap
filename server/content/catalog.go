@@ -51,19 +51,28 @@ type Spawn struct {
 	Button Text      `json:"button"`
 }
 
+// ThreePose is the spawn in three.js terms: x and z (Blender (X, Y) is three.js (x, -y)) and the heading that
+// faces Face (0 faces +z), as src/game/play.ts spawns it.
+func (s Spawn) ThreePose() (x, z, heading float64) {
+	x, z = s.At[0], -s.At[1]
+	return x, z, math.Atan2(s.Face[0]-s.At[0], -(s.Face[1] - s.At[1]))
+}
+
 type StarterLook struct {
 	Outfit string `json:"outfit"`
 	Hat    string `json:"hat"`
 }
 
 type Archetype struct {
-	ID           string      `json:"id"`
-	Name         Text        `json:"name"`
-	Pitch        Text        `json:"pitch"`
-	Badge        Badge       `json:"badge"`
-	Spawn        Spawn       `json:"spawn"`
-	Look         StarterLook `json:"look"`
-	Capabilities []string    `json:"capabilities"`
+	ID    string      `json:"id"`
+	Name  Text        `json:"name"`
+	Pitch Text        `json:"pitch"`
+	Badge Badge       `json:"badge"`
+	Spawn Spawn       `json:"spawn"`
+	Look  StarterLook `json:"look"`
+	// Vehicle is the starter vehicle (vehicles.json), "" for none
+	Vehicle      string   `json:"vehicle,omitempty"`
+	Capabilities []string `json:"capabilities"`
 }
 
 // RestrictedLook is an outfit or a hat that only characters with a capability may wear.
@@ -88,7 +97,11 @@ type Catalog struct {
 	Archetypes   []Archetype
 	Restricted   []RestrictedLook
 	Apps         []App
+	Movement     Movement
+	Vehicles     []Vehicle
+	Emotes       []Emote
 	byID         map[string]Archetype
+	vehicleByID  map[string]Vehicle
 }
 
 var (
@@ -96,13 +109,22 @@ var (
 	colorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 )
 
-// Load parses and checks the embedded data files.
-func Load() (*Catalog, error) { return load(placesJSON, archetypesJSON, appsJSON) }
+// files are the data files a catalog is read from; embedded() is what ships.
+type files struct {
+	places, archetypes, apps, movement, vehicles, emotes []byte
+}
 
-func load(places, archetypes, apps []byte) (*Catalog, error) {
+func embedded() files {
+	return files{places: placesJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON, emotes: emotesJSON}
+}
+
+// Load parses and checks the embedded data files.
+func Load() (*Catalog, error) { return load(embedded()) }
+
+func load(f files) (*Catalog, error) {
 	c := &Catalog{byID: map[string]Archetype{}}
 	var err error
-	if c.Places, err = parsePlaces(places); err != nil {
+	if c.Places, err = parsePlaces(f.places); err != nil {
 		return nil, err
 	}
 	var a struct {
@@ -111,15 +133,18 @@ func load(places, archetypes, apps []byte) (*Catalog, error) {
 		Archetypes   []Archetype      `json:"archetypes"`
 		Restricted   []RestrictedLook `json:"restricted_looks"`
 	}
-	if err := decodeStrict(archetypes, &a); err != nil {
+	if err := decodeStrict(f.archetypes, &a); err != nil {
 		return nil, fmt.Errorf("archetypes.json: %w", err)
 	}
 	var p struct {
 		About string `json:"about"`
 		Apps  []App  `json:"apps"`
 	}
-	if err := decodeStrict(apps, &p); err != nil {
+	if err := decodeStrict(f.apps, &p); err != nil {
 		return nil, fmt.Errorf("apps.json: %w", err)
+	}
+	if err := parseMotion(f, c); err != nil {
+		return nil, err
 	}
 	c.Capabilities, c.Archetypes, c.Restricted, c.Apps = a.Capabilities, a.Archetypes, a.Restricted, p.Apps
 	if err := c.check(); err != nil {
@@ -145,6 +170,9 @@ func (c *Catalog) check() error {
 	places := map[string]bool{}
 	for _, pl := range c.Places {
 		places[pl.ID] = true
+	}
+	if err := c.checkMotion(caps); err != nil {
+		return err
 	}
 	for _, r := range c.Restricted {
 		if err := checkRestricted(r, caps); err != nil {
@@ -210,15 +238,21 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 		return fmt.Errorf("spawn at and face must be [x, y] within ±%d m", coordLimit)
 	case !protocol.OutfitKnown(a.Look.Outfit) || !protocol.HatKnown(a.Look.Hat):
 		return errors.New("unknown starter outfit or hat")
+	case a.Vehicle != "" && c.vehicleByID[a.Vehicle].ID == "":
+		return fmt.Errorf("starter vehicle %q is not in vehicles.json", a.Vehicle)
 	}
 	for _, k := range a.Capabilities {
 		if !caps[k] {
 			return fmt.Errorf("unknown capability %q", k)
 		}
 	}
+	granted := capability.Of(a.Capabilities...)
 	start := protocol.Look{Body: "man", Outfit: a.Look.Outfit, Hat: a.Look.Hat}
-	if !c.LookAllowed(start, capability.Of(a.Capabilities...)) {
+	if !c.LookAllowed(start, granted) {
 		return errors.New("its starter look needs a capability it does not grant")
+	}
+	if v := c.vehicleByID[a.Vehicle]; a.Vehicle != "" && !granted.Has(v.Requires) {
+		return fmt.Errorf("its starter vehicle needs %q, which it does not grant", v.Requires)
 	}
 	return nil
 }

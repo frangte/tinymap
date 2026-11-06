@@ -14,6 +14,7 @@ Gameplay, multiplayer and backend design for turning the Sài Gòn Q1 diorama in
 | [05-frontend.md](05-frontend.md) | How the Three.js client uses all of it: entities, animation, phone, dialogue, quests, chat, mobile |
 | [06-mvp-roadmap.md](06-mvp-roadmap.md) | MVP scope (must / should / future), phases with acceptance criteria, estimate |
 | [07-tradeoffs.md](07-tradeoffs.md) | Notes on the brief, trade-offs, risks, and the existing code patterns to follow |
+| [08-ride-hailing.md](08-ride-hailing.md) | Booking a Crab Bike: the flow, the trip states, the xu wallet, the server module, protocol, game, build plan |
 
 ## Decisions
 
@@ -31,6 +32,9 @@ Update the status when a proposed decision is confirmed or changed.
 | D8 | Keep procedural avatars behind an `Avatar` interface; GLB skinned models only if they become necessary | accepted 2026-11-06 |
 | D9 | The driver brand is **Crab Bike**, a made-up brand with a **yellow uniform**. Code ids stay generic (`driver`, `ridehail`); the brand lives only in content (names, colours). | **decided 2026-11-06** |
 | D10 | Keep the ~200 m District 1 island for now; it may grow (Bùi Viện and UBND are already reserved). The driver gets riding and route quests in the MVP. Until the map grows, ride-hailing is about the shared ride, not saving time. | **decided 2026-11-06** |
+| D11 | Ride-hailing trips cost money: a simple wallet in **xu** per character (start balance, a daily top-up, fares, a platform cut, tips). See [08-ride-hailing.md](08-ride-hailing.md#money-d11). | **decided 2026-11-06** |
+| D12 | A ride request goes to **every on-duty driver nearby at once; the first to accept wins**. | **decided 2026-11-06** |
+| D13 | Ride-hailing is built **after phase 4**, as the roadmap orders it; the plan is [08-ride-hailing.md](08-ride-hailing.md). | **decided 2026-11-06** |
 
 ## Where the code is today (2026-11-06, branch v4)
 
@@ -49,7 +53,9 @@ Update the status when a proposed decision is confirmed or changed.
 
 - **Phase 0 (foundations): done 2026-11-06, not deployed yet.** What was built, and what moved to later phases, is in [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-0-foundations-152-weeks). The table above describes the code as it was before phase 0.
 - **Phase 1 (identity, archetypes, phone): done 2026-11-06, not deployed yet.** See [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-1-identity-archetypes-phone-2-weeks).
+- **Phase 2 (movement and presence): done 2026-11-06, not deployed yet.** Server-checked movement, jump, emotes, the interest grid, the driver's motorbike, and the last position kept between visits. See [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-2-movement-and-presence-23-weeks).
 
 ## Open questions
 
-- Crab Bike art: the yellow is `#D9A21B` (jacket, helmet, badge; `CRAB_YELLOW` in `src/game/outfits.ts`). Still open: whether the motorbike (phase 2) is branded yellow too.
+- Crab Bike art: the yellow is `#D9A21B` (jacket, helmet, badge; `CRAB_YELLOW` in `src/game/outfits.ts`). The phase 2 motorbike has a slate-blue body and a yellow top box (`src/game/motorbike.ts`); change it there if the whole bike should be yellow.
+- Bikes on pavements: there is no road layer in the nav bake, so a bike goes wherever people walk. Is that fine (it is Saigon), or should the bake mark roads?

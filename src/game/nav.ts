@@ -150,9 +150,14 @@ export class NavGrid {
    * under its centre is within `maxStep` of `fromFloor` (kerbs yes, walls and drops no).
    */
   canStand(x: number, z: number, radius: number, fromFloor: number, maxStep: number): boolean {
+    return this.canStandBetween(x, z, radius, fromFloor - maxStep, fromFloor + maxStep);
+  }
+
+  /** Like canStand, with the floor under the centre anywhere in [lo, hi] (a jump reaches higher than a step). */
+  canStandBetween(x: number, z: number, radius: number, lo: number, hi: number): boolean {
     const k = this.index(x, z);
     if (k < 0 || this.walk[k] !== 1) return false;
-    if (Math.abs(this.floor[k] - fromFloor) > maxStep) return false;
+    if (this.floor[k] < lo || this.floor[k] > hi) return false;
     for (const [c, s] of RING) {
       if (!this.isWalkable(x + c * radius, z + s * radius)) return false;
     }

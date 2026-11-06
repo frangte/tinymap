@@ -13,7 +13,7 @@ For gameplay, multiplayer and backend work (archetypes, quests, NPCs, phone, cha
 - `npm run build` — type-check + production build into `dist/`
 - `npm run build:single` — one HTML file at `dist-single/saigon-noir.html` (serve `models/` next to it)
 - `blender sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb` — export the GLB (then the gltf-transform chain in that file's header)
-- `blender sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1` — re-bake the nav maps after a map change
+- `blender sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1` — re-bake the nav maps after a map change, then `npm run nav:sync` (the server checks moves against its own embedded copy; `go test` fails until they match)
 
 No test runner and no linter. Verify changes with `npm run typecheck`, then play in the browser.
 
