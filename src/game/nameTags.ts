@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { clamp, smoothstep } from './coords';
 import type { RemotePlayers } from './remotePlayers';
+import { archetypeById } from './archetypes';
 
 /** the local player's key: server ids start at 1 */
 export const SELF = 0;
@@ -26,6 +27,7 @@ class Tag {
   private readonly bubble = document.createElement('p');
   private readonly label = document.createElement('span');
   private name = '';
+  private dot: string | null = null;
   private bubbleUntil = 0;
   // last written styles, so a still frame writes nothing
   private transform = '';
@@ -56,6 +58,15 @@ class Tag {
     if (name === this.name) return;
     this.name = name;
     this.label.textContent = name;
+    this.w = this.h = -1;
+  }
+
+  /** a dot in the archetype's colour before the name (null: none) */
+  setDot(color: string | null): void {
+    if (color === this.dot) return;
+    this.dot = color;
+    this.label.classList.toggle('has-dot', color !== null);
+    if (color) this.label.style.setProperty('--dot', color);
     this.w = this.h = -1;
   }
 
@@ -164,6 +175,11 @@ export class NameTags {
     this.self.setName(name);
   }
 
+  /** our own archetype ('' for none) */
+  setSelfArch(arch: string): void {
+    this.self.setDot(archetypeById(arch)?.badge.color ?? null);
+  }
+
   /** A chat bubble over a head: `SELF` for our own lines. Unknown ids are ignored (not placed yet). */
   say(id: number, text: string, now: number): void {
     (id === SELF ? this.self : this.tags.get(id))?.say(text, now);
@@ -186,6 +202,7 @@ export class NameTags {
         this.tags.set(r.id, tag);
       }
       tag.setName(r.name);
+      tag.setDot(archetypeById(r.arch)?.badge.color ?? null);
       if (r.avatar.root.visible) this.project(tag, camera, r.position, now);
       else tag.hide();
     }

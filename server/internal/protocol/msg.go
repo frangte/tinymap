@@ -16,6 +16,8 @@ const (
 	ChatMax = 140
 	// TokenMax caps the account token in a hello; the server issues 43-character tokens (POST /api/auth/guest).
 	TokenMax = 64
+	// ArchMax caps the archetype id in a hello (ids are in server/content/archetypes.json)
+	ArchMax = 32
 	// MaxMessageBytes caps one client frame; the largest legal one (a 140-character chat) is far below it.
 	MaxMessageBytes = 1024
 	// WorldHalf bounds |x| and |z| in three.js metres; the island spans roughly -120…130.
@@ -48,11 +50,22 @@ const (
 	ErrAuth = "auth"
 )
 
+// Chat channels (the "ch" field): global reaches everyone, nearby only the players within NearbyRadius.
+const (
+	ChannelGlobal = "global"
+	ChannelNearby = "nearby"
+)
+
+// Who may wear crab and helmet is decided by capabilities (server/content/archetypes.json), not here.
 var (
 	bodies  = map[string]bool{"man": true, "woman": true}
-	outfits = map[string]bool{"thun": true, "aodai": true, "baba": true, "somi": true, "xeom": true, "bikini": true}
-	hats    = map[string]bool{"nonla": true, "cap": true, "none": true}
+	outfits = map[string]bool{"thun": true, "aodai": true, "baba": true, "somi": true, "xeom": true, "bikini": true, "crab": true}
+	hats    = map[string]bool{"nonla": true, "cap": true, "none": true, "helmet": true}
 )
+
+// OutfitKnown and HatKnown say whether an id exists at all (for checking content files).
+func OutfitKnown(id string) bool { return outfits[id] }
+func HatKnown(id string) bool    { return hats[id] }
 
 // Look is what a pedestrian wears (src/game/outfits.ts).
 type Look struct {
@@ -75,14 +88,18 @@ type Pose struct {
 type ClientMsg struct {
 	T string `json:"t"`
 	// Token is the account token, in hello only; empty for a guest without an account.
-	Token string  `json:"token"`
-	Name  string  `json:"name"`
-	Look  *Look   `json:"look"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	Z     float64 `json:"z"`
-	H     float64 `json:"h"`
-	Text  string  `json:"text"`
+	Token string `json:"token"`
+	Name  string `json:"name"`
+	// Arch is the archetype the player picked, in hello only; the server keeps the one a character already has.
+	Arch string `json:"arch"`
+	// Ch is the chat channel, in chat only: "global" (also when empty, as older clients send) or "nearby".
+	Ch   string  `json:"ch"`
+	Look *Look   `json:"look"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+	Z    float64 `json:"z"`
+	H    float64 `json:"h"`
+	Text string  `json:"text"`
 }
 
 // Validation errors; the world drops the message (or the connection, for a bad hello).
@@ -90,6 +107,8 @@ var (
 	ErrUnknownType = errors.New("unknown message type")
 	ErrBadLook     = errors.New("invalid look")
 	ErrBadToken    = errors.New("token too long")
+	ErrBadArch     = errors.New("archetype id too long")
+	ErrBadChannel  = errors.New("unknown chat channel")
 	ErrBadPose     = errors.New("pose out of bounds")
 	ErrEmptyChat   = errors.New("empty chat")
 )
@@ -101,7 +120,10 @@ func Decode(data []byte) (ClientMsg, error) {
 		return m, err
 	}
 	if m.T != TypeHello {
-		m.Token = "" // only a hello carries the account
+		m.Token, m.Arch = "", "" // only a hello carries the account and the archetype
+	}
+	if m.T != TypeChat {
+		m.Ch = ""
 	}
 	switch m.T {
 	case TypeHello, TypeProfile:
@@ -111,6 +133,9 @@ func Decode(data []byte) (ClientMsg, error) {
 		if len(m.Token) > TokenMax {
 			return m, ErrBadToken
 		}
+		if len(m.Arch) > ArchMax {
+			return m, ErrBadArch
+		}
 		m.Name = CleanName(m.Name)
 	case TypeState:
 		if !finite(m.X, m.Y, m.Z, m.H) || math.Abs(m.X) > WorldHalf || math.Abs(m.Z) > WorldHalf || m.Y < MinY || m.Y > MaxY {
@@ -118,6 +143,13 @@ func Decode(data []byte) (ClientMsg, error) {
 		}
 		m.H = math.Atan2(math.Sin(m.H), math.Cos(m.H))
 	case TypeChat:
+		switch m.Ch {
+		case "":
+			m.Ch = ChannelGlobal
+		case ChannelGlobal, ChannelNearby:
+		default:
+			return m, ErrBadChannel
+		}
 		m.Text = CleanChat(m.Text)
 		if m.Text == "" {
 			return m, ErrEmptyChat
@@ -180,25 +212,34 @@ func CleanChat(s string) string { return clean(s, ChatMax) }
 // Player is a full description of someone in the world, sent on welcome and join.
 // Pose is [x, y, z, h], absent until the player has sent its first state.
 type Player struct {
-	ID   uint32      `json:"id"`
-	Name string      `json:"name"`
+	ID   uint32 `json:"id"`
+	Name string `json:"name"`
+	// Arch is the archetype id, absent for a player who has none (an older client)
+	Arch string      `json:"arch,omitempty"`
 	Look Look        `json:"look"`
 	Pose *[4]float64 `json:"pose,omitempty"`
 }
 
-// ChatLine is one chat message, live (with T set) or inside the welcome history.
+// ChatLine is one chat message, live (with T set) or inside the welcome history (global lines only).
 type ChatLine struct {
 	T    string `json:"t,omitempty"`
 	ID   uint32 `json:"id"`
 	Name string `json:"name"`
+	// Arch is the sender's archetype, so the line keeps its badge after they leave
+	Arch string `json:"arch,omitempty"`
+	Ch   string `json:"ch"`
 	Text string `json:"text"`
 	At   int64  `json:"at"`
 }
 
 type Welcome struct {
-	T          string     `json:"t"`
-	ID         uint32     `json:"id"`
-	Name       string     `json:"name"`
+	T    string `json:"t"`
+	ID   uint32 `json:"id"`
+	Name string `json:"name"`
+	// Arch is the player's archetype as the server keeps it (an archetype is chosen once); Apps the phone apps
+	// its capabilities give, in phone order
+	Arch       string     `json:"arch,omitempty"`
+	Apps       []string   `json:"apps"`
 	MaxPlayers int        `json:"max"`
 	Players    []Player   `json:"players"`
 	Chat       []ChatLine `json:"chat"`

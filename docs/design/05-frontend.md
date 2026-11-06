@@ -30,7 +30,7 @@ From `CLAUDE.md`:
 
 ## Crab Bike assets
 
-The yellow Crab Bike uniform and the motorbike (D9). The brand is content only: code ids stay `driver` / `ridehail`.
+The yellow Crab Bike uniform and the motorbike (D9). The brand is content only: code ids stay `driver` / `ridehail`. The uniform and helmet were built in phase 1 (yellow `#D9A21B`); the motorbike comes with phase 2.
 
 | Asset | Where it goes |
 |---|---|

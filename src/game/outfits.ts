@@ -2,8 +2,9 @@
 // so `parseLook` is the one gate for anything that did not come from this module.
 
 export const BODIES = ['man', 'woman'] as const;
-export const OUTFITS = ['thun', 'aodai', 'baba', 'somi', 'xeom', 'bikini'] as const;
-export const HATS = ['nonla', 'cap', 'none'] as const;
+// crab and helmet are the Crab Bike uniform: who may wear them is in server/content/archetypes.json
+export const OUTFITS = ['thun', 'aodai', 'baba', 'somi', 'xeom', 'bikini', 'crab'] as const;
+export const HATS = ['nonla', 'cap', 'helmet', 'none'] as const;
 
 export type Body = (typeof BODIES)[number];
 export type OutfitId = (typeof OUTFITS)[number];
@@ -44,6 +45,9 @@ interface OutfitDef extends OutfitStyle {
   man?: Partial<OutfitStyle>;
 }
 
+/** the Crab Bike brand yellow: the jacket, the helmet, the badge (server/content/archetypes.json) */
+export const CRAB_YELLOW = '#D9A21B';
+
 /** Colours from the PROJECT.md palette (brick, wallTeal, turq, clockBlue, poGreen, lotusTop, ...). */
 const OUTFIT_DEFS: Record<OutfitId, OutfitDef> = {
   thun: {
@@ -77,10 +81,15 @@ const OUTFIT_DEFS: Record<OutfitId, OutfitDef> = {
     sleeves: 'short', legs: 'shorts', flaps: false, torso: 'bare',
     woman: { name: 'Bikini', top: '#5BA9A1', bottom: '#5BA9A1', shoe: '#E0B45A', accent: '#B5523B', legs: 'bare', torso: 'bikini' },
   },
+  // the Crab Bike driver's yellow jacket (the helmet is the same yellow, character.ts)
+  crab: {
+    name: 'Áo Crab Bike', top: CRAB_YELLOW, bottom: '#3B3F4A', shoe: '#2B211C', accent: CRAB_YELLOW, bag: null,
+    sleeves: 'long', legs: 'pants', flaps: false, torso: 'shirt',
+  },
 };
 
 export const BODY_NAMES: Record<Body, string> = { man: 'Nam', woman: 'Nữ' };
-export const HAT_NAMES: Record<HatId, string> = { nonla: 'Nón lá', cap: 'Nón kết', none: 'Không nón' };
+export const HAT_NAMES: Record<HatId, string> = { nonla: 'Nón lá', cap: 'Nón kết', helmet: 'Mũ bảo hiểm', none: 'Không nón' };
 
 export const DEFAULT_LOOK: Readonly<Look> = { body: 'man', outfit: 'thun', hat: 'nonla' };
 /** what a body starts in when the player has not picked an outfit yet */

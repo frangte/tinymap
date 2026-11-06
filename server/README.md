@@ -48,7 +48,10 @@ Deploying to the server (nginx + systemd, `npm run deploy`): see [DEPLOY.md](DEP
 
 ```
 cmd/server/main.go               config from env, wiring, graceful shutdown, daily backups
-content/places.json              the named places, shared with the game (src/game/places.ts); content.go checks it
+content/*.json                   game data shared with the game: places, archetypes (capabilities, spawns, badges,
+                                 restricted looks), phone apps; catalog.go checks every reference, its tests keep
+                                 archetype ids out of code
+internal/capability/             a set of capability ids: what systems check instead of the archetype
 internal/web/router.go           gin routes, WebSocket upgrade, origin check, the account API, static files
 internal/ws/conn.go              per-connection read/write loops, the hello and its account, ping/pong, rate limits
 internal/world/world.go          the world, owned by one goroutine (no locks, no I/O); snapshots at 12 Hz
@@ -64,16 +67,18 @@ Schema changes are new numbered files in `internal/store/migrations/`. They only
 
 JSON text frames, one message per frame, the type in `t`. The client mirrors this in `src/net/protocol.ts`. Positions are three.js metres (Y up) and the heading is radians (0 = facing +Z), which matches `Player.position` and `Player.heading` in the game.
 
-`look` is `{"body": "man"|"woman", "outfit": "thun"|"aodai"|"baba"|"somi"|"xeom"|"bikini", "hat": "nonla"|"cap"|"none"}` (`src/game/outfits.ts`).
+`look` is `{"body": "man"|"woman", "outfit": "thun"|"aodai"|"baba"|"somi"|"xeom"|"bikini"|"crab", "hat": "nonla"|"cap"|"helmet"|"none"}` (`src/game/outfits.ts`). `crab` and `helmet` are the Crab Bike uniform: only a character whose archetype grants `uniform.crab` may wear them (`content/archetypes.json`). In a hello the server swaps them for `thun` / `none`; a profile message wearing them is dropped.
+
+Archetype ids (`arch`) are the ids in `content/archetypes.json` (`traveler`, `citizen`, `driver`). A character keeps the first archetype it picks; its capabilities decide its phone apps (`content/apps.json`).
 
 ### Client to server
 
 | Message | When | Rules |
 |---|---|---|
-| `{"t":"hello","token":"…","name":"Lan","look":{…}}` | first frame, within 10 s | an invalid look, a token over 64 characters or a different first frame → `error bad_hello`, then the socket closes. An empty name becomes `Khách <id>`. `token` (from `POST /api/auth/guest`) is optional: without it the player is a guest without an account, as before. A token no account has → `error auth`, then the socket closes. With a valid token, the name and look are stored on the account's character (created on its first visit). If the database fails, the player still joins, without the account. |
+| `{"t":"hello","token":"…","arch":"driver","name":"Lan","look":{…}}` | first frame, within 10 s | `arch` (optional) is the archetype the player picked: stored on a character that has none yet, ignored for one that has one, used for this visit by a guest without an account; an unknown id plays without an archetype. an invalid look, a token over 64 characters or a different first frame → `error bad_hello`, then the socket closes. An empty name becomes `Khách <id>`. `token` (from `POST /api/auth/guest`) is optional: without it the player is a guest without an account, as before. A token no account has → `error auth`, then the socket closes. With a valid token, the name and look are stored on the account's character (created on its first visit). If the database fails, the player still joins, without the account. |
 | `{"t":"state","x":1.2,"y":0.18,"z":-3.4,"h":3.14}` | about 10 Hz while playing | \|x\|, \|z\| ≤ 400, −20 ≤ y ≤ 120, all finite; anything else is dropped. Up to 20/s; extra frames are dropped silently. |
 | `{"t":"profile","name":"Lan","look":{…}}` | after the dressing panel | same rules as hello; at most 4/s. Stored on the character when the hello had a token (an empty name keeps the stored one). |
-| `{"t":"chat","text":"xin chào"}` | | cleaned (below), 1–140 characters; about one per 0.7 s with a burst of 3, otherwise `error rate` and the line is dropped |
+| `{"t":"chat","ch":"nearby","text":"xin chào"}` | | `ch` is `global` (also when missing) or `nearby`: only players within 20 m (on the ground) hear a nearby line, and it is not kept in the history; any other channel is dropped. Text cleaned (below), 1–140 characters; about one per 0.7 s with a burst of 3, otherwise `error rate` and the line is dropped |
 
 Names and chat are cleaned on the server: control characters and invisible format characters (zero-width, bidi overrides) are removed, runs of whitespace (newlines too) become one space, and the result is trimmed and capped (16 characters for names, 140 for chat). Frames over 1 KB close the connection. Malformed or unknown messages are dropped; the connection stays open.
 
@@ -81,14 +86,14 @@ Names and chat are cleaned on the server: control characters and invisible forma
 
 | Message | When |
 |---|---|
-| `{"t":"welcome","id":7,"name":"Lan","max":40,"players":[player…],"chat":[line…]}` | reply to hello. `players` is everyone else, `chat` the last 30 lines, oldest first. `name` is the cleaned name. |
+| `{"t":"welcome","id":7,"name":"Lan","arch":"driver","apps":["profile",…],"max":40,"players":[player…],"chat":[line…]}` | reply to hello. `players` is everyone else, `chat` the last 30 global lines, oldest first. `name` is the cleaned name. `arch` is the archetype as the server keeps it (missing for none); `apps` the phone apps its capabilities give, in phone order. |
 | `{"t":"join","p":player}` | someone else joined |
 | `{"t":"leave","id":7}` | someone left, timed out, or was dropped |
 | `{"t":"profile","id":7,"name":"Lan","look":{…}}` | someone else changed name or look |
 | `{"t":"snap","at":1730790000000,"p":[[id,x,y,z,h,age],…]}` | at most 12 Hz, only when someone moved. Includes every placed player, the receiver too (skip your own id). Rounded to cm and milliradians. `age` is how many ms before this snapshot the server received that pose: place it at (receive time − age) to follow the sender's own timing rather than the snapshot tick. |
-| `{"t":"chat","id":7,"name":"Lan","text":"xin chào","at":1730790000000}` | a chat line, sent to everyone including its author |
+| `{"t":"chat","id":7,"name":"Lan","arch":"driver","ch":"global","text":"xin chào","at":1730790000000}` | a chat line, sent to everyone (`nearby`: to those within 20 m) including its author; `arch` is the sender's archetype |
 | `{"t":"error","code":"full"\|"bad_hello"\|"auth"\|"rate"}` | `full`, `bad_hello` and `auth` are followed by the server closing the socket. On `auth` the client forgets its token and gets a new one (the database was reset). |
 
-`player` is `{"id":7,"name":"Lan","look":{…},"pose":[x,y,z,h]}`. `pose` is missing until that player has sent its first state.
+`player` is `{"id":7,"name":"Lan","arch":"driver","look":{…},"pose":[x,y,z,h]}` (`arch` missing for a player without one). `pose` is missing until that player has sent its first state.
 
 The server pings every 54 s and drops a connection that hasn't answered within 60 s. A client whose send queue falls 64 messages behind is dropped too (`leave` for everyone else).

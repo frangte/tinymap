@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 	"golang.org/x/time/rate"
 
+	"saigon-noir/server/content"
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/world"
@@ -44,22 +46,24 @@ func DefaultConfig() Config { return Config{HelloTimeout: 10 * time.Second} }
 
 // Identity says who a connection is; identity.Service in production.
 type Identity interface {
-	// Arrive finds the character behind a hello's token and stores the profile it came with. An empty token is
-	// a guest without an account ("" and no error); a token that no account has is identity.ErrUnknownToken.
-	Arrive(ctx context.Context, token, name string, look protocol.Look) (characterID string, err error)
+	// Arrive finds the character behind a hello's token, stores the profile it came with and returns the
+	// character's id and archetype (kept once chosen). An empty token is a guest without an account (no id, the
+	// hello's archetype); a token that no account has is identity.ErrUnknownToken.
+	Arrive(ctx context.Context, token string, p identity.Profile) (characterID, archetype string, err error)
 	// SaveProfile stores a changed name or look.
 	SaveProfile(ctx context.Context, characterID, name string, look protocol.Look) error
 }
 
 type Server struct {
-	world *world.World
-	ids   Identity
-	cfg   Config
-	log   *slog.Logger
+	world   *world.World
+	ids     Identity
+	catalog *content.Catalog
+	cfg     Config
+	log     *slog.Logger
 }
 
-func New(w *world.World, ids Identity, cfg Config, log *slog.Logger) *Server {
-	return &Server{world: w, ids: ids, cfg: cfg, log: log}
+func New(w *world.World, ids Identity, catalog *content.Catalog, cfg Config, log *slog.Logger) *Server {
+	return &Server{world: w, ids: ids, catalog: catalog, cfg: cfg, log: log}
 }
 
 // Serve runs a connection until it closes. Call it from the HTTP handler after the upgrade.
@@ -75,6 +79,8 @@ type client struct {
 	peer *world.Peer
 	// character is the account's character, "" for a guest without an account (or when the lookup failed)
 	character string
+	// caps are what the character's archetype grants: which phone apps it has, which looks it may wear
+	caps capability.Set
 }
 
 // readLoop never closes the socket itself while the world runs: every way out ends in a Leave, the world then
@@ -100,11 +106,12 @@ func (c *client) readLoop() {
 		leave(protocol.ErrBadHello)
 		return
 	}
-	if code := c.arrive(hello); code != "" {
+	arrival, code := c.arrive(hello)
+	if code != "" {
 		leave(code)
 		return
 	}
-	if !w.Join(c.peer, world.Arrival{Name: hello.Name, Look: *hello.Look}) {
+	if !w.Join(c.peer, arrival) {
 		c.conn.Close()
 		return
 	}
@@ -137,7 +144,8 @@ func (c *client) readLoop() {
 			}
 			ok = w.Handle(c.peer, msg)
 		case protocol.TypeProfile:
-			if !profiles.Allow() {
+			// a look this character may not wear only comes from a tampered client: the dressing panel hides it
+			if !profiles.Allow() || !c.s.catalog.LookAllowed(*msg.Look, c.caps) {
 				continue
 			}
 			ok = w.Handle(c.peer, msg)
@@ -158,21 +166,36 @@ func (c *client) readLoop() {
 	}
 }
 
-// arrive resolves the hello's account; it returns an error code when the connection must be turned away.
-func (c *client) arrive(hello protocol.ClientMsg) string {
+// arrive resolves the hello's account and archetype into what the world needs to know; it returns an error code
+// when the connection must be turned away.
+func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
+	cat := c.s.catalog
+	arch := hello.Arch
+	if _, ok := cat.Archetype(arch); !ok {
+		arch = "" // an unknown id plays without an archetype rather than not at all
+	}
+	look := cat.AllowedLook(*hello.Look, cat.Grants(arch))
 	ctx, cancel := context.WithTimeout(context.Background(), identityWait)
 	defer cancel()
-	id, err := c.s.ids.Arrive(ctx, hello.Token, hello.Name, *hello.Look)
+	id, kept, err := c.s.ids.Arrive(ctx, hello.Token, identity.Profile{Name: hello.Name, Look: look, Archetype: arch})
 	switch {
 	case errors.Is(err, identity.ErrUnknownToken):
-		return protocol.ErrAuth
+		return world.Arrival{}, protocol.ErrAuth
 	case err != nil:
 		// the database is down or slow: better to play as a guest than not at all
 		c.s.log.Error("account lookup failed, playing as a guest", "err", err)
-		return ""
+		kept = arch
 	}
 	c.character = id
-	return ""
+	c.caps = cat.Grants(kept)
+	if kept != arch {
+		// the character already had another archetype: what it may wear follows that one
+		if allowed := cat.AllowedLook(look, c.caps); allowed != look {
+			look = allowed
+			c.saveProfile(protocol.ClientMsg{Name: hello.Name, Look: &look})
+		}
+	}
+	return world.Arrival{Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(c.caps)}, ""
 }
 
 // saveProfile stores a name or look change; it only ever logs, the game goes on either way.

@@ -48,7 +48,8 @@ Update the status when a proposed decision is confirmed or changed.
 ## Progress
 
 - **Phase 0 (foundations): done 2026-11-06, not deployed yet.** What was built, and what moved to later phases, is in [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-0-foundations-152-weeks). The table above describes the code as it was before phase 0.
+- **Phase 1 (identity, archetypes, phone): done 2026-11-06, not deployed yet.** See [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-1-identity-archetypes-phone-2-weeks).
 
 ## Open questions
 
-- Crab Bike art: the yellow shade for the jacket and helmet, and whether the bike itself is branded yellow too.
+- Crab Bike art: the yellow is `#D9A21B` (jacket, helmet, badge; `CRAB_YELLOW` in `src/game/outfits.ts`). Still open: whether the motorbike (phase 2) is branded yellow too.

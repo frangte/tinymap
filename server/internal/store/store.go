@@ -318,8 +318,8 @@ func (db *DB) AccountByToken(ctx context.Context, tokenHash []byte, at int64) (s
 func (db *DB) CharacterOf(ctx context.Context, accountID string) (identity.Character, error) {
 	c := identity.Character{AccountID: accountID}
 	var look string
-	err := db.sql.QueryRowContext(ctx, `select id, name, appearance, created_at from characters
-		where account_id = ? order by created_at, id limit 1`, accountID).Scan(&c.ID, &c.Name, &look, &c.CreatedAt)
+	err := db.sql.QueryRowContext(ctx, `select id, name, appearance, archetype_id, created_at from characters
+		where account_id = ? order by created_at, id limit 1`, accountID).Scan(&c.ID, &c.Name, &look, &c.Archetype, &c.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c, identity.ErrNotFound
 	}
@@ -337,9 +337,17 @@ func (db *DB) CreateCharacter(ctx context.Context, c identity.Character) error {
 	if err != nil {
 		return fmt.Errorf("store: create character: %w", err)
 	}
-	if _, err := db.sql.ExecContext(ctx, `insert into characters (id, account_id, name, appearance, created_at, updated_at)
-		values (?, ?, ?, ?, ?, ?)`, c.ID, c.AccountID, c.Name, string(look), c.CreatedAt, c.CreatedAt); err != nil {
+	if _, err := db.sql.ExecContext(ctx, `insert into characters (id, account_id, name, appearance, archetype_id, created_at, updated_at)
+		values (?, ?, ?, ?, ?, ?, ?)`, c.ID, c.AccountID, c.Name, string(look), c.Archetype, c.CreatedAt, c.CreatedAt); err != nil {
 		return fmt.Errorf("store: create character: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) SetArchetype(ctx context.Context, characterID, archetype string, at int64) error {
+	if _, err := db.sql.ExecContext(ctx, `update characters set archetype_id = ?, updated_at = ?
+		where id = ? and archetype_id = ''`, archetype, at, characterID); err != nil {
+		return fmt.Errorf("store: set archetype: %w", err)
 	}
 	return nil
 }

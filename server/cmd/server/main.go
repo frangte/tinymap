@@ -28,6 +28,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"saigon-noir/server/content"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/web"
@@ -81,6 +82,12 @@ func run() error {
 		}
 	}
 
+	// the game data (archetypes, apps, places) is embedded; tests keep it valid, this catches a broken build
+	catalog, err := content.Load()
+	if err != nil {
+		return fmt.Errorf("content: %w", err)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -96,7 +103,7 @@ func run() error {
 
 	w := world.New(cfg, log)
 	go w.Run(ctx)
-	sockets := ws.New(w, accounts, ws.DefaultConfig(), log)
+	sockets := ws.New(w, accounts, catalog, ws.DefaultConfig(), log)
 
 	router, err := web.NewRouter(w, sockets, accounts, opt)
 	if err != nil {

@@ -1,11 +1,11 @@
 // Low-poly Saigon pedestrian built from primitives, with a procedural idle / walk / run cycle driven by ground speed.
-// Every optional part (long hair, skirt, áo dài panels, backpack, both hats) is built once; `setLook` only toggles
+// Every optional part (long hair, skirt, áo dài panels, backpack, every hat) is built once; `setLook` only toggles
 // visibility, swaps a limb between the skin and the cloth material and recolours the cloth, so nothing is rebuilt
 // and the ink pass (which re-reads `mesh.material` every frame) keeps working. The model faces +Z in its local frame.
 import * as THREE from 'three';
 import { paintMaterial } from './paint';
 import { damp, smoothstep } from './coords';
-import { DEFAULT_LOOK, outfitStyle, type Look } from './outfits';
+import { CRAB_YELLOW, DEFAULT_LOOK, outfitStyle, type Look } from './outfits';
 
 /** fixed colours; the cloth slots are recoloured from the outfit */
 const BASE_COLORS = {
@@ -18,6 +18,7 @@ const BASE_COLORS = {
   shoe: '#2B211C',
   bag: '#4F8F88',
   cap: '#4F8F88',
+  helmet: CRAB_YELLOW,
 } as const;
 type Slot = keyof typeof BASE_COLORS;
 
@@ -106,6 +107,7 @@ export class Pedestrian {
   private readonly longHair: THREE.Mesh;
   private readonly nonLa: THREE.Mesh;
   private readonly cap = new THREE.Group();
+  private readonly helmet = new THREE.Group();
   private current: Look = { ...DEFAULT_LOOK };
   private phase = 0;
   private walkAmt = 0;
@@ -165,6 +167,12 @@ export class Pedestrian {
     this.cap.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.168, 0.1, 10), m.cap), 0, 0.315, -0.005));
     this.cap.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.018, 0.13), m.cap), 0, 0.272, 0.16));
     this.neck.add(this.cap);
+    // mũ bảo hiểm (the Crab Bike helmet): a yellow half shell over the hair and a dark visor brim
+    const shell = new THREE.SphereGeometry(0.178, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+    shell.scale(1, 0.92, 1.05);
+    this.helmet.add(at(new THREE.Mesh(shell, m.helmet), 0, 0.225, -0.005));
+    this.helmet.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.09), m.eye), 0, 0.235, 0.175));
+    this.neck.add(this.helmet);
 
     // blob shadow: the sun shadow map is baked once, so pedestrians get a soft contact shadow instead
     const blob = new THREE.Mesh(
@@ -219,6 +227,7 @@ export class Pedestrian {
     this.longHair.visible = look.body === 'woman';
     this.nonLa.visible = look.hat === 'nonla';
     this.cap.visible = look.hat === 'cap';
+    this.helmet.visible = look.hat === 'helmet';
   }
 
   /** Free the GPU resources of a pedestrian that leaves the scene (the shared blob texture stays). */

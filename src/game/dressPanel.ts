@@ -3,6 +3,7 @@
 import { BODIES, BODY_NAMES, DEFAULT_OUTFIT, HATS, HAT_NAMES, OUTFITS, outfitStyle, type Body, type HatId, type Look, type OutfitId } from './outfits';
 import { NAME_MAX, cleanName, randomName, type Profile } from './profile';
 import { el } from './hud';
+import { hatAllowed, outfitAllowed } from './archetypes';
 
 export interface DressHandlers {
   /** every change, so the avatar can show it at once */
@@ -32,6 +33,9 @@ export class DressPanel {
   private readonly hatButtons = new Map<HatId, HTMLButtonElement>();
   private look: Look = { body: 'man', outfit: 'thun', hat: 'nonla' };
   private first = false;
+  /** the archetype the profile keeps, and what it may wear */
+  private archetype = '';
+  private caps: ReadonlySet<string> = new Set();
   /** the first time, switching body also switches to that body's default outfit until one is picked */
   private outfitPicked = false;
 
@@ -75,11 +79,17 @@ export class DressPanel {
     return !this.root.hidden;
   }
 
-  /** @param first the first visit: no cancel (closing keeps the shown look) */
-  open(profile: Profile, first: boolean): void {
+  /**
+   * @param first the first visit: no cancel (closing keeps the shown look)
+   * @param caps what the player's archetype grants: outfits and hats it may not wear are left out
+   */
+  open(profile: Profile, first: boolean, caps: ReadonlySet<string>): void {
     this.look = { ...profile.look };
     this.first = first;
-    this.outfitPicked = !first;
+    this.archetype = profile.archetype;
+    this.caps = caps;
+    // an archetype's starter outfit counts as picked: switching body keeps it
+    this.outfitPicked = !first || profile.archetype !== '';
     this.nameInput.value = profile.name;
     this.cancelButton.hidden = first;
     this.render();
@@ -103,7 +113,7 @@ export class DressPanel {
   private finish(): void {
     const name = cleanName(this.nameInput.value) || randomName();
     this.hide();
-    this.on.done({ name, look: { ...this.look } });
+    this.on.done({ name, look: { ...this.look }, archetype: this.archetype });
   }
 
   private hide(): void {
@@ -126,10 +136,14 @@ export class DressPanel {
   private render(): void {
     const { body, outfit, hat } = this.look;
     for (const [k, b] of this.bodyButtons) b.setAttribute('aria-pressed', String(k === body));
-    for (const [k, b] of this.hatButtons) b.setAttribute('aria-pressed', String(k === hat));
+    for (const [k, b] of this.hatButtons) {
+      b.setAttribute('aria-pressed', String(k === hat));
+      b.hidden = !hatAllowed(k, this.caps);
+    }
     for (const [k, o] of this.outfitButtons) {
       const s = outfitStyle(k, body);
       o.button.setAttribute('aria-pressed', String(k === outfit));
+      o.button.hidden = !outfitAllowed(k, this.caps);
       o.top.style.background = s.top;
       o.bottom.style.background = s.bottom;
       // some outfits are named per body (Bikini / Quần bơi)

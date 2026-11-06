@@ -4,6 +4,8 @@ import { parseLook, type Look } from '../game/outfits';
 import { NAME_MAX } from '../game/profile';
 
 export const CHAT_MAX = 140;
+/** how far a nearby chat line carries (m): world.DefaultConfig().NearbyRadius on the server */
+export const NEARBY_RADIUS = 20;
 
 /** [x, y, z, heading] in three.js metres / radians */
 export type Pose = [number, number, number, number];
@@ -11,17 +13,27 @@ export type Pose = [number, number, number, number];
 export interface PlayerInfo {
   id: number;
   name: string;
+  /** archetype id, '' when the player has none (an older client) */
+  arch: string;
   look: Look;
   pose: Pose | null;
 }
 
+export type Channel = 'global' | 'nearby';
+
 export interface ChatLine {
   id: number;
   name: string;
+  /** the sender's archetype id ('' for none) */
+  arch: string;
+  ch: Channel;
   text: string;
   /** server time, ms since the epoch */
   at: number;
 }
+
+/** archetype and app ids are short lower_snake_case words (server/content); anything else is dropped */
+const ID_RE = /^[a-z0-9_]{1,32}$/;
 
 /** auth: the hello's account token is unknown to the server (forget it and get a new one) */
 export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'auth' | 'unknown';
@@ -30,7 +42,8 @@ export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'auth' | 'unknown';
 export type SnapRow = [number, number, number, number, number, number];
 
 export type ServerMsg =
-  | { t: 'welcome'; id: number; name: string; max: number; players: PlayerInfo[]; chat: ChatLine[] }
+  /** arch: our archetype as the server keeps it ('' for none); apps: our phone apps in phone order (null: an older server) */
+  | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; players: PlayerInfo[]; chat: ChatLine[] }
   | { t: 'join'; p: PlayerInfo }
   | { t: 'leave'; id: number }
   | { t: 'profile'; id: number; name: string; look: Look }
@@ -40,10 +53,11 @@ export type ServerMsg =
 
 export type ClientMsg =
   /** token: the guest account (src/net/auth.ts); absent plays as a guest without one */
-  | { t: 'hello'; token?: string; name: string; look: Look }
+  /** arch: the archetype picked (the server keeps the one a character already has) */
+  | { t: 'hello'; token?: string; arch?: string; name: string; look: Look }
   | { t: 'profile'; name: string; look: Look }
   | { t: 'state'; x: number; y: number; z: number; h: number }
-  | { t: 'chat'; text: string };
+  | { t: 'chat'; ch: Channel; text: string };
 
 type Obj = Record<string, unknown>;
 
@@ -64,19 +78,26 @@ function pose(v: unknown): Pose | null {
   return Array.isArray(v) && v.length === 4 && v.every(num) ? [v[0], v[1], v[2], v[3]] : null;
 }
 
+/** an archetype or app id, '' when absent or malformed */
+function idOf(v: unknown): string {
+  return typeof v === 'string' && ID_RE.test(v) ? v : '';
+}
+
 function player(v: unknown): PlayerInfo | null {
   if (!isObj(v) || !isId(v.id)) return null;
   const name = str(v.name, NAME_MAX);
   const look = parseLook(v.look);
   if (name === null || !look) return null;
-  return { id: v.id, name, look, pose: v.pose === undefined ? null : pose(v.pose) };
+  return { id: v.id, name, arch: idOf(v.arch), look, pose: v.pose === undefined ? null : pose(v.pose) };
 }
 
 function chatLine(v: unknown): ChatLine | null {
   if (!isObj(v) || !isId(v.id) || !num(v.at)) return null;
   const name = str(v.name, NAME_MAX);
   const body = str(v.text, CHAT_MAX);
-  return name === null || !body ? null : { id: v.id, name, text: body, at: v.at };
+  if (name === null || !body) return null;
+  // older servers send no channel: everything was global then
+  return { id: v.id, name, arch: idOf(v.arch), ch: v.ch === 'nearby' ? 'nearby' : 'global', text: body, at: v.at };
 }
 
 /** the valid items of an array (bad ones are skipped), or null if it is not an array */
@@ -108,7 +129,9 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       const chat = list(m.chat, chatLine);
       const name = str(m.name, NAME_MAX);
       if (!isId(m.id) || !num(m.max) || !players || !chat || name === null) return null;
-      return { t: 'welcome', id: m.id, name, max: m.max, players, chat };
+      // an older server sends no apps: null lets the game work them out from the archetype itself
+      const apps = Array.isArray(m.apps) ? m.apps.map(idOf).filter((a) => a !== '') : null;
+      return { t: 'welcome', id: m.id, name, arch: idOf(m.arch), apps, max: m.max, players, chat };
     }
     case 'join': {
       const p = player(m.p);

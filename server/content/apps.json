@@ -1,0 +1,12 @@
+{
+  "about": "The phone apps, in the order the phone shows them. An app with requires is on a character's phone only when it has every one of those capabilities (server/content/archetypes.json). Shared by the server, which sends each player its list, and the game (src/game/phone/), which draws each app by its id and hides ids it does not know.",
+  "apps": [
+    { "id": "profile", "name": { "vi": "Hồ sơ", "en": "Profile" }, "icon": "profile" },
+    { "id": "chat", "name": { "vi": "Trò chuyện", "en": "Chat" }, "icon": "chat" },
+    { "id": "map", "name": { "vi": "Bản đồ", "en": "Map" }, "icon": "map" },
+    { "id": "notices", "name": { "vi": "Thông báo", "en": "Notifications" }, "icon": "bell" },
+    { "id": "guide", "name": { "vi": "Cẩm nang", "en": "Guidebook" }, "icon": "book", "requires": ["traveler.guide_app"] },
+    { "id": "community", "name": { "vi": "Hàng Xóm", "en": "Neighbours" }, "icon": "people", "requires": ["citizen.community_app"] },
+    { "id": "crab_driver", "name": { "vi": "Crab Driver", "en": "Crab Driver" }, "icon": "bike", "requires": ["driver.app"] }
+  ]
+}

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
+	"saigon-noir/server/content"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/world"
@@ -75,6 +77,9 @@ type msg struct {
 	Chat    []chatLine      `json:"chat"`
 	P       json.RawMessage `json:"p"`
 	Look    *look           `json:"look"`
+	Arch    string          `json:"arch"`
+	Apps    []string        `json:"apps"`
+	Ch      string          `json:"ch"`
 }
 type look struct{ Body, Outfit, Hat string }
 type player struct {
@@ -108,7 +113,11 @@ func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 	accounts := identity.New(db)
 	w := world.New(cfg, log)
 	go w.Run(ctx)
-	sockets := ws.New(w, accounts, ws.Config{HelloTimeout: 300 * time.Millisecond}, log)
+	catalog, err := content.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sockets := ws.New(w, accounts, catalog, ws.Config{HelloTimeout: 300 * time.Millisecond}, log)
 	r, err := NewRouter(w, sockets, accounts, opt)
 	if err != nil {
 		t.Fatal(err)
@@ -458,5 +467,94 @@ func TestGuestEndpointOriginsAndRate(t *testing.T) {
 	}
 	if status, _, _ := postGuest(t, srv, ""); status != http.StatusTooManyRequests {
 		t.Fatalf("after the burst: %d", status)
+	}
+}
+
+// ---- archetypes and chat channels
+
+func helloAs(token, arch, outfit, hat string) string {
+	return `{"t":"hello","token":"` + token + `","arch":"` + arch + `","name":"Lan","look":{"body":"woman","outfit":"` + outfit + `","hat":"` + hat + `"}}`
+}
+
+func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
+	srv := startServer(t, testConfig())
+	_, _, token := postGuest(t, srv, "")
+
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "traveler", "thun", "cap"))
+	w := next(t, a, "welcome")
+	if w.Arch != "traveler" || !slices.Contains(w.Apps, "guide") || slices.Contains(w.Apps, "crab_driver") {
+		t.Fatalf("traveler welcome: arch %q apps %v", w.Arch, w.Apps)
+	}
+	a.Close()
+
+	// the same character asks to be a driver, in the driver's uniform: it stays a traveler, out of the uniform
+	b := dial(t, srv)
+	send(t, b, helloAs(token, "driver", "crab", "helmet"))
+	if w := next(t, b, "welcome"); w.Arch != "traveler" || slices.Contains(w.Apps, "crab_driver") {
+		t.Fatalf("archetype after asking for another: %q apps %v", w.Arch, w.Apps)
+	}
+	eventually(t, "the uniform to be taken off", func() bool {
+		c, err := storedCharacter(srv, token)
+		return err == nil && c.Look.Outfit == "thun" && c.Look.Hat == "none"
+	})
+	// a profile message putting it back on is dropped
+	send(t, b, `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"crab","hat":"helmet"}}`)
+	b.Close()
+
+	// an older client without archetypes: the core apps, no badge
+	c := dial(t, srv)
+	send(t, c, helloMinh)
+	if w := next(t, c, "welcome"); w.Arch != "" || len(w.Apps) != 4 {
+		t.Fatalf("no archetype: %q apps %v", w.Arch, w.Apps)
+	}
+	if got, _ := storedCharacter(srv, token); got.Look.Outfit == "crab" {
+		t.Fatal("the dropped profile message must not reach the database")
+	}
+}
+
+func TestDriverWearsTheUniform(t *testing.T) {
+	srv := startServer(t, testConfig())
+	_, _, token := postGuest(t, srv, "")
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "driver", "crab", "helmet"))
+	if w := next(t, a, "welcome"); w.Arch != "driver" || !slices.Contains(w.Apps, "crab_driver") {
+		t.Fatalf("driver welcome: %q %v", w.Arch, w.Apps)
+	}
+	if c, err := storedCharacter(srv, token); err != nil || c.Look.Outfit != "crab" || c.Archetype != "driver" {
+		t.Fatalf("stored driver = %+v, %v", c, err)
+	}
+}
+
+func TestNearbyChatStaysNearby(t *testing.T) {
+	cfg := testConfig()
+	cfg.MaxPlayers = 3
+	srv := startServer(t, cfg)
+	conns := make([]*websocket.Conn, 3)
+	for i, x := range []string{"0", "10", "100"} {
+		conns[i] = dial(t, srv)
+		send(t, conns[i], helloLan)
+		next(t, conns[i], "welcome")
+		send(t, conns[i], `{"t":"state","x":`+x+`,"y":0.2,"z":0,"h":0}`)
+	}
+	near, mid, far := conns[0], conns[1], conns[2]
+	// wait until the world has placed all three
+	for placed := 0; placed < 3; {
+		var rows [][]float64
+		if err := json.Unmarshal(next(t, far, "snap").P, &rows); err != nil {
+			t.Fatal(err)
+		}
+		placed = len(rows)
+	}
+
+	send(t, near, `{"t":"chat","ch":"nearby","text":"gần đây"}`)
+	for _, c := range []*websocket.Conn{near, mid} {
+		if m := next(t, c, "chat"); m.Text != "gần đây" || m.Ch != "nearby" {
+			t.Fatalf("nearby line = %+v", m)
+		}
+	}
+	send(t, near, `{"t":"chat","text":"cả phố"}`)
+	if m := next(t, far, "chat"); m.Text != "cả phố" || m.Ch != "global" {
+		t.Fatalf("100 m away, the first line heard should be the global one: %+v", m)
 	}
 }

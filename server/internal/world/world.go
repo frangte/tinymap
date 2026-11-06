@@ -25,6 +25,8 @@ type Config struct {
 	ChatHistory int
 	// SendBuffer is the per-peer outgoing queue; a peer that falls this far behind is dropped.
 	SendBuffer int
+	// NearbyRadius is how far (m, on the ground) a nearby chat line carries.
+	NearbyRadius float64
 }
 
 func DefaultConfig() Config {
@@ -33,13 +35,17 @@ func DefaultConfig() Config {
 		SnapInterval: time.Second / 12,
 		ChatHistory:  30,
 		SendBuffer:   64,
+		NearbyRadius: 20,
 	}
 }
 
-// Arrival is a player entering the world: the profile from their hello, already cleaned and validated.
+// Arrival is a player entering the world: the profile from their hello, already cleaned and validated, its
+// archetype as the server keeps it ("" for none) and the phone apps that archetype's capabilities give.
 type Arrival struct {
 	Name string
 	Look protocol.Look
+	Arch string
+	Apps []string
 }
 
 // Peer is one participant's link to the world. The world queues outgoing frames on it and closes the queue when
@@ -74,6 +80,7 @@ type event struct {
 type member struct {
 	id     uint32
 	name   string
+	arch   string
 	look   protocol.Look
 	pose   protocol.Pose
 	poseAt time.Time
@@ -184,7 +191,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 		return
 	}
 	w.nextID++
-	m := &member{id: w.nextID, name: a.Name, look: a.Look}
+	m := &member{id: w.nextID, name: a.Name, arch: a.Arch, look: a.Look}
 	if m.name == "" {
 		m.name = fmt.Sprintf("Khách %d", m.id)
 	}
@@ -194,8 +201,12 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	}
 	w.members[p] = m
 	w.count.Add(1)
+	apps := a.Apps
+	if apps == nil {
+		apps = []string{}
+	}
 	w.sendTo(p, protocol.Encode(protocol.Welcome{
-		T: protocol.TypeWelcome, ID: m.id, Name: m.name, MaxPlayers: w.cfg.MaxPlayers,
+		T: protocol.TypeWelcome, ID: m.id, Name: m.name, Arch: m.arch, Apps: apps, MaxPlayers: w.cfg.MaxPlayers,
 		Players: others, Chat: append([]protocol.ChatLine{}, w.history...),
 	}))
 	w.broadcast(protocol.Encode(protocol.Join{T: protocol.TypeJoin, P: m.player()}), p)
@@ -220,7 +231,12 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 		m.look = *msg.Look
 		w.broadcast(protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Look: m.look}), p)
 	case protocol.TypeChat:
-		line := protocol.ChatLine{ID: m.id, Name: m.name, Text: msg.Text, At: time.Now().UnixMilli()}
+		line := protocol.ChatLine{ID: m.id, Name: m.name, Arch: m.arch, Ch: msg.Ch, Text: msg.Text, At: time.Now().UnixMilli()}
+		if msg.Ch == protocol.ChannelNearby {
+			line.T = protocol.TypeChat
+			w.sendNearby(p, m, protocol.Encode(line))
+			return
+		}
 		w.history = append(w.history, line)
 		if over := len(w.history) - w.cfg.ChatHistory; over > 0 {
 			w.history = append(w.history[:0], w.history[over:]...)
@@ -229,6 +245,22 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 		// the sender gets its own line back too, so every client shows the same, server-cleaned text
 		w.broadcast(protocol.Encode(line), nil)
 	}
+}
+
+// sendNearby gives a nearby chat line to the sender and to every placed player within NearbyRadius on the ground.
+// It is not kept in the history: a late joiner was not there to hear it.
+func (w *World) sendNearby(from *Peer, sender *member, b []byte) {
+	r2 := w.cfg.NearbyRadius * w.cfg.NearbyRadius
+	for p, o := range w.members {
+		if p == from {
+			continue
+		}
+		dx, dz := o.pose.X-sender.pose.X, o.pose.Z-sender.pose.Z
+		if sender.placed && o.placed && dx*dx+dz*dz <= r2 {
+			w.sendTo(p, b)
+		}
+	}
+	w.sendTo(from, b)
 }
 
 // broadcastSnap sends every placed player's pose, but only when someone moved since the last one.
@@ -251,7 +283,7 @@ func (w *World) broadcastSnap() {
 }
 
 func (m *member) player() protocol.Player {
-	p := protocol.Player{ID: m.id, Name: m.name, Look: m.look}
+	p := protocol.Player{ID: m.id, Name: m.name, Arch: m.arch, Look: m.look}
 	if m.placed {
 		pose := protocol.PoseArray(m.pose)
 		p.Pose = &pose

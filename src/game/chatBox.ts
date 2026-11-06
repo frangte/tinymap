@@ -2,11 +2,12 @@
 // (or the Chat action on phones). Lines are shown when the server sends them back, our own too, so nothing
 // appears twice; join / leave notes are added here from the player events. Text only goes in via textContent.
 import { el } from './hud';
-import { CHAT_MAX, type ChatLine } from '../net/protocol';
+import { CHAT_MAX, type Channel, type ChatLine } from '../net/protocol';
+import { badge } from './badge';
 
 export interface ChatHandlers {
   /** @returns false when the line could not be sent (offline) */
-  send(text: string): boolean;
+  send(text: string, ch: Channel): boolean;
   /** the input took focus: the player must stop walking */
   opened(): void;
   /** the input closed: give the keyboard back to the game */
@@ -21,6 +22,9 @@ const NOTE_FOR = 2600;
 /** name colours, picked by player id (style.css: .chat-log b[data-c]) */
 const COLOURS = 6;
 
+/** the channel button's label: who will read the line */
+const CH_LABEL: Record<Channel, string> = { global: 'Cả phố', nearby: 'Gần đây' };
+
 const NOTE = {
   offline: 'Mất kết nối, chưa chat được…',
   rate: 'Chậm lại chút…',
@@ -32,6 +36,8 @@ export class ChatBox {
   private readonly form = el<HTMLFormElement>('chat-form');
   private readonly input = el<HTMLInputElement>('chat-input');
   private readonly note = el('chat-note');
+  private readonly chButton = el<HTMLButtonElement>('chat-ch');
+  private ch: Channel = 'global';
   private online = false;
   /** server time of the newest line shown, so a reconnect's history does not repeat lines */
   private lastAt = 0;
@@ -54,8 +60,10 @@ export class ChatBox {
     });
     // clicking back into the game (or anywhere outside the box) closes it
     // tapping "Gửi" must not take focus from the field first (that would close the box before it sends)
-    const sendButton = this.form.querySelector('button');
-    for (const type of ['pointerdown', 'mousedown']) sendButton?.addEventListener(type, (e) => e.preventDefault());
+    const sendButton = this.form.querySelector('button[type=submit]');
+    for (const b of [sendButton, this.chButton]) for (const type of ['pointerdown', 'mousedown']) b?.addEventListener(type, (e) => e.preventDefault());
+    this.chButton.addEventListener('click', () => this.setChannel(this.ch === 'global' ? 'nearby' : 'global'));
+    this.setChannel('global');
     this.root.addEventListener('focusout', (e) => {
       const next = e.relatedTarget;
       if (!(next instanceof Node && this.root.contains(next))) this.close(false);
@@ -104,6 +112,18 @@ export class ChatBox {
     if (refocus) this.on.closed();
   }
 
+  get channel(): Channel {
+    return this.ch;
+  }
+
+  /** Where the next line goes: everyone, or only the players around. */
+  setChannel(ch: Channel): void {
+    this.ch = ch;
+    this.chButton.textContent = CH_LABEL[ch];
+    this.chButton.dataset.ch = ch;
+    this.chButton.setAttribute('aria-label', `Gửi tới: ${CH_LABEL[ch]}. Bấm để đổi`);
+  }
+
   setOnline(online: boolean): void {
     this.online = online;
     this.input.disabled = !online;
@@ -122,7 +142,17 @@ export class ChatBox {
     const name = document.createElement('b');
     name.textContent = l.name;
     name.dataset.c = l.id === selfId ? 'self' : String(l.id % COLOURS);
-    li.append(name, document.createTextNode(` ${l.text}`));
+    li.append(name);
+    const b = badge(l.arch);
+    if (b) li.append(' ', b);
+    if (l.ch === 'nearby') {
+      // only the players around heard it
+      li.classList.add('is-near');
+      const near = document.createElement('i');
+      near.textContent = 'gần';
+      li.append(' ', near);
+    }
+    li.append(document.createTextNode(` ${l.text}`));
     this.append(li);
   }
 
@@ -145,7 +175,7 @@ export class ChatBox {
       this.close();
       return;
     }
-    if (!this.on.send(text)) {
+    if (!this.on.send(text, this.ch)) {
       this.flash(NOTE.offline);
       return;
     }

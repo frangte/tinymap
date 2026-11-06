@@ -53,6 +53,23 @@ The original plan:
 
 ### Phase 1: Identity, archetypes, phone (2 weeks)
 
+**Status: done 2026-11-06 (not deployed yet).**
+
+- **Built:**
+  - `server/content/archetypes.json` (capabilities, the three archetypes, restricted looks) and `apps.json`, read by both sides; `content/catalog.go` checks every reference, and a test fails if code anywhere names an archetype id.
+  - The archetype is stored on the character (migration `0002_archetype.sql`) and kept once chosen; `welcome` carries it and the phone apps its capabilities give.
+  - The Crab Bike uniform (`crab` outfit, `helmet` hat, yellow `#D9A21B`), wearable only with `uniform.crab`; the server swaps it off in a hello and drops a profile message wearing it.
+  - Chat channels: `global` and `nearby` (20 m, not kept in the history); every line and player carries the archetype for its badge.
+  - Client: the "Bạn là ai?" picker (players from before phase 1 see it once too), a spawn point and respawn label per archetype, badges in chat and dots on name tags, and the phone (round button or `P`) replacing the action menu, with Hồ sơ, Trò chuyện, Bản đồ (a drawn map with everyone on it), Thông báo, plus Cẩm nang (Traveler), Hàng Xóm (Citizen) and Crab Driver (driver, a placeholder until ride-hailing).
+- **Verified:** Go tests with `-race` (catalog, archetype kept once, apps per archetype, uniform gating, nearby chat reaching 10 m and not 100 m), type-check and build, and a headless-browser run of each archetype through picker, dressing, going online, every phone app and both chat channels, with no console errors.
+- **Changed from the plan:**
+  - Titles have no data yet (they are quest rewards, phase 4); only the archetype badge shows next to names.
+  - Restoring the last position moves to phase 2: the client spawns before it connects, so a server-sent position would make the player jump after the camera flight. Each visit starts at the archetype's spawn point.
+  - Name and look are still what the client sends (checked by the server); the archetype and what it may wear are the server's. A fully server-owned profile comes with real login.
+  - The default chat channel stays global, as before; nearby is one tap away (the button left of the chat field, or the Trò chuyện app).
+
+The original plan:
+
 - **Goal:** three archetypes that feel different from the first minute.
 - **Features:**
   - Archetype selection and capability resolution.

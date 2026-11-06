@@ -22,7 +22,10 @@ import { isTyping } from './input';
 import { RemotePlayers } from './remotePlayers';
 import { NameTags, SELF } from './nameTags';
 import { ChatBox } from './chatBox';
-import { ActionMenu } from './actionMenu';
+import { ArchetypePicker } from './archetypePicker';
+import { Phone } from './phone/phone';
+import { allowedLook, appsFor, archetypeById, grants, type Archetype } from './archetypes';
+import { sameLook } from './outfits';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
 
 const MODEL_BYTES = 2.04e6;
@@ -90,7 +93,11 @@ export async function startApp(): Promise<void> {
   let play: PlayMode | null = null;
   let dress: DressPanel | null = null;
   let chat: ChatBox | null = null;
-  let actions: ActionMenu | null = null;
+  let phone: Phone | null = null;
+  /** closes the archetype picker when leaving play (replaced once the map has loaded) */
+  let closePicker = (): void => {};
+  /** what happens when play starts: pick an archetype, dress, or go straight online (replaced once loaded) */
+  let arrive = (): void => {};
   /** replaced once the map has loaded and the panel exists */
   let openDress = (): void => {};
   // multiplayer: created with the world; joins once the player has a character
@@ -102,6 +109,8 @@ export async function startApp(): Promise<void> {
   const saved = loadProfile();
   let profile: Profile = saved ?? defaultProfile();
   let dressed = saved !== null;
+  /** what the player's archetype grants (apps, uniforms) */
+  let caps = grants(profile.archetype);
   let sea: Sea | null = null;
   let life: Life | null = null;
   const ambient = new Ambient();
@@ -129,7 +138,8 @@ export async function startApp(): Promise<void> {
     if (prev === 'play') {
       dress?.dismiss();
       chat?.close(false);
-      actions?.close();
+      phone?.close();
+      closePicker();
       play.exit();
     }
     // where the camera is looking now, whoever was driving it
@@ -142,8 +152,7 @@ export async function startApp(): Promise<void> {
       flight.start(looking, toPos, toTarget, () => {
         if (mode !== 'play') return;
         p.enter();
-        if (!dressed) openDress();
-        else goOnline();
+        arrive();
       }, 1600);
       return;
     }
@@ -243,6 +252,19 @@ export async function startApp(): Promise<void> {
   play = p;
   p.player.avatar.setLook(profile.look);
   tags.setSelfName(profile.name);
+  // the archetype's start (the market gate without one), its tool button label, badge and apps
+  const applyArchetype = (): void => {
+    const a = archetypeById(profile.archetype);
+    p.setHome(a?.spawn ?? null);
+    hud.respawnButton.textContent = a?.spawn.button.vi ?? 'Về chợ';
+    hud.respawnButton.title = a ? 'Quay lại chỗ xuất phát' : 'Quay lại cổng chợ Bến Thành';
+    tags.setSelfArch(profile.archetype);
+    phone?.setApps(serverApps ?? appsFor(caps));
+  };
+  /** the phone apps the server sent; null until it has (offline, an older server): then the archetype decides */
+  let serverApps: string[] | null = null;
+  applyArchetype();
+  p.spawnAtHome();
   scene.add(p.player.avatar.root);
   ink.track(p.player.avatar.root);
 
@@ -259,7 +281,6 @@ export async function startApp(): Promise<void> {
       saveProfile(next);
       p.player.avatar.setLook(next.look);
       tags.setSelfName(next.name);
-      menu.setBody(next.look.body);
       closeDress();
       goOnline();
       netClient.setProfile(next);
@@ -267,6 +288,8 @@ export async function startApp(): Promise<void> {
     cancel: () => {
       p.player.avatar.setLook(profile.look);
       closeDress();
+      // a returning player who just picked an archetype has not gone online yet
+      goOnline();
     },
   });
   dress = panel;
@@ -274,14 +297,14 @@ export async function startApp(): Promise<void> {
     if (mode !== 'play' || flight.active || panel.isOpen) return;
     chatBox.close(false);
     p.setDressing(true);
-    panel.open(profile, !dressed);
+    panel.open(profile, !dressed, caps);
   };
   hud.dressButton.addEventListener('click', () => openDress());
 
   // ---- chat: the log bottom left, bubbles over heads (tags); lines show when the server sends them back
   const backToGame = (): void => renderer.domElement.focus({ preventScroll: true });
   const chatBox: ChatBox = new ChatBox({
-    send: (text) => netClient.sendChat(text),
+    send: (text, ch) => netClient.sendChat(text, ch),
     opened: () => p.input.release(),
     closed: backToGame,
   });
@@ -298,12 +321,44 @@ export async function startApp(): Promise<void> {
     profile = { ...profile, look: { ...profile.look, body } };
     saveProfile(profile);
     p.player.avatar.setLook(profile.look);
-    menu.setBody(body);
     netClient.setProfile(profile);
   };
-  const menu = new ActionMenu({ dress: () => openDress(), switchBody, chat: openChat });
-  menu.setBody(profile.look.body);
-  actions = menu;
+
+  // ---- "Bạn là ai?": once, before the first dressing (and once for players from before archetypes)
+  const choose = (a: Archetype): void => {
+    caps = grants(a.id);
+    // a new player starts in the archetype's clothes; a returning one keeps theirs, minus what it may not wear
+    const look = dressed ? allowedLook(profile.look, caps) : { body: profile.look.body, outfit: a.look.outfit, hat: a.look.hat };
+    profile = { ...profile, archetype: a.id, look };
+    if (dressed) saveProfile(profile);
+    p.player.avatar.setLook(look);
+    applyArchetype();
+    p.spawnAtHome();
+    p.follow.snapBehind(p.player.position, p.player.heading);
+    p.setDressing(false);
+    // the dressing panel next, so a returning player also sees what the archetype adds
+    openDress();
+  };
+  const picker = new ArchetypePicker({
+    preview: (a) => {
+      if (!dressed) p.player.avatar.setLook({ body: profile.look.body, outfit: a.look.outfit, hat: a.look.hat });
+    },
+    pick: choose,
+  });
+  closePicker = (): void => {
+    if (!picker.isOpen) return;
+    picker.close();
+    p.setDressing(false);
+    p.player.avatar.setLook(profile.look);
+  };
+  arrive = (): void => {
+    if (!profile.archetype) {
+      chatBox.close(false);
+      p.setDressing(true);
+      picker.open();
+    } else if (!dressed) openDress();
+    else goOnline();
+  };
 
   // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
   const others = new RemotePlayers(scene, ink);
@@ -316,11 +371,19 @@ export async function startApp(): Promise<void> {
       chatBox.setOnline(s === 'online');
       showOnline();
     },
-    welcome: (players, lines) => {
+    welcome: (players, lines, arch, apps) => {
       others.clear();
       const now = performance.now();
       for (const info of players) others.add(info, now);
       chatBox.history(lines, netClient.selfId);
+      adoptArchetype(arch);
+      serverApps = apps;
+      applyArchetype();
+      if (!welcomed) {
+        welcomed = true;
+        const a = archetypeById(profile.archetype);
+        ph.notify('Chào mừng tới Quận 1', a ? `Bạn là ${a.name.vi}. ${a.pitch.vi}` : 'Đi dạo, trò chuyện, ghé các công trình.');
+      }
       showOnline();
     },
     join: (info) => {
@@ -355,6 +418,37 @@ export async function startApp(): Promise<void> {
   goOnline = (): void => {
     if (dressed) netClient.start(profile);
   };
+  let welcomed = false;
+  /** the server keeps the archetype a character picked first: if it differs from ours, the server's wins */
+  const adoptArchetype = (arch: string): void => {
+    if (!arch || arch === profile.archetype || !archetypeById(arch)) return;
+    caps = grants(arch);
+    const look = allowedLook(profile.look, caps);
+    if (!sameLook(look, profile.look)) p.player.avatar.setLook(look);
+    profile = { ...profile, archetype: arch, look };
+    saveProfile(profile);
+    netClient.setProfile(profile);
+  };
+
+  // ---- the phone, bottom right: the apps the server sent (or that the archetype gives, offline)
+  const ph = new Phone({
+    profile: () => profile,
+    online: () => netStatus === 'online',
+    self: () => ({ position: p.player.position, heading: p.player.heading }),
+    others: () => others.values(),
+    landmarksSeen: () => p.landmarksSeen,
+    channel: () => chatBox.channel,
+    setChannel: (ch) => chatBox.setChannel(ch),
+    openChat: () => openChat(),
+    dress: () => openDress(),
+    switchBody: () => {
+      switchBody();
+      ph.rerender();
+    },
+  });
+  phone = ph;
+  applyArchetype();
+  p.onLandmark = (place) => ph.notify(`Đã ghé ${place.name}`, place.note);
 
   const [icx, icy] = nav.meta.island_center ?? [36, 8];
   fromBlender(icx, icy, 0, islandCenter);
@@ -376,7 +470,7 @@ export async function startApp(): Promise<void> {
   hud.toMapButton.addEventListener('click', () => request('map'));
   hud.toPlayButton.addEventListener('click', () => request('play'));
   hud.respawnButton.addEventListener('click', () => {
-    p.spawnAtMarket();
+    p.spawnAtHome();
     p.follow.snapBehind(p.player.position, p.player.heading);
     renderer.domElement.focus({ preventScroll: true });
   });
@@ -404,6 +498,18 @@ export async function startApp(): Promise<void> {
       return;
     }
     if (isTyping(e)) return;
+    if (mode === 'play' && ph.isOpen && e.key === 'Escape') {
+      e.preventDefault();
+      ph.close();
+      return;
+    }
+    // P: the phone
+    if (mode === 'play' && e.code === 'KeyP' && !panel.isOpen && !picker.isOpen) {
+      e.preventDefault();
+      if (ph.isOpen) ph.close();
+      else ph.open();
+      return;
+    }
     // Enter / T: chat (Enter on a focused button presses the button instead)
     if (mode === 'play' && (e.key === 'Enter' || e.code === 'KeyT') && !(e.target instanceof HTMLButtonElement)) {
       // keep the T out of the field that is about to take focus
@@ -426,7 +532,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, chat: chatBox, tags, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, net: netClient, chat: chatBox, phone: ph, tags, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

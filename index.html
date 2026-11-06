@@ -80,12 +80,21 @@
       </div>
     </section>
 
+    <!-- "Bạn là ai?": the archetype cards, once before the first dressing (archetypePicker.ts fills them in) -->
+    <section class="picker card" id="picker" data-modes="play" aria-labelledby="picker-title" hidden>
+      <div class="eyebrow">Nhân vật</div>
+      <h2 id="picker-title">Bạn là ai?</h2>
+      <p class="picker-lede">Cả Quận 1 chung một con phố, mỗi vai sống ở đó một kiểu. Chọn một lần là giữ luôn.</p>
+      <div class="picker-cards" id="picker-cards"></div>
+    </section>
+
     <!-- bottom left in play: the chat (chatBox.ts) stacked over the control hint -->
     <div class="corner" data-modes="play">
       <section class="chat" id="chat" aria-label="Trò chuyện">
         <ol class="chat-log" id="chat-log" aria-live="polite"></ol>
         <p class="chat-note" id="chat-note" role="status" hidden></p>
         <form class="chat-form" id="chat-form" hidden>
+          <button type="button" class="chat-ch" id="chat-ch">Cả phố</button>
           <input id="chat-input" type="text" autocomplete="off" spellcheck="false" enterkeyhint="send" aria-label="Tin nhắn" />
           <button type="submit" class="btn-primary">Gửi</button>
         </form>
@@ -96,23 +105,27 @@
         <span class="mouse-only">kéo chuột để xoay</span>
         <span class="mouse-only">cuộn để zoom</span>
         <span class="mouse-only"><kbd>Enter</kbd> chat</span>
+        <span class="mouse-only"><kbd>P</kbd> điện thoại</span>
         <span class="mouse-only"><kbd>Esc</kbd> menu</span>
         <span class="touch-only">Kéo bên trái để đi, đẩy hết để chạy</span>
         <span class="touch-only">Vuốt bên phải để xoay, chụm hai ngón để zoom</span>
       </div>
     </div>
 
-    <!-- phones: the play actions behind one round button, bottom right (actionMenu.ts) -->
-    <nav class="actions" id="actions" data-modes="play" aria-label="Hành động">
-      <div class="actions-list" id="actions-list" hidden>
-        <button id="act-dress" type="button">Đổi đồ</button>
-        <button id="act-body" type="button">Đổi sang Nữ</button>
-        <button id="act-chat" type="button">Chat</button>
-      </div>
-      <button class="actions-toggle btn-primary" id="actions-toggle" type="button" aria-expanded="false" aria-controls="actions-list" aria-label="Mở menu">
-        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none" /></svg>
-      </button>
-    </nav>
+    <!-- the in-game phone (src/game/phone/): the apps the server lists, drawn by id; the round button bottom right -->
+    <section class="phone card" id="phone" data-modes="play" aria-labelledby="phone-title" hidden>
+      <header class="phone-bar">
+        <button class="phone-back" id="phone-back" type="button" aria-label="Về màn hình chính" hidden>‹</button>
+        <h2 id="phone-title">Điện thoại</h2>
+        <button class="phone-close" id="phone-close" type="button" aria-label="Cất điện thoại">×</button>
+      </header>
+      <div class="phone-home" id="phone-home"></div>
+      <div class="phone-view" id="phone-view" hidden></div>
+    </section>
+    <button class="phone-toggle btn-primary" id="phone-toggle" type="button" data-modes="play" aria-expanded="false" aria-controls="phone" aria-label="Điện thoại">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" stroke-width="2.2" fill="none" /><path d="M11 17.5h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
+      <span class="phone-dot" id="phone-dot" hidden></span>
+    </button>
 
     <div class="dock" data-modes="map">
       <div class="hint-line">

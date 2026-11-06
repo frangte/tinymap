@@ -37,6 +37,8 @@ export class RemotePlayer {
   readonly position = new THREE.Vector3();
   heading = 0;
   speed = 0;
+  /** archetype id, '' for none */
+  arch = '';
   private readonly samples: Sample[] = [];
   private placed = false;
 
@@ -118,6 +120,7 @@ export class RemotePlayers {
   add(info: PlayerInfo, now: number): void {
     this.remove(info.id);
     const r = new RemotePlayer(info.id, info.name, info.look);
+    r.arch = info.arch;
     if (info.pose) r.push(now - RENDER_DELAY, ...info.pose);
     this.players.set(info.id, r);
     this.scene.add(r.avatar.root);

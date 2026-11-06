@@ -29,6 +29,10 @@ func openDB(t *testing.T, path string) *store.DB {
 	return db
 }
 
+func lan(arch string) identity.Profile {
+	return identity.Profile{Name: "Lan", Look: lanLook, Archetype: arch}
+}
+
 func TestGuestKeepsItsCharacterAcrossRestarts(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "game.db")
@@ -42,11 +46,11 @@ func TestGuestKeepsItsCharacterAcrossRestarts(t *testing.T) {
 	if len(token) != 43 || len(token) > protocol.TokenMax {
 		t.Fatalf("token %q: want 43 characters", token)
 	}
-	first, err := svc.Arrive(ctx, token, "Lan", lanLook)
+	first, _, err := svc.Arrive(ctx, token, lan(""))
 	if err != nil || first == "" {
 		t.Fatalf("first arrival = %q, %v", first, err)
 	}
-	if again, err := svc.Arrive(ctx, token, "Lan", lanLook); err != nil || again != first {
+	if again, _, err := svc.Arrive(ctx, token, lan("")); err != nil || again != first {
 		t.Fatalf("second arrival = %q, %v; want %q", again, err, first)
 	}
 	if err := svc.SaveProfile(ctx, first, "Lan Anh", xeomLook); err != nil {
@@ -57,7 +61,7 @@ func TestGuestKeepsItsCharacterAcrossRestarts(t *testing.T) {
 	// the server restarts
 	db = openDB(t, path)
 	svc = identity.New(db)
-	if after, err := svc.Arrive(ctx, token, "", xeomLook); err != nil || after != first {
+	if after, _, err := svc.Arrive(ctx, token, identity.Profile{Look: xeomLook}); err != nil || after != first {
 		t.Fatalf("after a restart = %q, %v; want %q", after, err, first)
 	}
 
@@ -76,23 +80,56 @@ func TestGuestKeepsItsCharacterAcrossRestarts(t *testing.T) {
 	}
 }
 
+func TestArchetypeIsChosenOnce(t *testing.T) {
+	ctx := context.Background()
+	svc := identity.New(openDB(t, filepath.Join(t.TempDir(), "game.db")))
+	cases := []struct {
+		name     string
+		asks     string
+		wantArch string
+	}{
+		{"a character from before archetypes has none", "", ""},
+		{"its first choice is kept", "traveler", "traveler"},
+		{"a later hello cannot change it", "driver", "traveler"},
+		{"nor can a hello without one", "", "traveler"},
+	}
+	token, err := svc.NewGuest(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, arch, err := svc.Arrive(ctx, token, lan(c.asks))
+			if err != nil || arch != c.wantArch {
+				t.Fatalf("archetype = %q, %v; want %q", arch, err, c.wantArch)
+			}
+		})
+	}
+	// a new account takes the archetype of its first hello
+	other, _ := svc.NewGuest(ctx)
+	if _, arch, err := svc.Arrive(ctx, other, lan("citizen")); err != nil || arch != "citizen" {
+		t.Fatalf("new character = %q, %v", arch, err)
+	}
+}
+
 func TestArrive(t *testing.T) {
 	ctx := context.Background()
 	svc := identity.New(openDB(t, filepath.Join(t.TempDir(), "game.db")))
 	cases := []struct {
-		name    string
-		token   string
-		wantID  bool
-		wantErr error
+		name     string
+		token    string
+		wantID   bool
+		wantArch string
+		wantErr  error
 	}{
-		{"no token is a guest without an account", "", false, nil},
-		{"unknown token", "not-a-token-anyone-was-given", false, identity.ErrUnknownToken},
+		{"no token is a guest without an account, with the hello's archetype", "", false, "driver", nil},
+		{"unknown token", "not-a-token-anyone-was-given", false, "", identity.ErrUnknownToken},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			id, err := svc.Arrive(ctx, c.token, "Lan", lanLook)
-			if !errors.Is(err, c.wantErr) || (id != "") != c.wantID {
-				t.Fatalf("Arrive = %q, %v", id, err)
+			id, arch, err := svc.Arrive(ctx, c.token, lan("driver"))
+			if !errors.Is(err, c.wantErr) || (id != "") != c.wantID || arch != c.wantArch {
+				t.Fatalf("Arrive = %q, %q, %v", id, arch, err)
 			}
 		})
 	}
@@ -112,8 +149,8 @@ func TestGuestsAreSeparate(t *testing.T) {
 	if a == b {
 		t.Fatal("two guests got the same token")
 	}
-	ca, _ := svc.Arrive(ctx, a, "Lan", lanLook)
-	cb, _ := svc.Arrive(ctx, b, "Minh", lanLook)
+	ca, _, _ := svc.Arrive(ctx, a, lan(""))
+	cb, _, _ := svc.Arrive(ctx, b, identity.Profile{Name: "Minh", Look: lanLook})
 	if ca == "" || ca == cb {
 		t.Fatalf("characters %q and %q should differ", ca, cb)
 	}

@@ -9,6 +9,7 @@ import { placeAt, type Place } from './places';
 import { FOLIAGE } from './paint';
 import { damp, wrapAngle } from './coords';
 import type { Hud } from './hud';
+import type { Spawn } from './archetypes';
 
 /** auto-follow resumes this long after the last camera drag (ms) */
 const FOLLOW_DELAY = 1400;
@@ -38,6 +39,10 @@ export class PlayMode {
   private readonly savePos = new THREE.Vector3();
   private readonly saveQuat = new THREE.Quaternion();
   private hintHidden = false;
+  /** where spawn() puts the player: the archetype's start, or null for the market gate */
+  private home: Spawn | null = null;
+  /** a landmark seen for the first time this visit (the phone notes it) */
+  onLandmark: (p: Place) => void = () => {};
   /** between enter() and exit() */
   private active = false;
   private dressing = false;
@@ -47,17 +52,35 @@ export class PlayMode {
     this.follow = new FollowCamera(camera, nav);
     this.input = new InputController(surface, hud.joystick);
     this.input.enabled = false;
-    this.spawnAtMarket();
+    this.spawnAtHome();
+  }
+
+  /** Where spawnAtHome() goes from now on: the archetype's start, or null for the market gate. */
+  setHome(home: Spawn | null): void {
+    this.home = home;
+  }
+
+  /** Landmarks first seen this visit, in the order they were found. */
+  get landmarksSeen(): ReadonlySet<Place> {
+    return this.seen;
   }
 
   /**
-   * Back to the square in front of the south gate, facing the market (Blender +Y = three -Z). A small random
-   * offset keeps players who arrive together from standing inside each other; spawn() snaps it to a walkable cell.
+   * Back to the start: the archetype's spawn point facing its `face` point, or (without one) the square in front of
+   * the market's south gate, facing the market (Blender +Y = three -Z). A small random offset keeps players who
+   * arrive together from standing inside each other; spawn() snaps it to a walkable cell.
    */
-  spawnAtMarket(): void {
-    const [bx, by] = this.nav.meta.spawn;
+  spawnAtHome(): void {
     const jitter = (): number => (Math.random() - 0.5) * 2 * SPAWN_SPREAD;
-    this.player.spawn(bx + jitter(), -by + jitter(), Math.PI);
+    if (!this.home) {
+      const [bx, by] = this.nav.meta.spawn;
+      this.player.spawn(bx + jitter(), -by + jitter(), Math.PI);
+      return;
+    }
+    const [bx, by] = this.home.at;
+    const [fx, fy] = this.home.face;
+    // three.js heading 0 faces +Z; Blender (x, y) is three (x, -y)
+    this.player.spawn(bx + jitter(), -by + jitter(), Math.atan2(fx - bx, -(fy - by)));
   }
 
   /**
@@ -126,9 +149,11 @@ export class PlayMode {
     if (p !== this.place) {
       this.place = p;
       this.hud.setPlace(p);
-      if (p && p.kind === 'landmark' && !this.seen.has(p)) {
+      // not while picking an archetype or dressing: the player has not walked anywhere yet
+      if (p && p.kind === 'landmark' && !this.seen.has(p) && !this.dressing) {
         this.seen.add(p);
         this.hud.toast(p);
+        this.onLandmark(p);
       }
     }
     if (!this.hintHidden && this.input.firstMove !== null && now - this.input.firstMove > 6000) {

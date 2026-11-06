@@ -5,14 +5,17 @@ import type { Profile } from '../game/profile';
 import { wrapAngle } from '../game/coords';
 import type { Look } from '../game/outfits';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
-import { parseServerMsg, type ChatLine, type ClientMsg, type PlayerInfo, type SnapRow } from './protocol';
+import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type PlayerInfo, type SnapRow } from './protocol';
 
 export type NetStatus = 'connecting' | 'online' | 'offline' | 'full';
 
 export interface NetEvents {
   status(s: NetStatus): void;
-  /** joined (again): everyone else who is here, and the recent chat */
-  welcome(players: PlayerInfo[], chat: ChatLine[]): void;
+  /**
+   * joined (again): everyone else who is here, the recent chat, our archetype as the server keeps it and our
+   * phone apps (null from an older server)
+   */
+  welcome(players: PlayerInfo[], chat: ChatLine[], arch: string, apps: string[] | null): void;
   join(p: PlayerInfo): void;
   leave(id: number): void;
   profile(id: number, name: string, look: Look): void;
@@ -114,9 +117,9 @@ export class NetClient {
   }
 
   /** false when offline (the line was not sent) */
-  sendChat(text: string): boolean {
+  sendChat(text: string, ch: Channel): boolean {
     if (!this.online) return false;
-    this.send({ t: 'chat', text });
+    this.send({ t: 'chat', ch, text });
     return true;
   }
 
@@ -162,7 +165,9 @@ export class NetClient {
     ws.onopen = () => {
       const p = this.profile;
       if (!p) return;
-      const hello: ClientMsg = this.token ? { t: 'hello', token: this.token, name: p.name, look: p.look } : { t: 'hello', name: p.name, look: p.look };
+      const hello: Extract<ClientMsg, { t: 'hello' }> = { t: 'hello', name: p.name, look: p.look };
+      if (this.token) hello.token = this.token;
+      if (p.archetype) hello.arch = p.archetype;
       ws.send(JSON.stringify(hello));
     };
     ws.onmessage = (e: MessageEvent) => this.receive(e.data);
@@ -179,7 +184,7 @@ export class NetClient {
         this.selfId = m.id;
         this.backoff = BACKOFF_MIN;
         this.lastPose.fill(NaN);
-        this.on.welcome(m.players, m.chat);
+        this.on.welcome(m.players, m.chat, m.arch, m.apps);
         this.on.status('online');
         break;
       case 'join':

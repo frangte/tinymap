@@ -67,6 +67,26 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("token = %q", m.Token)
 				}
 			}},
+		{name: "hello with archetype", in: `{"t":"hello","arch":"driver","name":"Lan","look":{"body":"woman","outfit":"crab","hat":"helmet"}}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Arch != "driver" || m.Look.Outfit != "crab" {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "archetype too long", in: `{"t":"hello","arch":"` + strings.Repeat("a", ArchMax+1) + `","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`, wantErr: ErrBadArch},
+		{name: "chat defaults to global", in: `{"t":"chat","text":"chào"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Ch != ChannelGlobal {
+					t.Fatalf("ch = %q", m.Ch)
+				}
+			}},
+		{name: "nearby chat", in: `{"t":"chat","ch":"nearby","text":"chào"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Ch != ChannelNearby {
+					t.Fatalf("ch = %q", m.Ch)
+				}
+			}},
+		{name: "unknown channel", in: `{"t":"chat","ch":"party","text":"chào"}`, wantErr: ErrBadChannel},
 		{name: "hello without look", in: `{"t":"hello","name":"Lan"}`, wantErr: ErrBadLook},
 		{name: "unknown outfit", in: `{"t":"profile","name":"a","look":{"body":"man","outfit":"suit","hat":"none"}}`, wantErr: ErrBadLook},
 		{name: "state wraps heading", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":7}`,

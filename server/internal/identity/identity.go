@@ -35,8 +35,17 @@ type Character struct {
 	AccountID string
 	Name      string
 	Look      protocol.Look
+	// Archetype is the archetype id, "" until the player has chosen one; then it stays
+	Archetype string
 	// CreatedAt is unix milliseconds
 	CreatedAt int64
+}
+
+// Profile is what a hello says about the player. Archetype must already be a known id, or "".
+type Profile struct {
+	Name      string
+	Look      protocol.Look
+	Archetype string
 }
 
 // Repo is the storage identity needs; package store implements it. Missing rows are ErrNotFound.
@@ -46,6 +55,8 @@ type Repo interface {
 	CharacterOf(ctx context.Context, accountID string) (Character, error)
 	CreateCharacter(ctx context.Context, c Character) error
 	UpdateProfile(ctx context.Context, characterID, name string, look protocol.Look, at int64) error
+	// SetArchetype sets the archetype of a character that has none yet, and leaves one that has alone.
+	SetArchetype(ctx context.Context, characterID, archetype string, at int64) error
 }
 
 type Service struct {
@@ -68,36 +79,44 @@ func (s *Service) NewGuest(ctx context.Context) (string, error) {
 }
 
 // Arrive finds the character behind a hello's token, creating it on the account's first visit, and stores the
-// name and look the hello came with. An empty token is a guest without an account: "" and no error.
-func (s *Service) Arrive(ctx context.Context, token, name string, look protocol.Look) (string, error) {
+// name and look the hello came with. It returns the character's id and archetype: an archetype is chosen once,
+// so a character that has one keeps it whatever the hello says. An empty token is a guest without an account:
+// no id, and the hello's archetype for this visit.
+func (s *Service) Arrive(ctx context.Context, token string, p Profile) (id, archetype string, err error) {
 	if token == "" {
-		return "", nil
+		return "", p.Archetype, nil
 	}
 	now := s.now().UnixMilli()
 	account, err := s.repo.AccountByToken(ctx, hashToken(token), now)
 	if errors.Is(err, ErrNotFound) {
-		return "", ErrUnknownToken
+		return "", "", ErrUnknownToken
 	}
 	if err != nil {
-		return "", fmt.Errorf("identity: arrive: %w", err)
+		return "", "", fmt.Errorf("identity: arrive: %w", err)
 	}
 	c, err := s.repo.CharacterOf(ctx, account)
 	if errors.Is(err, ErrNotFound) {
-		c = Character{ID: ids.New(), AccountID: account, Name: name, Look: look, CreatedAt: now}
+		c = Character{ID: ids.New(), AccountID: account, Name: p.Name, Look: p.Look, Archetype: p.Archetype, CreatedAt: now}
 		if err := s.repo.CreateCharacter(ctx, c); err != nil {
-			return "", fmt.Errorf("identity: arrive: %w", err)
+			return "", "", fmt.Errorf("identity: arrive: %w", err)
 		}
-		return c.ID, nil
+		return c.ID, c.Archetype, nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("identity: arrive: %w", err)
+		return "", "", fmt.Errorf("identity: arrive: %w", err)
 	}
-	if (name != "" && name != c.Name) || look != c.Look {
-		if err := s.repo.UpdateProfile(ctx, c.ID, name, look, now); err != nil {
-			return "", fmt.Errorf("identity: arrive: %w", err)
+	if c.Archetype == "" && p.Archetype != "" {
+		if err := s.repo.SetArchetype(ctx, c.ID, p.Archetype, now); err != nil {
+			return "", "", fmt.Errorf("identity: arrive: %w", err)
+		}
+		c.Archetype = p.Archetype
+	}
+	if (p.Name != "" && p.Name != c.Name) || p.Look != c.Look {
+		if err := s.repo.UpdateProfile(ctx, c.ID, p.Name, p.Look, now); err != nil {
+			return "", "", fmt.Errorf("identity: arrive: %w", err)
 		}
 	}
-	return c.ID, nil
+	return c.ID, c.Archetype, nil
 }
 
 // SaveProfile stores a changed look and name (an empty name keeps the stored one).
