@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"saigon-noir/server/internal/events"
+	"saigon-noir/server/internal/gameday"
+	"saigon-noir/server/internal/protocol"
 )
 
 // World is how the service reaches players: world.World in production. Each call may block briefly.
@@ -27,9 +29,14 @@ type Config struct {
 	Queue int
 	// StoreWait bounds each load and save
 	StoreWait time.Duration
+	// DayCheck is how often the service looks whether a new day began, to start the dailies of everyone online
+	DayCheck time.Duration
 }
 
-func DefaultConfig() Config { return Config{Workers: 4, Queue: 1024, StoreWait: 3 * time.Second} }
+func DefaultConfig() Config {
+	// 16 workers: a character whose save is retried (up to a few seconds) holds up only those sharing its worker
+	return Config{Workers: 16, Queue: 1024, StoreWait: 3 * time.Second, DayCheck: 30 * time.Second}
+}
 
 // Service runs quests for the characters in the world.
 type Service struct {
@@ -54,6 +61,8 @@ const (
 	jobLeave
 	jobEvent
 	jobTitle
+	// jobNewDay: a day began; every character on the worker gets that day's dailies
+	jobNewDay
 )
 
 type job struct {
@@ -92,8 +101,40 @@ func (s *Service) Run(ctx context.Context) {
 			done <- struct{}{}
 		}()
 	}
+	go s.watchDays(ctx)
 	for range s.workers {
 		<-done
+	}
+}
+
+// watchDays tells every worker when a new day begins (midnight in Saigon), so players online across midnight get
+// the new day's dailies without coming back.
+func (s *Service) watchDays(ctx context.Context) {
+	every := s.cfg.DayCheck
+	if every <= 0 {
+		every = DefaultConfig().DayCheck
+	}
+	t := time.NewTicker(every)
+	defer t.Stop()
+	day := gameday.Of(s.now())
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		today := gameday.Of(s.now())
+		if today == day {
+			continue
+		}
+		day = today
+		for _, ch := range s.workers {
+			select {
+			case ch <- job{kind: jobNewDay}:
+			case <-ctx.Done():
+				return
+			}
+		}
 	}
 }
 
@@ -181,6 +222,10 @@ func (s *Service) do(ctx context.Context, players map[string]*player, j job) {
 		if p := players[j.character]; p != nil {
 			s.chooseTitle(ctx, j.character, p, j.title)
 		}
+	case jobNewDay:
+		for character, p := range players {
+			s.apply(ctx, character, p, func(b *Book, now int64) Outcome { return s.engine.Refresh(p.who, b, now) })
+		}
 	}
 }
 
@@ -196,7 +241,7 @@ func (s *Service) join(ctx context.Context, j job) *player {
 	p := &player{session: j.session, who: j.player, book: NewBook(saved)}
 	// a new visit always tells the game where it stands, even when nothing changed
 	if !s.apply(ctx, j.character, p, func(b *Book, now int64) Outcome { return s.engine.Refresh(p.who, b, now) }) {
-		s.send(j.character, p.book, nil)
+		s.send(j.character, p.book, nil, s.now().UnixMilli())
 	}
 	return p
 }
@@ -210,18 +255,22 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 	if out.Empty() {
 		return false
 	}
-	c := Commit{Grants: out.Grants, Title: out.Title, At: now}
+	c := Commit{Grants: out.Grants, Title: out.Title, Streak: out.Streak, At: now}
 	for _, r := range out.Changed {
 		c.Records = append(c.Records, *r)
 	}
-	granted, err := s.save(ctx, character, c)
+	stored, err := s.save(ctx, character, c)
 	if err != nil {
 		s.log.Error("saving quests failed, progress not kept", "character", character, "err", err)
 		return false
 	}
 	before := p.book
 	p.book = b
-	s.send(character, b, s.news(out, granted))
+	// the balance first, so the game already shows it when the progress celebrates the reward
+	if stored.Paid {
+		s.world.Deliver(character, protocol.Encode(protocol.Wallet{T: protocol.TypeWallet, Balance: stored.Balance}))
+	}
+	s.send(character, b, s.news(out, stored.Granted), now)
 	if !maps.Equal(before.Active(), b.Active()) {
 		s.world.SetQuests(character, b.Active())
 	}
@@ -244,26 +293,26 @@ const saveTries = 3
 
 var saveBackoff = []time.Duration{250 * time.Millisecond, time.Second}
 
-func (s *Service) save(ctx context.Context, character string, c Commit) ([]string, error) {
+func (s *Service) save(ctx context.Context, character string, c Commit) (Stored, error) {
 	var err error
 	for try := 0; try < saveTries; try++ {
 		if try > 0 {
 			select {
 			case <-ctx.Done():
-				return nil, err
+				return Stored{}, err
 			case <-time.After(saveBackoff[min(try-1, len(saveBackoff)-1)]):
 			}
 		}
 		sctx, cancel := context.WithTimeout(ctx, s.cfg.StoreWait)
-		var granted []string
-		granted, err = s.store.SaveQuests(sctx, character, c)
+		var stored Stored
+		stored, err = s.store.SaveQuests(sctx, character, c)
 		cancel()
 		if err == nil {
-			return granted, nil
+			return stored, nil
 		}
 		s.log.Warn("saving quests failed", "character", character, "try", try+1, "err", err)
 	}
-	return nil, err
+	return Stored{}, err
 }
 
 func (s *Service) chooseTitle(ctx context.Context, character string, p *player, title string) {
@@ -276,8 +325,8 @@ func (s *Service) chooseTitle(ctx context.Context, character string, p *player, 
 	})
 }
 
-func (s *Service) send(character string, b *Book, news []News) {
-	s.world.Deliver(character, s.engine.progress(b, news))
+func (s *Service) send(character string, b *Book, news []News, now int64) {
+	s.world.Deliver(character, s.engine.progress(b, news, gameday.OfMilli(now)))
 	s.world.SetQuests(character, b.Active())
 }
 

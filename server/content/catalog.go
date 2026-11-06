@@ -110,6 +110,7 @@ type Catalog struct {
 	Quests       []Quest
 	Achievements []Achievement
 	Ridehail     Ridehail
+	Directions   Directions
 	byID         map[string]Archetype
 	vehicleByID  map[string]Vehicle
 	questByID    map[string]Quest
@@ -122,14 +123,15 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail []byte
+	places, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
 
 func embedded() files {
 	return files{places: placesJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
-		emotes: emotesJSON, npcs: npcsJSON, quests: questsJSON, ridehail: ridehailJSON, dialogues: dialogueFiles()}
+		emotes: emotesJSON, npcs: npcsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
+		dialogues: dialogueFiles()}
 }
 
 // Load parses and checks the embedded data files.
@@ -164,6 +166,9 @@ func load(f files) (*Catalog, error) {
 		return nil, err
 	}
 	if err := parseRidehail(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseDirections(f, c); err != nil {
 		return nil, err
 	}
 	if err := parseCast(f, c); err != nil {
@@ -233,6 +238,9 @@ func (c *Catalog) check() error {
 	}
 	if err := c.Ridehail.check(); err != nil {
 		return fmt.Errorf("ridehail.json: %w", err)
+	}
+	if err := c.Directions.check(caps); err != nil {
+		return fmt.Errorf("directions.json: %w", err)
 	}
 	return c.checkQuests(caps, places)
 }

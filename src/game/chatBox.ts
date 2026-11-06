@@ -13,6 +13,12 @@ export interface ChatHandlers {
   opened(): void;
   /** the input closed: give the keyboard back to the game */
   closed(): void;
+  /** whether a player's lines are hidden (personal mute) */
+  muted(id: number, name: string): boolean;
+  /** hide a player's lines from now on */
+  mute(id: number, name: string): void;
+  /** report a player to the moderators; false when it could not be sent */
+  report(id: number): boolean;
 }
 
 /** lines kept in the log (the closed box shows the last few, see style.css) */
@@ -29,7 +35,14 @@ const CH_LABEL: Record<Channel, string> = { global: 'Cả phố', nearby: 'Gần
 const NOTE = {
   offline: 'Mất kết nối, chưa chat được…',
   rate: 'Chậm lại chút…',
+  slow: 'Kênh Cả phố đang đông: vài giây mới gửi được một dòng.',
+  repeat: 'Dòng này vừa gửi rồi.',
+  new_player: 'Chơi thêm vài phút nữa mới chat Cả phố được. Kênh Gần đây vẫn mở.',
+  muted: 'Bạn đang bị tắt chat.',
 } as const;
+
+/** why the server did not send our last line */
+export type ChatRefusal = 'slow' | 'repeat' | 'new_player' | 'muted';
 
 export class ChatBox {
   private readonly root = el('chat');
@@ -139,11 +152,26 @@ export class ChatBox {
 
   line(l: ChatLine, selfId: number | null): void {
     this.lastAt = Math.max(this.lastAt, l.at);
+    if (!l.npc && l.id !== selfId && this.on.muted(l.id, l.name)) return;
     const li = document.createElement('li');
     const name = document.createElement('b');
     name.textContent = l.name;
     name.dataset.c = l.npc ? 'npc' : l.id === selfId ? 'self' : String(l.id % COLOURS);
     li.append(name);
+    if (!l.npc && l.id !== selfId) {
+      // another player's name opens what can be done about them: mute, report
+      li.dataset.player = String(l.id);
+      name.tabIndex = 0;
+      name.setAttribute('role', 'button');
+      name.setAttribute('aria-label', `${l.name}: tắt tiếng hoặc báo cáo`);
+      name.addEventListener('click', () => this.personMenu(li, l));
+      name.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.personMenu(li, l);
+        }
+      });
+    }
     if (l.npc) li.classList.add('is-npc');
     const b = l.npc ? null : badge(l.arch);
     if (b) li.append(' ', b);
@@ -176,6 +204,46 @@ export class ChatBox {
   rateLimited(): void {
     if (this.isOpen && this.input.value === '') this.input.value = this.lastSent;
     this.flash(NOTE.rate);
+  }
+
+  /** The server did not send our last line: say why, and give a slowed-down line back to retype. */
+  refused(code: ChatRefusal): void {
+    if (code === 'slow' && this.isOpen && this.input.value === '') this.input.value = this.lastSent;
+    this.flash(NOTE[code]);
+  }
+
+  /** Under a line: mute its player, report them, or close. A second tap on the name closes it. */
+  private personMenu(li: HTMLLIElement, l: ChatLine): void {
+    const open = li.querySelector('.chat-menu');
+    this.log.querySelectorAll('.chat-menu').forEach((m) => m.remove());
+    if (open) return;
+    const menu = document.createElement('span');
+    menu.className = 'chat-menu';
+    const item = (label: string, act: () => void): HTMLButtonElement => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.remove();
+        act();
+      });
+      return b;
+    };
+    menu.append(
+      item(`Tắt tiếng ${l.name}`, () => {
+        this.on.mute(l.id, l.name);
+        // their lines already shown go too
+        this.log.querySelectorAll(`li[data-player="${l.id}"]`).forEach((x) => x.remove());
+        this.system(`Đã tắt tiếng ${l.name}. Bật lại trong app Trò chuyện.`);
+      }),
+      item('Báo cáo', () => {
+        if (!this.on.report(l.id)) this.flash(NOTE.offline);
+      }),
+      item('Thôi', () => undefined),
+    );
+    li.append(menu);
+    this.wake();
   }
 
   private submit(): void {

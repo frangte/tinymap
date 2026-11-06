@@ -83,6 +83,6 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
 
 ## Next
 
-- Phase 5: daily quests, the co-op quest, moderation and a load test ([docs/design/06-mvp-roadmap.md](docs/design/06-mvp-roadmap.md)). Built so far: accounts and archetypes, the phone, server-checked movement and the motorbike, NPCs and dialogue, quests and achievements, and Crab Bike rides with the xu wallet ([docs/design/README.md](docs/design/README.md#progress)).
+- Finish phase 5: fewer meshes per avatar (draw calls in a crowd) and a check on a real mid-range Android ([docs/design/06-mvp-roadmap.md](docs/design/06-mvp-roadmap.md)). Built so far: accounts and archetypes, the phone, server-checked movement and the motorbike, NPCs and dialogue, quests and achievements, Crab Bike rides with the xu wallet, daily quests, asking the way (the co-op quest), moderation, and a 300-bot load test ([docs/design/README.md](docs/design/README.md#progress)).
 - Bùi Viện walking street (tube-house rows are reserved for it).
 - UBND building on the site kept free at the north end of Nguyễn Huệ.

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/gameday"
 )
 
 // The money side of trips (D11). The trip itself runs in the world loop; every step that moves xu runs as a job
@@ -50,11 +51,8 @@ type Bank interface {
 	DriverStats(ctx context.Context, driver string) (trips int, stars float64, err error)
 }
 
-// saigon is the game's day for the daily top-up (UTC+7, no daylight saving).
-var saigon = time.FixedZone("ICT", 7*60*60)
-
 // Today is the day (in Saigon) of t, as the wallet's daily top-up counts it.
-func Today(t time.Time) string { return t.In(saigon).Format("2006-01-02") }
+func Today(t time.Time) string { return gameday.Of(t) }
 
 // Wallets opens a character's wallet when it arrives: store.DB in production.
 type Wallets interface {

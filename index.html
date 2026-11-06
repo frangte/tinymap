@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   </head>
   <body data-mode="menu">
-    <div id="stage" data-model="models/saigon_q1.glb" data-nav="models/saigon_q1"></div>
+    <div id="stage" data-model="models/saigon_q1_v5.glb" data-nav="models/saigon_q1"></div>
     <!-- names and chat bubbles over the other players (nameTags.ts), under every card -->
     <div class="tags" id="tags" data-modes="play" aria-hidden="true"></div>
 
@@ -78,6 +78,19 @@
         <button id="offer-skip" type="button">Bỏ qua</button>
       </div>
       <i class="offer-bar" id="offer-bar" aria-hidden="true"></i>
+    </section>
+
+    <!-- a Traveler asking the way, for a Citizen (src/game/callBanner.ts) -->
+    <section class="offer card" id="way-call" data-modes="play" aria-labelledby="way-call-who" hidden>
+      <div class="offer-text">
+        <strong id="way-call-who" aria-live="assertive"></strong>
+        <span id="way-call-where"></span>
+      </div>
+      <div class="offer-actions">
+        <span class="offer-hint" id="way-call-hint"></span>
+        <button id="way-call-skip" type="button">Bỏ qua</button>
+      </div>
+      <i class="offer-bar" id="way-call-bar" aria-hidden="true"></i>
     </section>
 
     <!-- dressing: opens on the first "Vào game" and from "Đổi đồ"; buttons are filled in by dressPanel.ts -->

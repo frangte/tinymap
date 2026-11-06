@@ -29,9 +29,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/chatfilter"
 	"saigon-noir/server/internal/dialogue"
+	"saigon-noir/server/internal/directions"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/identity"
+	"saigon-noir/server/internal/moderation"
 	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/ridehail"
 	"saigon-noir/server/internal/store"
@@ -47,6 +50,13 @@ const (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "mod" {
+		if err := runMod(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(); err != nil {
 		slog.Error("server stopped", "err", err)
 		os.Exit(1)
@@ -81,6 +91,14 @@ func run() error {
 		TrustedProxies: splitList(os.Getenv("TRUSTED_PROXIES")),
 		Log:            log,
 	}
+	if v := os.Getenv("GUEST_BURST"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			return fmt.Errorf("GUEST_BURST must be a positive number, got %q", v)
+		}
+		opt.GuestBurst = n
+		log.Warn("guest accounts per address raised: for a load test only", "burst", n)
+	}
 	if opt.StaticDir != "" {
 		if st, err := os.Stat(opt.StaticDir); err != nil || !st.IsDir() {
 			return fmt.Errorf("STATIC_DIR %q is not a directory (run `npm run build` first?)", opt.StaticDir)
@@ -100,6 +118,12 @@ func run() error {
 	cfg.Move.RunSpeed, cfg.Move.Tolerance = catalog.Movement.RunSpeed, catalog.Movement.Tolerance
 	cfg.NPCs, cfg.Dialogue = world.NPCsFrom(catalog), dialogue.NewScript(catalog)
 	cfg.Places, cfg.Emotes = catalog.Places, world.EmoteNames(catalog)
+	words, err := content.LoadChatWords()
+	if err != nil {
+		return fmt.Errorf("content: %w", err)
+	}
+	filter := chatfilter.New(words)
+	cfg.Chat.Filter = filter.Clean
 	engine, err := quest.NewEngine(catalog)
 	if err != nil {
 		return fmt.Errorf("content: %w", err)
@@ -132,8 +156,13 @@ func run() error {
 	w.Use(func(h world.Host) world.Module {
 		return ridehail.New(h, ridehail.ConfigFrom(catalog.Ridehail), catalog.Places, db, log)
 	})
+	// asking the way, the co-op quest: a Traveler asks, the Citizens online are called (D18)
+	w.Use(func(h world.Host) world.Module { return directions.New(h, catalog, log) })
+	// moderation sees every chat line first: reports, mutes, bans, the moderators' commands (D17)
+	w.Use(func(h world.Host) world.Module { return moderation.New(h, db, log) })
 	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
 	sockets := ws.New(w, accounts, catalog, ws.DefaultConfig(), log)
+	sockets.Names = filter.Clean
 	sockets.Quests = quests
 	sockets.Wallets = ridehail.Purse{Wallets: db, Cfg: catalog.Ridehail, Now: time.Now}
 	quests.OnCapability = sockets.Grant

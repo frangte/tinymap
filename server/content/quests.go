@@ -21,11 +21,19 @@ type Title struct {
 	Name Text   `json:"name"`
 }
 
-// Stamp is a collectible in the Traveler's stamp book (Sổ tem), earned as a reward.
+// Stamp is a collectible earned as a reward: the Traveler's stamp book (Sổ tem), or another set.
 type Stamp struct {
 	ID   string `json:"id"`
 	Name Text   `json:"name"`
+	// Set groups stamps in the phone: "" for the Traveler's stamp book, "streak" for days of dailies in a row
+	Set string `json:"set,omitempty"`
 }
+
+// Stamp sets.
+const (
+	StampSetBook   = ""
+	StampSetStreak = "streak"
+)
 
 // Objective is one thing a quest asks for. Type names an objective type of the quest engine, which reads Params.
 type Objective struct {
@@ -49,7 +57,15 @@ type Rewards struct {
 	Titles     []string `json:"titles,omitempty"`
 	Stamps     []string `json:"stamps,omitempty"`
 	Capability string   `json:"capability,omitempty"`
+	// Xu go into the wallet (a daily pays them every day it is done)
+	Xu int64 `json:"xu,omitempty"`
 }
+
+// Repeats: how often a quest can be done.
+const (
+	RepeatOnce  = ""
+	RepeatDaily = "daily"
+)
 
 // Flows: in what order a quest's objectives can be done.
 const (
@@ -67,8 +83,13 @@ type Quest struct {
 	About     Text   `json:"about"`
 	// TagsAny: offered to characters whose archetype has one of these tags (archetypes.json); empty: everyone
 	TagsAny []string `json:"tags_any,omitempty"`
-	// Requires are quests to have completed first
-	Requires   []string    `json:"requires,omitempty"`
+	// Requires are quests to have completed first (never a daily: being done with one only lasts a day)
+	Requires []string `json:"requires,omitempty"`
+	// Repeat is RepeatOnce, or RepeatDaily: it starts over every day (Saigon time, server/internal/gameday)
+	Repeat string `json:"repeat,omitempty"`
+	// Pool makes dailies take turns: each day one quest of each pool is on (picked by the date, the same for
+	// everyone); a daily without a pool is on every day
+	Pool       string      `json:"pool,omitempty"`
 	Flow       string      `json:"flow"`
 	Objectives []Objective `json:"objectives"`
 	Rewards    Rewards     `json:"rewards"`
@@ -90,6 +111,8 @@ const (
 	TitleMax      = 32
 	objectivesMax = 8
 	textMax       = 200
+	// XuRewardMax keeps a reward well under a day's top-up (ridehail.json)
+	XuRewardMax = 20_000
 )
 
 var (
@@ -149,6 +172,9 @@ func (c *Catalog) checkQuests(caps, places map[string]bool) error {
 		if err := checkText(s.Name, TitleMax, false); err != nil {
 			return fmt.Errorf("quests.json: stamp %q: %w", s.ID, err)
 		}
+		if s.Set != StampSetBook && s.Set != StampSetStreak {
+			return fmt.Errorf("quests.json: stamp %q: set must be empty or %q", s.ID, StampSetStreak)
+		}
 		refs.stamps[s.ID] = true
 	}
 	for _, q := range c.Quests {
@@ -194,9 +220,23 @@ func (r questRefs) quest(q Quest) error {
 		return err
 	}
 	for _, id := range q.Requires {
-		if _, ok := r.c.questByID[id]; !ok || id == q.ID {
+		req, ok := r.c.questByID[id]
+		if !ok || id == q.ID {
 			return fmt.Errorf("requires %q, which is not another quest", id)
 		}
+		if req.Repeat == RepeatDaily {
+			return fmt.Errorf("requires %q, a daily: being done with it only lasts a day", id)
+		}
+	}
+	switch {
+	case q.Repeat != RepeatOnce && q.Repeat != RepeatDaily:
+		return fmt.Errorf("repeat must be empty or %q", RepeatDaily)
+	case q.Pool != "" && q.Repeat != RepeatDaily:
+		return errors.New("only a daily has a pool")
+	case q.Pool != "" && !idPattern.MatchString(q.Pool):
+		return errors.New("pool must be lower_snake_case")
+	case q.Repeat == RepeatDaily && (len(q.Rewards.Titles) > 0 || q.Rewards.Capability != ""):
+		return errors.New("a daily gives xu and stamps, not titles or capabilities (those are earned once)")
 	}
 	ids := map[string]bool{}
 	for _, o := range q.Objectives {
@@ -281,6 +321,9 @@ func (r questRefs) rewards(w Rewards) error {
 	}
 	if w.Capability != "" && !r.caps[w.Capability] {
 		return fmt.Errorf("reward capability %q is unknown (archetypes.json)", w.Capability)
+	}
+	if w.Xu < 0 || w.Xu > XuRewardMax {
+		return fmt.Errorf("reward xu must be 0 to %d", XuRewardMax)
 	}
 	return nil
 }

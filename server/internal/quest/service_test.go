@@ -20,11 +20,13 @@ type memStore struct {
 	mu      sync.Mutex
 	saved   map[string]*Saved
 	granted map[string]bool
+	// balance is each character's wallet; a character without one is not paid
+	balance map[string]int64
 	fail    bool
 }
 
 func newMemStore() *memStore {
-	return &memStore{saved: map[string]*Saved{}, granted: map[string]bool{}}
+	return &memStore{saved: map[string]*Saved{}, granted: map[string]bool{}, balance: map[string]int64{}}
 }
 
 func (m *memStore) LoadQuests(_ context.Context, character string) (Saved, error) {
@@ -36,11 +38,12 @@ func (m *memStore) LoadQuests(_ context.Context, character string) (Saved, error
 	return Saved{}, nil
 }
 
-func (m *memStore) SaveQuests(_ context.Context, character string, c Commit) ([]string, error) {
+func (m *memStore) SaveQuests(_ context.Context, character string, c Commit) (Stored, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	var out Stored
 	if m.fail {
-		return nil, errors.New("disk full")
+		return out, errors.New("disk full")
 	}
 	s := m.saved[character]
 	if s == nil {
@@ -48,43 +51,60 @@ func (m *memStore) SaveQuests(_ context.Context, character string, c Commit) ([]
 		m.saved[character] = s
 	}
 	for _, r := range c.Records {
-		s.Records = slices.DeleteFunc(s.Records, func(o Record) bool { return o.ID == r.ID })
+		// a row per quest and cycle, as in the database
+		s.Records = slices.DeleteFunc(s.Records, func(o Record) bool { return o.ID == r.ID && o.Cycle == r.Cycle })
 		s.Records = append(s.Records, *r.clone())
 	}
-	var granted []string
 	for _, g := range c.Grants {
 		if m.granted[character+g.Source] {
 			continue
 		}
 		m.granted[character+g.Source] = true
-		granted = append(granted, g.Source)
+		out.Granted = append(out.Granted, g.Source)
 		s.Titles = append(s.Titles, g.Titles...)
 		s.Stamps = append(s.Stamps, g.Stamps...)
+		if b, ok := m.balance[character]; ok && g.Xu > 0 {
+			m.balance[character] = b + g.Xu
+			out.Paid, out.Balance = true, b+g.Xu
+		}
 	}
 	if c.Title != nil {
 		s.Title = *c.Title
 	}
-	return granted, nil
+	if c.Streak != nil {
+		s.Streak = *c.Streak
+	}
+	return out, nil
 }
 
 // fakeWorld records what the service tells players.
 type fakeWorld struct {
-	mu       sync.Mutex
-	frames   map[string][]protocol.Progress
-	titles   map[string]string
-	quests   map[string]map[string]bool
+	mu     sync.Mutex
+	frames map[string][]protocol.Progress
+	titles map[string]string
+	quests map[string]map[string]bool
+	// wallets are the balances sent, in order
+	wallets  map[string][]int64
 	received chan struct{}
 }
 
 func newFakeWorld() *fakeWorld {
 	return &fakeWorld{frames: map[string][]protocol.Progress{}, titles: map[string]string{}, quests: map[string]map[string]bool{},
-		received: make(chan struct{}, 100)}
+		wallets: map[string][]int64{}, received: make(chan struct{}, 100)}
 }
 
 func (w *fakeWorld) Deliver(character string, frame []byte) bool {
 	var p protocol.Progress
 	if err := json.Unmarshal(frame, &p); err != nil {
 		panic(err)
+	}
+	if p.T == protocol.TypeWallet {
+		var wm protocol.Wallet
+		_ = json.Unmarshal(frame, &wm)
+		w.mu.Lock()
+		w.wallets[character] = append(w.wallets[character], wm.Balance)
+		w.mu.Unlock()
+		return true
 	}
 	w.mu.Lock()
 	w.frames[character] = append(w.frames[character], p)

@@ -54,12 +54,19 @@ const (
 	TypeRideAlight   = "ride_alight"
 	TypeRideComplete = "ride_complete"
 	TypeRideRate     = "ride_rate"
-	TypeWelcome      = "welcome"
-	TypeJoin         = "join"
-	TypeLeave        = "leave"
-	TypeSnap         = "snap"
-	TypeCorrect      = "correct"
-	TypeVehicle      = "vehicle"
+	// Asking the way (server/internal/directions): a Traveler asks the way to a landmark or stops asking; a
+	// Citizen standing by answers an ask
+	TypeWayAsk    = "way_ask"
+	TypeWayCancel = "way_cancel"
+	TypeWayAnswer = "way_answer"
+	// TypeReport reports a player (n) to the moderators, with the last lines of the two
+	TypeReport  = "report"
+	TypeWelcome = "welcome"
+	TypeJoin    = "join"
+	TypeLeave   = "leave"
+	TypeSnap    = "snap"
+	TypeCorrect = "correct"
+	TypeVehicle = "vehicle"
 	// TypeVehicleGone: a vehicle left the world (its owner did)
 	TypeVehicleGone = "vehicle_gone"
 	// TypeInteraction shows a conversation's current line; TypeInteractionEnd closes it
@@ -69,7 +76,9 @@ const (
 	TypeResult = "result"
 	// TypeProgress is a character's quests, achievements, titles and stamps, and what just happened
 	TypeProgress = "progress"
-	TypeError    = "error"
+	// TypeWallet is a character's balance in xu, after every change (fares, tips, quest rewards)
+	TypeWallet = "wallet"
+	TypeError  = "error"
 )
 
 // State flags (the "s" field of a state, and of every snapshot row).
@@ -94,7 +103,18 @@ const (
 	ErrFull     = "full"
 	ErrBadHello = "bad_hello"
 	ErrRate     = "rate"
-	ErrSlow     = "slow"
+	// ErrSlow: global chat is busy (slow mode): one line per few seconds each
+	ErrSlow = "slow"
+	// ErrRepeat: the same chat line again, so soon
+	ErrRepeat = "repeat"
+	// ErrNewPlayer: global chat waits until a character is a few minutes old (nearby is open to everyone)
+	ErrNewPlayer = "new_player"
+	// ErrMuted: a moderator muted this account for now
+	ErrMuted = "muted"
+	// ErrBanned: a moderator banned this account for now; the socket is closed after this
+	ErrBanned = "banned"
+	// ErrKicked: a moderator sent this player out of the game; the socket is closed after this
+	ErrKicked = "kicked"
 	// ErrAuth: the hello's token belongs to no account (the database was reset, or it was made up). The client
 	// should forget the token, get a new one and connect again; the socket is closed after this.
 	ErrAuth = "auth"
@@ -204,7 +224,7 @@ type ClientMsg struct {
 	K uint32 `json:"k"`
 	// V is the vehicle to get on, in mount only
 	V uint32 `json:"v"`
-	// N is the NPC to talk to, in interact only
+	// N is the NPC to talk to, in interact; the player reported, in report
 	N uint32 `json:"n"`
 	// Sid is the conversation, in choose and interact_leave; C the answer picked, in choose (an index into the
 	// choices of the line shown) and Step that line's step, so an answer to a line already gone is refused
@@ -217,8 +237,10 @@ type ClientMsg struct {
 	Title string `json:"title"`
 	// On, in duty: going on duty or off it
 	On bool `json:"on"`
-	// Dest is the place to go, in ride_request (an id from server/content/places.json)
+	// Dest is the place to go, in ride_request and way_ask (an id from server/content/places.json)
 	Dest string `json:"dest"`
+	// Ask is the ask answered, in way_answer
+	Ask string `json:"ask"`
 	// Offer is the offer accepted, in ride_accept
 	Offer string `json:"offer"`
 	// Stars (1–5) and Tip (xu), in ride_rate
@@ -265,7 +287,7 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeMount {
 		m.V = 0
 	}
-	if m.T != TypeInteract {
+	if m.T != TypeInteract && m.T != TypeReport {
 		m.N = 0
 	}
 	if m.T != TypeChoose && m.T != TypeInteractLeave {
@@ -283,8 +305,11 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeDuty {
 		m.On = false
 	}
-	if m.T != TypeRideRequest {
+	if m.T != TypeRideRequest && m.T != TypeWayAsk {
 		m.Dest = ""
+	}
+	if m.T != TypeWayAnswer {
+		m.Ask = ""
 	}
 	if m.T != TypeRideAccept {
 		m.Offer = ""
@@ -326,8 +351,17 @@ func Decode(data []byte) (ClientMsg, error) {
 			return m, ErrBadTitle
 		}
 	case TypeDuty, TypeRideCancel, TypeRideBoard, TypeRideAlight, TypeRideComplete:
-	case TypeRideRequest:
+	case TypeRideRequest, TypeWayAsk:
 		if m.Dest == "" || len(m.Dest) > ArchMax || !titlePattern.MatchString(m.Dest) {
+			return m, ErrBadRide
+		}
+	case TypeReport:
+		if m.N == 0 {
+			return m, ErrBadTarget
+		}
+	case TypeWayCancel:
+	case TypeWayAnswer:
+		if m.Ask == "" || len(m.Ask) > 32 || !offerPattern.MatchString(m.Ask) {
 			return m, ErrBadRide
 		}
 	case TypeRideAccept:
@@ -494,7 +528,15 @@ type Progress struct {
 	Titles []string `json:"titles"`
 	Stamps []string `json:"stamps"`
 	Title  string   `json:"title"`
-	News   []News   `json:"news,omitempty"`
+	// Streak is how many days in a row a daily quest was done (0 once a day went by without one)
+	Streak int    `json:"streak"`
+	News   []News `json:"news,omitempty"`
+}
+
+// Wallet is a character's balance in xu.
+type Wallet struct {
+	T       string `json:"t"`
+	Balance int64  `json:"balance"`
 }
 
 // QuestState is a started quest: done, or how far each objective got (by objective id).

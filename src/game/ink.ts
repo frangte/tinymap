@@ -125,6 +125,11 @@ export class InkPass {
   render(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera): void {
     this.post.uniforms.uNear.value = camera.near;
     this.post.uniforms.uFar.value = camera.far;
+    // the scene is drawn twice: its matrices are worked out once for both passes (in a crowd, walking the scene
+    // graph for them is the biggest cost of a frame)
+    scene.updateMatrixWorld();
+    const autoUpdate = scene.matrixWorldAutoUpdate;
+    scene.matrixWorldAutoUpdate = false;
     // 1. flat normals + depth: always drawn, the sea needs the depth even with the ink turned off
     const bg = scene.background;
     scene.background = null;
@@ -143,6 +148,7 @@ export class InkPass {
     // 2. colour
     renderer.setRenderTarget(this.colorRT);
     renderer.render(scene, camera);
+    scene.matrixWorldAutoUpdate = autoUpdate;
     // 3. ink + paper
     renderer.setRenderTarget(null);
     renderer.render(this.quadScene, this.quadCam);

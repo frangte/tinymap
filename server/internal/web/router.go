@@ -39,6 +39,9 @@ type Options struct {
 	TrustedProxies []string
 	// Log gets a warning for every page origin refused (nil: slog.Default()).
 	Log *slog.Logger
+	// GuestBurst is how many guest accounts one address may take at once (0: guestBurst). Only a load test from
+	// one machine raises it (GUEST_BURST); a public server keeps the default.
+	GuestBurst int
 }
 
 // Guests issues anonymous accounts; identity.Service in production.
@@ -85,7 +88,11 @@ func NewRouter(w *world.World, sockets *ws.Server, guests Guests, opt Options) (
 	})
 
 	api := r.Group("/api", apiOrigin(allowed), noStore)
-	limit := newIPLimiter(rate.Every(guestEvery), guestBurst)
+	burst := guestBurst
+	if opt.GuestBurst > 0 {
+		burst = opt.GuestBurst
+	}
+	limit := newIPLimiter(rate.Every(guestEvery), burst)
 	api.POST("/auth/guest", func(c *gin.Context) {
 		if !limit.allow(c.ClientIP(), time.Now()) {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "rate"})

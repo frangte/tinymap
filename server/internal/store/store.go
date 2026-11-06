@@ -50,6 +50,7 @@ type Options struct {
 
 type DB struct {
 	sql       *sql.DB
+	path      string
 	backupDir string
 	log       *slog.Logger
 }
@@ -79,7 +80,7 @@ func open(ctx context.Context, opt Options, log *slog.Logger, migrations fs.FS) 
 	}
 	conn.SetMaxOpenConns(1)
 	conn.SetMaxIdleConns(1)
-	db := &DB{sql: conn, backupDir: opt.BackupDir, log: log}
+	db := &DB{sql: conn, path: opt.Path, backupDir: opt.BackupDir, log: log}
 	if err := conn.PingContext(ctx); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("store: open %s: %w", opt.Path, err)
@@ -184,21 +185,34 @@ func (db *DB) apply(ctx context.Context, m migration) error {
 // Backup writes a consistent copy of the database to the backup folder as game-<UTC time>.db and deletes all
 // but the newest `keep` of those. It is safe while the game is running.
 func (db *DB) Backup(ctx context.Context, keep int, now time.Time) (string, error) {
-	file, err := db.backup(ctx, dailyPrefix, now)
+	// a connection of its own, read-only: the game's one connection keeps serving hellos and saves while a big
+	// database is copied (WAL lets a reader copy while the writer writes)
+	ro, err := sql.Open("sqlite", "file:"+db.path+"?mode=ro&_pragma=busy_timeout(5000)")
+	if err != nil {
+		return "", fmt.Errorf("store: backup: %w", err)
+	}
+	defer ro.Close()
+	ro.SetMaxOpenConns(1)
+	file, err := db.backupWith(ctx, ro, dailyPrefix, now)
 	if err != nil {
 		return "", err
 	}
 	return file, prune(db.backupDir, dailyPrefix, keep)
 }
 
+// backup copies the database through its own connection (before a migration, when nothing else runs yet).
 func (db *DB) backup(ctx context.Context, prefix string, now time.Time) (string, error) {
+	return db.backupWith(ctx, db.sql, prefix, now)
+}
+
+func (db *DB) backupWith(ctx context.Context, conn *sql.DB, prefix string, now time.Time) (string, error) {
 	if err := os.MkdirAll(db.backupDir, 0o750); err != nil {
 		return "", fmt.Errorf("store: backup: %w", err)
 	}
 	file := filepath.Join(db.backupDir, prefix+"-"+now.UTC().Format(backupStamp)+".db")
 	tmp := file + ".tmp"
 	_ = os.Remove(tmp) // a leftover from a crash; VACUUM INTO refuses an existing file
-	if _, err := db.sql.ExecContext(ctx, "vacuum into ?", tmp); err != nil {
+	if _, err := conn.ExecContext(ctx, "vacuum into ?", tmp); err != nil {
 		return "", fmt.Errorf("store: backup: %w", err)
 	}
 	if err := os.Rename(tmp, file); err != nil {
@@ -320,9 +334,11 @@ func (db *DB) CharacterOf(ctx context.Context, accountID string) (identity.Chara
 	var look string
 	var x, y, z, h sql.NullFloat64
 	var title sql.NullString
-	err := db.sql.QueryRowContext(ctx, `select id, name, appearance, archetype_id, created_at, last_x, last_y, last_z, last_h, title_id
-		from characters where account_id = ? order by created_at, id limit 1`, accountID).
-		Scan(&c.ID, &c.Name, &look, &c.Archetype, &c.CreatedAt, &x, &y, &z, &h, &title)
+	var muted, banned sql.NullInt64
+	err := db.sql.QueryRowContext(ctx, `select c.id, c.name, c.appearance, c.archetype_id, c.created_at, c.last_x, c.last_y, c.last_z, c.last_h,
+		c.title_id, a.moderator, a.muted_until, a.banned_until
+		from characters c join accounts a on a.id = c.account_id where c.account_id = ? order by c.created_at, c.id limit 1`, accountID).
+		Scan(&c.ID, &c.Name, &look, &c.Archetype, &c.CreatedAt, &x, &y, &z, &h, &title, &c.Standing.Moderator, &muted, &banned)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c, identity.ErrNotFound
 	}
@@ -336,6 +352,7 @@ func (db *DB) CharacterOf(ctx context.Context, accountID string) (identity.Chara
 		c.Pose = &protocol.Pose{X: x.Float64, Y: y.Float64, Z: z.Float64, H: h.Float64}
 	}
 	c.Title = title.String
+	c.Standing.MutedUntil, c.Standing.BannedUntil = muted.Int64, banned.Int64
 	if c.Caps, err = db.EarnedCapabilities(ctx, c.ID); err != nil {
 		return c, err
 	}

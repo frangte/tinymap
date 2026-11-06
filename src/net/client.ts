@@ -6,10 +6,12 @@ import { wrapAngle } from '../game/coords';
 import type { Look } from '../game/outfits';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
 import type { RideClientMsg, RideServerMsg } from './rideProtocol';
+import type { WayClientMsg, WayServerMsg } from './wayProtocol';
 import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
-export type NetStatus = 'connecting' | 'online' | 'offline' | 'full' | 'replaced';
+/** banned, kicked: a moderator sent this player out; this one stops trying too */
+export type NetStatus = 'connecting' | 'online' | 'offline' | 'full' | 'replaced' | 'banned' | 'kicked';
 
 export interface NetEvents {
   status(s: NetStatus): void;
@@ -40,6 +42,12 @@ export interface NetEvents {
   rateLimited(): void;
   /** Crab Bike trips: our wallet (also once after each welcome, for a character with one), duty, trips, offers */
   ride(m: RideServerMsg): void;
+  /** asking the way: our ask as a Traveler, the calls we get as a Citizen */
+  way(m: WayServerMsg): void;
+  /** our last chat line was not sent: slow mode, a repeat, too new for global chat, muted */
+  chatRefused(code: 'slow' | 'repeat' | 'new_player' | 'muted'): void;
+  /** a line from moderation for the chat log */
+  notice(text: string): void;
   /** the connection dropped: every remote player is gone until the next welcome */
   reset(): void;
 }
@@ -92,6 +100,8 @@ export class NetClient {
   private corrections = 0;
   /** the same character joined elsewhere: stop reconnecting */
   private replaced = false;
+  /** a moderator banned or kicked this player: no reconnecting */
+  private sentOut: 'banned' | 'kicked' | null = null;
   /** the guest account (src/net/auth.ts); null until the server has given one */
   private token: string | null = loadToken();
   /** the HTTP API next to the socket, null if the socket URL is unusable */
@@ -109,7 +119,7 @@ export class NetClient {
     this.api = apiUrl(url);
     // back on the network: try now rather than at the end of the backoff
     window.addEventListener('online', () => {
-      if (this.started && !this.ws && !this.replaced) this.connectNow();
+      if (this.started && !this.ws && !this.replaced && !this.sentOut) this.connectNow();
     });
   }
 
@@ -184,6 +194,13 @@ export class NetClient {
     if (this.online) this.send({ t: 'title', title });
   }
 
+  /** Report a player to the moderators (the server keeps the last lines of the two); false when offline. */
+  sendReport(n: number): boolean {
+    if (!this.online) return false;
+    this.send({ t: 'report', n });
+    return true;
+  }
+
   /** Close a conversation; the server answers with `interactionEnd`. */
   leaveTalk(sid: number): void {
     if (this.online) this.send({ t: 'interact_leave', sid });
@@ -207,6 +224,13 @@ export class NetClient {
     this.pending.delete(rid);
     window.clearTimeout(p.timer);
     p.done(r);
+  }
+
+  /** An asking-the-way command (directions.ts); false when offline. The answers come as `way` events. */
+  sendWay(m: WayClientMsg): boolean {
+    if (!this.online) return false;
+    this.send(m);
+    return true;
   }
 
   /** A Crab Bike command (rides.ts); false when offline. The answers come as `ride` events. */
@@ -345,11 +369,26 @@ export class NetClient {
         else if (m.code === 'rate') this.on.rateLimited();
         else if (m.code === 'mount') this.on.mountRefused();
         else if (m.code === 'replaced') this.replaced = true;
+        else if (m.code === 'banned' || m.code === 'kicked') this.sentOut = m.code;
+        else if (m.code === 'slow' || m.code === 'repeat' || m.code === 'new_player' || m.code === 'muted') this.on.chatRefused(m.code);
         else if (m.code === 'auth') {
           // the server no longer knows this account (its database was reset): forget it, the reconnect gets a new one
           this.token = null;
           clearToken();
         } else console.error('game server refused the connection:', m.code);
+        break;
+      case 'mod_notice':
+        this.on.notice(m.text);
+        break;
+      case 'reported':
+        this.on.notice('Đã gửi báo cáo cho người điều hành. Cảm ơn bạn!');
+        break;
+      case 'way':
+      case 'way_call':
+      case 'way_gone':
+      case 'way_done':
+      case 'way_error':
+        this.on.way(m);
         break;
       default:
         this.on.ride(m);
@@ -366,6 +405,10 @@ export class NetClient {
     if (this.replaced) {
       // another tab took over this character; reconnecting would only take it back and start a tug of war
       this.on.status('replaced');
+      return;
+    }
+    if (this.sentOut) {
+      this.on.status(this.sentOut);
       return;
     }
     const wait = this.full ? FULL_RETRY : this.backoff;

@@ -94,6 +94,8 @@ type Server struct {
 	Quests Quests
 	// Wallets, when set, gives arriving characters their balance; nil plays without wallets
 	Wallets Wallets
+	// Names masks words in the names players pick (chatfilter); nil keeps them as they are
+	Names func(string) string
 	// saving counts the connections that still have a pose to save; closing (under mu) stops new ones once
 	// Drain has started
 	mu      sync.Mutex
@@ -284,7 +286,8 @@ func (c *client) readLoop() {
 			}
 			ok = w.Handle(c.peer, msg)
 		case protocol.TypeDuty, protocol.TypeRideRequest, protocol.TypeRideCancel, protocol.TypeRideAccept, protocol.TypeRideBoard,
-			protocol.TypeRideAlight, protocol.TypeRideComplete, protocol.TypeRideRate:
+			protocol.TypeRideAlight, protocol.TypeRideComplete, protocol.TypeRideRate,
+			protocol.TypeWayAsk, protocol.TypeWayCancel, protocol.TypeWayAnswer, protocol.TypeReport:
 			if !rides.Allow() {
 				continue
 			}
@@ -294,6 +297,7 @@ func (c *client) readLoop() {
 			if !profiles.Allow() || !c.s.catalog.LookAllowed(*msg.Look, c.can()) {
 				continue
 			}
+			msg.Name = c.s.cleanName(msg.Name)
 			ok = w.Handle(c.peer, msg)
 			c.saveProfile(msg)
 		case protocol.TypeTitle:
@@ -326,12 +330,15 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 		arch = "" // an unknown id plays without an archetype rather than not at all
 	}
 	look := cat.AllowedLook(*hello.Look, cat.Grants(arch))
+	hello.Name = c.s.cleanName(hello.Name)
 	ctx, cancel := context.WithTimeout(context.Background(), identityWait)
 	defer cancel()
 	found, err := c.s.ids.Arrive(ctx, hello.Token, identity.Profile{Name: hello.Name, Look: look, Archetype: arch})
 	switch {
 	case errors.Is(err, identity.ErrUnknownToken):
 		return world.Arrival{}, protocol.ErrAuth
+	case errors.Is(err, identity.ErrBanned):
+		return world.Arrival{}, protocol.ErrBanned
 	case err != nil:
 		// the database is down or slow: better to play as a guest than not at all
 		c.s.log.Error("account lookup failed, playing as a guest", "err", err)
@@ -343,6 +350,9 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	for _, earned := range found.Caps {
 		caps[earned] = struct{}{}
 	}
+	if found.Standing.Moderator {
+		caps[content.CapModerate] = struct{}{}
+	}
 	c.caps.Store(&caps)
 	if kept != arch {
 		// the character already had another archetype: what it may wear follows that one
@@ -352,7 +362,13 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 		}
 	}
 	a := world.Arrival{Character: found.ID, Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(caps), Caps: caps,
-		Title: found.Title, Start: found.Pose}
+		Title: found.Title, Start: found.Pose, Since: time.Now()}
+	if found.CreatedAt > 0 {
+		a.Since = time.UnixMilli(found.CreatedAt)
+	}
+	if found.Standing.MutedUntil > 0 {
+		a.MutedUntil = time.UnixMilli(found.Standing.MutedUntil)
+	}
 	if at, ok := cat.Archetype(kept); ok {
 		x, z, h := at.Spawn.ThreePose()
 		a.Home = &protocol.Pose{X: x, Z: z, H: h}
@@ -440,4 +456,12 @@ func (c *client) writeLoop() {
 			}
 		}
 	}
+}
+
+// cleanName masks listed words in a name.
+func (s *Server) cleanName(name string) string {
+	if s.Names == nil {
+		return name
+	}
+	return s.Names(name)
 }

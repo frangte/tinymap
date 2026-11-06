@@ -230,6 +230,7 @@ func testConfig() world.Config {
 	cfg.MaxPlayers = 2
 	cfg.SnapInterval = 20 * time.Millisecond
 	cfg.ChatHistory = 2
+	cfg.Chat.GlobalAfter = 0 // the players here are made a moment before they chat
 	return cfg
 }
 
@@ -376,7 +377,7 @@ func TestChatRateLimitAndHistory(t *testing.T) {
 	send(t, a, helloLan)
 	next(t, a, "welcome")
 	for i := 0; i < 5; i++ {
-		send(t, a, `{"t":"chat","text":"spam"}`)
+		send(t, a, fmt.Sprintf(`{"t":"chat","text":"spam %d"}`, i))
 	}
 	if e := next(t, a, "error"); e.Code != "rate" {
 		t.Fatalf("error = %+v", e)
@@ -384,7 +385,7 @@ func TestChatRateLimitAndHistory(t *testing.T) {
 	// a late joiner gets the last ChatHistory (2) lines
 	b := dial(t, srv)
 	send(t, b, helloMinh)
-	if w := next(t, b, "welcome"); len(w.Chat) != 2 || w.Chat[0].Text != "spam" {
+	if w := next(t, b, "welcome"); len(w.Chat) != 2 || w.Chat[0].Text != "spam 1" {
 		t.Fatalf("history = %+v", w.Chat)
 	}
 }
@@ -607,11 +608,13 @@ func TestNearbyChatStaysNearby(t *testing.T) {
 	cfg := testConfig()
 	cfg.MaxPlayers = 3
 	srv := startServer(t, cfg)
-	// two travellers start at the roundabout, a citizen at home on Lê Lai, 38 m away
+	// two travellers start at the roundabout, a citizen at home on Lê Lai, 38 m away; with accounts, since guests
+	// do not post in global chat
 	conns := make([]*websocket.Conn, 3)
 	for i, arch := range []string{"traveler", "traveler", "citizen"} {
+		_, _, token := postGuest(t, srv, "")
 		conns[i] = dial(t, srv)
-		send(t, conns[i], helloAs("", arch, "thun", "none"))
+		send(t, conns[i], helloAs(token, arch, "thun", "none"))
 		next(t, conns[i], "welcome")
 	}
 	near, mid, far := conns[0], conns[1], conns[2]

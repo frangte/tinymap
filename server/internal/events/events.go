@@ -27,6 +27,14 @@ const (
 	Rode Kind = "ride.distance"
 	// QuestDone: the player completed Quest (published by the quest engine for its own achievements)
 	QuestDone Kind = "quest.done"
+	// DailyStreak: the player has now done a daily quest on Days days in a row (published by the quest engine)
+	DailyStreak Kind = "daily.streak"
+	// DirectionsAnswered: a Citizen player (Partners) answered the player's ask for the way to Place
+	DirectionsAnswered Kind = "directions.answered"
+	// DirectionsGiven: the player gave the way to Place to Partners (the one who asked)
+	DirectionsGiven Kind = "directions.given"
+	// DirectionsUnanswered: nobody answered the player's ask for the way to Place in time, or nobody could
+	DirectionsUnanswered Kind = "directions.unanswered"
 	// TripCompleted: a Crab Bike trip the player took part in as Role ("rider", who drove, or "passenger") ended paid,
 	// with Partners (the other one) over Metres
 	TripCompleted Kind = "trip.completed"
@@ -48,6 +56,7 @@ type Event struct {
 	Riding    bool
 	Seconds   int
 	Metres    int
+	Days      int
 	// Partners are the other characters of a greeting, in id order (distinct, never the character itself)
 	Partners []string
 }

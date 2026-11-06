@@ -130,5 +130,7 @@ function bind(host: PhoneHost): PhoneHost {
     quests: () => host.quests(),
     chooseTitle: (id) => host.chooseTitle(id),
     rides: () => host.rides(),
+    directions: () => host.directions(),
+    mutes: () => host.mutes(),
   };
 }

@@ -59,6 +59,7 @@ func (m *member) Caps() capability.Set        { return m.caps }
 func (m *member) Pose() protocol.Pose         { return m.pose }
 func (m *member) Speed() float64              { return m.speed }
 func (m *member) Riding() (uint32, int, bool) { return m.vehicle, m.seat, m.own }
+func (m *member) MutedUntil() time.Time       { return time.Time{} }
 
 type host struct {
 	now     time.Time
@@ -75,6 +76,12 @@ func (h *host) Member(id uint32) (world.Member, bool) {
 		return nil, false
 	}
 	return m, true
+}
+
+func (h *host) Each(fn func(world.Member)) {
+	for _, m := range h.members {
+		fn(m)
+	}
 }
 
 func (h *host) Seat(p, r uint32) bool {
@@ -117,8 +124,9 @@ func (h *host) Do(_ string, job func(context.Context) error, done func(error)) {
 	h.jobs = append(h.jobs, func() { done(job(context.Background())) })
 }
 
-func (h *host) Publish(ev events.Event) { h.events = append(h.events, ev) }
-func (h *host) Now() time.Time          { return h.now }
+func (h *host) Publish(ev events.Event)     { h.events = append(h.events, ev) }
+func (h *host) Now() time.Time              { return h.now }
+func (h *host) Kick(id uint32, code string) { delete(h.members, id) }
 
 type fixture struct {
 	*host

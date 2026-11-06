@@ -35,7 +35,7 @@ func TestTheGameDataCompiles(t *testing.T) {
 	if len(e.tracks) != len(c.Quests)+len(c.Achievements) {
 		t.Fatalf("%d tracks for %d quests and %d achievements", len(e.tracks), len(c.Quests), len(c.Achievements))
 	}
-	for _, kind := range []string{"reach_place", "stay_place", "talk_npc", "dialogue_signal", "emote_at", "greet", "mount", "ride_through", "ride_distance", "quest_done"} {
+	for _, kind := range []string{"reach_place", "stay_place", "talk_npc", "dialogue_signal", "emote_at", "greet", "mount", "ride_through", "ride_distance", "quest_done", "trip", "daily_streak"} {
 		if _, ok := objective.Lookup(kind); !ok {
 			t.Errorf("objective type %s is not registered", kind)
 		}
@@ -184,6 +184,13 @@ func TestTheTravelerQuestline(t *testing.T) {
 	// 4 and 5
 	r.do(signal("di_nam", "buy_banh_trang_tron"))
 	r.do(stayed("ho_con_rua", 15))
+	// asking Chú Sáu straight away does not count: a Citizen player is asked first
+	r.do(signal("chu_sau", "asked_directions"))
+	if r.state("traveler.hoi_duong") == StateDone {
+		t.Fatal("Chú Sáu answered before any Citizen was asked")
+	}
+	// nobody answered the ask: the fallback opens, and Chú Sáu's directions count
+	r.do(events.Event{Kind: events.DirectionsUnanswered, Place: "nha_hat_thanh_pho"})
 	r.do(signal("chu_sau", "asked_directions"))
 	if r.state("traveler.bai_kiem_tra_cuoi") != StateActive {
 		t.Fatalf("the final test should open after the four quests: %v", r.book.Active())
@@ -304,5 +311,27 @@ func TestACrabTripCountsForTheRiderAndThePassenger(t *testing.T) {
 	d.do(trip("rider", "lan"))
 	if d.state("driver.chuyen_dau_tien") != StateDone || !d.book.Titles["tai_xe_crab"] {
 		t.Fatalf("first trip %+v, titles %v", d.book.Records["driver.chuyen_dau_tien"], d.book.Titles)
+	}
+}
+
+func TestACitizenAnsweringFinishesTheAskAndCountsForThemOnce(t *testing.T) {
+	traveler := newRun(t, "traveler")
+	traveler.do(signal("co_ba", "greetings_learned"))
+	traveler.do(events.Event{Kind: events.DirectionsAnswered, Place: "bitexco", Partners: []string{"citizen1"}})
+	if traveler.state("traveler.hoi_duong") != StateDone {
+		t.Fatal("a Citizen's answer did not finish the ask")
+	}
+	citizen := newRun(t, "citizen")
+	given := func(asker string) {
+		citizen.do(events.Event{Kind: events.DirectionsGiven, Place: "bitexco", Partners: []string{asker}})
+	}
+	given("traveler1")
+	if citizen.state("citizen.tho_dia") != StateDone {
+		t.Fatal("answering did not finish Thổ địa")
+	}
+	given("traveler1") // the same traveller again counts once
+	given("traveler2")
+	if n := citizen.n(achievementPrefix+"nguoi_chi_duong", ""); n != 2 {
+		t.Fatalf("pathfinder at %d, want 2 distinct travellers", n)
 	}
 }

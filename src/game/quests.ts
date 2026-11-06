@@ -25,6 +25,10 @@ export interface QuestDef {
   about: Text;
   flow: Flow;
   objectives: readonly Objective[];
+  /** starts over every day (midnight in Saigon); the server only sends today's */
+  daily: boolean;
+  /** xu paid on completion (0 for none) */
+  xu: number;
 }
 
 export interface AchievementDef {
@@ -62,7 +66,9 @@ function objective(o: RawObjective): Objective {
 export const QUESTS: readonly QuestDef[] = data.quests.map((q): QuestDef => {
   const flow = FLOWS.find((f) => f === q.flow);
   if (!flow) throw new Error(`server/content/quests.json: bad flow in "${q.id}"`);
-  return { id: q.id, questline: q.questline, title: q.title, about: q.about, flow, objectives: q.objectives.map(objective) };
+  const daily = 'repeat' in q && q.repeat === 'daily';
+  const xu = 'xu' in q.rewards && typeof q.rewards.xu === 'number' ? q.rewards.xu : 0;
+  return { id: q.id, questline: q.questline, title: q.title, about: q.about, flow, objectives: q.objectives.map(objective), daily, xu };
 });
 
 export const ACHIEVEMENTS: readonly AchievementDef[] = data.achievements.map((a): AchievementDef => ({
@@ -74,7 +80,19 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = data.achievements.map((a)
   type: a.objective.type,
 }));
 
-export const STAMPS: ReadonlyArray<{ id: string; name: Text }> = data.stamps;
+export interface StampDef {
+  id: string;
+  name: Text;
+}
+
+const stampSet = (s: (typeof data.stamps)[number]): string => ('set' in s && typeof s.set === 'string' ? s.set : '');
+
+/** every stamp, any set (news can name any) */
+export const STAMPS: readonly StampDef[] = data.stamps;
+/** the Traveler's stamp book (Sổ tem): one per quest of the questline */
+export const BOOK_STAMPS: readonly StampDef[] = data.stamps.filter((s) => stampSet(s) === '');
+/** stamps for days of dailies in a row */
+export const STREAK_STAMPS: readonly StampDef[] = data.stamps.filter((s) => stampSet(s) === 'streak');
 
 const titles = new Map(data.titles.map((t) => [t.id, t.name]));
 

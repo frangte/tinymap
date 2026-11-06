@@ -35,11 +35,14 @@ import { Npcs } from './npcs';
 import { Talk } from './talk';
 import { QuestLog } from './questLog';
 import { QuestTracker } from './questTracker';
-import { ACHIEVEMENTS, STAMPS, questById, titleName } from './quests';
+import { ACHIEVEMENTS, STAMPS, STREAK_STAMPS, questById, titleName } from './quests';
 import type { News } from '../net/protocol';
 import { loadPose, savePose } from './lastPose';
-import { Rides } from './rides';
+import { Rides, xu } from './rides';
 import { OfferBanner } from './offerBanner';
+import { CallBanner } from './callBanner';
+import { Mutes } from './mutes';
+import { Directions } from './directions';
 
 const MODEL_BYTES = 2.01e6;
 /** distance from the island centre to the beach (m) */
@@ -228,7 +231,7 @@ export async function startApp(): Promise<void> {
     play?.update(dt, now, clock, mode === 'play' && !flight.active);
     if (mode !== 'play' && !flight.active) map.update(now);
     // others: hidden beyond walking distance in play mode, all of them over the map
-    remotes?.update(dt, now, clock, mode === 'play' ? camera.position : null);
+    remotes?.update(dt, now, clock, mode === 'play' ? camera : null);
     npcs?.update(dt, now, clock, mode === 'play' ? camera.position : null);
     vehicles?.update(dt, riderView, mode === 'play' ? camera.position : null, seatPassenger);
     if (draw && remotes && npcs && play && mode === 'play') tags.update(camera, now, remotes, npcs, play.player.position);
@@ -370,10 +373,15 @@ export async function startApp(): Promise<void> {
 
   // ---- chat: the log bottom left, bubbles over heads (tags); lines show when the server sends them back
   const backToGame = (): void => renderer.domElement.focus({ preventScroll: true });
+  // players this one chose not to hear: their lines and bubbles are hidden here
+  const mutes = new Mutes();
   const chatBox: ChatBox = new ChatBox({
     send: (text, ch) => netClient.sendChat(text, ch),
     opened: () => p.input.release(),
     closed: backToGame,
+    muted: (id, name) => mutes.has(id, name),
+    mute: (id, name) => mutes.add(id, name),
+    report: (id) => netClient.sendReport(id),
   });
   chat = chatBox;
   const openChat = (): void => {
@@ -443,8 +451,9 @@ export async function startApp(): Promise<void> {
       if (n.kind === 'quest') {
         const q = questById(n.id);
         if (!q) continue;
-        ph.notify('Hoàn thành nhiệm vụ', q.title.vi);
-        if (!toast || toast.note !== 'Thành tích mới') toast = { name: q.title.vi, note: 'Hoàn thành nhiệm vụ' };
+        const paid = q.xu > 0 ? ` · +${xu(q.xu)}` : '';
+        ph.notify(q.daily ? 'Xong nhiệm vụ hằng ngày' : 'Hoàn thành nhiệm vụ', q.title.vi + paid);
+        if (!toast || toast.note !== 'Thành tích mới') toast = { name: q.title.vi, note: (q.daily ? 'Nhiệm vụ hằng ngày' : 'Hoàn thành nhiệm vụ') + paid };
       } else if (n.kind === 'achievement') {
         const a = ACHIEVEMENTS.find((x) => x.id === n.id);
         if (!a) continue;
@@ -455,7 +464,9 @@ export async function startApp(): Promise<void> {
         if (t) ph.notify('Danh hiệu mới', `${t}. Đổi danh hiệu trong app Hồ sơ.`);
       } else {
         const s = STAMPS.find((x) => x.id === n.id);
-        if (s) ph.notify('Nhận tem', `${s.name.vi}: xem trong Sổ tem (app Cẩm nang).`);
+        if (!s) continue;
+        const where = STREAK_STAMPS.includes(s) ? 'mục Hằng ngày (app Nhiệm vụ)' : 'Sổ tem (app Cẩm nang)';
+        ph.notify('Nhận tem', `${s.name.vi}: xem trong ${where}.`);
       }
     }
     for (const id of opened) {
@@ -540,17 +551,22 @@ export async function startApp(): Promise<void> {
     chat: (line) => {
       const self = line.id === netClient.selfId;
       chatBox.line(line, netClient.selfId);
+      if (!self && !line.npc && mutes.has(line.id, line.name)) return;
       tags.say(self ? SELF : line.id, line.text, performance.now());
     },
+    chatRefused: (code) => chatBox.refused(code),
+    notice: (text) => chatBox.system(text),
     interaction: (i) => talk.interaction(i),
     interactionEnd: (sid, reason) => talk.ended(sid, reason),
     rateLimited: () => chatBox.rateLimited(),
     ride: (m) => rides.handle(m),
+    way: (m) => directions.handle(m),
     reset: () => {
       others.clear();
       log.clear();
       talk.reset();
       rides.reset();
+      directions.reset();
       cast.local();
       riding.offline();
       showOnline();
@@ -608,18 +624,34 @@ export async function startApp(): Promise<void> {
     },
   });
   const offerBanner = new OfferBanner(rides, () => p.player.position);
+  // ---- asking the way (D18): a Traveler asks from the Cẩm nang; a Citizen gets a call and answers with the button
+  const directions: Directions = new Directions({
+    net: netClient,
+    other: (id) => {
+      const r = others.get(id);
+      return r?.inView ? r : null;
+    },
+    self: () => p.player.position,
+    say: (text) => chatBox.system(text),
+    notify: (title, text) => ph.notify(title, text),
+  });
+  const callBanner = new CallBanner(directions, () => netClient.serverNow());
   let rideTickAt = 0;
-  // a trip's step first; on the bike the button gets off; on foot an NPC in reach comes before the bike
-  actionLabel = () => rides.label() ?? (p.player.riding ? riding.label() : talk.label() ?? riding.label());
+  // a trip's step first, then answering an asker; on the bike the button gets off; on foot an NPC in reach comes
+  // before the bike
+  actionLabel = () => rides.label() ?? directions.label() ?? (p.player.riding ? riding.label() : talk.label() ?? riding.label());
   updateRiding = (now) => {
     riding.update(now);
     if (now - rideTickAt < RIDE_TICK) return;
     rideTickAt = now;
     rides.update();
     offerBanner.update();
+    directions.update();
+    callBanner.update();
   };
   p.onUse = () => {
     if (rides.use()) return;
+    if (directions.use()) return;
     if (!p.player.riding && talk.near()) talk.use();
     else riding.use();
   };
@@ -671,15 +703,20 @@ export async function startApp(): Promise<void> {
     quests: () => log,
     chooseTitle: (id) => netClient.sendTitle(id),
     rides: () => rides,
+    directions: () => directions,
+    mutes: () => mutes,
   });
   const questTracker = new QuestTracker(log, () => {
     if (mode !== 'play' || panel.isOpen) return;
-    // while guiding a trip, the tracker opens the trip's app
-    if (questTracker.guiding) ph.open(rides.ride?.role === 'rider' ? 'crab_driver' : 'crab');
-    else ph.open('quests');
+    // while guiding, the tracker opens the app of what it guides to: a trip's, or the Cẩm nang for an ask
+    if (!questTracker.guiding) ph.open('quests');
+    else if (rides.guide()) ph.open(rides.ride?.role === 'rider' ? 'crab_driver' : 'crab');
+    else ph.open(directions.calls.size > 0 ? 'quests' : 'guide');
   });
   tracker = questTracker;
-  rides.onChange(() => questTracker.guideTo(rides.guide()));
+  const guide = (): void => questTracker.guideTo(rides.guide() ?? directions.guide());
+  rides.onChange(guide);
+  directions.onChange(guide);
   phone = ph;
   applyArchetype();
   p.onLandmark = (place) => ph.notify(`Đã ghé ${place.name}`, place.note);

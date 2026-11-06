@@ -55,6 +55,28 @@ type Config struct {
 	// OnEvent hears what players do (server/internal/events), for quests and achievements. It runs on the
 	// world goroutine, so it must not block; nil drops them. Guests without an account have no events.
 	OnEvent func(events.Event)
+	Chat    ChatRules
+}
+
+// ChatRules keep chat readable at hundreds of players (docs/design/04-backend.md, Chat at hundreds of players).
+type ChatRules struct {
+	// Filter masks words in every line (server/internal/chatfilter); nil masks nothing
+	Filter func(string) string
+	// RepeatWithin: the same line again from one player within this is dropped
+	RepeatWithin time.Duration
+	// GlobalAfter: a character must be this old to post in global chat (nearby is open to everyone), and guests
+	// without an account never post there; 0 opens global chat to all
+	GlobalAfter time.Duration
+	// Slow mode: more than SlowLines global lines within SlowWindow, and each player may post in global once
+	// per SlowGap until it calms down
+	SlowLines  int
+	SlowWindow time.Duration
+	SlowGap    time.Duration
+}
+
+func DefaultChatRules() ChatRules {
+	return ChatRules{RepeatWithin: 30 * time.Second, GlobalAfter: 3 * time.Minute, SlowLines: 12, SlowWindow: 10 * time.Second,
+		SlowGap: 6 * time.Second}
 }
 
 func DefaultConfig() Config {
@@ -67,6 +89,7 @@ func DefaultConfig() Config {
 		Move:         DefaultMovement(),
 		View:         DefaultView(),
 		Talk:         DefaultTalk(),
+		Chat:         DefaultChatRules(),
 	}
 }
 
@@ -94,6 +117,10 @@ type Arrival struct {
 	Vehicle *VehicleSpec
 	// Wallet is the character's balance in xu, shown in the welcome; nil for none (a guest)
 	Wallet *int64
+	// Since is when the character was made (global chat waits a little for new ones); MutedUntil is when its
+	// account's mute ends (zero for none)
+	Since      time.Time
+	MutedUntil time.Time
 }
 
 // VehicleSpec is a kind of vehicle (server/content/vehicles.json).
@@ -208,6 +235,12 @@ type member struct {
 	// speed is how fast it moved over its last accepted reports (m/s); clock reads the world's time
 	speed float64
 	clock func() time.Time
+	// since, mutedUntil: from the arrival; lastLine and lastLineAt, lastGlobalAt: for the chat rules
+	since        time.Time
+	mutedUntil   time.Time
+	lastLine     string
+	lastLineAt   time.Time
+	lastGlobalAt time.Time
 }
 
 type World struct {
@@ -233,6 +266,8 @@ type World struct {
 	// lastTick is when NPCs last acted
 	lastTick time.Time
 	history  []protocol.ChatLine
+	// globalAt are when the recent global lines were sent, for slow mode
+	globalAt []time.Time
 	snaps    snapScratch
 	modules  []Module
 	jobs     jobQueue
@@ -415,7 +450,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	}
 	w.nextID++
 	m := &member{entity: entity{id: w.nextID, view: newView()}, peer: p, character: a.Character, name: a.Name, arch: a.Arch,
-		look: a.Look, caps: a.Caps, title: a.Title, clock: w.now}
+		look: a.Look, caps: a.Caps, title: a.Title, clock: w.now, since: a.Since, mutedUntil: a.MutedUntil}
 	if m.name == "" {
 		m.name = fmt.Sprintf("Khách %d", m.id)
 	}
@@ -505,6 +540,19 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 }
 
 func (w *World) onChat(p *Peer, m *member, msg protocol.ClientMsg) {
+	// a module may take the line first (moderation: commands, a muted player)
+	for _, mod := range w.modules {
+		if hook, ok := mod.(ChatHook); ok && hook.Chat(m, msg) {
+			return
+		}
+	}
+	if code := w.chatRefused(m, msg); code != "" {
+		w.sendTo(p, protocol.Encode(protocol.Error{T: protocol.TypeError, Code: code}))
+		return
+	}
+	if f := w.cfg.Chat.Filter; f != nil {
+		msg.Text = f(msg.Text)
+	}
 	line := protocol.ChatLine{ID: m.id, Name: m.name, Arch: m.arch, Title: m.title, Ch: msg.Ch, Text: msg.Text, At: w.now().UnixMilli()}
 	if msg.Ch == protocol.ChannelNearby {
 		line.T = protocol.TypeChat

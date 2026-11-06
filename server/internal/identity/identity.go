@@ -24,6 +24,8 @@ var (
 	ErrNotFound = errors.New("identity: not found")
 	// ErrUnknownToken: a hello's token belongs to no account.
 	ErrUnknownToken = errors.New("identity: unknown token")
+	// ErrBanned: the account is banned for now (a moderator's /ban).
+	ErrBanned = errors.New("identity: account banned")
 )
 
 // tokenBytes of randomness make a 43-character base64url token (protocol.TokenMax allows up to 64).
@@ -44,6 +46,15 @@ type Character struct {
 	Caps  []string
 	// CreatedAt is unix milliseconds
 	CreatedAt int64
+	// Standing is the account's moderation state
+	Standing Standing
+}
+
+// Standing is an account's moderation state: a moderator, muted or banned until (unix milliseconds, 0 for none).
+type Standing struct {
+	Moderator   bool
+	MutedUntil  int64
+	BannedUntil int64
 }
 
 // Arrived is the character behind a hello: its id ("" for a guest without an account), its archetype and where
@@ -55,6 +66,9 @@ type Arrived struct {
 	Title     string
 	// Caps are the capabilities it earned while playing (quest rewards), beyond its archetype's
 	Caps []string
+	// CreatedAt is when the character was made (unix milliseconds); Standing its account's moderation state
+	CreatedAt int64
+	Standing  Standing
 }
 
 // Profile is what a hello says about the player. Archetype must already be a known id, or "".
@@ -116,10 +130,13 @@ func (s *Service) Arrive(ctx context.Context, token string, p Profile) (Arrived,
 		if err := s.repo.CreateCharacter(ctx, c); err != nil {
 			return Arrived{}, fmt.Errorf("identity: arrive: %w", err)
 		}
-		return Arrived{ID: c.ID, Archetype: c.Archetype}, nil
+		return Arrived{ID: c.ID, Archetype: c.Archetype, CreatedAt: now}, nil
 	}
 	if err != nil {
 		return Arrived{}, fmt.Errorf("identity: arrive: %w", err)
+	}
+	if c.Standing.BannedUntil > now {
+		return Arrived{}, ErrBanned
 	}
 	if c.Archetype == "" && p.Archetype != "" {
 		if err := s.repo.SetArchetype(ctx, c.ID, p.Archetype, now); err != nil {
@@ -132,7 +149,7 @@ func (s *Service) Arrive(ctx context.Context, token string, p Profile) (Arrived,
 			return Arrived{}, fmt.Errorf("identity: arrive: %w", err)
 		}
 	}
-	return Arrived{ID: c.ID, Archetype: c.Archetype, Pose: c.Pose, Title: c.Title, Caps: c.Caps}, nil
+	return Arrived{ID: c.ID, Archetype: c.Archetype, Pose: c.Pose, Title: c.Title, Caps: c.Caps, CreatedAt: c.CreatedAt, Standing: c.Standing}, nil
 }
 
 // SavePose stores where the character stands, for its next visit.

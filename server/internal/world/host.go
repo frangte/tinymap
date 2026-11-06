@@ -38,11 +38,15 @@ type Member interface {
 	// Riding is the vehicle it is on and its seat (0 rider, 1 passenger), vehicle 0 for none; own says whether
 	// the vehicle is its own
 	Riding() (vehicle uint32, seat int, own bool)
+	// MutedUntil is when its account's mute ended or ends, as it arrived (zero for none)
+	MutedUntil() time.Time
 }
 
 // Host is what a module may ask of the world, on the world goroutine.
 type Host interface {
 	Member(id uint32) (Member, bool)
+	// Each calls fn for every player in the world, in no particular order
+	Each(fn func(Member))
 	// Seat puts a passenger in seat 1 of the vehicle the rider is on; false when that is not possible
 	Seat(passenger, rider uint32) bool
 	// Unseat puts a passenger down beside the vehicle (its client gets a correction to the spot)
@@ -55,6 +59,8 @@ type Host interface {
 	Do(character string, job func(ctx context.Context) error, done func(error))
 	Publish(ev events.Event)
 	Now() time.Time
+	// Kick sends the player an error with code and drops them from the world (their socket closes)
+	Kick(id uint32, code string)
 }
 
 // Use adds a module; call it before Run. make gets the world as the module's host.
@@ -64,12 +70,13 @@ func (w *World) Use(make func(Host) Module) {
 
 // ---- member as a Member
 
-func (m *member) ID() uint32           { return m.id }
-func (m *member) Character() string    { return m.character }
-func (m *member) Name() string         { return m.name }
-func (m *member) Arch() string         { return m.arch }
-func (m *member) Caps() capability.Set { return m.caps }
-func (m *member) Pose() protocol.Pose  { return m.pose }
+func (m *member) ID() uint32            { return m.id }
+func (m *member) Character() string     { return m.character }
+func (m *member) Name() string          { return m.name }
+func (m *member) Arch() string          { return m.arch }
+func (m *member) Caps() capability.Set  { return m.caps }
+func (m *member) Pose() protocol.Pose   { return m.pose }
+func (m *member) MutedUntil() time.Time { return m.mutedUntil }
 
 func (m *member) Speed() float64 {
 	// a player who stops moving stops reporting: no report for a while means standing still
@@ -112,6 +119,12 @@ func (h host) Member(id uint32) (Member, bool) {
 	return nil, false
 }
 
+func (h host) Each(fn func(Member)) {
+	for _, m := range h.w.members {
+		fn(m)
+	}
+}
+
 func (h host) Seat(passenger, rider uint32) bool {
 	p, r := h.w.byID(passenger), h.w.byID(rider)
 	if p == nil || r == nil || r.riding == nil {
@@ -146,7 +159,14 @@ func (h host) Do(character string, job func(ctx context.Context) error, done fun
 }
 
 func (h host) Publish(ev events.Event) { h.w.publish(ev) }
-func (h host) Now() time.Time          { return h.w.now() }
+
+func (h host) Kick(id uint32, code string) {
+	if m := h.w.byID(id); m != nil {
+		h.w.sendTo(m.peer, protocol.Encode(protocol.Error{T: protocol.TypeError, Code: code}))
+		h.w.remove(m.peer)
+	}
+}
+func (h host) Now() time.Time { return h.w.now() }
 
 func pin(m, o *member, on bool) {
 	if on {

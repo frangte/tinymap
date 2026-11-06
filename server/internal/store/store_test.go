@@ -230,3 +230,22 @@ func TestAccountsAndCharacters(t *testing.T) {
 		t.Fatalf("a character needs an account: %v", err)
 	}
 }
+
+func TestABackupDoesNotWaitForTheGamesConnection(t *testing.T) {
+	db := mustOpen(t, tempOptions(t), migrationFiles)
+	character(t, db)
+	// the game's one connection is busy (a save in progress): the daily backup must not queue behind it
+	tx, err := db.sql.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`update characters set updated_at = updated_at + 1`); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if _, err := db.Backup(ctx, 7, time.Now()); err != nil {
+		t.Fatalf("a backup while the connection is busy: %v", err)
+	}
+}

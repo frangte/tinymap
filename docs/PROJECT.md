@@ -12,8 +12,12 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
   - Map v4: đảo khoảng 200×200 m giữa biển. Map quay theo hướng thật của thành phố (cổng nam chợ nhìn ra bùng binh Quách Thị Trang), nên các công trình nằm bên phải và phía trên chợ, gần giống vị trí thật: Lê Lợi dẫn tới Nhà hát; Đồng Khởi đi từ Nhà thờ xuống biển; Bưu điện cạnh Công xã Paris; Hồ Con Rùa nằm trên đường Phạm Ngọc Thạch; Bitexco ở bờ nước. Không thêm nhà mới. Cây trồng thành hàng dọc phố, chỉ vài xe đậu, không có người (NPC sẽ thêm sau theo cốt truyện).
   - Biển, mây, hải âu, cây đung đưa và âm thanh theo khu vực (bây giờ chỉ có bãi biển: tiếng sóng nhẹ) làm trong Three.js, không nằm trong file Blender.
   - Menu mở đầu có 2 chế độ: [1] xem bản đồ (xoay, zoom, bay tới từng công trình) và [2] vào game đi bộ (nhân vật đội nón lá, camera góc thứ 3 tự do, tên địa điểm hiện trên HUD).
+- **Đang làm trong `temp.sg.tinymap.blend` (2026-11-07, chưa export, chưa bake nav):** sửa bằng `scripts/blender/edit_v4_buivien.py` chạy trên `new.sg.tinymap.blend`:
+  - Phố Bùi Viện trên đường Lê Lai: nhà ống hai bên phố (`SH_BuiVien_N/S`), biển hiệu quán bar, đèn dây, lồng đèn, cờ, bàn ghế nhựa, xe máy đậu (`SH_BuiVien_Life/Lights`), cổng "PHỐ ĐI BỘ BÙI VIỆN" ở đầu bùng binh. Dãy nam nông 4.6 m vì lối đi bộ ven biển chạy ngay sau lưng (y −37…−41); dãy bắc ngắn lại ở đầu tây cũng vì lối đi đó.
+  - Đường Tôn Đức Thắng: Hàm Nghi không còn cụt ở Bitexco mà vòng sang nối vào Đồng Khởi (`IX_Roads_TonDucThang`), cắt qua đầu nam phố Nguyễn Huệ; đoạn cụt cũ của Đồng Khởi (y −60…−52) bỏ.
+  - Bỏ hai đèn 4 bóng (một đứng giữa cổng nam chợ, một đứng trên mặt đường ở cửa đông bùng binh), bỏ các vạch qua đường vẽ chồng trên vòng xuyến, thêm một vạch sạch trên nhánh Lê Lai (`IX_RoadMarks_LeLaiZebra`).
+  - Nhà mới chưa có trong nav: người chơi đi xuyên qua cho tới khi bake lại (xem Pipeline, bước 4).
 - **Để dành, chưa làm:**
-  - Phố đi bộ Bùi Viện: phía tây chợ dọc đường Lê Lai, bãi cỏ ở đó cố ý để trống. Dùng lại kiểu dãy nhà ống (`SH_01..05`, hàm `house_*` trong script 15b/15c).
   - UBND: ô trống lát gạch ở đầu bắc phố đi bộ Nguyễn Huệ (x 48…72, y 12…31), sát đường Lê Thánh Tôn, giống vị trí thật.
 - **Tiếp theo:** NPC và quest.
 - **Bản cũ:** trong `versions/`: v1; v2 (có sông, bờ Thủ Thiêm, cầu Ba Son); v3 (công trình xếp vòng quanh chợ). Không sửa đè, muốn đổi lớn thì lưu version mới.
@@ -77,7 +81,7 @@ Thêm màu mới thì thêm key vào `PAL`. Nếu cần chỉnh variation hay gr
   - Mặt cỏ z = 0; vỉa hè và quảng trường 0.18; mặt đường 0.07.
 - **Điểm mốc (Blender XY):**
   - Chợ (8, 7.5), bùng binh Quách Thị Trang (8, −24), điểm xuất phát (8, −12.8).
-  - Đường: Lê Lợi (bùng binh → Lam Sơn, trước Nhà hát), Hàm Nghi (bùng binh → bờ nước, cạnh Bitexco), Lê Lai (bùng binh → phía tây, về Bùi Viện), Lê Thánh Tôn (sau chợ), Đồng Khởi (Công xã Paris → qua Lam Sơn → bờ nước), Phạm Ngọc Thạch (Công xã Paris → Hồ Con Rùa). Phố đi bộ Nguyễn Huệ chạy từ ô UBND xuống bờ nước.
+  - Đường: Lê Lợi (bùng binh → Lam Sơn, trước Nhà hát), Hàm Nghi (bùng binh → bờ nước, cạnh Bitexco; trong `temp` nối tiếp thành Tôn Đức Thắng vòng vào Đồng Khởi), Lê Lai (bùng binh → phía tây, là phố Bùi Viện trong `temp`), Lê Thánh Tôn (sau chợ), Đồng Khởi (Công xã Paris → qua Lam Sơn → bờ nước), Phạm Ngọc Thạch (Công xã Paris → Hồ Con Rùa). Phố đi bộ Nguyễn Huệ chạy từ ô UBND xuống bờ nước.
 
 Mẫu thêm một công trình (tạo Text mới `saigon_diorama_23_<ten>.py`):
 
@@ -106,13 +110,14 @@ ns['art_pass_geometry']()
 | Quảng trường Lam Sơn | `CX_LamSon` (+`_Water`) · (89, −4) | Đài phun nước tròn nhiều tầng giữa bồn hoa, thu nhỏ 0.72 lần | [model](img/09_lam_son.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Lam_Son_Square) |
 | Phố đi bộ Nguyễn Huệ | lát gạch trong `IX_Roads_v4`, bồn cây và đèn trong `CX_StreetTrees_v4` · từ (60, 12) đến (66, −58) | Dải lát gạch rộng 14 m, không có xe, bồn cây thấp hai bên. Đầu phố phía bắc để trống cho UBND | [model](img/11_nguyen_hue.jpg) |
 | Dãy nhà ống | `SH_01..05`, `SH_StreetLife`, `SH_Wires` · x −45…−19, y −17…−7, dọc Lê Lai · 8.8–13.9 m | Mỗi căn một mặt tiền (nhà cầu thang, tiệm sư tử, tiệm lu…). Có ban công, mái tôn, biển hiệu, máy lạnh, dây điện. Đây là mẫu style cho Bùi Viện | [model](img/10_nha_ong.jpg) |
+| Phố Bùi Viện (chỉ trong `temp.sg.tinymap.blend`) | `SH_BuiVien_N/S`, `SH_BuiVien_Life`, `SH_BuiVien_Lights` · dọc Lê Lai, x −60…−10, mặt tiền y −16.3 (bắc) và −31.6 (nam) · 10–16 m | Nhà ống 2–4 tầng sát nhau, tầng trệt là quán bar mở (quầy gỗ, chai, ghế nhựa), biển hiệu ngang nhiều màu có dãy bóng đèn, biển dọc neon ở góc nhà, mái hiên sọc, ban công phơi đồ, máy lạnh. Trên phố: đèn dây, lồng đèn đỏ, cờ tam giác giăng ngang, bàn ghế nhựa và thùng đá trên vỉa hè, xe máy đậu, cổng "PHỐ ĐI BỘ BÙI VIỆN" ở đầu bùng binh | [model](img/13_bui_vien.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:B%C3%B9i_Vi%E1%BB%87n_Street) |
 | Bãi biển | `IS_Beach`, dừa trong `CX_Parks_v4` · quanh đảo | Cát dốc thoải: khô khoảng 8 m rồi chìm xuống biển. Đường đi bộ lát gạch chạy vòng quanh mép cỏ, dừa nghiêng ra biển. Bọt sóng và màu nước cạn do shader biển tự tính theo độ sâu | [model](img/07_bai_bien.jpg) |
 
 Cầu Ba Son và bờ Thủ Thiêm đã bỏ từ v3; muốn xem lại thì mở `versions/sg.tinymap_v2.blend`.
 
 ## Pipeline: từ Blender ra game
 
-1. Sửa map. Đảo v4 là `new.sg.tinymap.blend`: file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` xuất được file này; `bake_nav.py` thì không, vì nó phân loại đất, nước, nhà và mái theo tên object gốc, nên chưa nướng lại nav từ file này được (đổi hình mà không đổi chỗ đi được thì vẫn xuất GLB bình thường). `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
+1. Sửa map. Đảo v4 là `new.sg.tinymap.blend`: muốn sửa bằng script trên file gộp này thì xem `scripts/blender/edit_v4_buivien.py` (xoá theo cụm lưới liền nhau, cắt mặt đất theo đa giác, dựng thêm object mới bằng bộ `Geo` nạp từ Text của `sg.tinymap.blend`); file đó là file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` xuất được file này; `bake_nav.py` thì không, vì nó phân loại đất, nước, nhà và mái theo tên object gốc, nên chưa nướng lại nav từ file này được (đổi hình mà không đổi chỗ đi được thì vẫn xuất GLB bình thường). `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
 2. Export GLB, file `.blend` không bị đổi:
    ```bash
    blender new.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb

@@ -4,6 +4,7 @@ import { parseLook, type Look } from '../game/outfits';
 import { NAME_MAX } from '../game/profile';
 import { ID_RE, idOf, isId, isObj, list, num, str, type Obj } from './check';
 import { parseRideMsg, type RideClientMsg, type RideServerMsg } from './rideProtocol';
+import { parseWayMsg, type WayClientMsg, type WayServerMsg } from './wayProtocol';
 
 export const CHAT_MAX = 140;
 /** how far a nearby chat line carries (m): world.DefaultConfig().NearbyRadius on the server */
@@ -132,6 +133,8 @@ export interface Progress {
   titles: string[];
   stamps: string[];
   title: string;
+  /** days in a row with a daily quest done (0 once a day went by without one) */
+  streak: number;
   news: News[];
 }
 
@@ -150,7 +153,7 @@ const CHOICES_MAX = 6;
  * auth: the hello's account token is unknown to the server (forget it and get a new one); mount: getting on a
  * vehicle was refused; replaced: the same character joined from somewhere else (another tab), so this one stops
  */
-export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'auth' | 'mount' | 'replaced' | 'unknown';
+export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'auth' | 'mount' | 'replaced' | 'slow' | 'repeat' | 'new_player' | 'muted' | 'banned' | 'kicked' | 'unknown';
 
 /** [id, x, y, z, heading, flags, age]: age = ms between the server receiving this pose and sending the snapshot */
 export type SnapRow = [number, number, number, number, number, number, number];
@@ -177,7 +180,12 @@ export type ServerMsg =
   | { t: 'result'; rid: number; ok: boolean; code: string }
   | ({ t: 'progress' } & Progress)
   | { t: 'error'; code: ErrorCode }
-  | RideServerMsg;
+  /** a moderation line for our chat log: a command's answer, a mute, a report received */
+  | { t: 'mod_notice'; text: string }
+  /** our report of player n was stored */
+  | { t: 'reported'; n: number }
+  | RideServerMsg
+  | WayServerMsg;
 
 export type ClientMsg =
   /** token: the guest account (src/net/auth.ts); absent plays as a guest without one */
@@ -198,7 +206,10 @@ export type ClientMsg =
   /** the title to carry, among those earned ('' for none) */
   | { t: 'title'; title: string }
   | { t: 'chat'; ch: Channel; text: string }
-  | RideClientMsg;
+  /** report player n to the moderators */
+  | { t: 'report'; n: number }
+  | RideClientMsg
+  | WayClientMsg;
 
 function pose(v: unknown): Pose | null {
   return Array.isArray(v) && v.length === 4 && v.every(num) ? [v[0], v[1], v[2], v[3]] : null;
@@ -255,6 +266,8 @@ function questId(v: unknown): string {
 /** more than the game data could ever have: anything past it is dropped */
 const QUESTS_MAX = 64;
 const NEWS_MAX = 16;
+/** a streak longer than this is shown as this (years of dailies) */
+const STREAK_MAX = 9999;
 const OBJECTIVES_MAX = 8;
 
 function counts(v: unknown): Record<string, number> {
@@ -292,6 +305,7 @@ function progress(m: Obj): Progress | null {
     titles: ids(m.titles),
     stamps: ids(m.stamps),
     title: idOf(m.title),
+    streak: Number.isInteger(m.streak) && (m.streak as number) >= 0 ? Math.min(m.streak as number, STREAK_MAX) : 0,
     news: news.slice(0, NEWS_MAX),
   };
 }
@@ -314,7 +328,9 @@ function interaction(m: Obj): Interaction | null {
   return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices };
 }
 
-const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth', 'mount', 'replaced'];
+const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth', 'mount', 'replaced', 'slow', 'repeat', 'new_player', 'muted', 'banned', 'kicked'];
+/** a moderation notice is a line or two for the chat log */
+const NOTICE_MAX = 400;
 
 /** One server frame, or null if it is not a message this client understands. */
 export function parseServerMsg(data: unknown): ServerMsg | null {
@@ -353,6 +369,12 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       const p = progress(m);
       return p ? { t: 'progress', ...p } : null;
     }
+    case 'mod_notice': {
+      const text = str(m.text, NOTICE_MAX);
+      return text ? { t: 'mod_notice', text } : null;
+    }
+    case 'reported':
+      return isId(m.n) ? { t: 'reported', n: m.n } : null;
     case 'snap': {
       if (!num(m.at) || !Array.isArray(m.p)) return null;
       const rows: SnapRow[] = [];
@@ -392,6 +414,6 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       return { t: 'error', code };
     }
     default:
-      return parseRideMsg(m);
+      return parseRideMsg(m) ?? parseWayMsg(m);
   }
 }

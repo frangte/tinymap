@@ -17,10 +17,10 @@ const (
 // News is one thing that just happened.
 type News = protocol.News
 
-// progress is the whole of a character's quests as the game shows them, with what just happened.
-func (e *Engine) progress(b *Book, news []News) []byte {
+// progress is the whole of a character's quests as the game shows them on day, with what just happened.
+func (e *Engine) progress(b *Book, news []News, day string) []byte {
 	msg := protocol.Progress{T: protocol.TypeProgress, Quests: []protocol.QuestState{}, Achievements: []protocol.AchievementState{},
-		Titles: keys(b.Titles), Stamps: keys(b.Stamps), Title: b.Title, News: news}
+		Titles: keys(b.Titles), Stamps: keys(b.Stamps), Title: b.Title, Streak: b.StreakNow(day), News: news}
 	for _, t := range e.tracks {
 		r := b.Records[t.id]
 		if r == nil {

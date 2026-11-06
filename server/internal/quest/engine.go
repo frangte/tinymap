@@ -9,10 +9,12 @@ package quest
 
 import (
 	"fmt"
+	"hash/fnv"
 	"slices"
 
 	"saigon-noir/server/content"
 	"saigon-noir/server/internal/events"
+	"saigon-noir/server/internal/gameday"
 	"saigon-noir/server/internal/quest/objective"
 )
 
@@ -20,6 +22,8 @@ import (
 type Engine struct {
 	tracks []*track
 	byID   map[string]*track
+	// pools are the dailies that take turns, by pool, in file order
+	pools map[string][]string
 }
 
 // track is a quest or an achievement: objectives to do, in a flow, for a reward.
@@ -35,6 +39,9 @@ type track struct {
 	rewards    content.Rewards
 	listens    map[events.Kind]bool
 	rewardFrom string
+	// daily: it starts over every day; pool, when set, is the pool it takes turns in
+	daily bool
+	pool  string
 }
 
 type goal struct {
@@ -56,11 +63,14 @@ func (r catalogRefs) Vehicle(id string) (content.Vehicle, bool) { return r.Catal
 // NewEngine compiles the game data's quests and achievements; an objective whose params do not check out is an
 // error naming it.
 func NewEngine(c *content.Catalog) (*Engine, error) {
-	e := &Engine{byID: map[string]*track{}}
+	e := &Engine{byID: map[string]*track{}, pools: map[string][]string{}}
 	refs := catalogRefs{c}
 	for _, q := range c.Quests {
 		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, requires: q.Requires, flow: q.Flow,
-			rewards: q.Rewards, rewardFrom: "quest:" + q.ID + ":"}
+			rewards: q.Rewards, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool}
+		if t.pool != "" {
+			e.pools[t.pool] = append(e.pools[t.pool], t.id)
+		}
 		for _, o := range q.Objectives {
 			if err := t.add(o.ID, o, refs); err != nil {
 				return nil, fmt.Errorf("quest %s: objective %s: %w", q.ID, o.ID, err)
@@ -82,6 +92,18 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 func (e *Engine) add(t *track) {
 	e.tracks = append(e.tracks, t)
 	e.byID[t.id] = t
+}
+
+// onToday says whether a daily is on that day: one of each pool takes its turn, picked by the date (so everyone
+// gets the same one); a daily without a pool is on every day.
+func (e *Engine) onToday(t *track, day string) bool {
+	ids := e.pools[t.pool]
+	if t.pool == "" || len(ids) == 0 {
+		return true
+	}
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(day + "/" + t.pool))
+	return ids[int(h.Sum32()%uint32(len(ids)))] == t.id
 }
 
 func (t *track) add(id string, o content.Objective, refs objective.Refs) error {
@@ -115,13 +137,19 @@ type Book struct {
 	Stamps  map[string]bool
 	// Title is the title carried, "" for none
 	Title string
+	// Streak is the days in a row with a daily done
+	Streak Streak
 }
 
 // NewBook makes a book from what the store kept.
 func NewBook(s Saved) *Book {
-	b := &Book{Records: map[string]*Record{}, Titles: map[string]bool{}, Stamps: map[string]bool{}, Title: s.Title}
+	b := &Book{Records: map[string]*Record{}, Titles: map[string]bool{}, Stamps: map[string]bool{}, Title: s.Title, Streak: s.Streak}
 	for i := range s.Records {
 		r := s.Records[i]
+		// a daily has a row a day: the latest is the one that counts (days sort by date, and "" first)
+		if had := b.Records[r.ID]; had != nil && had.Cycle > r.Cycle {
+			continue
+		}
 		if r.Objectives == nil {
 			r.Objectives = map[string]*objective.Progress{}
 		}
@@ -143,7 +171,7 @@ func NewBook(s Saved) *Book {
 
 func (b *Book) clone() *Book {
 	c := &Book{Records: make(map[string]*Record, len(b.Records)), Titles: make(map[string]bool, len(b.Titles)),
-		Stamps: make(map[string]bool, len(b.Stamps)), Title: b.Title}
+		Stamps: make(map[string]bool, len(b.Stamps)), Title: b.Title, Streak: b.Streak}
 	for k, r := range b.Records {
 		c.Records[k] = r.clone()
 	}
@@ -181,10 +209,16 @@ type Outcome struct {
 	Completed []string
 	// Title is set when the character now carries another title (its first one earned)
 	Title *string
+	// Dropped are yesterday's dailies, gone with their day (their rows stay, under that day)
+	Dropped []string
+	// Streak is set when the streak of dailies changed
+	Streak *Streak
 }
 
 // Empty: nothing changed.
-func (o Outcome) Empty() bool { return len(o.Changed) == 0 && len(o.Grants) == 0 && o.Title == nil }
+func (o Outcome) Empty() bool {
+	return len(o.Changed) == 0 && len(o.Grants) == 0 && o.Title == nil && len(o.Dropped) == 0 && o.Streak == nil
+}
 
 func (o *Outcome) changed(r *Record) {
 	if o.Changed == nil {
@@ -205,11 +239,21 @@ func (e *Engine) Refresh(p Player, b *Book, now int64) Outcome {
 }
 
 func (e *Engine) refresh(p Player, b *Book, now int64, out *Outcome) {
+	day := gameday.OfMilli(now)
 	for _, t := range e.tracks {
-		if _, started := b.Records[t.id]; started || !t.availableTo(p, b) {
+		r, started := b.Records[t.id]
+		if t.daily && started && r.Cycle != day {
+			delete(b.Records, t.id)
+			out.Dropped = append(out.Dropped, t.id)
+			started = false
+		}
+		if started || !t.availableTo(p, b) || (t.daily && !e.onToday(t, day)) {
 			continue
 		}
-		r := &Record{ID: t.id, Version: t.version, State: StateActive, Objectives: map[string]*objective.Progress{}, StartedAt: now}
+		r = &Record{ID: t.id, Version: t.version, State: StateActive, Objectives: map[string]*objective.Progress{}, StartedAt: now}
+		if t.daily {
+			r.Cycle = day
+		}
 		for _, g := range t.goals {
 			r.Objectives[g.id] = &objective.Progress{}
 		}
@@ -234,12 +278,19 @@ func (t *track) availableTo(p Player, b *Book) bool {
 // tracks that completions open up.
 func (e *Engine) Apply(p Player, b *Book, ev events.Event, now int64) Outcome {
 	var out Outcome
+	day := gameday.OfMilli(now)
 	queue := []events.Event{ev}
 	for steps := 0; len(queue) > 0 && steps < maxChain; steps++ {
 		ev, queue = queue[0], queue[1:]
 		for _, id := range e.step(b, ev, now, &out) {
-			if !isAchievement(id) {
-				queue = append(queue, events.Event{Kind: events.QuestDone, Character: ev.Character, Quest: id})
+			if isAchievement(id) {
+				continue
+			}
+			queue = append(queue, events.Event{Kind: events.QuestDone, Character: ev.Character, Quest: id})
+			if e.byID[id].daily && b.streakUp(day) {
+				s := b.Streak
+				out.Streak = &s
+				queue = append(queue, events.Event{Kind: events.DailyStreak, Character: ev.Character, Days: s.Days})
 			}
 		}
 		e.refresh(p, b, now, &out)
@@ -247,12 +298,37 @@ func (e *Engine) Apply(p Player, b *Book, ev events.Event, now int64) Outcome {
 	return out
 }
 
+// streakUp counts a daily done on day: the streak goes on from yesterday, or starts again. False when a daily
+// was already done that day (the streak has counted it).
+func (b *Book) streakUp(day string) bool {
+	switch b.Streak.Last {
+	case day:
+		return false
+	case gameday.Before(day):
+		b.Streak.Days++
+	default:
+		b.Streak.Days = 1
+	}
+	b.Streak.Last = day
+	return true
+}
+
+// StreakNow is the streak as it stands on day: 0 once a whole day went by without a daily.
+func (b *Book) StreakNow(day string) int {
+	if b.Streak.Last == day || b.Streak.Last == gameday.Before(day) {
+		return b.Streak.Days
+	}
+	return 0
+}
+
 // step applies one event and returns the tracks it completed.
 func (e *Engine) step(b *Book, ev events.Event, now int64, out *Outcome) []string {
 	var completed []string
+	day := gameday.OfMilli(now)
 	for _, t := range e.tracks {
 		r := b.Records[t.id]
-		if r == nil || r.State != StateActive || !t.listens[ev.Kind] {
+		// yesterday's daily takes nothing more: the refresh after this step replaces it with today's
+		if r == nil || r.State != StateActive || !t.listens[ev.Kind] || (t.daily && r.Cycle != day) {
 			continue
 		}
 		if !t.advance(r, ev) {
@@ -308,10 +384,10 @@ func (t *track) complete(r *Record) bool {
 
 func (e *Engine) reward(t *track, r *Record, b *Book, out *Outcome) {
 	w := t.rewards
-	if len(w.Titles) == 0 && len(w.Stamps) == 0 && w.Capability == "" {
+	if len(w.Titles) == 0 && len(w.Stamps) == 0 && w.Capability == "" && w.Xu == 0 {
 		return
 	}
-	g := Grant{Source: t.rewardFrom + r.Cycle, Titles: w.Titles, Stamps: w.Stamps, Capability: w.Capability}
+	g := Grant{Source: t.rewardFrom + r.Cycle, Titles: w.Titles, Stamps: w.Stamps, Capability: w.Capability, Xu: w.Xu}
 	out.Grants = append(out.Grants, g)
 	for _, s := range w.Stamps {
 		b.Stamps[s] = true

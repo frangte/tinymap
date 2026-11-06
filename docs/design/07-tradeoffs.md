@@ -6,7 +6,7 @@ These are the places where the design deliberately differs from the brief ([00-b
 
 1. **The map is 200 m across, not a city.** Zones, rooms and Redis are premature.
    - One Go process handles hundreds of WebSocket clients easily.
-   - What breaks at "hundreds" is **bandwidth**, because sending everyone to everyone grows with N², and **mobile rendering**: dozens of multi-mesh avatars, with the ink pass drawing the scene twice.
+   - What breaks at "hundreds" is **bandwidth**, because sending everyone to everyone grows with N², and **mobile rendering**: dozens of multi-mesh avatars, with the ink pass drawing the scene twice. (update: disabled ink)
    - The fix is an interest grid plus a cap on how many avatars are drawn. To scale past one process, run copies of the city, not spatial zones.
 2. **Ride-hailing on a 200 m island is a 10–15 second trip** (the bike does 13–20 m/s). Until the map grows (D10), it's about the shared ride (chatting, a rating, a tip), not saving time.
 3. **Brand:** a made-up brand instead of a real one. The choice is **Crab Bike** with a yellow uniform (D9). Keep the logo and app look clearly its own, and keep real brands (Grab, Zalo…) out of the game.

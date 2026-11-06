@@ -40,6 +40,11 @@ export class QuestLog {
     return this.progress?.stamps ?? [];
   }
 
+  /** days in a row with a daily done */
+  get streak(): number {
+    return this.progress?.streak ?? 0;
+  }
+
   set(p: Progress): void {
     this.progress = p;
     this.changed();
@@ -72,10 +77,21 @@ export class QuestLog {
     return out.sort((a, b) => Number(b.def.id === t) - Number(a.def.id === t) || QUESTS.indexOf(a.def) - QUESTS.indexOf(b.def));
   }
 
-  /** Quests done, in the order of quests.json. */
+  /** Quests done for good, in the order of quests.json (today's dailies are in dailies()). */
   done(): QuestDef[] {
     const ids = new Set((this.progress?.quests ?? []).filter((q) => q.done).map((q) => q.id));
-    return QUESTS.filter((q) => ids.has(q.id));
+    return QUESTS.filter((q) => ids.has(q.id) && !q.daily);
+  }
+
+  /** Today's dailies, running or done, in the order of quests.json. */
+  dailies(): ActiveQuest[] {
+    const states = new Map((this.progress?.quests ?? []).map((q) => [q.id, q]));
+    const out: ActiveQuest[] = [];
+    for (const def of QUESTS) {
+      const state = states.get(def.id);
+      if (def.daily && state) out.push({ def, state });
+    }
+    return out;
   }
 
   achievements(): Array<{ def: AchievementDef; state: AchievementState | null }> {

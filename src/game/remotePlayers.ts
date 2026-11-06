@@ -89,8 +89,11 @@ export class RemotePlayer {
     this.placed = false;
   }
 
-  /** @returns false while there is no pose yet */
-  update(dt: number, now: number, clock: number): boolean {
+  /**
+   * Move it to where it is now; `animate` false (off screen) skips the limbs, which nobody would see.
+   * @returns false while there is no pose yet
+   */
+  update(dt: number, now: number, clock: number, animate = true): boolean {
     const s = this.samples;
     if (s.length === 0) return false;
     const t = now - RENDER_DELAY;
@@ -128,8 +131,10 @@ export class RemotePlayer {
     root.position.copy(this.position);
     root.rotation.y = h;
     root.rotation.z = this.lean;
-    this.avatar.setHeight(this.pose.air ? y - this.floorAt(x, z) : 0);
-    this.avatar.update(dt, this.speed, clock, this.pose);
+    if (animate) {
+      this.avatar.setHeight(this.pose.air ? y - this.floorAt(x, z) : 0);
+      this.avatar.update(dt, this.speed, clock, this.pose);
+    }
     return true;
   }
 
@@ -167,8 +172,26 @@ export class RemotePlayer {
   }
 }
 
+/** a sphere around a figure (on a bike too), with room for the camera turning between frames, for the view test (m) */
+const FIGURE_RADIUS = 2.2;
+const FIGURE_MID = 0.9;
+const sphere = new THREE.Sphere();
+const viewProj = new THREE.Matrix4();
+
+/** The camera's view, from its matrices as last drawn. */
+function frustumOf(camera: THREE.Camera, out: THREE.Frustum): THREE.Frustum {
+  return out.setFromProjectionMatrix(viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+}
+
+function inView(f: THREE.Frustum, feet: THREE.Vector3): boolean {
+  sphere.center.set(feet.x, feet.y + FIGURE_MID, feet.z);
+  sphere.radius = FIGURE_RADIUS;
+  return f.intersectsSphere(sphere);
+}
+
 export class RemotePlayers {
   private readonly players = new Map<number, RemotePlayer>();
+  private readonly frustum = new THREE.Frustum();
 
   constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass, private readonly floorAt: (x: number, z: number) => number) {}
 
@@ -230,13 +253,20 @@ export class RemotePlayers {
   }
 
   /**
-   * @param viewer in play mode the camera position: avatars further away are hidden; null shows everyone (map view)
+   * @param viewer in play mode the camera: avatars further away, or out of its view, are hidden; null shows
+   * everyone (map view)
    */
-  update(dt: number, now: number, clock: number, viewer: THREE.Vector3 | null): void {
+  update(dt: number, now: number, clock: number, viewer: THREE.Camera | null): void {
     const far = VISIBLE_DIST * VISIBLE_DIST;
+    if (viewer) frustumOf(viewer, this.frustum);
     for (const r of this.players.values()) {
-      const placed = r.update(dt, now, clock);
-      r.avatar.root.visible = placed && (viewer === null || viewer.distanceToSquared(r.position) < far);
+      // where it would be drawn: last frame's spot is close enough to decide, with a generous sphere
+      const onScreen = viewer === null || (viewer.position.distanceToSquared(r.position) < far && inView(this.frustum, r.position));
+      const placed = r.update(dt, now, clock, onScreen);
+      const root = r.avatar.root;
+      root.visible = placed && onScreen;
+      // an avatar out of view has its ~40 parts left out of the matrix update too (the biggest cost in a crowd)
+      root.matrixWorldAutoUpdate = root.visible;
     }
   }
 }

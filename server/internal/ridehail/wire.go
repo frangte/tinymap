@@ -5,10 +5,7 @@ import "saigon-noir/server/internal/protocol"
 // Server-to-client messages of ride-hailing (server/README.md, Crab Bike trips). They are ride-specific, so they
 // live here rather than in the core protocol package.
 
-type walletMsg struct {
-	T       string `json:"t"`
-	Balance int64  `json:"balance"`
-}
+type walletMsg = protocol.Wallet
 
 type dutyMsg struct {
 	T  string `json:"t"`

@@ -10,10 +10,12 @@ import type { RemotePlayer } from '../remotePlayers';
 import { NEARBY_RADIUS, type Channel } from '../../net/protocol';
 import { MiniMap } from './miniMap';
 import { badge } from '../badge';
-import { countOf, current, isDone, type QuestLog } from '../questLog';
-import { STAMPS, countText, titleName } from '../quests';
+import { countOf, current, isDone, type ActiveQuest, type QuestLog } from '../questLog';
+import { BOOK_STAMPS, STREAK_STAMPS, countText, titleName, type StampDef } from '../quests';
 import { xu, type Rides } from '../rides';
 import { button, h } from './dom';
+import type { Directions } from '../directions';
+import type { Mutes } from '../mutes';
 import { crab, crabDriver } from './crabApps';
 
 export interface Notice {
@@ -42,6 +44,10 @@ export interface PhoneHost {
   chooseTitle(id: string): void;
   /** Crab Bike trips: the wallet, duty, the trip and the offers */
   rides(): Rides;
+  /** asking the way: our ask as a Traveler, the calls as a Citizen */
+  directions(): Directions;
+  /** players muted here (their chat hidden) */
+  mutes(): Mutes;
 }
 
 export interface AppContext extends PhoneHost {
@@ -131,7 +137,25 @@ const chat: AppFactory = (root, ctx) => {
     ctx.openChat();
   }, true));
   if (!ctx.online()) root.append(h('p', 'app-note', 'Đang mất kết nối, chưa chat được.'));
-  return {};
+  // personal mutes: whom this player chose not to hear, and how to bring them back
+  const muted = h('section', 'mute-section');
+  const mutes = ctx.mutes();
+  const drawMuted = (): void => {
+    muted.replaceChildren(h('strong', 'app-section', 'Tắt tiếng và báo cáo'),
+      h('p', 'app-note', 'Bấm vào tên một người trong khung chat để tắt tiếng họ, hoặc báo cáo cho người điều hành.'));
+    const names = mutes.list();
+    if (names.length === 0) return;
+    const ol = h('ol', 'app-list');
+    for (const name of names) {
+      const li = h('li', 'landmark');
+      li.append(h('strong', '', name), button('Bật lại', () => mutes.remove(name)));
+      ol.append(li);
+    }
+    muted.append(ol);
+  };
+  drawMuted();
+  root.append(muted);
+  return { dispose: mutes.onChange(drawMuted) };
 };
 
 const map: AppFactory = (root, ctx) => {
@@ -169,23 +193,55 @@ const notices: AppFactory = (root, ctx) => {
   return {};
 };
 
+/** "2:41" */
+function clockLeft(ms: number): string {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+/** Asking a Citizen online the way to a landmark (D18): the landmarks to pick, or the ask waiting. */
+function askSection(ctx: AppContext): { root: HTMLElement; update(): void; dispose(): void } {
+  const directions = ctx.directions();
+  const root = h('section', 'ask-section');
+  const status = h('p', 'app-note');
+  const draw = (): void => {
+    root.replaceChildren(h('strong', 'app-section', 'Hỏi đường người Sài Gòn'));
+    const a = directions.ask;
+    if (a) {
+      root.append(h('p', 'app-text', `Đang hỏi đường tới ${LANDMARKS.find((l) => l.id === a.dest)?.name ?? a.dest}. Người Sài Gòn đang chơi sẽ tới chỉ cho bạn.`), status,
+        button('Thôi, không hỏi nữa', () => directions.cancel()));
+      update();
+      return;
+    }
+    root.append(h('p', 'app-note', directions.fallback
+      ? 'Lần trước không ai tới: Chú Sáu xe ôm ở bùng binh sẽ chỉ đường cho bạn. Hoặc hỏi lại:'
+      : 'Hỏi người Sài Gòn đang chơi đường tới:'));
+    const grid = h('div', 'ask-places');
+    for (const l of LANDMARKS) grid.append(button(l.name, () => directions.askWay(l.id)));
+    root.append(grid);
+  };
+  const update = (): void => {
+    const a = directions.ask;
+    if (!a) return;
+    const text = `Còn ${clockLeft(a.until - ctx.rides().now())} trước khi hỏi Chú Sáu.`;
+    if (status.textContent !== text) status.textContent = text;
+  };
+  draw();
+  return { root, update, dispose: directions.onChange(draw) };
+}
+
 const guide: AppFactory = (root, ctx) => {
   const log = ctx.quests();
+  const ask = askSection(ctx);
+  root.append(ask.root);
   // the stamp book: one stamp per quest of the Traveler's questline (redrawn when one is earned)
   const stamps = h('div', 'stamp-section');
   const drawStamps = (): void => {
     stamps.replaceChildren();
     if (!log.known) return;
     const earned = new Set(log.stamps);
-    stamps.append(h('strong', 'app-section', `Sổ tem · ${earned.size} / ${STAMPS.length}`));
-    const book = h('ol', 'stamp-book');
-    book.setAttribute('role', 'list');
-    for (const s of STAMPS) {
-      const li = h('li', earned.has(s.id) ? 'stamp is-earned' : 'stamp');
-      li.append(h('span', '', s.name.vi), h('span', 'sr-only', earned.has(s.id) ? ' (đã có)' : ' (chưa có)'));
-      book.append(li);
-    }
-    stamps.append(book);
+    const have = BOOK_STAMPS.filter((s) => earned.has(s.id)).length;
+    stamps.append(h('strong', 'app-section', `Sổ tem · ${have} / ${BOOK_STAMPS.length}`), stampRow(BOOK_STAMPS, earned));
   };
   drawStamps();
   root.append(stamps);
@@ -199,7 +255,13 @@ const guide: AppFactory = (root, ctx) => {
     ol.append(li);
   }
   root.append(ol);
-  return { dispose: stop };
+  return {
+    update: ask.update,
+    dispose: () => {
+      stop();
+      ask.dispose();
+    },
+  };
 };
 
 const community: AppFactory = (root, ctx) => {
@@ -230,6 +292,73 @@ const community: AppFactory = (root, ctx) => {
   return { update: draw };
 };
 
+/** A row of stamps, earned ones inked. */
+function stampRow(stamps: readonly StampDef[], earned: ReadonlySet<string>, cls = 'stamp-book'): HTMLOListElement {
+  const book = h('ol', cls);
+  book.setAttribute('role', 'list');
+  for (const s of stamps) {
+    const li = h('li', earned.has(s.id) ? 'stamp is-earned' : 'stamp');
+    li.append(h('span', '', s.name.vi), h('span', 'sr-only', earned.has(s.id) ? ' (đã có)' : ' (chưa có)'));
+    book.append(li);
+  }
+  return book;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** Saigon is UTC+7 all year: the dailies start over at its midnight */
+const SAIGON_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/** "4 giờ 12 phút" until the dailies start over. */
+function untilMidnight(now: number): string {
+  const t = now + SAIGON_OFFSET_MS;
+  const left = Math.max(0, (Math.floor(t / DAY_MS) + 1) * DAY_MS - t);
+  const hours = Math.floor(left / 3_600_000);
+  const minutes = Math.ceil((left % 3_600_000) / 60_000);
+  return hours > 0 ? `${hours} giờ ${minutes} phút` : `${minutes} phút`;
+}
+
+/** One quest's card: its objectives, and how to track it. */
+function questCard(q: ActiveQuest, log: QuestLog, tracked: ActiveQuest | null): HTMLElement {
+  const now = current(q);
+  const card = h('section', q.def === tracked?.def ? 'quest-card is-tracked' : 'quest-card');
+  card.append(h('strong', 'quest-title', q.def.title.vi), h('p', 'app-note', q.def.about.vi));
+  const goals = h('ul', 'quest-goals');
+  for (const o of q.def.objectives) {
+    const li = h('li', isDone(q, o) ? 'is-done' : now.includes(o) ? 'is-now' : '');
+    li.append(h('span', '', o.text.vi));
+    const c = countText(o, countOf(q, o));
+    if (c) li.append(h('small', '', c));
+    goals.append(li);
+  }
+  card.append(goals);
+  if (q.def.xu > 0) card.append(h('small', 'quest-reward', `Thưởng ${xu(q.def.xu)}`));
+  card.append(q.def === tracked?.def ? h('small', 'quest-tracking', 'Đang theo dõi trên màn hình') : button('Theo dõi', () => log.track(q.def.id)));
+  return card;
+}
+
+/** Today's dailies, the streak and its stamps. */
+function dailySection(log: QuestLog, tracked: ActiveQuest | null): HTMLElement | null {
+  const dailies = log.dailies();
+  if (dailies.length === 0) return null;
+  const box = h('section', 'daily-section');
+  const streak = log.streak;
+  box.append(
+    h('strong', 'app-section', 'Hằng ngày'),
+    h('p', 'app-note', `${streak > 0 ? `Chuỗi ${streak} ngày liền` : 'Chưa có chuỗi ngày'} · làm mới sau ${untilMidnight(Date.now())}`),
+  );
+  for (const q of dailies) {
+    if (!q.state.done) {
+      box.append(questCard(q, log, tracked));
+      continue;
+    }
+    const card = h('section', 'quest-card is-done');
+    card.append(h('strong', 'quest-title', q.def.title.vi), h('small', 'quest-tracking', q.def.xu > 0 ? `Xong hôm nay · đã nhận ${xu(q.def.xu)}` : 'Xong hôm nay'));
+    box.append(card);
+  }
+  if (STREAK_STAMPS.length > 0) box.append(stampRow(STREAK_STAMPS, new Set(log.stamps), 'stamp-book is-small'));
+  return box;
+}
+
 const questsApp: AppFactory = (root, ctx) => {
   const log = ctx.quests();
   let doneOpen = false;
@@ -243,25 +372,13 @@ const questsApp: AppFactory = (root, ctx) => {
         : 'Đang mất kết nối, chưa xem được nhiệm vụ.'));
       return;
     }
-    const active = log.active();
     const tracked = log.tracked();
-    if (active.length === 0) root.append(h('p', 'app-note', 'Xong hết nhiệm vụ rồi! Cứ đi dạo, sẽ có thêm.'));
-    for (const q of active) {
-      const now = current(q);
-      const card = h('section', q === tracked ? 'quest-card is-tracked' : 'quest-card');
-      card.append(h('strong', 'quest-title', q.def.title.vi), h('p', 'app-note', q.def.about.vi));
-      const goals = h('ul', 'quest-goals');
-      for (const o of q.def.objectives) {
-        const li = h('li', isDone(q, o) ? 'is-done' : now.includes(o) ? 'is-now' : '');
-        li.append(h('span', '', o.text.vi));
-        const c = countText(o, countOf(q, o));
-        if (c) li.append(h('small', '', c));
-        goals.append(li);
-      }
-      card.append(goals);
-      card.append(q === tracked ? h('small', 'quest-tracking', 'Đang theo dõi trên màn hình') : button('Theo dõi', () => log.track(q.def.id)));
-      root.append(card);
-    }
+    const daily = dailySection(log, tracked);
+    if (daily) root.append(daily);
+    const active = log.active().filter((q) => !q.def.daily);
+    if (active.length > 0 && daily) root.append(h('strong', 'app-section', 'Nhiệm vụ'));
+    if (active.length === 0 && !daily) root.append(h('p', 'app-note', 'Xong hết nhiệm vụ rồi! Cứ đi dạo, sẽ có thêm.'));
+    for (const q of active) root.append(questCard(q, log, tracked));
     const done = log.done();
     if (done.length > 0) {
       const box = document.createElement('details');
