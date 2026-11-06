@@ -67,6 +67,19 @@
 
     <div class="toast card" id="toast" role="status" data-modes="play" hidden></div>
 
+    <!-- a ride offer for a driver on duty (src/game/offerBanner.ts) -->
+    <section class="offer card" id="offer" data-modes="play" aria-labelledby="offer-who" hidden>
+      <div class="offer-text">
+        <strong id="offer-who" aria-live="assertive"></strong>
+        <span id="offer-where"></span>
+      </div>
+      <div class="offer-actions">
+        <button class="btn-primary" id="offer-take" type="button">Nhận cuốc</button>
+        <button id="offer-skip" type="button">Bỏ qua</button>
+      </div>
+      <i class="offer-bar" id="offer-bar" aria-hidden="true"></i>
+    </section>
+
     <!-- dressing: opens on the first "Vào game" and from "Đổi đồ"; buttons are filled in by dressPanel.ts -->
     <section class="dress card" id="dress" data-modes="play" aria-labelledby="dress-title" hidden>
       <div class="eyebrow">Nhân vật</div>

@@ -64,6 +64,7 @@ func TestObjectiveParamsAreChecked(t *testing.T) {
 		{"getting on a bike three times", "mount", `{}`, 3, "count must be 1"},
 		{"one place entered twice", "reach_place", `{"place": "cho_ben_thanh"}`, 2, "count must be 1"},
 		{"one NPC talked to twice", "talk_npc", `{"npc": "co_ba"}`, 2, "count must be 1"},
+		{"a trip in no role", "trip", `{"role": "pilot"}`, 1, "rider or passenger"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -283,5 +284,25 @@ func TestADriverLearnsTheStreets(t *testing.T) {
 	}
 	if r.state("achievement:tay_lai_lua") != StateDone {
 		t.Fatal("5 km ridden should give the achievement")
+	}
+}
+
+func TestACrabTripCountsForTheRiderAndThePassenger(t *testing.T) {
+	trip := func(role string, partners ...string) events.Event {
+		return events.Event{Kind: events.TripCompleted, Role: role, Partners: partners, Metres: 300}
+	}
+	d := newRun(t, "driver")
+	d.do(trip("rider", "lan")) // before the bike quest: not available yet
+	if d.state("driver.chuyen_dau_tien") != "" {
+		t.Fatal("the first trip quest needs the bike quest first")
+	}
+	d.do(events.Event{Kind: events.Mounted, Vehicle: "xe_so_110"})
+	d.do(trip("passenger", "tai")) // riding behind someone else does not count for a driver's trip
+	if d.state("driver.chuyen_dau_tien") == StateDone {
+		t.Fatal("a trip as the passenger counted for the rider")
+	}
+	d.do(trip("rider", "lan"))
+	if d.state("driver.chuyen_dau_tien") != StateDone || !d.book.Titles["tai_xe_crab"] {
+		t.Fatalf("first trip %+v, titles %v", d.book.Records["driver.chuyen_dau_tien"], d.book.Titles)
 	}
 }

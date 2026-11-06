@@ -12,6 +12,9 @@ import { MiniMap } from './miniMap';
 import { badge } from '../badge';
 import { countOf, current, isDone, type QuestLog } from '../questLog';
 import { STAMPS, countText, titleName } from '../quests';
+import { xu, type Rides } from '../rides';
+import { button, h } from './dom';
+import { crab, crabDriver } from './crabApps';
 
 export interface Notice {
   title: string;
@@ -37,6 +40,8 @@ export interface PhoneHost {
   quests(): QuestLog;
   /** carry another earned title ('' for none) */
   chooseTitle(id: string): void;
+  /** Crab Bike trips: the wallet, duty, the trip and the offers */
+  rides(): Rides;
 }
 
 export interface AppContext extends PhoneHost {
@@ -50,21 +55,7 @@ export interface AppView {
   dispose?(): void;
 }
 
-type AppFactory = (root: HTMLElement, ctx: AppContext) => AppView;
-
-function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
-
-function button(label: string, onClick: () => void, primary = false): HTMLButtonElement {
-  const b = h('button', primary ? 'btn-primary' : '', label);
-  b.type = 'button';
-  b.addEventListener('click', onClick);
-  return b;
-}
+export type AppFactory = (root: HTMLElement, ctx: AppContext) => AppView;
 
 const LANDMARKS = PLACES.filter((p) => p.kind === 'landmark');
 
@@ -82,6 +73,8 @@ const profile: AppFactory = (root, ctx) => {
   fact('Vai', a ? a.name.vi : 'Chưa chọn');
   fact('Trang phục', outfitStyle(p.look.outfit, p.look.body).name);
   fact('Nón', HAT_NAMES[p.look.hat]);
+  const balance = ctx.rides().balance;
+  if (balance !== null) fact('Ví', xu(balance));
   root.append(facts);
   const log = ctx.quests();
   let stop: (() => void) | undefined;
@@ -324,13 +317,6 @@ const achievementsApp: AppFactory = (root, ctx) => {
   return { dispose: log.onChange(draw) };
 };
 
-const crabDriver: AppFactory = (root) => {
-  const card = h('div', 'driver-card');
-  card.append(h('strong', '', 'Chưa có cuốc xe'), h('span', '', 'Khách đặt xe qua app Crab sẽ hiện ở đây khi tính năng chở khách ra mắt.'));
-  root.append(card, h('p', 'app-text', 'Trong lúc chờ: chạy dọc Lê Lợi, Đồng Khởi và Hàm Nghi cho thuộc đường Quận 1.'));
-  return {};
-};
-
 export const APP_VIEWS: Readonly<Record<string, AppFactory>> = {
   profile,
   quests: questsApp,
@@ -340,5 +326,6 @@ export const APP_VIEWS: Readonly<Record<string, AppFactory>> = {
   notices,
   guide,
   community,
+  crab,
   crab_driver: crabDriver,
 };

@@ -266,7 +266,7 @@ The original plan:
 
 ### Future
 
-- **Ride-hailing, next after phase 4 (D13):** planned in [08-ride-hailing.md](08-ride-hailing.md), about 2 weeks. It needs phase 2's seats and phase 4's character workers and events, and brings the xu wallet (D11).
+- **Ride-hailing, next after phase 4 (D13): built 2026-11-06, not deployed yet** ([08-ride-hailing.md](08-ride-hailing.md#as-built)); the load run with bots is still to do. Planned at about 2 weeks. It needs phase 2's seats and phase 4's character workers and events, and brings the xu wallet (D11).
 - **Done when (ride-hailing):** a traveller books, a driver picks them up and drops them off, and the fare moves between their wallets. Three drivers accepting at once gives one winner, and every cancel path refunds. The ride logic lives in the `ridehail` package and the Crab apps; the core gains only generic pieces (seat 1, carried players, view pins, a module hook, the wallet) with no ride-specific code. (The first plan said "without editing any core package"; the seat, the view and money turned out to be core.)
 - The rest of the economy, city copies with Postgres + Redis, AI NPCs, a bigger map.
 

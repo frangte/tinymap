@@ -3,6 +3,7 @@
   "apps": [
     { "id": "profile", "name": { "vi": "Hồ sơ", "en": "Profile" }, "icon": "profile" },
     { "id": "quests", "name": { "vi": "Nhiệm vụ", "en": "Quests" }, "icon": "flag" },
+    { "id": "crab", "name": { "vi": "Crab", "en": "Crab" }, "icon": "pin" },
     { "id": "chat", "name": { "vi": "Trò chuyện", "en": "Chat" }, "icon": "chat" },
     { "id": "map", "name": { "vi": "Bản đồ", "en": "Map" }, "icon": "map" },
     { "id": "achievements", "name": { "vi": "Thành tích", "en": "Achievements" }, "icon": "trophy" },

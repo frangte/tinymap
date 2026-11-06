@@ -1,6 +1,6 @@
 # Ride-hailing: booking a Crab Bike
 
-A player books a Crab Bike on their phone, a Crab Bike driver accepts, rides over, picks them up, and drops them at the destination, as in real life. Written 2026-11-06 as the plan for after phase 4 (decision D13); **nothing here is built yet**. It builds on what phase 2 made: the motorbike with its seats (`server/internal/world/vehicle.go`), server-checked movement (`move.go`), the interest grid (`view.go`), and mounting in the game (`src/game/riding.ts`).
+A player books a Crab Bike on their phone, a Crab Bike driver accepts, rides over, picks them up, and drops them at the destination, as in real life. Written 2026-11-06 as the plan for after phase 4 (decision D13); **built 2026-11-06, not deployed yet**. What changed while building it is under [As built](#as-built). It builds on what phase 2 made: the motorbike with its seats (`server/internal/world/vehicle.go`), server-checked movement (`move.go`), the interest grid (`view.go`), and mounting in the game (`src/game/riding.ts`).
 
 Decided (see the [decision log](README.md#decisions)):
 
@@ -221,10 +221,27 @@ About **2 weeks** for one developer, after phase 4.
 - A passenger cannot move themselves while seated; a tampered client gains nothing.
 - The ride logic is all in `ridehail` and the Crab apps; the core only has the generic pieces above.
 
+## As built
+
+Built 2026-11-06 as planned above, with these differences (the code is `server/internal/ridehail`, `server/internal/store/wallets.go`, `src/game/rides.ts` and `src/game/phone/crabApps.ts`):
+
+- **Duty needs the bike** (proposed D15): a driver is on duty only while riding their own bike; getting off ends duty and withdraws their offers.
+- **No cancellation fee** in v1, either side (proposed D15).
+- **Getting off early** with Xuống xe, or leaving the seat any other way (a respawn), charges the whole fare. A dropped connection on the trip charges the way covered (at least the base fare); the driver leaving or getting off refunds the passenger.
+- **No trip to where you are:** booking a place you stand in, or boarding once you walked into the destination, is refused (`here`). A trip still going after 5 minutes (`trip_seconds`) ends with a refund.
+- **The booking gap** (one request per 10 s per character) is kept by the ride service, which answers `too_soon`, rather than by `ws`, which only caps the ride messages at a few per second.
+- **Money that cannot be written is tried again:** a settlement that fails (a busy database) is retried from the tick with backoff, and both sides hear how the trip ended only once it is written; until then neither can start another trip. The store moves money only for a ride still open and never more than its fare, so a retry, or a refund for a hold that never happened, moves nothing. Each money job has a 10 s timeout.
+- **A restart refunds open trips:** trips live in the world's memory, so the server gives back the fare of every ride left open when it starts (`ReturnOpenHolds`, end reason `server_stopped`). A settlement still failing when the server stops is refunded the same way.
+- **Accepting a ride drops the driver's other offers** (`ride_offer_gone` with `busy`).
+- **Passengers are drawn where their rider is drawn**, on every screen: their own snapshots run 230 ms late, so a passenger drawn from them trails the bike. The seat-1 pose sits further back and higher than the rider; the top box comes off while seat 1 is taken.
+- **Guidance** reuses the quest tracker: while a trip goes on it shows the trip's next step and points at the passenger to pick up or the destination.
+- **A driver mid-trip** presses E twice within 3 s to get off (the first press warns that it cancels the trip).
+- **Not built yet:** the load run with bot passengers and drivers, the rating shown on the driver's profile (the stars show on the driver card the passenger sees), NPC passengers.
+
+Verified with Go tests for every path against the ledger (three drivers accepting at once, every cancel and timeout, failed settlements, the store's guards), and two headless browsers: a traveller books at Chợ Bến Thành, a driver accepts from the banner, picks them up and drops them at Nhà hát Thành phố; 16.000 xu leaves one wallet, 12.800 arrives in the other, the 5.000 tip follows, and both Crab quests complete.
+
 ## Open questions
 
 - The amounts: start balance, lì xì top-up, the cut, the tips. They are content, so easy to tune after a playtest.
-- Should a driver have to stay on the bike to stay on duty, or may they walk around and still get offers (and walk back to the bike to accept)?
-- Cancellation fees once a driver is on the way: none in v1.
 - NPC passengers after phase 3: when no player books, an NPC at a landmark asks for a ride, paid by the game, so drivers have work with few players online.
 - On a 200 m island a trip is 20–30 s ([07-tradeoffs.md](07-tradeoffs.md)). The chat, the rating and the tip are the point until the map grows (D10).

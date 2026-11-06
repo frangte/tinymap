@@ -107,6 +107,9 @@ func (w *World) allowance(m *member) float64 {
 }
 
 func (w *World) onState(p *Peer, m *member, msg protocol.ClientMsg) {
+	if m.seated != nil {
+		return // a passenger is carried: where it is comes from the vehicle, whatever its client says
+	}
 	if msg.K != m.gait.k {
 		return // sent before the client had our latest correction: it is on its way back already
 	}
@@ -122,7 +125,7 @@ func (w *World) onState(p *Peer, m *member, msg protocol.ClientMsg) {
 		w.refuse(p, m, why)
 		return
 	}
-	flags := msg.S &^ protocol.FlagRide
+	flags := msg.S &^ (protocol.FlagRide | protocol.FlagSeat1)
 	if m.riding != nil {
 		flags = protocol.FlagRide // no jumping or emotes on a bike
 		m.riding.pose = to
@@ -130,9 +133,13 @@ func (w *World) onState(p *Peer, m *member, msg protocol.ClientMsg) {
 	if to != m.pose || flags != m.flags {
 		m.view.moved = true
 	}
-	from, oldFlags := m.pose, m.flags
+	from, oldFlags, fromAt := m.pose, m.flags, m.poseAt
 	m.pose, m.poseAt, m.flags = to, w.now(), flags
 	p.setPose(to)
+	m.trackSpeed(from, m.poseAt.Sub(fromAt))
+	if m.riding != nil {
+		w.carry(m.riding)
+	}
 	w.observeMove(m, from, oldFlags)
 }
 
@@ -189,6 +196,8 @@ func (w *World) refuse(p *Peer, m *member, why string) {
 func (w *World) onRespawn(p *Peer, m *member, msg protocol.ClientMsg) {
 	// the game gets off the bike before it respawns, whether or not the respawn lands: so does the server
 	w.dismount(m)
+	// a passenger respawning gets off without a correction: the respawn places them (or its refusal does)
+	w.putDown(m, false)
 	if msg.K != m.gait.k {
 		return
 	}

@@ -27,6 +27,9 @@ const (
 	Rode Kind = "ride.distance"
 	// QuestDone: the player completed Quest (published by the quest engine for its own achievements)
 	QuestDone Kind = "quest.done"
+	// TripCompleted: a Crab Bike trip the player took part in as Role ("rider", who drove, or "passenger") ended paid,
+	// with Partners (the other one) over Metres
+	TripCompleted Kind = "trip.completed"
 )
 
 // Event is one fact about one character.
@@ -41,6 +44,7 @@ type Event struct {
 	Emote     string
 	Vehicle   string
 	Quest     string
+	Role      string
 	Riding    bool
 	Seconds   int
 	Metres    int

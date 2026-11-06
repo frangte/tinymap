@@ -33,6 +33,7 @@ import (
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/quest"
+	"saigon-noir/server/internal/ridehail"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/web"
 	"saigon-noir/server/internal/world"
@@ -117,13 +118,24 @@ func run() error {
 		return fmt.Errorf("database: %w", err)
 	}
 	defer db.Close()
+	// trips live in the world's memory: any a stopped server left open give their fares back now
+	if n, err := db.ReturnOpenHolds(ctx, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("database: %w", err)
+	} else if n > 0 {
+		log.Warn("gave back the fares of rides left open", "rides", n)
+	}
 	go db.BackupDaily(ctx, backupsKept)
 	accounts := identity.New(db)
 
 	w := world.New(cfg, grid, log)
+	// Crab Bike trips run inside the world loop; their money moves in the database (docs/design/08-ride-hailing.md)
+	w.Use(func(h world.Host) world.Module {
+		return ridehail.New(h, ridehail.ConfigFrom(catalog.Ridehail), catalog.Places, db, log)
+	})
 	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
 	sockets := ws.New(w, accounts, catalog, ws.DefaultConfig(), log)
 	sockets.Quests = quests
+	sockets.Wallets = ridehail.Purse{Wallets: db, Cfg: catalog.Ridehail, Now: time.Now}
 	quests.OnCapability = sockets.Grant
 	go quests.Run(ctx)
 	go w.Run(ctx)

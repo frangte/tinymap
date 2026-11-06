@@ -162,4 +162,10 @@ func (w *World) lookAround(m *member) {
 		slices.SortFunc(s.cands, func(a, b candidate) int { return cmp.Compare(a.d2, b.d2) })
 		s.cands = s.cands[:v.Max]
 	}
+	// pinned members are always in view, however far and however many others there are
+	for o := range m.pins {
+		if !slices.ContainsFunc(s.cands, func(c candidate) bool { return c.e == &o.entity }) {
+			s.cands = append(s.cands, candidate{e: &o.entity})
+		}
+	}
 }

@@ -6,6 +6,7 @@
     { "id": "driver.app", "about": "the Crab Driver phone app (ride requests arrive with ride-hailing)" },
     { "id": "uniform.crab", "about": "may wear the yellow Crab Bike jacket and helmet" },
     { "id": "vehicle.motorbike.ride", "about": "may ride a motorbike (vehicles.json); later also bought as an item" },
+    { "id": "ridehail.drive", "about": "may go on duty in the Crab Driver app and take ride requests (ridehail.json)" },
     { "id": "local.certified", "about": "a true Saigonese: earned by finishing the Traveler's questline (quests.json); later unlocks a hidden spot" }
   ],
   "archetypes": [
@@ -47,7 +48,7 @@
       "spawn": { "place": "duong_ham_nghi", "at": [36, -37], "face": [62, -50], "button": { "vi": "Về bãi xe", "en": "Back to the bike stand" } },
       "look": { "outfit": "crab", "hat": "helmet" },
       "vehicle": "xe_so_110",
-      "capabilities": ["driver.app", "uniform.crab", "vehicle.motorbike.ride"]
+      "capabilities": ["driver.app", "uniform.crab", "vehicle.motorbike.ride", "ridehail.drive"]
     }
   ],
   "restricted_looks": [

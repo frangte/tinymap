@@ -12,7 +12,8 @@ import { clamp, damp, wrapAngle } from './coords';
 import type { InkPass } from './ink';
 import type { Look } from './outfits';
 import { emoteByCode } from './motion';
-import { emoteOf, FLAG_AIR, FLAG_RIDE, type PlayerInfo, type SnapRow } from '../net/protocol';
+import { emoteOf, FLAG_AIR, FLAG_RIDE, FLAG_SEAT1, type PlayerInfo, type SnapRow } from '../net/protocol';
+import type { RiderView } from './vehicles';
 
 /**
  * Draw others this far in the past, so the next sample has always arrived (ms). Worst case: the sender's send
@@ -132,10 +133,29 @@ export class RemotePlayer {
     return true;
   }
 
+  /**
+   * Draw it on a bike behind the rider (seat 1), where the rider is drawn this frame: its own samples are as late
+   * as the rider's only when the rider is remote too.
+   */
+  sitBehind(at: RiderView): void {
+    this.position.copy(at.position);
+    this.heading = at.heading;
+    this.lean = at.lean;
+    this.speed = at.speed;
+    this.pose.ride = this.pose.pillion = true;
+    const root = this.avatar.root;
+    root.position.copy(at.position);
+    root.rotation.y = at.heading;
+    root.rotation.z = at.lean;
+    this.avatar.setHeight(0);
+  }
+
   /** Turn the state flags of the sample being shown into the avatar's pose. */
   private flags(s: number, dt: number): void {
     this.pose.air = (s & FLAG_AIR) !== 0;
-    this.pose.ride = (s & FLAG_RIDE) !== 0;
+    // a passenger behind a rider sits on the bike too, further back
+    this.pose.pillion = (s & FLAG_SEAT1) !== 0;
+    this.pose.ride = (s & FLAG_RIDE) !== 0 || this.pose.pillion;
     const code = emoteOf(s);
     if (code !== this.emoteCode) {
       this.emoteCode = code;

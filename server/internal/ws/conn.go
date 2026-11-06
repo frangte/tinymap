@@ -47,6 +47,9 @@ var (
 	// interact, choose, interact_leave: reading a line and picking an answer takes a moment
 	talkRate  = rate.Every(150 * time.Millisecond)
 	talkBurst = 6
+	// Crab Bike trips: a few presses a second (booking itself is spaced out by the ride service)
+	rideRate  = rate.Every(250 * time.Millisecond)
+	rideBurst = 4
 )
 
 type Config struct {
@@ -68,6 +71,12 @@ type Identity interface {
 	SavePose(ctx context.Context, characterID string, p protocol.Pose) error
 }
 
+// Wallets opens a character's wallet as it arrives (its balance goes in the welcome): ridehail.Purse in
+// production.
+type Wallets interface {
+	Arrive(ctx context.Context, character string) (int64, error)
+}
+
 // Quests runs a character's quests while it plays: quest.Service in production.
 type Quests interface {
 	Join(character string, session uint64, who quest.Player)
@@ -83,6 +92,8 @@ type Server struct {
 	log     *slog.Logger
 	// Quests, when set, hears which characters are playing; nil plays without quests
 	Quests Quests
+	// Wallets, when set, gives arriving characters their balance; nil plays without wallets
+	Wallets Wallets
 	// saving counts the connections that still have a pose to save; closing (under mu) stops new ones once
 	// Drain has started
 	mu      sync.Mutex
@@ -236,6 +247,7 @@ func (c *client) readLoop() {
 	profiles := rate.NewLimiter(profileRate, profileBurst)
 	actions := rate.NewLimiter(actionRate, actionBurst)
 	talks := rate.NewLimiter(talkRate, talkBurst)
+	rides := rate.NewLimiter(rideRate, rideBurst)
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
@@ -268,6 +280,12 @@ func (c *client) readLoop() {
 		case protocol.TypeInteract, protocol.TypeChoose, protocol.TypeInteractLeave:
 			// a dropped command gets no result: the game gives up waiting for it after a while
 			if !talks.Allow() {
+				continue
+			}
+			ok = w.Handle(c.peer, msg)
+		case protocol.TypeDuty, protocol.TypeRideRequest, protocol.TypeRideCancel, protocol.TypeRideAccept, protocol.TypeRideBoard,
+			protocol.TypeRideAlight, protocol.TypeRideComplete, protocol.TypeRideRate:
+			if !rides.Allow() {
 				continue
 			}
 			ok = w.Handle(c.peer, msg)
@@ -341,6 +359,14 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	}
 	if v, ok := cat.StarterVehicle(kept, caps); ok {
 		a.Vehicle = &world.VehicleSpec{Kind: v.ID, Speed: v.Speed}
+	}
+	if c.character != "" && c.s.Wallets != nil {
+		// a wallet that cannot open plays without one this visit; booking then fails on its own
+		if balance, err := c.s.Wallets.Arrive(ctx, c.character); err != nil {
+			c.s.log.Error("wallet", "character", c.character, "err", err)
+		} else {
+			a.Wallet = &balance
+		}
 	}
 	return a, ""
 }

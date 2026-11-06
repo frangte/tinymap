@@ -12,6 +12,7 @@ package world
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -25,6 +26,9 @@ import (
 	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/protocol"
 )
+
+// errBusy answers a module's job that could not be queued.
+var errBusy = errors.New("world: busy")
 
 // Config tunes the world; DefaultConfig is what the server runs with.
 type Config struct {
@@ -88,6 +92,8 @@ type Arrival struct {
 	Start *protocol.Pose
 	// Vehicle is parked next to the player on arrival and leaves with them; nil for none.
 	Vehicle *VehicleSpec
+	// Wallet is the character's balance in xu, shown in the welcome; nil for none (a guest)
+	Wallet *int64
 }
 
 // VehicleSpec is a kind of vehicle (server/content/vehicles.json).
@@ -145,6 +151,8 @@ const (
 	evTitle
 	// from the connection, by peer
 	evCaps
+	// a module's job finished: its done runs in the loop
+	evDone
 )
 
 type event struct {
@@ -160,6 +168,7 @@ type event struct {
 	quests    map[string]bool
 	title     string
 	caps      capability.Set
+	done      func()
 }
 
 // entity is what others see of anything in the world, a player or an NPC: where it is and what it is doing.
@@ -192,6 +201,13 @@ type member struct {
 	talk *session
 	// where is which place it is in, for place events
 	where whereabouts
+	// seated is the vehicle it is a passenger on (seat 1), nil for none: its pose follows the vehicle
+	seated *vehicle
+	// pins are the members always in its view (a module's, such as a driver and their passenger)
+	pins map[*member]bool
+	// speed is how fast it moved over its last accepted reports (m/s); clock reads the world's time
+	speed float64
+	clock func() time.Time
 }
 
 type World struct {
@@ -218,6 +234,8 @@ type World struct {
 	lastTick time.Time
 	history  []protocol.ChatLine
 	snaps    snapScratch
+	modules  []Module
+	jobs     jobQueue
 }
 
 // New makes the world and places its NPCs. NPC ids come first, then players'.
@@ -294,6 +312,7 @@ func (w *World) SetTitle(character, title string) bool {
 // Run owns the world until ctx is cancelled, then closes every peer.
 func (w *World) Run(ctx context.Context) {
 	defer close(w.done)
+	w.jobs.start(ctx)
 	ticker := time.NewTicker(w.cfg.SnapInterval)
 	defer ticker.Stop()
 	for {
@@ -346,6 +365,8 @@ func (w *World) handle(e event) {
 		}
 	case evDeliver, evQuests, evTitle:
 		w.onService(e)
+	case evDone:
+		e.done()
 	}
 }
 
@@ -394,7 +415,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	}
 	w.nextID++
 	m := &member{entity: entity{id: w.nextID, view: newView()}, peer: p, character: a.Character, name: a.Name, arch: a.Arch,
-		look: a.Look, caps: a.Caps, title: a.Title}
+		look: a.Look, caps: a.Caps, title: a.Title, clock: w.now}
 	if m.name == "" {
 		m.name = fmt.Sprintf("Khách %d", m.id)
 	}
@@ -416,7 +437,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	}
 	w.sendTo(p, protocol.Encode(protocol.Welcome{
 		T: protocol.TypeWelcome, ID: m.id, Name: m.name, Arch: m.arch, Apps: apps, MaxPlayers: w.cfg.MaxPlayers,
-		Pose: protocol.PoseArray(m.pose), Players: others, Vehicles: w.vehicleList(), NPCs: w.npcList(),
+		Pose: protocol.PoseArray(m.pose), Players: others, Vehicles: w.vehicleList(), NPCs: w.npcList(), Wallet: a.Wallet,
 		Chat: append([]protocol.ChatLine{}, w.history...),
 	}))
 	w.broadcast(protocol.Encode(protocol.Join{T: protocol.TypeJoin, P: m.player()}), p)
@@ -474,6 +495,12 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 		w.broadcast(protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Look: m.look, Title: m.title}), p)
 	case protocol.TypeChat:
 		w.onChat(p, m, msg)
+	default:
+		for _, mod := range w.modules {
+			if mod.Handle(m, msg) {
+				return
+			}
+		}
 	}
 }
 
@@ -561,6 +588,12 @@ func (w *World) remove(p *Peer) {
 	if !ok {
 		return
 	}
+	// modules hear of it while the member can still be asked about (a trip it was on ends)
+	for _, mod := range w.modules {
+		mod.Left(m)
+	}
+	w.unseat(m)
+	unpinAll(m)
 	delete(w.members, p)
 	w.count.Add(-1)
 	// the peer is closed: nothing more is sent to it, the others in a group conversation hear it left

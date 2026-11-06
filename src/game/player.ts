@@ -79,6 +79,8 @@ export class Player {
   riding: { id: number; tuning: RideTuning } | null = null;
   /** roll into a turn while riding (rad) */
   lean = 0;
+  /** the vehicle we sit on behind its rider (a Crab Bike trip), 0 on our own feet or bike */
+  seated = 0;
   private readonly vel = new THREE.Vector3();
   private readonly wish = new THREE.Vector3();
   /** where the avatar is drawn relative to `position`, easing to zero after a correction */
@@ -105,6 +107,8 @@ export class Player {
 
   /** State flags for the server: in the air, riding, the emote playing. */
   get flags(): number {
+    // a passenger's flags are the server's to set (it ignores our states while we sit behind someone)
+    if (this.seated !== 0) return 0;
     return (this.airborne ? FLAG_AIR : 0) | (this.riding ? FLAG_RIDE : 0) | (this.emoteCode << EMOTE_SHIFT);
   }
 
@@ -127,7 +131,7 @@ export class Player {
 
   /** Jump, if standing on the ground on foot. */
   jump(): boolean {
-    if (this.airborne || this.riding) return false;
+    if (this.airborne || this.riding || this.seated !== 0) return false;
     this.stopEmote();
     this.vy = this.tuning.jumpSpeed;
     this.airborne = true;
@@ -137,7 +141,7 @@ export class Player {
   /** Play an emote (server/content/emotes.json code), on the ground and on foot only. */
   playEmote(code: number): boolean {
     const e = emoteByCode(code);
-    if (!e || this.riding || this.airborne) return false;
+    if (!e || this.riding || this.airborne || this.seated !== 0) return false;
     this.emoteCode = e.code;
     this.emoteSeconds = e.seconds;
     this.pose.emote = e.id;
@@ -173,8 +177,39 @@ export class Player {
     return parked;
   }
 
+  /** Sit behind the rider of a vehicle (the server put us in seat 1): from now on carry() places us. */
+  sit(vehicle: number): void {
+    this.settle();
+    this.seated = vehicle;
+    this.pose.ride = true;
+    this.pose.pillion = true;
+  }
+
+  /** Off the seat: on our feet where we are; the server's correction puts us beside the bike. */
+  stand(): void {
+    if (this.seated === 0) return;
+    this.seated = 0;
+    this.pose.ride = false;
+    this.pose.pillion = false;
+    this.lean = 0;
+    this.settle();
+  }
+
+  /** While seated, every frame: where the rider is drawn (the joystick does nothing meanwhile). */
+  carry(at: THREE.Vector3, heading: number, lean: number, speed: number): void {
+    this.offset.set(0, 0, 0);
+    this.position.copy(at);
+    this.floor = this.ground = at.y;
+    this.heading = heading;
+    this.lean = lean;
+    this.speed = speed;
+    this.syncAvatar();
+  }
+
   /** The server refused a move: go back to its pose, easing the avatar there unless it is far. */
   correct(x: number, y: number, z: number): void {
+    // the server never corrects a seated passenger's moves (it ignores them): this is it putting us down
+    this.stand();
     this.moveTo(x, y, z, Math.hypot(x - this.position.x, z - this.position.z) < EASE_LIMIT);
   }
 
@@ -184,6 +219,10 @@ export class Player {
   update(dt: number, move: MoveIntent, forward: THREE.Vector3, time: number): void {
     // camera-relative wish direction: right = (-fz, 0, fx)
     this.wish.set(forward.x * move.y - forward.z * move.x, 0, forward.z * move.y + forward.x * move.x);
+    if (this.seated !== 0) {
+      this.avatar.update(dt, 0, time, this.pose);
+      return;
+    }
     const mag = Math.min(1, this.wish.length());
     if (mag > 1e-3) this.wish.multiplyScalar(1 / this.wish.length());
     if (this.riding) this.ride(dt, mag, move.run, this.riding.tuning);

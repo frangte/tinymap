@@ -80,6 +80,7 @@ export class Motorbike {
   /** placed on the ground, rotated to the heading, rolled by the lean */
   readonly root = new THREE.Group();
   private readonly front = new THREE.Group();
+  private readonly topBox = new THREE.Group();
   private readonly frontWheel: THREE.Group;
   private readonly rearWheel: THREE.Group;
   private readonly geometries: THREE.BufferGeometry[] = [];
@@ -109,9 +110,11 @@ export class Motorbike {
     pipe.rotation.x = Math.PI / 2;
     pipe.position.set(-0.17, 0.3, -0.42);
     frame.add(pipe);
-    frame.add(box(0.38, 0.3, 0.36, m.box, 0, 0.93, -0.6));
-    frame.add(box(0.385, 0.03, 0.365, m.dark, 0, 1.02, -0.6));
-    frame.add(box(0.14, 0.09, 0.01, m.dark, 0, 0.9, -0.785));
+    // a passenger sits where the box is: it comes off while seat 1 is taken
+    this.topBox.add(box(0.38, 0.3, 0.36, m.box, 0, 0.93, -0.6));
+    this.topBox.add(box(0.385, 0.03, 0.365, m.dark, 0, 1.02, -0.6));
+    this.topBox.add(box(0.14, 0.09, 0.01, m.dark, 0, 0.9, -0.785));
+    frame.add(this.topBox);
 
     // the front turns: fork, front wheel, headlight cowl and handlebar
     this.front.position.set(0, HEAD_Y, HEAD_Z);
@@ -157,6 +160,11 @@ export class Motorbike {
     this.rearWheel.rotation.x += spin;
     this.front.rotation.y = steer;
     this.root.rotation.z = lean;
+  }
+
+  /** The yellow top box shows unless someone sits in seat 1. */
+  showTopBox(on: boolean): void {
+    this.topBox.visible = on;
   }
 
   /** Free what this bike owns (the materials and textures are shared). */

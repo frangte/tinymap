@@ -8,7 +8,9 @@
     { "id": "hang_xom_than_thien", "name": { "vi": "Hàng xóm thân thiện", "en": "Friendly neighbour" } },
     { "id": "tai_xe_moi", "name": { "vi": "Tài xế mới", "en": "New driver" } },
     { "id": "thuoc_duong_quan_1", "name": { "vi": "Thuộc đường Quận 1", "en": "Knows District 1" } },
-    { "id": "di_khap_quan_1", "name": { "vi": "Đi khắp Quận 1", "en": "Been all over District 1" } }
+    { "id": "di_khap_quan_1", "name": { "vi": "Đi khắp Quận 1", "en": "Been all over District 1" } },
+    { "id": "tai_xe_crab", "name": { "vi": "Tài xế Crab", "en": "Crab driver" } },
+    { "id": "khach_crab", "name": { "vi": "Khách đi Crab", "en": "Crab rider" } }
   ],
   "stamps": [
     { "id": "chao_sai_gon", "name": { "vi": "Chào Sài Gòn", "en": "Hello, Saigon" } },
@@ -187,6 +189,34 @@
         { "id": "ham_nghi", "type": "ride_through", "params": { "place": "duong_ham_nghi" }, "text": { "vi": "Chạy xe trên đường Hàm Nghi", "en": "Ride along Hàm Nghi" }, "at": "duong_ham_nghi" }
       ],
       "rewards": { "titles": ["thuoc_duong_quan_1"] }
+    },
+    {
+      "id": "driver.chuyen_dau_tien",
+      "version": 1,
+      "questline": "tay_lai",
+      "title": { "vi": "Chuyến đầu tiên", "en": "Your first trip" },
+      "about": { "vi": "Bật nhận cuốc trong app Crab Driver, nhận một cuốc xe, đón khách và chở tới nơi.", "en": "Go on duty in the Crab Driver app, accept a ride, pick the passenger up and drop them off." },
+      "tags_any": ["driver"],
+      "requires": ["driver.nhan_xe"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "trip", "type": "trip", "params": { "role": "rider" }, "text": { "vi": "Chở xong một cuốc xe", "en": "Complete a trip" } }
+      ],
+      "rewards": { "titles": ["tai_xe_crab"] }
+    },
+    {
+      "id": "traveler.di_crab",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": { "vi": "Đi Crab", "en": "Take a Crab" },
+      "about": { "vi": "Mở app Crab, đặt xe tới một công trình, lên xe tài xế và đi một vòng Quận 1.", "en": "Open the Crab app, book a ride to a landmark, hop on behind the driver and see District 1." },
+      "tags_any": ["traveler"],
+      "requires": ["traveler.chao_sai_gon"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "ride", "type": "trip", "params": { "role": "passenger" }, "text": { "vi": "Đi một cuốc Crab tới nơi", "en": "Ride a Crab to your destination" } }
+      ],
+      "rewards": { "titles": ["khach_crab"] }
     }
   ],
   "achievements": [

@@ -112,7 +112,7 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("got s=%d k=%d", m.S, m.K)
 				}
 			}},
-		{name: "unknown state flag", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":0,"s":4}`, wantErr: ErrBadFlags},
+		{name: "unknown state flag", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":0,"s":8}`, wantErr: ErrBadFlags},
 		{name: "negative state flags", in: `{"t":"state","x":1,"y":0.2,"z":-3,"h":0,"s":-1}`, wantErr: ErrBadFlags},
 		{name: "a respawn keeps k, not flags", in: `{"t":"respawn","x":1,"y":0.2,"z":-3,"h":0,"s":33,"k":4}`,
 			check: func(t *testing.T, m ClientMsg) {

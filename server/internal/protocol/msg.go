@@ -43,13 +43,23 @@ const (
 	TypeChoose        = "choose"
 	TypeInteractLeave = "interact_leave"
 	// TypeTitle picks the title a character carries, among those it earned ("" for none)
-	TypeTitle   = "title"
-	TypeWelcome = "welcome"
-	TypeJoin    = "join"
-	TypeLeave   = "leave"
-	TypeSnap    = "snap"
-	TypeCorrect = "correct"
-	TypeVehicle = "vehicle"
+	TypeTitle = "title"
+	// Crab Bike trips (server/internal/ridehail): a driver goes on duty; a passenger books, cancels, gets on,
+	// gets off early, rates; a driver accepts an offer and completes the trip
+	TypeDuty         = "duty"
+	TypeRideRequest  = "ride_request"
+	TypeRideCancel   = "ride_cancel"
+	TypeRideAccept   = "ride_accept"
+	TypeRideBoard    = "ride_board"
+	TypeRideAlight   = "ride_alight"
+	TypeRideComplete = "ride_complete"
+	TypeRideRate     = "ride_rate"
+	TypeWelcome      = "welcome"
+	TypeJoin         = "join"
+	TypeLeave        = "leave"
+	TypeSnap         = "snap"
+	TypeCorrect      = "correct"
+	TypeVehicle      = "vehicle"
 	// TypeVehicleGone: a vehicle left the world (its owner did)
 	TypeVehicleGone = "vehicle_gone"
 	// TypeInteraction shows a conversation's current line; TypeInteractionEnd closes it
@@ -68,10 +78,12 @@ const (
 	FlagAir = 1 << 0
 	// FlagRide: on a vehicle. The server sets it from its own record; what a client says is ignored.
 	FlagRide = 1 << 1
+	// FlagSeat1: a passenger in seat 1 behind a rider, set by the server like FlagRide
+	FlagSeat1 = 1 << 2
 	// EmoteShift and EmoteMask place the emote code (server/content/emotes.json, 0 for none) in bits 4–7.
 	EmoteShift = 4
 	EmoteMask  = 0xF << EmoteShift
-	flagsKnown = FlagAir | FlagRide | EmoteMask
+	flagsKnown = FlagAir | FlagRide | FlagSeat1 | EmoteMask
 )
 
 // EmoteOf is the emote code in state flags (0 for none).
@@ -203,6 +215,15 @@ type ClientMsg struct {
 	Rid uint32 `json:"rid"`
 	// Title is the title to carry, in title only ("" for none)
 	Title string `json:"title"`
+	// On, in duty: going on duty or off it
+	On bool `json:"on"`
+	// Dest is the place to go, in ride_request (an id from server/content/places.json)
+	Dest string `json:"dest"`
+	// Offer is the offer accepted, in ride_accept
+	Offer string `json:"offer"`
+	// Stars (1–5) and Tip (xu), in ride_rate
+	Stars int   `json:"stars"`
+	Tip   int64 `json:"tip"`
 }
 
 // Validation errors; the world drops the message (or the connection, for a bad hello).
@@ -219,6 +240,7 @@ var (
 	ErrBadSession  = errors.New("no conversation id")
 	ErrBadChoice   = errors.New("choice out of range")
 	ErrBadTitle    = errors.New("not a title id")
+	ErrBadRide     = errors.New("bad ride message")
 	ErrEmptyChat   = errors.New("empty chat")
 )
 
@@ -258,6 +280,18 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeTitle {
 		m.Title = ""
 	}
+	if m.T != TypeDuty {
+		m.On = false
+	}
+	if m.T != TypeRideRequest {
+		m.Dest = ""
+	}
+	if m.T != TypeRideAccept {
+		m.Offer = ""
+	}
+	if m.T != TypeRideRate {
+		m.Stars, m.Tip = 0, 0
+	}
 	switch m.T {
 	case TypeHello, TypeProfile:
 		if m.Look == nil || !m.Look.Valid() {
@@ -291,6 +325,19 @@ func Decode(data []byte) (ClientMsg, error) {
 		if !titlePattern.MatchString(m.Title) {
 			return m, ErrBadTitle
 		}
+	case TypeDuty, TypeRideCancel, TypeRideBoard, TypeRideAlight, TypeRideComplete:
+	case TypeRideRequest:
+		if m.Dest == "" || len(m.Dest) > ArchMax || !titlePattern.MatchString(m.Dest) {
+			return m, ErrBadRide
+		}
+	case TypeRideAccept:
+		if m.Offer == "" || len(m.Offer) > 32 || !offerPattern.MatchString(m.Offer) {
+			return m, ErrBadRide
+		}
+	case TypeRideRate:
+		if m.Stars < 1 || m.Stars > 5 || m.Tip < 0 || m.Tip > 1_000_000 {
+			return m, ErrBadRide
+		}
 	case TypeChoose, TypeInteractLeave:
 		if m.Sid == 0 {
 			return m, ErrBadSession
@@ -316,8 +363,11 @@ func Decode(data []byte) (ClientMsg, error) {
 	return m, nil
 }
 
-// titlePattern is a title id (server/content/quests.json), or "" for none.
+// titlePattern is a title id (server/content/quests.json), or "" for none; place ids look the same.
 var titlePattern = regexp.MustCompile(`^([a-z0-9]+(_[a-z0-9]+)*)?$`)
+
+// offerPattern is an offer id (a ULID).
+var offerPattern = regexp.MustCompile(`^[0-9A-Z]+$`)
 
 func finite(vs ...float64) bool {
 	for _, v := range vs {
@@ -489,17 +539,21 @@ type Welcome struct {
 	Vehicles []Vehicle  `json:"vehicles"`
 	NPCs     []NPC      `json:"npcs"`
 	Chat     []ChatLine `json:"chat"`
+	// Wallet is the character's balance in xu (absent for a guest without an account)
+	Wallet *int64 `json:"wallet,omitempty"`
 }
 
 // Vehicle is a vehicle in the world, sent to everyone on welcome and whenever it changes. While Rider is set it
 // moves with the rider (whose snapshot rows carry FlagRide); Pose is where it was last parked.
 type Vehicle struct {
-	T     string     `json:"t,omitempty"`
-	ID    uint32     `json:"id"`
-	Kind  string     `json:"kind"`
-	Owner uint32     `json:"owner"`
-	Rider uint32     `json:"rider"`
-	Pose  [4]float64 `json:"pose"`
+	T     string `json:"t,omitempty"`
+	ID    uint32 `json:"id"`
+	Kind  string `json:"kind"`
+	Owner uint32 `json:"owner"`
+	Rider uint32 `json:"rider"`
+	// Passenger sits in seat 1 behind the rider (0 for none)
+	Passenger uint32     `json:"passenger,omitempty"`
+	Pose      [4]float64 `json:"pose"`
 }
 
 type VehicleGone struct {

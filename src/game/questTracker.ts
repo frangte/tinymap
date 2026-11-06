@@ -1,9 +1,12 @@
 // The quest tracker under the place card: the followed quest, what to do next, and an arrow with the distance to
-// where it is (relative to where the camera looks). Tapping it opens the quests app. Text only via textContent.
+// where it is (relative to where the camera looks). Tapping it opens the quests app. While a Crab Bike trip goes
+// on, a guide (rides.ts) takes the quest's place: the passenger to pick up, the destination. Text only via
+// textContent.
 import * as THREE from 'three';
 import { el } from './hud';
 import { current, countOf, type QuestLog } from './questLog';
 import { countText, type Objective } from './quests';
+import type { Guide } from './rides';
 
 /** closer than this the arrow gives way to "ở đây" (m) */
 const HERE = 6;
@@ -23,6 +26,8 @@ export class QuestTracker {
   private lastText = '';
   /** the objectives to do now, worked out when the progress changes rather than every frame */
   private goals: Objective[] = [];
+  /** shown instead of the quest while set */
+  private guide: Guide | null = null;
   private hasTarget = false;
   /** the arrow's angle, unwrapped so it never spins the long way round through ±180° (degrees) */
   private angle = 0;
@@ -39,6 +44,17 @@ export class QuestTracker {
     });
     log.onChange(() => this.refresh());
     this.refresh();
+  }
+
+  /** Point somewhere else than the quest (null: back to the quest). */
+  guideTo(g: Guide | null): void {
+    this.guide = g;
+    this.refresh();
+  }
+
+  /** a guide is showing (a tap opens its app rather than the quests) */
+  get guiding(): boolean {
+    return this.guide !== null;
   }
 
   /** Every frame in play mode: the arrow turns with the camera; where to go is worked out a few times a second. */
@@ -65,7 +81,12 @@ export class QuestTracker {
     const x = player.x;
     const y = -player.z;
     let best = Infinity;
-    for (const o of this.goals) {
+    const g = this.guide?.target();
+    if (g) {
+      best = Math.hypot(g.x - player.x, g.z - player.z);
+      this.to.set(g.x, 0, g.z);
+    }
+    for (const o of this.guide ? [] : this.goals) {
       const at = o.at;
       if (!at) continue;
       for (let i = 0; i < at.length; i++) {
@@ -95,6 +116,12 @@ export class QuestTracker {
   }
 
   private refresh(): void {
+    const g = this.guide;
+    if (g) {
+      this.root.hidden = false;
+      this.show(g.title, g.goal, `${g.title}: ${g.goal}`);
+      return;
+    }
     const q = this.log.tracked();
     this.root.hidden = !q;
     this.goals = q ? current(q) : [];
@@ -103,12 +130,17 @@ export class QuestTracker {
     const o = goals[0];
     const more = goals.length > 1 ? ` (+${goals.length - 1})` : '';
     const count = o ? countText(o, countOf(q, o)) : '';
-    const text = `${q.def.title.vi}|${o?.text.vi ?? ''}${more}|${count}`;
+    const goal = (o?.text.vi ?? '') + more + (count ? ` · ${count}` : '');
+    this.show(q.def.title.vi, goal, `Nhiệm vụ: ${q.def.title.vi}. ${goal}. Mở danh sách nhiệm vụ`);
+  }
+
+  private show(title: string, goal: string, label: string): void {
+    const text = `${title}|${goal}`;
     if (text === this.lastText) return;
     this.lastText = text;
-    this.quest.textContent = q.def.title.vi;
-    this.goal.textContent = (o?.text.vi ?? '') + more + (count ? ` · ${count}` : '');
-    this.root.setAttribute('aria-label', `Nhiệm vụ: ${q.def.title.vi}. ${this.goal.textContent}. Mở danh sách nhiệm vụ`);
+    this.quest.textContent = title;
+    this.goal.textContent = goal;
+    this.root.setAttribute('aria-label', label);
     this.lastAt = -1e9;
   }
 }

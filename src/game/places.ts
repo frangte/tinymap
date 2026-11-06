@@ -36,7 +36,8 @@ function segDist(px: number, py: number, ax: number, ay: number, bx: number, by:
   return Math.hypot(px - (ax + vx * t), py - (ay + vy * t));
 }
 
-function distance(p: Place, x: number, y: number): number {
+/** How far the Blender point (x, y) is from a place: its point, or the nearest point of its line (m). */
+export function distance(p: Place, x: number, y: number): number {
   const pts = p.pts;
   if (pts.length === 1) return Math.hypot(x - pts[0][0], y - pts[0][1]);
   let d = Infinity;

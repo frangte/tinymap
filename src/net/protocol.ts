@@ -2,6 +2,8 @@
 // checked here before the game sees it: the server cleans what clients send, but the client trusts nothing either.
 import { parseLook, type Look } from '../game/outfits';
 import { NAME_MAX } from '../game/profile';
+import { ID_RE, idOf, isId, isObj, list, num, str, type Obj } from './check';
+import { parseRideMsg, type RideClientMsg, type RideServerMsg } from './rideProtocol';
 
 export const CHAT_MAX = 140;
 /** how far a nearby chat line carries (m): world.DefaultConfig().NearbyRadius on the server */
@@ -14,6 +16,8 @@ export type Pose = [number, number, number, number];
 export const FLAG_AIR = 1;
 /** set by the server from its own record of who rides what */
 export const FLAG_RIDE = 2;
+/** a passenger in seat 1 behind a rider, set by the server like FLAG_RIDE */
+export const FLAG_SEAT1 = 4;
 export const EMOTE_SHIFT = 4;
 export const EMOTE_MASK = 0xf << EMOTE_SHIFT;
 
@@ -42,6 +46,8 @@ export interface VehicleInfo {
   owner: number;
   /** 0 while parked */
   rider: number;
+  /** who sits in seat 1 behind the rider (a Crab Bike passenger), 0 for nobody */
+  passenger: number;
   pose: Pose;
 }
 
@@ -140,9 +146,6 @@ const SAY_MAX = 320;
 const CHOICE_MAX = 90;
 const CHOICES_MAX = 6;
 
-/** archetype and app ids are short lower_snake_case words (server/content); anything else is dropped */
-const ID_RE = /^[a-z0-9_]{1,32}$/;
-
 /**
  * auth: the hello's account token is unknown to the server (forget it and get a new one); mount: getting on a
  * vehicle was refused; replaced: the same character joined from somewhere else (another tab), so this one stops
@@ -157,7 +160,8 @@ export type ServerMsg =
    * arch: our archetype as the server keeps it ('' for none); apps: our phone apps in phone order (null: an older
    * server); pose: where the server placed us (null: an older server, which lets us stand where we like)
    */
-  | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; npcs: NpcInfo[]; chat: ChatLine[] }
+  /** wallet: our balance in xu, null for a guest without an account (or an older server) */
+  | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; npcs: NpcInfo[]; chat: ChatLine[]; wallet: number | null }
   | { t: 'join'; p: PlayerInfo }
   | { t: 'leave'; id: number }
   | { t: 'profile'; id: number; name: string; look: Look; title: string }
@@ -172,7 +176,8 @@ export type ServerMsg =
   | { t: 'interaction_end'; sid: number; reason: EndReason }
   | { t: 'result'; rid: number; ok: boolean; code: string }
   | ({ t: 'progress' } & Progress)
-  | { t: 'error'; code: ErrorCode };
+  | { t: 'error'; code: ErrorCode }
+  | RideServerMsg;
 
 export type ClientMsg =
   /** token: the guest account (src/net/auth.ts); absent plays as a guest without one */
@@ -192,37 +197,20 @@ export type ClientMsg =
   | { t: 'interact_leave'; sid: number }
   /** the title to carry, among those earned ('' for none) */
   | { t: 'title'; title: string }
-  | { t: 'chat'; ch: Channel; text: string };
+  | { t: 'chat'; ch: Channel; text: string }
+  | RideClientMsg;
 
-type Obj = Record<string, unknown>;
-
-function isObj(v: unknown): v is Obj {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-function num(v: unknown): v is number {
-  return typeof v === 'number' && Number.isFinite(v);
-}
-function isId(v: unknown): v is number {
-  return Number.isInteger(v) && (v as number) > 0;
-}
-/** a string capped to `max` characters, or null */
-function str(v: unknown, max: number): string | null {
-  return typeof v === 'string' ? Array.from(v).slice(0, max).join('') : null;
-}
 function pose(v: unknown): Pose | null {
   return Array.isArray(v) && v.length === 4 && v.every(num) ? [v[0], v[1], v[2], v[3]] : null;
-}
-
-/** an archetype or app id, '' when absent or malformed */
-function idOf(v: unknown): string {
-  return typeof v === 'string' && ID_RE.test(v) ? v : '';
 }
 
 function vehicle(v: unknown): VehicleInfo | null {
   if (!isObj(v) || !isId(v.id) || !isId(v.owner) || !(v.rider === 0 || isId(v.rider))) return null;
   const p = pose(v.pose);
   const kind = idOf(v.kind);
-  return p && kind ? { id: v.id, kind, owner: v.owner, rider: v.rider as number, pose: p } : null;
+  // nobody behind the rider is left out of the message
+  const passenger = isId(v.passenger) ? v.passenger : 0;
+  return p && kind ? { id: v.id, kind, owner: v.owner, rider: v.rider as number, passenger, pose: p } : null;
 }
 
 function player(v: unknown): PlayerInfo | null {
@@ -326,17 +314,6 @@ function interaction(m: Obj): Interaction | null {
   return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices };
 }
 
-/** the valid items of an array (bad ones are skipped), or null if it is not an array */
-function list<T>(v: unknown, item: (x: unknown) => T | null): T[] | null {
-  if (!Array.isArray(v)) return null;
-  const out: T[] = [];
-  for (const x of v) {
-    const ok = item(x);
-    if (ok) out.push(ok);
-  }
-  return out;
-}
-
 const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth', 'mount', 'replaced'];
 
 /** One server frame, or null if it is not a message this client understands. */
@@ -359,7 +336,8 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       const apps = Array.isArray(m.apps) ? m.apps.map(idOf).filter((a) => a !== '') : null;
       const vehicles = list(m.vehicles, vehicle) ?? [];
       const npcs = list(m.npcs, npcInfo) ?? [];
-      return { t: 'welcome', id: m.id, name, arch: idOf(m.arch), apps, max: m.max, pose: pose(m.pose), players, vehicles, npcs, chat };
+      const wallet = Number.isInteger(m.wallet) && (m.wallet as number) >= 0 ? (m.wallet as number) : null;
+      return { t: 'welcome', id: m.id, name, arch: idOf(m.arch), apps, max: m.max, pose: pose(m.pose), players, vehicles, npcs, chat, wallet };
     }
     case 'join': {
       const p = player(m.p);
@@ -414,6 +392,6 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       return { t: 'error', code };
     }
     default:
-      return null;
+      return parseRideMsg(m);
   }
 }

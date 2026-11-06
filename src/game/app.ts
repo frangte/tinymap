@@ -38,6 +38,8 @@ import { QuestTracker } from './questTracker';
 import { ACHIEVEMENTS, STAMPS, questById, titleName } from './quests';
 import type { News } from '../net/protocol';
 import { loadPose, savePose } from './lastPose';
+import { Rides } from './rides';
+import { OfferBanner } from './offerBanner';
 
 const MODEL_BYTES = 2.01e6;
 /** distance from the island centre to the beach (m) */
@@ -50,6 +52,8 @@ const WELCOME_MOVE = 0.3;
 const WELCOME_EASE = 6;
 /** how often the player's spot is kept in this browser for the next visit (ms) */
 const POSE_SAVE_EVERY = 5000;
+/** how often trip countdowns and the offer banner move on (ms) */
+const RIDE_TICK = 200;
 /** vertical field of view: base for landscape, widened on portrait screens to keep this half-width (degrees) */
 const FOV: Record<Mode, { base: number; halfWidth: number; max: number }> = {
   menu: { base: 35, halfWidth: 21, max: 75 },
@@ -126,6 +130,8 @@ export async function startApp(): Promise<void> {
   let vehicles: Vehicles | null = null;
   /** where each vehicle's rider is drawn this frame (replaced once the map has loaded) */
   let riderView = (_id: number): RiderView | null => null;
+  /** draws a passenger where its rider is drawn this frame (replaced once the map has loaded) */
+  let seatPassenger = (_id: number, _at: RiderView): void => {};
   /** the label of the action button, refreshed every frame (replaced once loaded) */
   let actionLabel = (): string | null => null;
   /** riding bookkeeping every frame (replaced once loaded) */
@@ -216,7 +222,7 @@ export async function startApp(): Promise<void> {
     // others: hidden beyond walking distance in play mode, all of them over the map
     remotes?.update(dt, now, clock, mode === 'play' ? camera.position : null);
     npcs?.update(dt, now, clock, mode === 'play' ? camera.position : null);
-    vehicles?.update(dt, riderView, mode === 'play' ? camera.position : null);
+    vehicles?.update(dt, riderView, mode === 'play' ? camera.position : null, seatPassenger);
     if (draw && remotes && npcs && play && mode === 'play') tags.update(camera, now, remotes, npcs, play.player.position);
     if (play && mode === 'play') {
       const pl = play.player;
@@ -464,6 +470,7 @@ export async function startApp(): Promise<void> {
     welcome: (players, lines, arch, apps, pose, list, npcList) => {
       others.clear();
       talk.reset();
+      rides.reset();
       cast.reset(npcList);
       const now = performance.now();
       for (const info of players) others.add(info, now);
@@ -530,10 +537,12 @@ export async function startApp(): Promise<void> {
     interaction: (i) => talk.interaction(i),
     interactionEnd: (sid, reason) => talk.ended(sid, reason),
     rateLimited: () => chatBox.rateLimited(),
+    ride: (m) => rides.handle(m),
     reset: () => {
       others.clear();
       log.clear();
       talk.reset();
+      rides.reset();
       cast.local();
       riding.offline();
       showOnline();
@@ -569,13 +578,40 @@ export async function startApp(): Promise<void> {
     view.lean = r.lean;
     return view;
   };
+  seatPassenger = (id, at) => {
+    if (id !== riding.self) others.get(id)?.sitBehind(at);
+    else if (p.player.seated !== 0) p.player.carry(at.position, at.heading, at.lean, at.speed);
+  };
   // ---- talking to NPCs: next to one on foot, the action button (E) says hello; the sheet shows the conversation
   const talk: Talk = new Talk({ net: netClient, npcs: cast, player: p.player, notify: (text) => chatBox.system(text), done: backToGame });
   closeTalk = (): void => talk.close();
-  // on the bike the button gets off; on foot an NPC in reach comes before the bike
-  actionLabel = () => (p.player.riding ? riding.label() : talk.label() ?? riding.label());
-  updateRiding = (now) => riding.update(now);
+  // ---- Crab Bike trips: booked and driven from the phone; the action button takes the trip's next step
+  const rides: Rides = new Rides({
+    net: netClient,
+    player: p.player,
+    other: (id) => {
+      const r = others.get(id);
+      return r?.inView ? r : null;
+    },
+    say: (text) => chatBox.system(text),
+    notify: (title, text) => ph.notify(title, text),
+    openApp: (id) => {
+      if (mode === 'play' && !panel.isOpen) ph.open(id);
+    },
+  });
+  const offerBanner = new OfferBanner(rides, () => p.player.position);
+  let rideTickAt = 0;
+  // a trip's step first; on the bike the button gets off; on foot an NPC in reach comes before the bike
+  actionLabel = () => rides.label() ?? (p.player.riding ? riding.label() : talk.label() ?? riding.label());
+  updateRiding = (now) => {
+    riding.update(now);
+    if (now - rideTickAt < RIDE_TICK) return;
+    rideTickAt = now;
+    rides.update();
+    offerBanner.update();
+  };
   p.onUse = () => {
+    if (rides.use()) return;
     if (!p.player.riding && talk.near()) talk.use();
     else riding.use();
   };
@@ -626,10 +662,16 @@ export async function startApp(): Promise<void> {
     },
     quests: () => log,
     chooseTitle: (id) => netClient.sendTitle(id),
+    rides: () => rides,
   });
-  tracker = new QuestTracker(log, () => {
-    if (mode === 'play' && !panel.isOpen) ph.open('quests');
+  const questTracker = new QuestTracker(log, () => {
+    if (mode !== 'play' || panel.isOpen) return;
+    // while guiding a trip, the tracker opens the trip's app
+    if (questTracker.guiding) ph.open(rides.ride?.role === 'rider' ? 'crab_driver' : 'crab');
+    else ph.open('quests');
   });
+  tracker = questTracker;
+  rides.onChange(() => questTracker.guideTo(rides.guide()));
   phone = ph;
   applyArchetype();
   p.onLandmark = (place) => ph.notify(`Đã ghé ${place.name}`, place.note);
@@ -726,7 +768,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

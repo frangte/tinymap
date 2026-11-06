@@ -41,11 +41,16 @@ const SEAT_DROP = -0.04;
 const BLOB_Y = 0.025;
 const BLOB_OPACITY = 0.5;
 const SEAT_BACK = -0.2;
+/** a passenger in seat 1 sits this far behind the bike's middle, and this much higher than the rider (m) */
+const PILLION_BACK = -0.6;
+const PILLION_RISE = 0.06;
 
 /** What the body does on top of walking; the state flags of a snapshot row say which. */
 export interface AvatarPose {
   air: boolean;
   ride: boolean;
+  /** on the bike as the passenger, behind the rider (with ride) */
+  pillion: boolean;
   /** emote id (server/content/emotes.json), '' for none */
   emote: string;
   /** seconds since the emote started */
@@ -53,7 +58,7 @@ export interface AvatarPose {
 }
 
 export function idlePose(): AvatarPose {
-  return { air: false, ride: false, emote: '', emoteTime: 0 };
+  return { air: false, ride: false, pillion: false, emote: '', emoteTime: 0 };
 }
 
 const IDLE: Readonly<AvatarPose> = idlePose();
@@ -326,7 +331,7 @@ export class Pedestrian {
     if (this.emoteW > 0.002) this.emotePose(this.emote, pose.emoteTime, this.emoteW);
     this.phone.visible = this.emote === 'photo' && this.emoteW > 0.4;
     if (this.airW > 0.002) this.airPose(this.airW);
-    this.ridePose(this.rideW);
+    this.ridePose(this.rideW, pose.pillion);
   }
 
   /** The walk / run / idle cycle. */
@@ -455,22 +460,26 @@ export class Pedestrian {
     this.body.position.y = mix(this.body.position.y, 0, w);
   }
 
-  /** Sitting on a motorbike (src/game/motorbike.ts): feet on the footrests, hands on the handlebar. */
-  private ridePose(w: number): void {
-    this.body.position.z = SEAT_BACK * w;
+  /**
+   * Sitting on a motorbike (src/game/motorbike.ts): feet on the footrests, hands on the handlebar; as the
+   * passenger, further back and higher, hands on the knees.
+   */
+  private ridePose(w: number, pillion: boolean): void {
+    this.body.position.z = (pillion ? PILLION_BACK : SEAT_BACK) * w;
     if (w <= 0.002) return;
     for (let i = 0; i < 2; i++) {
       const side = i === 0 ? this.left : this.right;
       const sx = i === 0 ? 1 : -1;
-      side.hip.rotation.x = mix(side.hip.rotation.x, -1.4, w);
-      side.hip.rotation.z = mix(side.hip.rotation.z, 0.13 * sx, w);
-      side.knee.rotation.x = mix(side.knee.rotation.x, 1.5, w);
-      side.shoulder.rotation.x = mix(side.shoulder.rotation.x, -1.0, w);
-      side.shoulder.rotation.z = mix(side.shoulder.rotation.z, 0.12 * sx, w);
-      side.elbow.rotation.x = mix(side.elbow.rotation.x, -0.55, w);
+      side.hip.rotation.x = mix(side.hip.rotation.x, pillion ? -1.3 : -1.4, w);
+      side.hip.rotation.z = mix(side.hip.rotation.z, (pillion ? 0.2 : 0.13) * sx, w);
+      side.knee.rotation.x = mix(side.knee.rotation.x, pillion ? 1.6 : 1.5, w);
+      side.shoulder.rotation.x = mix(side.shoulder.rotation.x, pillion ? -0.55 : -1.0, w);
+      side.shoulder.rotation.z = mix(side.shoulder.rotation.z, (pillion ? 0.2 : 0.12) * sx, w);
+      side.elbow.rotation.x = mix(side.elbow.rotation.x, pillion ? -0.9 : -0.55, w);
     }
-    this.body.position.y = mix(this.body.position.y, SEAT_DROP * this.body.scale.y, w);
-    this.spine.rotation.x = mix(this.spine.rotation.x, 0.24, w);
+    const rise = pillion ? PILLION_RISE : 0;
+    this.body.position.y = mix(this.body.position.y, (SEAT_DROP + rise) * this.body.scale.y, w);
+    this.spine.rotation.x = mix(this.spine.rotation.x, pillion ? 0.08 : 0.24, w);
     this.spine.rotation.y = mix(this.spine.rotation.y, 0, w);
     this.neck.rotation.x = mix(this.neck.rotation.x, -0.18, w);
     this.neck.rotation.y = mix(this.neck.rotation.y, 0, w);

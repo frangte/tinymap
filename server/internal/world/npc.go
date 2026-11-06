@@ -122,6 +122,9 @@ func (w *World) tick() {
 		w.behave(n, now, dt)
 	}
 	w.observePlaces(now)
+	for _, mod := range w.modules {
+		mod.Tick(now)
+	}
 }
 
 func (w *World) behave(n *npc, now time.Time, dt float64) {

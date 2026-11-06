@@ -66,7 +66,10 @@ internal/ws/conn.go              per-connection read/write loops, the hello and 
 internal/world/world.go          the world, owned by one goroutine (no locks, no I/O): joins, messages, chat
 internal/world/move.go           checks every reported move; corrections; respawn; where a player starts
 internal/world/view.go           who sees whom (the interest grid) and the snapshots, 12 Hz
-internal/world/vehicle.go        vehicles: parking, mounting, getting off
+internal/world/vehicle.go        vehicles: parking, mounting, getting off; seat 1 (a passenger carried with the rider)
+internal/world/host.go           the module hook: modules in the world loop, seats, view pins, jobs off the loop
+internal/ridehail/               Crab Bike trips, a world module: booking, offers, pickup, the trip, its money
+internal/store/wallets.go        xu wallets, the ledger and the rides table (ridehail.Bank)
 internal/world/npc.go            NPCs: placed at start, turn to whoever speaks, play the line's emote, call out
 internal/world/talk.go           conversations with NPCs: private, public, group; walking away ends yours
 internal/dialogue/dialogue.go    the dialogue engine (a Provider; Script runs the graphs in content/dialogue)
@@ -93,7 +96,7 @@ JSON text frames, one message per frame, the type in `t`. The client mirrors thi
 
 Archetype ids (`arch`) are the ids in `content/archetypes.json` (`traveler`, `citizen`, `driver`). A character keeps the first archetype it picks; its capabilities decide its phone apps (`content/apps.json`). An archetype with a `vehicle` (the driver's `xe_so_110`) arrives with it parked beside them.
 
-`s`, the state flags, is a number: bit 0 in the air, bit 1 riding (set by the server; what a client says is ignored), bits 4–7 the emote code from `content/emotes.json` (0 for none).
+`s`, the state flags, is a number: bit 0 in the air, bit 1 riding, bit 2 a passenger in seat 1 behind a rider (both set by the server; what a client says is ignored), bits 4–7 the emote code from `content/emotes.json` (0 for none).
 
 ### Client to server
 
@@ -109,6 +112,14 @@ Archetype ids (`arch`) are the ids in `content/archetypes.json` (`traveler`, `ci
 | `{"t":"choose","sid":12,"c":1,"rid":6}` | an answer button, or keys 1–9 | `c` indexes the choices of the line shown. Answered with `interaction` (the next line, to everyone in the conversation) or `interaction_end` `done`, then `result`. Refused: `stale` (not your conversation, or over), `lead` (in a group only the leader picks), `choice` (not on offer). |
 | `{"t":"title","title":"nguoi_trong_xom"}` | the title picker in the phone's Hồ sơ | carry an earned title (`""` puts it away); one not earned is ignored. At most 4/s with profile. |
 | `{"t":"interact_leave","sid":12}` | ×, goodbye, Esc | `interaction_end` `left`; a group carries on, led by the next player. interact, choose and interact_leave together: about 7/s with a burst of 6; extra ones are dropped (without a result: the game gives up waiting after 3 s). |
+| `{"t":"duty","on":true}` | Crab Driver app | needs the `ridehail.drive` capability, an account, and riding one's own bike (else `ride_error`). Answered with `duty`; getting off the bike ends duty. |
+| `{"t":"ride_request","dest":"nha_hat_thanh_pho"}` | Crab app | `dest` a place id. The fare is taken from the wallet at once (`wallet`, then `ride` `requested`) and offered to the drivers on duty nearby. Refused (`ride_error`): `no_account`, `busy` (a trip already), `riding` (on a vehicle), `unknown_place`, `here` (standing in it), `too_soon` (one per 10 s), `balance`. |
+| `{"t":"ride_cancel"}` | either side, before pickup | the passenger: the fare comes back. The driver: the trip is offered to the others again. |
+| `{"t":"ride_accept","offer":"01J…"}` | the offer banner, Crab Driver | the first accept wins; the others get `ride_offer_gone` `taken`, a late one `ride_error` `gone`. The two players then see each other from anywhere until the trip ends. |
+| `{"t":"ride_board"}` | the passenger, next to the bike | within 3 m of the driver's bike, the bike stopped (`too_far`, `not_stopped`, `here`): the passenger sits in seat 1 and is carried; their own states are ignored until they get off. |
+| `{"t":"ride_alight"}` | the passenger, on the trip | gets off early: the whole fare is charged (at the destination it is the trip completed) |
+| `{"t":"ride_complete"}` | the driver, at the destination | within the place's reach, stopped (`not_there`, `not_stopped`): the passenger gets off, the driver is paid the fare minus the cut |
+| `{"t":"ride_rate","stars":5,"tip":5000}` | the passenger, within 2 min of a completed trip | stars 1–5, `tip` one of `content/ridehail.json` `tips`; once per trip (`gone`, `tip`, `balance`). Ride messages together: about 4/s with a burst of 4; extra ones are dropped. |
 | `{"t":"chat","ch":"nearby","text":"xin chào"}` | | `ch` is `global` (also when missing) or `nearby`: only players within 20 m (on the ground) hear a nearby line, and it is not kept in the history; any other channel is dropped. Text cleaned (below), 1–140 characters; about one per 0.7 s with a burst of 3, otherwise `error rate` and the line is dropped |
 
 Names and chat are cleaned on the server: control characters and invisible format characters (zero-width, bidi overrides) are removed, runs of whitespace (newlines too) become one space, and the result is trimmed and capped (16 characters for names, 140 for chat). Frames over 1 KB close the connection. Malformed or unknown messages are dropped; the connection stays open.
@@ -117,7 +128,7 @@ Names and chat are cleaned on the server: control characters and invisible forma
 
 | Message | When |
 |---|---|
-| `{"t":"welcome","id":7,"name":"Lan","arch":"driver","apps":["profile",…],"max":150,"pose":[x,y,z,h],"players":[player…],"vehicles":[vehicle…],"npcs":[npc…],"chat":[line…]}` | reply to hello. `pose` is where the server placed the player: where the character stood when it last left (if that spot is still walkable), else its home. `players` is everyone else, `vehicles` every vehicle, `npcs` every NPC, `chat` the last 30 global lines, oldest first. `name` is the cleaned name. `arch` is the archetype as the server keeps it (missing for none); `apps` the phone apps its capabilities give, in phone order. |
+| `{"t":"welcome","id":7,"name":"Lan","arch":"driver","apps":["profile",…],"max":150,"pose":[x,y,z,h],"players":[player…],"vehicles":[vehicle…],"npcs":[npc…],"chat":[line…],"wallet":100000}` | reply to hello. `wallet` is the character's balance in xu (missing for a guest without an account): opened with `start_balance` on its first visit, topped up to `topup_to` on its first visit of a Saigon day. `pose` is where the server placed the player: where the character stood when it last left (if that spot is still walkable), else its home. `players` is everyone else, `vehicles` every vehicle, `npcs` every NPC, `chat` the last 30 global lines, oldest first. `name` is the cleaned name. `arch` is the archetype as the server keeps it (missing for none); `apps` the phone apps its capabilities give, in phone order. |
 | `{"t":"join","p":player}` | someone else joined |
 | `{"t":"leave","id":7}` | someone left, timed out, or was dropped |
 | `{"t":"profile","id":7,"name":"Lan","look":{…}}` | someone else changed name or look |
@@ -129,12 +140,19 @@ Names and chat are cleaned on the server: control characters and invisible forma
 | `{"t":"interaction","sid":12,"n":3,"mode":"private","lead":true,"size":1,"say":{"vi":"…","en":"…"},"choices":[{"vi":"…","en":"…"},…]}` | where a conversation is: when it starts, after every answer, and in a group whenever someone joins or leaves. `say` is the line for this player's archetype (`en` missing when there is none); `choices` are the leader's answers (only the leader, `lead`, may pick); none means only goodbye is left. `mode`: `private`, `public` (the NPC's lines are also heard nearby as chat), `group` (`size` players share it). |
 | `{"t":"interaction_end","sid":12,"reason":"far"}` | the conversation is over for this player: `done` (it reached its end), `left` (closed), `far` (walked further than the NPC's reach + 2 m), `other` (started another) |
 | `{"t":"progress","quests":[{"id":"traveler.kien_truc_phap","n":{"nha_tho":1,"buu_dien":0,"nha_hat":0}},{"id":"traveler.chao_sai_gon","done":true}],"achievements":[{"id":"kham_pha_quan_1","n":3}],"titles":[…],"stamps":[…],"title":"","news":[{"kind":"quest","id":"traveler.chao_sai_gon"},{"kind":"stamp","id":"chao_sai_gon"}]}` | a character's quests (only to one with an account): on joining, and whenever something changed. `n` is how far each objective got (seconds for a stay, metres for a ride); `news` is what just happened (`quest`, `achievement`, `title`, `stamp`), for the game to celebrate. The text is in `content/quests.json`, which the game has. |
+| `{"t":"wallet","balance":84000}` | the balance after money moved (a hold, a settlement, a tip) |
+| `{"t":"duty","on":true}` | on or off duty |
+| `{"t":"ride","id":"01J…","state":"accepted","role":"passenger","dest":"nha_hat_thanh_pho","fare":16000,"passenger":{"id":7,"name":"Lan"},"driver":{"id":9,"name":"Tài","stars":4.8,"trips":31},"pickup":[x,z],"deadline":1730790060000}` | to both sides of a trip on every change. `role` is `passenger` or `rider`; `state` `requested`, `accepted`, `on_trip`, then how it ended: `completed`, `cancelled`, `expired`, `ended`, with `end` (`completed`, `alighted`, `cancelled_by_passenger`, `cancelled_by_driver`, `no_driver`, `pickup_timeout`, `passenger_left`, `driver_left`, `driver_got_off`, `passenger_got_off`, `trip_timeout`, `hold_failed`) and `paid` (what the driver got). `deadline` is when the state times out, or when the rating window closes. |
+| `{"t":"ride_offer","offer":"01J…","dest":"…","fare":16000,"passenger":{"id":7,"name":"Lan"},"pickup":[x,z],"expires":1730790015000}` | a request near a driver on duty, free, on their bike |
+| `{"t":"ride_offer_gone","offer":"01J…","why":"taken"}` | `taken`, `cancelled`, `expired`, `off_duty`, `busy` (the driver took another trip) |
+| `{"t":"ride_rated","id":"01J…"}` | the passenger's rating (and tip) were stored |
+| `{"t":"ride_error","code":"too_far"}` | a ride message refused (codes above) |
 | `{"t":"result","rid":5,"ok":false,"code":"far"}` | the answer to a command that carried a `rid` (interact, choose); `code` only when it failed |
 | `{"t":"error","code":"full"\|"bad_hello"\|"auth"\|"rate"\|"mount"\|"replaced"}` | `full`, `bad_hello`, `auth` and `replaced` are followed by the server closing the socket. On `auth` the client forgets its token and gets a new one (the database was reset). `replaced`: the same character joined from another connection (a reconnect after the network dropped, or a second tab), which starts where this one stood; the client should not reconnect by itself. |
 
 `npc` is `{"id":3,"npc":"co_ba","pose":[x,y,z,h]}`: `npc` is its id in `content/npcs.json`, which the game also has (name, role, look). NPC ids come before players' and never leave; snapshots carry an NPC's row like a player's when it turns or gestures.
 
-`player` is `{"id":7,"name":"Lan","arch":"driver","title":"nguoi_trong_xom","look":{…}}` (`title` missing for none; profile messages and chat lines carry it too) (`arch` missing for a player without one); where they are comes in snapshots, to the players near them. `vehicle` is `{"id":12,"kind":"xe_so_110","owner":7,"rider":7,"pose":[x,y,z,h]}`: `rider` is 0 while parked; while ridden the vehicle moves with its rider, and `pose` is where it was last parked.
+`player` is `{"id":7,"name":"Lan","arch":"driver","title":"nguoi_trong_xom","look":{…}}` (`title` missing for none; profile messages and chat lines carry it too) (`arch` missing for a player without one); where they are comes in snapshots, to the players near them. `vehicle` is `{"id":12,"kind":"xe_so_110","owner":7,"rider":7,"passenger":8,"pose":[x,y,z,h]}`: `rider` is 0 while parked; while ridden the vehicle moves with its rider, and `pose` is where it was last parked. `passenger` (missing for none) sits in seat 1 behind the rider and moves with them.
 
 ### Conversations
 
@@ -150,7 +168,13 @@ Quests and achievements are content (`content/quests.json`): adding one needs no
 
 Progress only comes from events the world observed (`internal/events`), never from a client message: entering a place (after standing in it 2 s, from moves the server accepted), time spent there (in 5 s steps), starting a conversation with an NPC, an answer's signal (only for whoever picked the answer, in a group too), an emote, a greeting (two characters within 5 m playing the same emote at each other within 20 s: waving at a crowd that does not wave back greets nobody), getting on a vehicle, distance ridden (in 100 m steps). Distinct things (places, NPCs, players greeted) count once each; an objective that does not count distinct things must have a count of 1, since doing the same thing again is not progress.
 
-The quest service runs each character on one of a few worker goroutines, so its events apply in order. For each event it changes a copy of the character's progress, stores it in one transaction (tried three times, the database being busy), and only then keeps it and tells the game (`progress`); a save that still fails keeps nothing. A reward has a key (`quest:<id>:` or `achievement:<id>`) stored in `reward_grants` in that same transaction, so a retry never gives it twice. Rewards are titles (the first one earned is carried at once), stamps and capabilities (`local.certified`, the Traveler's certificate, applies at once and on later visits). Guests without an account have no quests. The objective types: `reach_place`, `stay_place`, `talk_npc`, `dialogue_signal`, `emote_at`, `greet`, `mount`, `ride_through`, `ride_distance`, `quest_done`.
+The quest service runs each character on one of a few worker goroutines, so its events apply in order. For each event it changes a copy of the character's progress, stores it in one transaction (tried three times, the database being busy), and only then keeps it and tells the game (`progress`); a save that still fails keeps nothing. A reward has a key (`quest:<id>:` or `achievement:<id>`) stored in `reward_grants` in that same transaction, so a retry never gives it twice. Rewards are titles (the first one earned is carried at once), stamps and capabilities (`local.certified`, the Traveler's certificate, applies at once and on later visits). Guests without an account have no quests. The objective types: `reach_place`, `stay_place`, `talk_npc`, `dialogue_signal`, `emote_at`, `greet`, `mount`, `ride_through`, `ride_distance`, `quest_done`, `trip` (Crab Bike trips completed as `rider` or `passenger`, distinct partners).
+
+### Crab Bike trips
+
+Ride-hailing (`internal/ridehail`, `docs/design/08-ride-hailing.md`) is a world module: the world hands it the ride messages, ticks it and tells it who left, and it runs on the world goroutine, so the first `ride_accept` the world reads wins with no lock. The core only gained generic pieces for it (`internal/world/host.go`): seat 1, view pins that keep two players in each other's view, and jobs that run off the loop and answer back in it.
+
+Money is xu (`content/ridehail.json`): a fare is `base` + `per_metre` × the straight line from the pickup to the destination, rounded to `round`; the driver gets it minus `cut_percent`. Every move of money is one transaction in `internal/store/wallets.go`, and a row in `ledger` whose key (ride, reason, character) makes a retried step move nothing. Booking takes the fare at once (`ride_hold`); the trip's end gives it back (`ride_refund`), pays the driver (`ride_earn`), or both in part. The store settles only a ride still open and never more than its fare. A settlement that fails is tried again from the tick (2 s, doubling to a minute), and both sides hear how the trip ended once it is written. Trips live in memory: at startup the server refunds every ride a stopped server left open.
 
 ### Movement checks
 

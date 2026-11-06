@@ -1,7 +1,8 @@
 // Getting on and off the motorbike, online and off. Online the server decides: the game asks to mount and only
 // sits the player on the bike once the server says it is the rider; getting off happens at once and the server
 // is told. Offline (no server, or the connection dropped) a player whose archetype starts with a bike gets a
-// local one parked beside them, so the driver can still ride.
+// local one parked beside them, so the driver can still ride. A Crab Bike passenger sits behind someone else's
+// bike (seat 1) while the server says so; the vehicles carry them where the rider is drawn (app.ts).
 import { LOCAL_VEHICLE, Vehicles } from './vehicles';
 import type { Player } from './player';
 import { rideTuning } from './player';
@@ -46,6 +47,7 @@ export class Riding {
 
   /** The label of the action button: get off, get on (next to our bike), or null for nothing to do. */
   label(): string | null {
+    if (this.d.player.seated !== 0) return null; // the trip's own button (rides.ts)
     if (this.d.player.riding) return 'Xuống xe';
     if (this.pending !== 0) return 'Đang lên xe…';
     return this.nearby() ? 'Lên xe' : null;
@@ -53,6 +55,7 @@ export class Riding {
 
   /** E / the action button. */
   use(): void {
+    if (this.d.player.seated !== 0) return;
     if (this.d.player.riding) {
       this.getOff();
       return;
@@ -70,7 +73,9 @@ export class Riding {
   /** Get off before a respawn (the server takes the player off too, even if the respawn does not land). */
   leave(): void {
     if (this.d.player.riding) this.getOff();
+    this.d.player.stand();
   }
+
 
   /**
    * Every frame: give up a mount the server never answered, and if the server still has us riding when we are
@@ -99,6 +104,7 @@ export class Riding {
   welcome(list: readonly VehicleInfo[]): void {
     this.pending = 0;
     if (this.d.player.riding) this.d.player.dismount();
+    this.d.player.stand();
     this.d.vehicles.reset(list);
   }
 
@@ -111,10 +117,13 @@ export class Riding {
     } else if (p.riding?.id === v.id && v.rider !== this.self) {
       p.dismount(); // the server took us off
     }
+    if (v.passenger === this.self && p.seated !== v.id && !p.riding) p.sit(v.id);
+    else if (p.seated === v.id && v.passenger !== this.self) p.stand();
   }
 
   gone(id: number): void {
     if (this.d.player.riding?.id === id) this.d.player.dismount();
+    if (this.d.player.seated === id) this.d.player.stand();
     if (this.pending === id) this.pending = 0;
     this.d.vehicles.remove(id);
   }
@@ -128,6 +137,7 @@ export class Riding {
   offline(): void {
     this.pending = 0;
     const p = this.d.player;
+    p.stand();
     const riding = p.riding;
     this.d.vehicles.reset([]);
     if (!this.d.starter()) {
@@ -182,6 +192,6 @@ export class Riding {
     const [x, z] = fit ?? [p.position.x, p.position.z];
     const pose: Pose = [x, this.d.nav.floorAt(x, z), z, h];
     if (this.d.vehicles.get(LOCAL_VEHICLE)) this.d.vehicles.park(LOCAL_VEHICLE, pose);
-    else this.d.vehicles.upsert({ id: LOCAL_VEHICLE, kind, owner: OFFLINE_SELF, rider: 0, pose });
+    else this.d.vehicles.upsert({ id: LOCAL_VEHICLE, kind, owner: OFFLINE_SELF, rider: 0, passenger: 0, pose });
   }
 }

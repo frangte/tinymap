@@ -35,7 +35,13 @@ func TestCatalogLoads(t *testing.T) {
 		}
 	}
 	// no archetype: the core apps only, and no uniform
-	if apps := c.AppsFor(c.Grants("")); len(apps) != 6 {
+	open := 0
+	for _, a := range c.Apps {
+		if len(a.Requires) == 0 {
+			open++
+		}
+	}
+	if apps := c.AppsFor(c.Grants("")); len(apps) != open {
 		t.Errorf("apps without an archetype = %v", apps)
 	}
 }

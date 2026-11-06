@@ -96,17 +96,20 @@ export class Vehicles {
   /**
    * @param riderView where the rider with this id is drawn now, or null when they are not (out of view)
    * @param viewer in play mode the camera position: further bikes are hidden; null shows all (map view)
+   * @param seat draws a passenger (seat 1) where its rider is drawn: its own samples run late, the rider's may not
    */
-  update(dt: number, riderView: (id: number) => RiderView | null, viewer: THREE.Vector3 | null): void {
+  update(dt: number, riderView: (id: number) => RiderView | null, viewer: THREE.Vector3 | null, seat?: (passenger: number, at: RiderView) => void): void {
     const far = VISIBLE_DIST * VISIBLE_DIST;
     for (const e of this.all.values()) {
       const root = e.bike.root;
+      e.bike.showTopBox(e.info.passenger === 0);
       const rider = e.info.rider !== 0 ? riderView(e.info.rider) : null;
       if (e.info.rider !== 0 && !rider) {
         root.visible = false;
         continue;
       }
       if (rider) {
+        if (e.info.passenger !== 0) seat?.(e.info.passenger, rider);
         root.position.copy(rider.position);
         root.rotation.y = rider.heading;
         const turn = dt > 0 ? wrapAngle(rider.heading - e.lastHeading) / dt : 0;

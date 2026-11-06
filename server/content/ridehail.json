@@ -1,0 +1,17 @@
+{
+  "about": "Booking a Crab Bike (docs/design/08-ride-hailing.md). Shared by the server (server/internal/ridehail), which charges and pays, and the game (src/game/rides.ts), which shows the same estimate before booking. Money is in xu, whole numbers. A fare is base + per_metre for each metre of straight line from the pickup to the destination, rounded to round. cut_percent of every fare goes to nobody (the platform): it is what makes moving xu between two of your own accounts a loss. Times are seconds, distances metres.",
+  "start_balance": 100000,
+  "topup_to": 50000,
+  "fare": { "base": 10000, "per_metre": 60, "round": 1000 },
+  "cut_percent": 20,
+  "tips": [0, 5000, 10000],
+  "pair_limit": 5,
+  "offer_radius": 150,
+  "offer_seconds": 15,
+  "request_seconds": 60,
+  "pickup_seconds": 300,
+  "trip_seconds": 300,
+  "rating_seconds": 120,
+  "board_reach": 3,
+  "stopped_speed": 0.5
+}

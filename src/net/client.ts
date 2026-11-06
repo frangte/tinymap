@@ -5,6 +5,7 @@ import type { Profile } from '../game/profile';
 import { wrapAngle } from '../game/coords';
 import type { Look } from '../game/outfits';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
+import type { RideClientMsg, RideServerMsg } from './rideProtocol';
 import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
@@ -37,6 +38,8 @@ export interface NetEvents {
   progress(p: Progress): void;
   /** the last chat line was refused for being too fast */
   rateLimited(): void;
+  /** Crab Bike trips: our wallet (also once after each welcome, for a character with one), duty, trips, offers */
+  ride(m: RideServerMsg): void;
   /** the connection dropped: every remote player is gone until the next welcome */
   reset(): void;
 }
@@ -98,6 +101,9 @@ export class NetClient {
   /** commands waiting for their result, by request id */
   private readonly pending = new Map<number, { done: (r: Result) => void; timer: number }>();
   private nextRid = 0;
+  /** the server's clock minus ours (ms), from snapshot times: at most the true offset, nearer it the faster a frame came */
+  private skew = 0;
+  private skewKnown = false;
 
   constructor(private readonly url: string, private readonly on: NetEvents) {
     this.api = apiUrl(url);
@@ -109,6 +115,11 @@ export class NetClient {
 
   get isOnline(): boolean {
     return this.online;
+  }
+
+  /** The server's time now (ms since the epoch), for its deadlines; our own clock until a snapshot came. */
+  serverNow(): number {
+    return Date.now() + this.skew;
   }
 
   /** Connect (once) and stay connected; later calls just update the profile. */
@@ -198,6 +209,13 @@ export class NetClient {
     p.done(r);
   }
 
+  /** A Crab Bike command (rides.ts); false when offline. The answers come as `ride` events. */
+  sendRide(m: RideClientMsg): boolean {
+    if (!this.online) return false;
+    this.send(m);
+    return true;
+  }
+
   /** false when offline (the line was not sent) */
   sendChat(text: string, ch: Channel): boolean {
     if (!this.online) return false;
@@ -268,7 +286,9 @@ export class NetClient {
         this.lastPose.fill(NaN);
         this.lastFlags = -1;
         this.corrections = 0;
+        this.skewKnown = false;
         this.on.welcome(m.players, m.chat, m.arch, m.apps, m.pose, m.vehicles, m.npcs);
+        if (m.wallet !== null) this.on.ride({ t: 'wallet', balance: m.wallet });
         this.on.status('online');
         break;
       case 'join':
@@ -280,9 +300,14 @@ export class NetClient {
       case 'profile':
         if (m.id !== this.selfId) this.on.profile(m.id, m.name, m.look, m.title);
         break;
-      case 'snap':
+      case 'snap': {
+        // a frame is never early: the largest offset seen is the one that travelled fastest
+        const skew = m.at - Date.now();
+        if (!this.skewKnown || skew > this.skew) this.skew = skew;
+        this.skewKnown = true;
         this.on.snap(m.rows, performance.now(), m.out);
         break;
+      }
       case 'correct':
         this.corrections = m.k;
         this.lastPose.fill(NaN);
@@ -326,6 +351,8 @@ export class NetClient {
           clearToken();
         } else console.error('game server refused the connection:', m.code);
         break;
+      default:
+        this.on.ride(m);
     }
   }
 

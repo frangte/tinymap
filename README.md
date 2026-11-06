@@ -80,6 +80,6 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
 
 ## Next
 
-- NPCs and quests.
+- Phase 5: daily quests, the co-op quest, moderation and a load test ([docs/design/06-mvp-roadmap.md](docs/design/06-mvp-roadmap.md)). Built so far: accounts and archetypes, the phone, server-checked movement and the motorbike, NPCs and dialogue, quests and achievements, and Crab Bike rides with the xu wallet ([docs/design/README.md](docs/design/README.md#progress)).
 - Bùi Viện walking street (tube-house rows are reserved for it).
 - UBND building on the site kept free at the north end of Nguyễn Huệ.
