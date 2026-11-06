@@ -3,7 +3,7 @@
 //   map   free orbit / zoom / pan with flights to each landmark
 //   play  third-person walking (see play.ts)
 // The URL hash picks the mode (#ban-do, #choi; none = menu), so the back button and shared links work.
-// Around every mode: the sea, drifting clouds and gulls, swaying trees and the ambient sound.
+// Around every mode: the sea, drifting clouds and gulls, swaying trees; in play, each area's own sound.
 import * as THREE from 'three';
 import { createRenderer, createScene, loadModel } from './world';
 import { paintWorld, FOLIAGE } from './paint';
@@ -12,10 +12,10 @@ import { NavGrid } from './nav';
 import { PlayMode } from './play';
 import { CameraFlight, MAP_STOPS, MENU_STOP, MapView } from './mapView';
 import { Hud, el, type Mode } from './hud';
-import { damp, fromBlender, smoothstep } from './coords';
+import { damp, fromBlender } from './coords';
 import { Sea } from './sea';
 import { Life } from './life';
-import { Ambient } from './ambient';
+import { Ambient, type Ear } from './sound/ambient';
 import { DressPanel } from './dressPanel';
 import { defaultProfile, loadProfile, saveProfile, type Profile } from './profile';
 import { isTyping } from './input';
@@ -157,6 +157,8 @@ export async function startApp(): Promise<void> {
   let sea: Sea | null = null;
   let life: Life | null = null;
   const ambient = new Ambient();
+  /** where the player hears from (Blender XY) */
+  const ear: Ear = { x: 0, y: 0 };
   const islandCenter = new THREE.Vector3();
   let stop = 0;
   let clock = 0;
@@ -247,14 +249,14 @@ export async function startApp(): Promise<void> {
     }
     sea?.update(clock, camera);
     life?.update(clock, dt);
-    // surf louder near the beach while walking; a steady mix over the map
+    // each area sounds of itself (only the beach for now), heard where the player is; quiet over the map
     if (play && mode === 'play') {
-      const p = play.player.position;
-      ambient.setCoast(smoothstep(COAST_R - 30, COAST_R + 4, Math.hypot(p.x - islandCenter.x, p.z - islandCenter.z)));
+      ear.x = play.player.position.x;
+      ear.y = -play.player.position.z;
+      ambient.update(ear);
     } else {
-      ambient.setCoast(0.45);
+      ambient.update(null);
     }
-    ambient.update();
     const fov = fovGoal();
     if (Math.abs(camera.fov - fov) > 0.01) {
       camera.fov += (fov - camera.fov) * damp(4, dt);

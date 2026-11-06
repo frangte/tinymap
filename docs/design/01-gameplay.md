@@ -104,6 +104,6 @@ Every quest that needs another player has an **NPC fallback after a timeout** (3
 
 ## Map size and the driver (D10)
 
-- The island is ~200 m across, so crossing it at bike speed (~22 m/s) takes about 10–15 s.
+- The island is ~200 m across, so crossing it at bike speed (13–20 m/s) takes about 10–15 s.
 - In the MVP, riding gives the driver speed and route mastery.
 - When ride-hailing arrives, the trip itself has to be the point: chatting on the ride, a rating and a tip, scenic routes. That holds until the map grows (Bùi Viện and UBND are reserved); then saving time starts to matter.

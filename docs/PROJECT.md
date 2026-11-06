@@ -10,7 +10,7 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
 
 - **Đã xong:**
   - Map v4: đảo khoảng 200×200 m giữa biển. Map quay theo hướng thật của thành phố (cổng nam chợ nhìn ra bùng binh Quách Thị Trang), nên các công trình nằm bên phải và phía trên chợ, gần giống vị trí thật: Lê Lợi dẫn tới Nhà hát; Đồng Khởi đi từ Nhà thờ xuống biển; Bưu điện cạnh Công xã Paris; Hồ Con Rùa nằm trên đường Phạm Ngọc Thạch; Bitexco ở bờ nước. Không thêm nhà mới. Cây trồng thành hàng dọc phố, chỉ vài xe đậu, không có người (NPC sẽ thêm sau theo cốt truyện).
-  - Biển, mây, hải âu, cây đung đưa và âm thanh nền (sóng, chim) làm trong Three.js, không nằm trong file Blender.
+  - Biển, mây, hải âu, cây đung đưa và âm thanh theo khu vực (bây giờ chỉ có bãi biển: tiếng sóng nhẹ) làm trong Three.js, không nằm trong file Blender.
   - Menu mở đầu có 2 chế độ: [1] xem bản đồ (xoay, zoom, bay tới từng công trình) và [2] vào game đi bộ (nhân vật đội nón lá, camera góc thứ 3 tự do, tên địa điểm hiện trên HUD).
 - **Để dành, chưa làm:**
   - Phố đi bộ Bùi Viện: phía tây chợ dọc đường Lê Lai, bãi cỏ ở đó cố ý để trống. Dùng lại kiểu dãy nhà ống (`SH_01..05`, hàm `house_*` trong script 15b/15c).

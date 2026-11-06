@@ -4,7 +4,7 @@
     {
       "id": "xe_so_110",
       "name": { "vi": "Xe số 110", "en": "110cc motorbike" },
-      "speed": 22,
+      "speed": 19.8,
       "seats": 2,
       "requires": "vehicle.motorbike.ride"
     }

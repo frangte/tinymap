@@ -53,8 +53,11 @@ export interface RideTuning {
   radius: number;
 }
 
+/** run (Shift, or the joystick pushed all the way) on a vehicle goes this much faster than riding along */
+const RIDE_BOOST = 1.5;
+
 export function rideTuning(topSpeed: number): RideTuning {
-  return { topSpeed, cruise: 0.6, accel: 7.2, brake: 12, turnRate: 2.3, radius: 0.42 };
+  return { topSpeed, cruise: 1 / RIDE_BOOST, accel: 7.2, brake: 12, turnRate: 2.3, radius: 0.42 };
 }
 
 /** headings to try, in order, when the straight move is blocked (radians off the wish direction) */

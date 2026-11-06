@@ -1,6 +1,6 @@
 # Sài Gòn Q1
 
-A walkable miniature of District 1, Ho Chi Minh City: an island in the sea with Chợ Bến Thành as the starting point and the landmarks laid out east of it roughly as in the real city. The map is modelled in Blender (`sg.tinymap.blend`) and shown in Three.js + TypeScript. The start menu offers two ways in: **[1] map** (orbit, zoom and fly to each landmark) and **[2] play** (start in front of the south gate of Chợ Bến Thành and walk anywhere on the streets, plazas, lawns and the beach). Everything is drawn with shaders only: a toon paint shader (colour variation, street grime, rain streaks, paper grain), a screen-space ink outline and a toon sea that reads the scene depth for shallows and shore foam. Clouds, gulls, swaying trees and code-generated ambient sound (surf, birds) keep it alive.
+A walkable miniature of District 1, Ho Chi Minh City: an island in the sea with Chợ Bến Thành as the starting point and the landmarks laid out east of it roughly as in the real city. The map is modelled in Blender (`sg.tinymap.blend`) and shown in Three.js + TypeScript. The start menu offers two ways in: **[1] map** (orbit, zoom and fly to each landmark) and **[2] play** (start in front of the south gate of Chợ Bến Thành and walk anywhere on the streets, plazas, lawns and the beach). Everything is drawn with shaders only: a toon paint shader (colour variation, street grime, rain streaks, paper grain), a screen-space ink outline and a toon sea that reads the scene depth for shallows and shore foam. Clouds, gulls, swaying trees and code-generated area sound (soft surf on the beach for now) keep it alive.
 
 **Start with [docs/PROJECT.md](docs/PROJECT.md)**: project context, the art style, the Blender file conventions and a sheet of every landmark with renders and reference photos.
 
@@ -39,7 +39,10 @@ src/game/
   play.ts               play mode: input -> player -> follow camera -> place labels
   sea.ts                toon sea: depth-based shallows, shore foam, wave streaks, horizon haze
   life.ts               drifting clouds and circling gulls
-  ambient.ts            WebAudio surf and birdsong (no audio files), mute toggle
+  sound/                area sound made with WebAudio (no audio files), mute toggle
+    ambient.ts          per-area mixer: each area place fades its soundscape in and out by distance
+    beach.ts            soft surf for bai_bien: overlapping waves over a far-off bed
+    noise.ts            seamless looping brown / pink noise
   world.ts              renderer, paper sky, sun/ambient lighting, GLB loader (plain or base64 .txt)
   paint.ts              toon paint material (Blender SD_Paint parameters) + foliage wind and see-through
   ink.ts                normal/depth pass, colour pass and the ink composite

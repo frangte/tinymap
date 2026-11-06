@@ -244,4 +244,4 @@ Verified with Go tests for every path against the ledger (three drivers acceptin
 
 - The amounts: start balance, lì xì top-up, the cut, the tips. They are content, so easy to tune after a playtest.
 - NPC passengers after phase 3: when no player books, an NPC at a landmark asks for a ride, paid by the game, so drivers have work with few players online.
-- On a 200 m island a trip is 10–15 s at 22 m/s ([07-tradeoffs.md](07-tradeoffs.md)). The chat, the rating and the tip are the point until the map grows (D10).
+- On a 200 m island a trip is 10–15 s at 13–20 m/s ([07-tradeoffs.md](07-tradeoffs.md)). The chat, the rating and the tip are the point until the map grows (D10).
