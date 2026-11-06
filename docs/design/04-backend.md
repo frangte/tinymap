@@ -113,7 +113,7 @@ The flat `{"t":…}` style stays. Commands that need an answer carry a `rid` and
 ## What the server enforces
 
 - **Movement:**
-  - Distance over a sliding 1 s window must stay within the allowed speed × 1.25 (walk 3.1 / run 6.8 m/s from `src/game/player.ts`, about 11 m/s on a motorbike).
+  - Distance over a sliding 1 s window must stay within the allowed speed × 1.25 (walk 3.1 / run 6.8 m/s from `src/game/player.ts`, about 22 m/s on a motorbike).
   - The target cell must be walkable (or drivable when mounted).
   - Height must stay between the floor and floor + 1.3 m (room for a jump).
   - No teleports except server-issued respawns.

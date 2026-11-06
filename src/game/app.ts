@@ -111,6 +111,11 @@ export async function startApp(): Promise<void> {
   resize();
 
   let mode: Mode = 'menu';
+  /** the ink outline as the map's button left it; in play it is always off */
+  let inkWanted = ink.enabled;
+  const applyInk = (): void => {
+    ink.enabled = mode !== 'play' && inkWanted;
+  };
   let play: PlayMode | null = null;
   let dress: DressPanel | null = null;
   let chat: ChatBox | null = null;
@@ -170,6 +175,7 @@ export async function startApp(): Promise<void> {
     if (!play || next === mode) return;
     const prev = mode;
     mode = next;
+    applyInk();
     hud.setMode(next);
     map.interactive = false;
     map.idle = false;
@@ -717,8 +723,9 @@ export async function startApp(): Promise<void> {
     hud.soundButton.setAttribute('aria-pressed', String(ambient.toggle()));
   });
   hud.inkButton.addEventListener('click', () => {
-    ink.enabled = !ink.enabled;
-    hud.inkButton.setAttribute('aria-pressed', String(ink.enabled));
+    inkWanted = !inkWanted;
+    applyInk();
+    hud.inkButton.setAttribute('aria-pressed', String(inkWanted));
   });
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;

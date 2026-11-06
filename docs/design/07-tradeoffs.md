@@ -8,7 +8,7 @@ These are the places where the design deliberately differs from the brief ([00-b
    - One Go process handles hundreds of WebSocket clients easily.
    - What breaks at "hundreds" is **bandwidth**, because sending everyone to everyone grows with N², and **mobile rendering**: dozens of multi-mesh avatars, with the ink pass drawing the scene twice.
    - The fix is an interest grid plus a cap on how many avatars are drawn. To scale past one process, run copies of the city, not spatial zones.
-2. **Ride-hailing on a 200 m island is a 20–30 second trip.** Until the map grows (D10), it's about the shared ride (chatting, a rating, a tip), not saving time.
+2. **Ride-hailing on a 200 m island is a 10–15 second trip** (the bike does 22 m/s). Until the map grows (D10), it's about the shared ride (chatting, a rating, a tip), not saving time.
 3. **Brand:** a made-up brand instead of a real one. The choice is **Crab Bike** with a yellow uniform (D9). Keep the logo and app look clearly its own, and keep real brands (Grab, Zalo…) out of the game.
 4. **Language belongs to the player, not the archetype.** The archetype changes the tone of NPC lines.
 5. **Full server-side movement simulation isn't worth it for a social game.** The client moves and the server checks every move. The server stays fully in charge of quests, rewards, items and interactions, so cheating on movement can't fake progress.
