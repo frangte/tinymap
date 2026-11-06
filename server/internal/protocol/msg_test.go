@@ -156,6 +156,25 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("got %+v", m)
 				}
 			}},
+		{name: "carry a title", in: `{"t":"title","title":"nguoi_trong_xom","rid":3}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Title != "nguoi_trong_xom" || m.Rid != 0 {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "put the title away", in: `{"t":"title","title":""}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Title != "" {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "a title that is not an id", in: `{"t":"title","title":"<b>Vua</b>"}`, wantErr: ErrBadTitle},
+		{name: "a title only counts in title", in: `{"t":"chat","text":"hi","title":"x"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Title != "" {
+					t.Fatalf("title = %q", m.Title)
+				}
+			}},
 		{name: "a request id only counts on commands that are answered", in: `{"t":"state","x":0,"y":0,"z":0,"h":0,"rid":5}`,
 			check: func(t *testing.T, m ClientMsg) {
 				if m.Rid != 0 {

@@ -56,6 +56,8 @@ content/*.json                   game data shared with the game: places, archety
 content/npcs.json                the NPCs (shared with the game, which draws them): name, role, look, spot, mode, reach
 content/dialogue/*.json          what each NPC says: one graph per NPC, server only; cast.go checks every line,
                                  reference and node (reachable, no unknown archetype, emote or capability)
+content/quests.json              quests, achievements, titles and stamps (shared with the game); quests.go checks
+                                 every reference, the quest engine checks each objective's params
 content/nav/                     a copy of the game's nav map (public/models/saigon_q1_nav.*), embedded
 cmd/loadbots/main.go             load test: walking bots, KB/s received per bot
 internal/capability/             a set of capability ids: what systems check instead of the archetype
@@ -68,6 +70,12 @@ internal/world/vehicle.go        vehicles: parking, mounting, getting off
 internal/world/npc.go            NPCs: placed at start, turn to whoever speaks, play the line's emote, call out
 internal/world/talk.go           conversations with NPCs: private, public, group; walking away ends yours
 internal/dialogue/dialogue.go    the dialogue engine (a Provider; Script runs the graphs in content/dialogue)
+internal/world/observe.go        what players do, published as events for quests: places, time there, emotes, rides
+internal/events/                 the event types the world publishes (never sent by a client)
+internal/quest/engine.go         the quest rules, compiled from quests.json: progress, completion, rewards
+internal/quest/objective/        the objective types, one file each (the extension point for new kinds of quests)
+internal/quest/service.go        runs quests for the characters playing, on worker goroutines; stores each event's
+                                 changes in one transaction, then tells the world
 internal/nav/nav.go              the nav grid: walkable cells, floor heights, line checks
 internal/identity/identity.go    guest accounts, tokens and characters
 internal/store/store.go          SQLite: one connection, migrations (migrations/*.sql), backups, the queries
@@ -99,6 +107,7 @@ Archetype ids (`arch`) are the ids in `content/archetypes.json` (`traveler`, `ci
 | `{"t":"profile","name":"Lan","look":{…}}` | after the dressing panel | same rules as hello; at most 4/s. Stored on the character when the hello had a token (an empty name keeps the stored one). |
 | `{"t":"interact","n":3,"rid":5}` | E next to an NPC | starts a conversation with NPC `n` (or joins its group conversation); within the NPC's reach (3 m, 4 m for the guide). Answered with `interaction`, then `result`. Refused: `result` with `far`, `target` (no such NPC), `full` (the group has 8), `mute` (no dialogue). Talking to another NPC ends the current conversation (`interaction_end` `other`); talking to the same one shows the line again. |
 | `{"t":"choose","sid":12,"c":1,"rid":6}` | an answer button, or keys 1–9 | `c` indexes the choices of the line shown. Answered with `interaction` (the next line, to everyone in the conversation) or `interaction_end` `done`, then `result`. Refused: `stale` (not your conversation, or over), `lead` (in a group only the leader picks), `choice` (not on offer). |
+| `{"t":"title","title":"nguoi_trong_xom"}` | the title picker in the phone's Hồ sơ | carry an earned title (`""` puts it away); one not earned is ignored. At most 4/s with profile. |
 | `{"t":"interact_leave","sid":12}` | ×, goodbye, Esc | `interaction_end` `left`; a group carries on, led by the next player. interact, choose and interact_leave together: about 7/s with a burst of 6; extra ones are dropped (without a result: the game gives up waiting after 3 s). |
 | `{"t":"chat","ch":"nearby","text":"xin chào"}` | | `ch` is `global` (also when missing) or `nearby`: only players within 20 m (on the ground) hear a nearby line, and it is not kept in the history; any other channel is dropped. Text cleaned (below), 1–140 characters; about one per 0.7 s with a burst of 3, otherwise `error rate` and the line is dropped |
 
@@ -119,20 +128,29 @@ Names and chat are cleaned on the server: control characters and invisible forma
 | `{"t":"chat","id":7,"name":"Lan","arch":"driver","ch":"global","text":"xin chào","at":1730790000000}` | a chat line, sent to everyone (`nearby`: to those within 20 m) including its author; `arch` is the sender's archetype. `"npc":true` marks an NPC's line (a call to passers-by, or a line of a public conversation), heard within 14 m of it: `id` is the NPC's. |
 | `{"t":"interaction","sid":12,"n":3,"mode":"private","lead":true,"size":1,"say":{"vi":"…","en":"…"},"choices":[{"vi":"…","en":"…"},…]}` | where a conversation is: when it starts, after every answer, and in a group whenever someone joins or leaves. `say` is the line for this player's archetype (`en` missing when there is none); `choices` are the leader's answers (only the leader, `lead`, may pick); none means only goodbye is left. `mode`: `private`, `public` (the NPC's lines are also heard nearby as chat), `group` (`size` players share it). |
 | `{"t":"interaction_end","sid":12,"reason":"far"}` | the conversation is over for this player: `done` (it reached its end), `left` (closed), `far` (walked further than the NPC's reach + 2 m), `other` (started another) |
+| `{"t":"progress","quests":[{"id":"traveler.kien_truc_phap","n":{"nha_tho":1,"buu_dien":0,"nha_hat":0}},{"id":"traveler.chao_sai_gon","done":true}],"achievements":[{"id":"kham_pha_quan_1","n":3}],"titles":[…],"stamps":[…],"title":"","news":[{"kind":"quest","id":"traveler.chao_sai_gon"},{"kind":"stamp","id":"chao_sai_gon"}]}` | a character's quests (only to one with an account): on joining, and whenever something changed. `n` is how far each objective got (seconds for a stay, metres for a ride); `news` is what just happened (`quest`, `achievement`, `title`, `stamp`), for the game to celebrate. The text is in `content/quests.json`, which the game has. |
 | `{"t":"result","rid":5,"ok":false,"code":"far"}` | the answer to a command that carried a `rid` (interact, choose); `code` only when it failed |
 | `{"t":"error","code":"full"\|"bad_hello"\|"auth"\|"rate"\|"mount"\|"replaced"}` | `full`, `bad_hello`, `auth` and `replaced` are followed by the server closing the socket. On `auth` the client forgets its token and gets a new one (the database was reset). `replaced`: the same character joined from another connection (a reconnect after the network dropped, or a second tab), which starts where this one stood; the client should not reconnect by itself. |
 
 `npc` is `{"id":3,"npc":"co_ba","pose":[x,y,z,h]}`: `npc` is its id in `content/npcs.json`, which the game also has (name, role, look). NPC ids come before players' and never leave; snapshots carry an NPC's row like a player's when it turns or gestures.
 
-`player` is `{"id":7,"name":"Lan","arch":"driver","look":{…}}` (`arch` missing for a player without one); where they are comes in snapshots, to the players near them. `vehicle` is `{"id":12,"kind":"xe_so_110","owner":7,"rider":7,"pose":[x,y,z,h]}`: `rider` is 0 while parked; while ridden the vehicle moves with its rider, and `pose` is where it was last parked.
+`player` is `{"id":7,"name":"Lan","arch":"driver","title":"nguoi_trong_xom","look":{…}}` (`title` missing for none; profile messages and chat lines carry it too) (`arch` missing for a player without one); where they are comes in snapshots, to the players near them. `vehicle` is `{"id":12,"kind":"xe_so_110","owner":7,"rider":7,"pose":[x,y,z,h]}`: `rider` is 0 while parked; while ridden the vehicle moves with its rider, and `pose` is where it was last parked.
 
 ### Conversations
 
 An NPC is one shared figure (`content/npcs.json`), and any number of players talk to it at once (`internal/world/talk.go`). Each private or public conversation keeps its own place in the NPC's dialogue graph (`content/dialogue/<id>.json`); a group NPC (the guide) has one conversation that everyone who walks up joins, and its longest-standing member picks the answers. The server renders every line for its reader: the variant for their archetype (`default` otherwise), `{name}` filled in, the answers their capabilities allow. A player is in one conversation at a time; it ends when they close it, walk further than the NPC's reach + 2 m, start another one, or leave.
 
-The NPC turns toward whoever spoke last (4 rad/s) and plays the line's emote; 5 s after its last conversation it turns back. NPCs with `barks` call one out every 35–55 s while someone is within 14 m and nobody is talking to them.
+The NPC turns toward whoever spoke last (4 rad/s) and plays the line's emote; 5 s after its last conversation it turns back. NPCs with `barks` call one out every 60–90 s while someone is within 14 m and nobody is talking to them.
 
 An answer can send a signal (`emit`, e.g. `greetings_learned` when Cô Ba's lesson is done). Dialogue never grants anything: signals go to `world.Config.OnSignal`, which only logs them until the quest engine listens (phase 4).
+
+### Quests
+
+Quests and achievements are content (`content/quests.json`): adding one needs no Go change. A quest starts by itself once it is available (one of its `tags_any` among the character's archetype tags, every quest in `requires` done); objectives go in a `sequence`, `all` at once, or `any`. Achievements are passive quests with one objective.
+
+Progress only comes from events the world observed (`internal/events`), never from a client message: entering a place (after standing in it 2 s, from moves the server accepted), time spent there (in 5 s steps), starting a conversation with an NPC, an answer's signal (only for whoever picked the answer, in a group too), an emote, a greeting (two characters within 5 m playing the same emote at each other within 20 s: waving at a crowd that does not wave back greets nobody), getting on a vehicle, distance ridden (in 100 m steps). Distinct things (places, NPCs, players greeted) count once each; an objective that does not count distinct things must have a count of 1, since doing the same thing again is not progress.
+
+The quest service runs each character on one of a few worker goroutines, so its events apply in order. For each event it changes a copy of the character's progress, stores it in one transaction (tried three times, the database being busy), and only then keeps it and tells the game (`progress`); a save that still fails keeps nothing. A reward has a key (`quest:<id>:` or `achievement:<id>`) stored in `reward_grants` in that same transaction, so a retry never gives it twice. Rewards are titles (the first one earned is carried at once), stamps and capabilities (`local.certified`, the Traveler's certificate, applies at once and on later visits). Guests without an account have no quests. The objective types: `reach_place`, `stay_place`, `talk_npc`, `dialogue_signal`, `emote_at`, `greet`, `mount`, `ride_through`, `ride_distance`, `quest_done`.
 
 ### Movement checks
 

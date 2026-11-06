@@ -9,20 +9,25 @@ import (
 
 	"saigon-noir/server/content"
 	"saigon-noir/server/internal/dialogue"
+	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/protocol"
 )
 
-// castHarness is a world with the game's NPCs talking their real dialogue; signals are kept in *signals.
-func castHarness(t *testing.T, tune func(*Config)) (*harness, *[]Signal) {
+// castHarness is a world with the game's NPCs talking their real dialogue; the signals sent are kept in *signals.
+func castHarness(t *testing.T, tune func(*Config)) (*harness, *[]events.Event) {
 	t.Helper()
 	c, err := content.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	var signals []Signal
+	var signals []events.Event
 	h := newHarnessWith(t, func(cfg *Config) {
 		cfg.NPCs, cfg.Dialogue = NPCsFrom(c), dialogue.NewScript(c)
-		cfg.OnSignal = func(s Signal) { signals = append(signals, s) }
+		cfg.OnEvent = func(ev events.Event) {
+			if ev.Kind == events.Signal {
+				signals = append(signals, ev)
+			}
+		}
 		if tune != nil {
 			tune(cfg)
 		}
@@ -150,7 +155,7 @@ func TestThreePlayersTalkToCoBaAtOnce(t *testing.T) {
 	x, z := h.near(coBa, coBa.spec.Reach+h.w.cfg.Talk.Slack+1, 0)
 	h.at(ts[0].p, ts[0].m, x, z)
 	h.tick(100 * time.Millisecond)
-	h.w.tickNPCs()
+	h.w.tick()
 	end := only(t, mustDrain(h, ts[0].p), protocol.TypeInteractionEnd)
 	if end.Sid != ts[0].sid || end.Reason != protocol.EndFar {
 		t.Fatalf("end %+v", end)
@@ -336,7 +341,7 @@ func TestAnAnswerSendsItsSignal(t *testing.T) {
 			t.Fatalf("answer %d: %s", i, code)
 		}
 	}
-	if len(*signals) != 1 || (*signals)[0] != (Signal{Character: "char-Lan", Player: (*signals)[0].Player, NPC: "co_ba", Signal: "greetings_learned"}) {
+	if len(*signals) != 1 || (*signals)[0].Character != "char-Lan" || (*signals)[0].NPC != "co_ba" || (*signals)[0].Signal != "greetings_learned" {
 		t.Fatalf("signals %+v", *signals)
 	}
 }
@@ -372,7 +377,7 @@ func TestTheNPCTurnsToTheSpeakerAndBack(t *testing.T) {
 	toward := math.Atan2(m.pose.X-coBa.pose.X, m.pose.Z-coBa.pose.Z)
 	for range 24 { // two seconds
 		h.tick(time.Second / 12)
-		h.w.tickNPCs()
+		h.w.tick()
 		h.w.sendSnapshots()
 	}
 	if d := math.Abs(wrapAngle(coBa.pose.H - toward)); d > 0.01 {
@@ -393,7 +398,7 @@ func TestTheNPCTurnsToTheSpeakerAndBack(t *testing.T) {
 	h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeInteractLeave, Sid: m.talk.id})
 	for range 12 * 9 { // past LookFor and the turn back
 		h.tick(time.Second / 12)
-		h.w.tickNPCs()
+		h.w.tick()
 	}
 	if d := math.Abs(wrapAngle(coBa.pose.H - rest)); d > 0.01 || protocol.EmoteOf(coBa.flags) != 0 {
 		t.Fatalf("heading %.2f, rest %.2f, emote %d", coBa.pose.H, rest, protocol.EmoteOf(coBa.flags))
@@ -406,7 +411,7 @@ func TestNPCsCallToPassersBy(t *testing.T) {
 	p, _ := h.joinNear("Lan", "traveler", chuSau, 5, 0)
 	for range 3 {
 		h.tick(time.Second / 12)
-		h.w.tickNPCs()
+		h.w.tick()
 	}
 	call := only(t, mustDrain(h, p), protocol.TypeChat)
 	if !call.NPC || call.ID != chuSau.id || call.Text != chuSau.spec.Barks[0].VI {
@@ -414,7 +419,7 @@ func TestNPCsCallToPassersBy(t *testing.T) {
 	}
 	// the next one waits its turn
 	h.tick(time.Second)
-	h.w.tickNPCs()
+	h.w.tick()
 	if fs := mustDrain(h, p); len(fs) != 0 {
 		t.Fatalf("called again at once: %+v", fs)
 	}

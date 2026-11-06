@@ -74,6 +74,9 @@ func distToPlace(p Place, x, y float64) float64 {
 	return math.Sqrt(best)
 }
 
+// noQuests stands in for quests.json where the shipped quests would refer to NPCs a test left out.
+var noQuests = []byte(`{"titles": [], "stamps": [], "quests": [], "achievements": []}`)
+
 func TestCastRejects(t *testing.T) {
 	const npc = `{"id": "x", "name": "Cô X", "role": {"vi": "bán hàng"}, "look": {"body": "woman", "outfit": "baba", "hat": "nonla"},
 		"place": "cho_ben_thanh", "at": [2, -11.5], "face": [8, -17], "mode": "private", "dialogue": "x", "reach": 3 %s}`
@@ -115,7 +118,7 @@ func TestCastRejects(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			f := embedded()
-			f.npcs, f.dialogues = c.npcs, c.dialogues
+			f.npcs, f.dialogues, f.quests = c.npcs, c.dialogues, noQuests
 			_, err := load(f)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err = %v, want it to mention %q", err, c.want)
@@ -124,7 +127,7 @@ func TestCastRejects(t *testing.T) {
 	}
 	// and the base case loads, so each failure above is the one edit
 	f := embedded()
-	f.npcs, f.dialogues = npcs(""), dialogue(okNodes)
+	f.npcs, f.dialogues, f.quests = npcs(""), dialogue(okNodes), noQuests
 	if _, err := load(f); err != nil {
 		t.Fatalf("the base case: %v", err)
 	}

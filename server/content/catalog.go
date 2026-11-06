@@ -65,7 +65,9 @@ type StarterLook struct {
 }
 
 type Archetype struct {
-	ID    string      `json:"id"`
+	ID string `json:"id"`
+	// Tags say which quests it is offered (quests.json tags_any)
+	Tags  []string    `json:"tags"`
 	Name  Text        `json:"name"`
 	Pitch Text        `json:"pitch"`
 	Badge Badge       `json:"badge"`
@@ -103,8 +105,13 @@ type Catalog struct {
 	Emotes       []Emote
 	NPCs         []NPC
 	Dialogues    map[string]Dialogue
+	Titles       []Title
+	Stamps       []Stamp
+	Quests       []Quest
+	Achievements []Achievement
 	byID         map[string]Archetype
 	vehicleByID  map[string]Vehicle
+	questByID    map[string]Quest
 }
 
 var (
@@ -114,14 +121,14 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, archetypes, apps, movement, vehicles, emotes, npcs []byte
+	places, archetypes, apps, movement, vehicles, emotes, npcs, quests []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
 
 func embedded() files {
 	return files{places: placesJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
-		emotes: emotesJSON, npcs: npcsJSON, dialogues: dialogueFiles()}
+		emotes: emotesJSON, npcs: npcsJSON, quests: questsJSON, dialogues: dialogueFiles()}
 }
 
 // Load parses and checks the embedded data files.
@@ -150,6 +157,9 @@ func load(f files) (*Catalog, error) {
 		return nil, fmt.Errorf("apps.json: %w", err)
 	}
 	if err := parseMotion(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseQuests(f, c); err != nil {
 		return nil, err
 	}
 	if err := parseCast(f, c); err != nil {
@@ -214,7 +224,10 @@ func (c *Catalog) check() error {
 			return errors.New("archetypes.json: the fallback outfit and hat must not be restricted")
 		}
 	}
-	return c.checkCast(caps, places)
+	if err := c.checkCast(caps, places); err != nil {
+		return err
+	}
+	return c.checkQuests(caps, places)
 }
 
 func checkRestricted(r RestrictedLook, caps map[string]bool) error {
@@ -237,6 +250,8 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 		return errors.New("id must be lower_snake_case ascii")
 	case c.byID[a.ID].ID != "":
 		return errors.New("duplicate id")
+	case len(a.Tags) == 0:
+		return errors.New("needs at least one tag (quests are offered by tag)")
 	case a.Name.VI == "" || a.Pitch.VI == "" || a.Spawn.Button.VI == "":
 		return errors.New("needs a Vietnamese name, pitch and spawn button")
 	case a.Badge.Short == "" || !colorPattern.MatchString(a.Badge.Color) || !colorPattern.MatchString(a.Badge.Text):
@@ -253,6 +268,11 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 	for _, k := range a.Capabilities {
 		if !caps[k] {
 			return fmt.Errorf("unknown capability %q", k)
+		}
+	}
+	for _, t := range a.Tags {
+		if !idPattern.MatchString(t) {
+			return fmt.Errorf("tag %q must be lower_snake_case ascii", t)
 		}
 	}
 	granted := capability.Of(a.Capabilities...)

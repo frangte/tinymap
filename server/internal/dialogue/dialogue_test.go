@@ -25,6 +25,7 @@ func testScript(t *testing.T) *Script {
 			Emote: "wave",
 			Choices: []content.Choice{
 				{Text: protocol.Text{VI: "Bí mật"}, Goto: "secret", Requires: []string{"local.secret"}},
+				{Text: protocol.Text{VI: "Bài thi"}, Goto: "secret", RequiresQuest: "test.exam"},
 				{Text: protocol.Text{VI: "Mua"}, Goto: "bought", Emit: "bought_it"},
 				{Text: protocol.Text{VI: "Thôi"}, Goto: content.DialogueEnd},
 			},
@@ -51,6 +52,7 @@ func TestLinesFollowTheSpeaker(t *testing.T) {
 		{"an archetype with its own line", Speaker{Name: "Minh", Arch: "local"}, "Ê Minh", 2},
 		{"an archetype without one gets the default", Speaker{Name: "Tú", Arch: "tourist"}, "Chào Tú", 2},
 		{"a capability unlocks an answer", Speaker{Name: "Hoa", Caps: capability.Of("local.secret")}, "Chào Hoa", 3},
+		{"a running quest unlocks an answer", Speaker{Name: "Tú", Quests: map[string]bool{"test.exam": true}}, "Chào Tú", 3},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

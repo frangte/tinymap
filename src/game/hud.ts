@@ -117,7 +117,8 @@ export class Hud {
     }
   }
 
-  toast(p: Place): void {
+  /** A card that pops in and fades: a landmark first seen, a quest completed. */
+  toast(p: Pick<Place, 'name' | 'note'>): void {
     this.toastEl.replaceChildren();
     const name = document.createElement('strong');
     name.textContent = p.name;

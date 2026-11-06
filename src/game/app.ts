@@ -33,6 +33,10 @@ import { ActionPad } from './actionPad';
 import { emotesFor } from './motion';
 import { Npcs } from './npcs';
 import { Talk } from './talk';
+import { QuestLog } from './questLog';
+import { QuestTracker } from './questTracker';
+import { ACHIEVEMENTS, STAMPS, questById, titleName } from './quests';
+import type { News } from '../net/protocol';
 import { loadPose, savePose } from './lastPose';
 
 const MODEL_BYTES = 2.01e6;
@@ -127,6 +131,9 @@ export async function startApp(): Promise<void> {
   /** riding bookkeeping every frame (replaced once loaded) */
   let updateRiding = (_now: number): void => {};
   let pad: ActionPad | null = null;
+  /** the quest tracker under the place card (replaced once the map has loaded) */
+  let tracker: QuestTracker | null = null;
+  const forward = new THREE.Vector3();
   let poseSavedAt = 0;
   /** replaced once the map has loaded */
   let goOnline = (): void => {};
@@ -217,6 +224,10 @@ export async function startApp(): Promise<void> {
       net?.sendState(pp.x, pp.y, pp.z, pl.heading, pl.flags, now);
       pad?.setUse(play.controlling ? actionLabel() : null);
       updateRiding(now);
+      if (tracker) {
+        play.follow.forward(forward);
+        tracker.update(now, pl.position, forward);
+      }
       if (now - poseSavedAt > POSE_SAVE_EVERY) {
         poseSavedAt = now;
         savePose(pp.x, pp.z, pl.heading);
@@ -408,6 +419,37 @@ export async function startApp(): Promise<void> {
   // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
   const others = new RemotePlayers(scene, ink, (x, z) => nav.smoothFloor(x, z, 0));
   remotes = others;
+  // ---- quests: the server's word on them, shown by the tracker, the phone and toasts
+  const log = new QuestLog();
+  log.onChange(() => tags.setSelfTitle(log.title));
+  /** what the progress says just happened: a toast for the biggest thing, a phone notice for each */
+  const celebrate = (news: readonly News[], opened: readonly string[]): void => {
+    let toast: { name: string; note: string } | null = null;
+    for (const n of news) {
+      if (n.kind === 'quest') {
+        const q = questById(n.id);
+        if (!q) continue;
+        ph.notify('Hoàn thành nhiệm vụ', q.title.vi);
+        if (!toast || toast.note !== 'Thành tích mới') toast = { name: q.title.vi, note: 'Hoàn thành nhiệm vụ' };
+      } else if (n.kind === 'achievement') {
+        const a = ACHIEVEMENTS.find((x) => x.id === n.id);
+        if (!a) continue;
+        ph.notify('Thành tích mới', a.title.vi);
+        toast = { name: a.title.vi, note: 'Thành tích mới' };
+      } else if (n.kind === 'title') {
+        const t = titleName(n.id);
+        if (t) ph.notify('Danh hiệu mới', `${t}. Đổi danh hiệu trong app Hồ sơ.`);
+      } else {
+        const s = STAMPS.find((x) => x.id === n.id);
+        if (s) ph.notify('Nhận tem', `${s.name.vi}: xem trong Sổ tem (app Cẩm nang).`);
+      }
+    }
+    for (const id of opened) {
+      const q = questById(id);
+      if (q) ph.notify('Nhiệm vụ mới', q.title.vi);
+    }
+    if (toast && mode === 'play') hud.toast(toast);
+  };
   // ---- NPCs: drawn at their spots from the start; online the server's take their place
   const cast = new Npcs(scene, ink, (x, z) => nav.smoothFloor(x, z, 0));
   npcs = cast;
@@ -459,10 +501,18 @@ export async function startApp(): Promise<void> {
       others.remove(id);
       showOnline();
     },
-    profile: (id, name, look) => {
+    profile: (id, name, look, title) => {
       const before = others.get(id)?.name;
       if (before !== undefined && before !== name) chatBox.system(`${before} đổi tên thành ${name}`);
-      others.setProfile(id, name, look);
+      others.setProfile(id, name, look, title);
+    },
+    progress: (pr) => {
+      // quests that started just now (not on arriving: those were already there)
+      const had = log.known ? new Set(log.active().map((q) => q.def.id)) : null;
+      log.set(pr);
+      const opened = had ? log.active().map((q) => q.def.id).filter((id) => !had.has(id)) : [];
+      // the first progress of a visit says where things stand: nothing in it is news
+      celebrate(had ? pr.news : [], opened);
     },
     snap: (rows, receivedAt, out) => {
       others.applySnap(rows, receivedAt, netClient.selfId, out);
@@ -482,6 +532,7 @@ export async function startApp(): Promise<void> {
     rateLimited: () => chatBox.rateLimited(),
     reset: () => {
       others.clear();
+      log.clear();
       talk.reset();
       cast.local();
       riding.offline();
@@ -573,6 +624,11 @@ export async function startApp(): Promise<void> {
       switchBody();
       ph.rerender();
     },
+    quests: () => log,
+    chooseTitle: (id) => netClient.sendTitle(id),
+  });
+  tracker = new QuestTracker(log, () => {
+    if (mode === 'play' && !panel.isOpen) ph.open('quests');
   });
   phone = ph;
   applyArchetype();
@@ -670,7 +726,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

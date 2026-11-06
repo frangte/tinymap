@@ -163,6 +163,83 @@ The original plan:
 
 ### Phase 4: Quests and achievements (3 weeks)
 
+**Status: done 2026-11-06 (not deployed yet).**
+
+- **Built:**
+  - **Events** (`server/internal/events`, published by the world in `server/internal/world/observe.go` and the conversation and vehicle code):
+    - a place entered (after 2 s, from accepted moves only) and time spent there (5 s steps)
+    - a conversation started with an NPC, and an answer's signal (only for whoever picked it)
+    - an emote, and a greeting (two characters within 5 m playing the same emote at each other within 20 s)
+    - getting on a vehicle, and distance ridden (100 m steps)
+    - The world publishes through a non-blocking hook; no client message is ever an event.
+  - **The quest engine** (`server/internal/quest`), compiled from `server/content/quests.json`:
+    - Quests and achievements share one engine (an achievement is a passive quest).
+    - Quests start by themselves once available: an archetype tag in `tags_any`, every quest in `requires` done (D14).
+    - Objectives go in `sequence`, `all` or `any`.
+    - A completion can set off achievements (`quest_done`), and opens the quests that require it.
+  - **Objective types** (`server/internal/quest/objective`), one file each, the extension point:
+    - `reach_place`, `stay_place`, `talk_npc`, `dialogue_signal`, `emote_at`, `greet`, `mount`, `ride_through`, `ride_distance`, `quest_done`
+    - Each checks its params against the game data when the engine starts; an unknown place, an NPC signal that does not exist, or more distinct things than there are fails the tests.
+    - Distinct things count once; an objective that does not count distinct things must have a count of 1.
+  - **The quest service:**
+    - Workers run the characters, each always on the same one, so its events apply in order.
+    - Each event changes a copy of the character's progress, which is saved in one transaction (retried twice) and only then kept and shown.
+    - Rewards are keyed in `reward_grants` in that same transaction, so a retry never gives one twice.
+    - Migration `0004_quests.sql`: quest progress, reward grants, earned titles and stamps, earned capabilities, the carried title.
+  - **Rewards:**
+    - titles: the first one earned is carried at once; others can be picked in Hồ sơ with the `title` command, and others see them under the name and in chat
+    - stamps, for the Traveler's stamp book
+    - capabilities: `local.certified`, the certificate, applies at once and on every later visit
+  - **Content:**
+    - The Traveler's questline "Người Sài Gòn chính hiệu" in six quests:
+      - Cô Ba's greeting lesson
+      - a coffee at Chú Tư's and 20 s at the café
+      - the Cathedral, Post Office and Opera House
+      - bánh tráng from Dì Năm and 15 s by the lake
+      - directions from Chú Sáu
+      - Cô Ba's five-question final test, now in her dialogue, offered only during that quest (`requires_quest`)
+    - Four Citizen and two driver starter quests.
+    - Five achievements, eight titles and six stamps.
+  - **The game:**
+    - the quest tracker under the place card (the next objective, an arrow relative to the camera and the distance; tap for the quests app)
+    - the Nhiệm vụ and Thành tích apps, the stamp book in Cẩm nang and the title picker in Hồ sơ
+    - a toast and a phone notice for each quest done, achievement, title and stamp, and for each quest that opens
+- **Verified:**
+  - **Go tests with `-race`:**
+    - the whole Traveler questline on events alone (order rules, all-of-three, the final test opening only after the four middle quests, the certificate given once)
+    - wrong events changing nothing, distinct things counting once, a driver's route only counting while riding and in order
+    - every objective type's param checks
+    - the store keeping progress and giving a grant once even when committed twice
+    - the service: a join showing the progress, a failed save keeping nothing, a replaced visit's late leave not dropping the new one, only earned titles carried, the certificate's capability given once
+    - the world: a place counting only after 2 s and never for a refused teleport, no events for guests, a greeting needing to be returned in time, mounting and riding published
+    - the first quest over real sockets
+  - **Two independent code reviews** (server and client); their findings were fixed:
+    - a group's answer credited to everyone in the group
+    - objectives with a count that could be farmed by repeating one action
+    - greetings counted from standing in a crowd
+    - one-off events lost to a busy database
+    - a capability missed after an ambiguous save
+    - shutdown able to block a closing connection
+    - the arrow spinning the long way round
+    - the quests app collapsing on every update
+    - the title picker not following the server
+    - unbounded or prototype-unsafe parsing of `progress`
+    - per-frame allocations in the tracker
+  - **A headless browser played the whole Traveler questline with real, server-checked moves** (about 600 m of walking):
+    - the tracker pointed the way at every step
+    - a wrong quiz answer had to be redone
+    - six quests, six stamps, the title carried and seen by a second player, the certificate achievement
+    - no move refused, no server error, no console error
+    - A Citizen arriving got the Citizen quests.
+- **Changed from the plan:**
+  - No accept step: quests start themselves (D14, to confirm). There are no café stools or items yet, so the coffee quest asks for time at the café after ordering, and the bánh tráng quest for time by the lake.
+  - "Ask a Citizen for directions" is asked of Chú Sáu for now; the Citizen-player version with its NPC fallback is phase 5's co-op quest.
+  - Titles and stamps live in an `earned` table rather than counters; achievements keep their progress in the quest table.
+  - Guests without an account have no quests (nowhere to keep them).
+  - A capability earned while playing updates what the character may do at once, but the phone's apps only on the next visit; none of today's earned capabilities unlocks an app.
+
+The original plan:
+
 - **Goal:** progression, with the server in charge.
 - **Features:**
   - The engine and the objective registry.

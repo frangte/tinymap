@@ -36,12 +36,25 @@
       </div>
     </section>
 
-    <header class="where card" data-modes="map play" aria-live="polite">
-      <div class="eyebrow" id="where-eyebrow">Sài Gòn Q1</div>
-      <h1 id="where">Quận 1</h1>
-      <div class="note" id="wherenote">Sài Gòn</div>
-      <div class="online" id="online" data-status="offline" hidden><i aria-hidden="true"></i><span id="online-text"></span></div>
-    </header>
+    <!-- top left: where you are, and under it the quest tracker (questTracker.ts) in play -->
+    <div class="topleft" data-modes="map play">
+      <header class="where card" data-modes="map play" aria-live="polite">
+        <div class="eyebrow" id="where-eyebrow">Sài Gòn Q1</div>
+        <h1 id="where">Quận 1</h1>
+        <div class="note" id="wherenote">Sài Gòn</div>
+        <div class="online" id="online" data-status="offline" hidden><i aria-hidden="true"></i><span id="online-text"></span></div>
+      </header>
+      <button class="tracker card" id="tracker" type="button" data-modes="play" hidden>
+        <span class="tracker-text">
+          <span class="eyebrow" id="tracker-quest"></span>
+          <span class="tracker-goal" id="tracker-goal"></span>
+        </span>
+        <span class="tracker-way">
+          <svg class="tracker-arrow" id="tracker-arrow" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l7 17-7-4-7 4z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+          <span class="tracker-dist" id="tracker-dist"></span>
+        </span>
+      </button>
+    </div>
 
     <div class="tools" data-modes="map play">
       <button id="sound" type="button" aria-pressed="true" title="Bật hoặc tắt tiếng sóng và chim">Âm thanh</button>

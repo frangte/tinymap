@@ -21,9 +21,11 @@ import (
 
 	"saigon-noir/server/content"
 	"saigon-noir/server/internal/dialogue"
+	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/protocol"
+	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/world"
 	"saigon-noir/server/internal/ws"
@@ -102,6 +104,10 @@ type msg struct {
 	Reason  string          `json:"reason"`
 	Rid     uint32          `json:"rid"`
 	OK      bool            `json:"ok"`
+	// progress
+	Quests []protocol.QuestState `json:"quests"`
+	Stamps []string              `json:"stamps"`
+	News   []protocol.News       `json:"news"`
 }
 type look struct{ Body, Outfit, Hat string }
 type player struct {
@@ -143,9 +149,21 @@ func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// quests wired as the server does it (cmd/server/main.go)
+	engine, err := quest.NewEngine(catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var quests *quest.Service
+	cfg.Places, cfg.Emotes = catalog.Places, world.EmoteNames(catalog)
+	cfg.OnEvent = func(ev events.Event) { quests.Submit(ev) }
 	w := world.New(cfg, navGrid(t), log)
+	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
+	go quests.Run(ctx)
 	go w.Run(ctx)
 	sockets := ws.New(w, accounts, catalog, ws.Config{HelloTimeout: 300 * time.Millisecond}, log)
+	sockets.Quests = quests
+	quests.OnCapability = sockets.Grant
 	r, err := NewRouter(w, sockets, accounts, opt)
 	if err != nil {
 		t.Fatal(err)
@@ -564,7 +582,7 @@ func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
 	// an older client without archetypes: the core apps, no badge
 	c := dial(t, srv)
 	send(t, c, helloMinh)
-	if w := next(t, c, "welcome"); w.Arch != "" || len(w.Apps) != 4 {
+	if w := next(t, c, "welcome"); w.Arch != "" || len(w.Apps) != 6 {
 		t.Fatalf("no archetype: %q apps %v", w.Arch, w.Apps)
 	}
 	if got, _ := storedCharacter(srv, token); got.Look.Outfit == "crab" {
@@ -766,4 +784,67 @@ func spotToward(t *testing.T, npc [4]float64, from [2]float64, dist float64) (x,
 	}
 	t.Fatalf("no clear spot %v m from %v toward %v", dist, npc, from)
 	return
+}
+
+// ---- quests
+
+// The first Traveler quest over real sockets: a character with an account arrives with it running, takes Cô
+// Ba's lesson, and the server completes it, gives the stamp and opens the next four quests.
+func TestTheFirstQuestOverTheSocket(t *testing.T) {
+	catalog, err := content.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := testConfig()
+	cfg.NPCs, cfg.Dialogue = world.NPCsFrom(catalog), dialogue.NewScript(catalog)
+	srv := startServer(t, cfg)
+	_, _, token := postGuest(t, srv, "")
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "traveler", "thun", "cap"))
+	w := next(t, a, "welcome")
+	p := next(t, a, "progress")
+	if !hasQuest(p, "traveler.chao_sai_gon", false) || hasQuest(p, "traveler.ca_phe_sua_da", false) {
+		t.Fatalf("arriving: %+v", p.Quests)
+	}
+	var coBa protocol.NPC
+	for _, n := range w.NPCs {
+		if n.Key == "co_ba" {
+			coBa = n
+		}
+	}
+	from := [2]float64{w.Pose[0], w.Pose[2]}
+	for _, d := range []float64{6, 3, 1.5} {
+		time.Sleep(time.Second)
+		x, z := spotToward(t, coBa.Pose, from, d)
+		y, _ := navGrid(t).Floor(x, z)
+		send(t, a, fmt.Sprintf(`{"t":"state","x":%.2f,"y":%.2f,"z":%.2f,"h":0}`, x, y, z))
+		from = [2]float64{x, z}
+	}
+	send(t, a, fmt.Sprintf(`{"t":"interact","n":%d,"rid":1}`, coBa.ID))
+	in := next(t, a, "interaction")
+	// the lesson: greet → ask to learn → greet politely → thank → ask the price (which sends greetings_learned)
+	for i := 0; i < 4; i++ {
+		send(t, a, fmt.Sprintf(`{"t":"choose","sid":%d,"c":0,"step":%d,"rid":%d}`, in.Sid, in.Step, i+2))
+		if i < 3 {
+			in = next(t, a, "interaction")
+		}
+	}
+	// walking up to her entered the market, which moved an achievement: progress came for that too
+	for p = next(t, a, "progress"); !hasQuest(p, "traveler.chao_sai_gon", true); p = next(t, a, "progress") {
+	}
+	if !hasQuest(p, "traveler.kien_truc_phap", false) || len(p.Stamps) != 1 {
+		t.Fatalf("after the lesson: quests %+v, stamps %v", p.Quests, p.Stamps)
+	}
+	if len(p.News) == 0 {
+		t.Fatal("the progress after the lesson should say what is new")
+	}
+}
+
+func hasQuest(p msg, id string, done bool) bool {
+	for _, q := range p.Quests {
+		if q.ID == id {
+			return q.Done == done
+		}
+	}
+	return false
 }

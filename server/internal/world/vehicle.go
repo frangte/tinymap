@@ -5,6 +5,7 @@ import (
 	"math"
 	"slices"
 
+	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/protocol"
 )
 
@@ -91,6 +92,7 @@ func (w *World) onMount(p *Peer, m *member, id uint32) {
 	m.flags = protocol.FlagRide
 	m.view.moved = true
 	w.broadcast(v.encode(), nil)
+	w.publish(events.Event{Kind: events.Mounted, Character: m.character, Vehicle: v.kind})
 }
 
 // dismount leaves the member's vehicle parked where it is.

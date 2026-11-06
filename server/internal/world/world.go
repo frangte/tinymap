@@ -7,7 +7,7 @@
 //
 // The files: move.go checks every reported move against the nav grid, view.go decides who sees whom and sends
 // the snapshots, vehicle.go parks and mounts vehicles, npc.go places the NPCs and runs what they do, talk.go
-// runs the conversations players have with them.
+// runs the conversations players have with them, observe.go publishes what players do (events) for quests.
 package world
 
 import (
@@ -18,8 +18,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"saigon-noir/server/content"
 	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/dialogue"
+	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/protocol"
 )
@@ -42,9 +44,13 @@ type Config struct {
 	// one they stand there but do not talk.
 	NPCs     []NPCSpec
 	Dialogue dialogue.Provider
-	// OnSignal hears every signal an answer sends (quests listen for them). It runs on the world goroutine, so
-	// it must not block; nil drops them.
-	OnSignal func(Signal)
+	// Places are where players go (places.json): entering one, and time spent there, are events
+	Places []content.Place
+	// Emotes names emote codes (emotes.json), for emote events
+	Emotes map[int]string
+	// OnEvent hears what players do (server/internal/events), for quests and achievements. It runs on the
+	// world goroutine, so it must not block; nil drops them. Guests without an account have no events.
+	OnEvent func(events.Event)
 }
 
 func DefaultConfig() Config {
@@ -71,8 +77,10 @@ type Arrival struct {
 	Look      protocol.Look
 	Arch      string
 	Apps      []string
-	// Caps are what the archetype grants: which answers NPCs offer, for one
+	// Caps are what the character may do (archetype grants and earned ones): which answers NPCs offer, for one
 	Caps capability.Set
+	// Title is the title the character carries (quests.json), "" for none
+	Title string
 	// Home is the start that respawns go back to (x, z and the heading; Y is taken from the floor); nil for the
 	// nav grid's spawn, facing the market.
 	Home *protocol.Pose
@@ -131,6 +139,12 @@ const (
 	evMsg
 	evRateLimited
 	evLeave
+	// from the gameplay services, by character
+	evDeliver
+	evQuests
+	evTitle
+	// from the connection, by peer
+	evCaps
 )
 
 type event struct {
@@ -140,6 +154,12 @@ type event struct {
 	msg     protocol.ClientMsg
 	// code, for evLeave: an error to send before closing ("" for a plain disconnect)
 	code string
+	// for the gameplay services' events: the character, and what to send it or set on it
+	character string
+	frame     []byte
+	quests    map[string]bool
+	title     string
+	caps      capability.Set
 }
 
 // entity is what others see of anything in the world, a player or an NPC: where it is and what it is doing.
@@ -160,13 +180,18 @@ type member struct {
 	arch      string
 	look      protocol.Look
 	caps      capability.Set
-	home      protocol.Pose
-	gait      gait
+	// title is the title it carries ("" for none); quests the quests it has running (answers can depend on them)
+	title  string
+	quests map[string]bool
+	home   protocol.Pose
+	gait   gait
 	// owns is the vehicle that came with this player (nil for none), riding the one they sit on
 	owns   *vehicle
 	riding *vehicle
 	// talk is the conversation the player is in, nil for none
 	talk *session
+	// where is which place it is in, for place events
+	where whereabouts
 }
 
 type World struct {
@@ -185,6 +210,7 @@ type World struct {
 	npcs     []*npc
 	npcByID  map[uint32]*npc
 	sessions map[uint32]*session
+	places   []placeShape
 	nextID   uint32
 	// nextSession numbers conversations
 	nextSession uint32
@@ -207,6 +233,7 @@ func New(cfg Config, grid *nav.Grid, log *slog.Logger) *World {
 		vehicles: make(map[uint32]*vehicle),
 		npcByID:  make(map[uint32]*npc),
 		sessions: make(map[uint32]*session),
+		places:   shapesOf(cfg.Places),
 	}
 	for _, spec := range cfg.NPCs {
 		w.addNPC(spec)
@@ -241,6 +268,29 @@ func (w *World) Leave(p *Peer, code string) bool {
 	return w.submit(event{kind: evLeave, p: p, code: code})
 }
 
+// SetCaps changes what a joined peer's character may do (a capability earned while playing).
+func (w *World) SetCaps(p *Peer, caps capability.Set) bool {
+	return w.submit(event{kind: evCaps, p: p, caps: caps})
+}
+
+// The gameplay services reach a character through these, from any goroutine; a character not in the world is
+// skipped. They block only while the world's queue is full.
+
+// Deliver queues a frame for the character's player.
+func (w *World) Deliver(character string, frame []byte) bool {
+	return w.submit(event{kind: evDeliver, character: character, frame: frame})
+}
+
+// SetQuests says which quests the character has running (NPCs offer some answers only during a quest).
+func (w *World) SetQuests(character string, quests map[string]bool) bool {
+	return w.submit(event{kind: evQuests, character: character, quests: quests})
+}
+
+// SetTitle changes the title the character carries; everyone hears of it.
+func (w *World) SetTitle(character, title string) bool {
+	return w.submit(event{kind: evTitle, character: character, title: title})
+}
+
 // Run owns the world until ctx is cancelled, then closes every peer.
 func (w *World) Run(ctx context.Context) {
 	defer close(w.done)
@@ -256,7 +306,7 @@ func (w *World) Run(ctx context.Context) {
 		case e := <-w.events:
 			w.handle(e)
 		case <-ticker.C:
-			w.tickNPCs()
+			w.tick()
 			w.sendSnapshots()
 		}
 	}
@@ -290,7 +340,46 @@ func (w *World) handle(e event) {
 			w.sendTo(e.p, protocol.Encode(protocol.Error{T: protocol.TypeError, Code: e.code}))
 		}
 		w.remove(e.p)
+	case evCaps:
+		if m, ok := w.members[e.p]; ok {
+			m.caps = e.caps
+		}
+	case evDeliver, evQuests, evTitle:
+		w.onService(e)
 	}
+}
+
+// onService applies a gameplay service's event to the character's member, if it is here.
+func (w *World) onService(e event) {
+	p, m := w.byCharacter(e.character)
+	if m == nil {
+		return
+	}
+	switch e.kind {
+	case evDeliver:
+		w.sendTo(p, e.frame)
+	case evQuests:
+		m.quests = e.quests
+	case evTitle:
+		if m.title == e.title {
+			return
+		}
+		m.title = e.title
+		w.broadcast(protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Look: m.look, Title: m.title}), nil)
+	}
+}
+
+// byCharacter finds the member playing a stored character.
+func (w *World) byCharacter(character string) (*Peer, *member) {
+	if character == "" {
+		return nil, nil
+	}
+	for p, m := range w.members {
+		if m.character == character {
+			return p, m
+		}
+	}
+	return nil, nil
 }
 
 func (w *World) onJoin(p *Peer, a Arrival) {
@@ -305,7 +394,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	}
 	w.nextID++
 	m := &member{entity: entity{id: w.nextID, view: newView()}, peer: p, character: a.Character, name: a.Name, arch: a.Arch,
-		look: a.Look, caps: a.Caps}
+		look: a.Look, caps: a.Caps, title: a.Title}
 	if m.name == "" {
 		m.name = fmt.Sprintf("Khách %d", m.id)
 	}
@@ -382,14 +471,14 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 			m.name = msg.Name
 		}
 		m.look = *msg.Look
-		w.broadcast(protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Look: m.look}), p)
+		w.broadcast(protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Look: m.look, Title: m.title}), p)
 	case protocol.TypeChat:
 		w.onChat(p, m, msg)
 	}
 }
 
 func (w *World) onChat(p *Peer, m *member, msg protocol.ClientMsg) {
-	line := protocol.ChatLine{ID: m.id, Name: m.name, Arch: m.arch, Ch: msg.Ch, Text: msg.Text, At: w.now().UnixMilli()}
+	line := protocol.ChatLine{ID: m.id, Name: m.name, Arch: m.arch, Title: m.title, Ch: msg.Ch, Text: msg.Text, At: w.now().UnixMilli()}
 	if msg.Ch == protocol.ChannelNearby {
 		line.T = protocol.TypeChat
 		w.sendNearby(p, m, protocol.Encode(line))
@@ -421,7 +510,7 @@ func (w *World) sendNearby(from *Peer, sender *member, b []byte) {
 }
 
 func (m *member) player() protocol.Player {
-	return protocol.Player{ID: m.id, Name: m.name, Arch: m.arch, Look: m.look}
+	return protocol.Player{ID: m.id, Name: m.name, Arch: m.arch, Title: m.title, Look: m.look}
 }
 
 // broadcast queues b for every member except `except`; members whose queue is full are dropped.

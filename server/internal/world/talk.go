@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"saigon-noir/server/internal/dialogue"
+	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/protocol"
 )
 
@@ -24,18 +25,8 @@ type session struct {
 	step uint32
 }
 
-// Signal is what an answer sends (server/content/dialogue): quests listen for these.
-type Signal struct {
-	// Character is the stored character, "" for a guest without an account; Player its id in the world
-	Character string
-	Player    uint32
-	// NPC is the NPC's content id
-	NPC    string
-	Signal string
-}
-
 func (m *member) speaker() dialogue.Speaker {
-	return dialogue.Speaker{Name: m.name, Arch: m.arch, Caps: m.caps}
+	return dialogue.Speaker{Name: m.name, Arch: m.arch, Caps: m.caps, Quests: m.quests}
 }
 
 // onInteract starts a conversation with an NPC, or joins its group one.
@@ -74,6 +65,7 @@ func (w *World) onInteract(p *Peer, m *member, msg protocol.ClientMsg) {
 		m.talk = s
 		n.turnTo(m)
 		w.showAll(s)
+		w.publish(events.Event{Kind: events.NPCTalked, Character: m.character, NPC: n.spec.Key})
 		w.result(p, msg.Rid, "")
 		return
 	}
@@ -95,6 +87,7 @@ func (w *World) onInteract(p *Peer, m *member, msg protocol.ClientMsg) {
 		w.result(p, msg.Rid, protocol.ResMute)
 		return
 	}
+	w.publish(events.Event{Kind: events.NPCTalked, Character: m.character, NPC: n.spec.Key})
 	w.result(p, msg.Rid, "")
 }
 
@@ -126,10 +119,8 @@ func (w *World) onChoose(p *Peer, m *member, msg protocol.ClientMsg) {
 		return
 	}
 	if signal != "" {
-		// everyone in the conversation heard the answer
-		for _, o := range s.members {
-			w.signal(o, n, signal)
-		}
+		// only whoever picked the answer: in a group the others did not, and the answers offered were the leader's
+		w.signal(m, n, signal)
 	}
 	if next == "" {
 		w.endTalk(s, protocol.EndDone)
@@ -295,9 +286,7 @@ func (w *World) walkAways() {
 
 func (w *World) signal(m *member, n *npc, signal string) {
 	w.log.Debug("dialogue signal", "player", m.id, "npc", n.spec.Key, "signal", signal)
-	if w.cfg.OnSignal != nil {
-		w.cfg.OnSignal(Signal{Character: m.character, Player: m.id, NPC: n.spec.Key, Signal: signal})
-	}
+	w.publish(events.Event{Kind: events.Signal, Character: m.character, NPC: n.spec.Key, Signal: signal})
 }
 
 // result answers a command that carried a request id; code "" is success.

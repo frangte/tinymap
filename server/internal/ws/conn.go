@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"maps"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -17,6 +19,7 @@ import (
 	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/protocol"
+	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/world"
 )
 
@@ -65,17 +68,30 @@ type Identity interface {
 	SavePose(ctx context.Context, characterID string, p protocol.Pose) error
 }
 
+// Quests runs a character's quests while it plays: quest.Service in production.
+type Quests interface {
+	Join(character string, session uint64, who quest.Player)
+	Leave(character string, session uint64)
+	ChooseTitle(character, title string)
+}
+
 type Server struct {
 	world   *world.World
 	ids     Identity
 	catalog *content.Catalog
 	cfg     Config
 	log     *slog.Logger
+	// Quests, when set, hears which characters are playing; nil plays without quests
+	Quests Quests
 	// saving counts the connections that still have a pose to save; closing (under mu) stops new ones once
 	// Drain has started
 	mu      sync.Mutex
 	closing bool
 	saving  sync.WaitGroup
+	// playing are the connections by character, for capabilities earned while playing (under mu)
+	playing map[string]*client
+	// sessions numbers the visits
+	sessions atomic.Uint64
 }
 
 // track counts one more connection with a pose to save, unless the server is draining.
@@ -90,7 +106,36 @@ func (s *Server) track() bool {
 }
 
 func New(w *world.World, ids Identity, catalog *content.Catalog, cfg Config, log *slog.Logger) *Server {
-	return &Server{world: w, ids: ids, catalog: catalog, cfg: cfg, log: log}
+	return &Server{world: w, ids: ids, catalog: catalog, cfg: cfg, log: log, playing: map[string]*client{}}
+}
+
+// Grant gives a playing character a capability it just earned: what it may wear and play follows at once, and
+// so does what NPCs offer it. Safe from any goroutine; a character not playing gets it on its next visit.
+func (s *Server) Grant(character, capability string) {
+	s.mu.Lock()
+	c := s.playing[character]
+	s.mu.Unlock()
+	if c == nil {
+		return
+	}
+	caps := maps.Clone(*c.caps.Load())
+	caps[capability] = struct{}{}
+	c.caps.Store(&caps)
+	s.world.SetCaps(c.peer, caps)
+}
+
+func (s *Server) play(c *client) {
+	s.mu.Lock()
+	s.playing[c.character] = c
+	s.mu.Unlock()
+}
+
+func (s *Server) stop(c *client) {
+	s.mu.Lock()
+	if s.playing[c.character] == c {
+		delete(s.playing, c.character)
+	}
+	s.mu.Unlock()
 }
 
 // Drain waits until every connection that has left has saved where its character stood, or ctx ends. Call it
@@ -125,9 +170,12 @@ type client struct {
 	peer *world.Peer
 	// character is the account's character, "" for a guest without an account (or when the lookup failed)
 	character string
-	// caps are what the character's archetype grants: which phone apps it has, which looks it may wear
-	caps capability.Set
+	// caps are what the character may do (its archetype's grants and the ones it earned): which phone apps it has,
+	// which looks it may wear; replaced whole when it earns one (Server.Grant)
+	caps atomic.Pointer[capability.Set]
 }
+
+func (c *client) can() capability.Set { return *c.caps.Load() }
 
 // readLoop never closes the socket itself while the world runs: every way out ends in a Leave, the world then
 // closes the outbox, and writeLoop closes the socket after flushing what is queued (such as an error code).
@@ -169,6 +217,15 @@ func (c *client) readLoop() {
 	if saves {
 		go c.keepPose()
 	}
+	if c.character != "" {
+		c.s.play(c)
+		defer c.s.stop(c)
+		if q := c.s.Quests; q != nil {
+			session := c.s.sessions.Add(1)
+			q.Join(c.character, session, quest.Player{Tags: c.s.catalog.TagsOf(arrival.Arch)})
+			defer q.Leave(c.character, session)
+		}
+	}
 
 	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
@@ -199,7 +256,7 @@ func (c *client) readLoop() {
 				continue
 			}
 			// an emote this character may not play only comes from a tampered client: the others never see it
-			if !c.s.catalog.EmoteAllowed(protocol.EmoteOf(msg.S), c.caps) {
+			if !c.s.catalog.EmoteAllowed(protocol.EmoteOf(msg.S), c.can()) {
 				msg.S &^= protocol.EmoteMask
 			}
 			ok = w.Handle(c.peer, msg)
@@ -216,11 +273,16 @@ func (c *client) readLoop() {
 			ok = w.Handle(c.peer, msg)
 		case protocol.TypeProfile:
 			// a look this character may not wear only comes from a tampered client: the dressing panel hides it
-			if !profiles.Allow() || !c.s.catalog.LookAllowed(*msg.Look, c.caps) {
+			if !profiles.Allow() || !c.s.catalog.LookAllowed(*msg.Look, c.can()) {
 				continue
 			}
 			ok = w.Handle(c.peer, msg)
 			c.saveProfile(msg)
+		case protocol.TypeTitle:
+			// whether it was earned is the quest service's to check
+			if profiles.Allow() && c.character != "" && c.s.Quests != nil {
+				c.s.Quests.ChooseTitle(c.character, msg.Title)
+			}
 		case protocol.TypeChat:
 			if chats.Allow() {
 				ok = w.Handle(c.peer, msg)
@@ -259,20 +321,25 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	}
 	kept := found.Archetype
 	c.character = found.ID
-	c.caps = cat.Grants(kept)
+	caps := cat.Grants(kept)
+	for _, earned := range found.Caps {
+		caps[earned] = struct{}{}
+	}
+	c.caps.Store(&caps)
 	if kept != arch {
 		// the character already had another archetype: what it may wear follows that one
-		if allowed := cat.AllowedLook(look, c.caps); allowed != look {
+		if allowed := cat.AllowedLook(look, caps); allowed != look {
 			look = allowed
 			c.saveProfile(protocol.ClientMsg{Name: hello.Name, Look: &look})
 		}
 	}
-	a := world.Arrival{Character: found.ID, Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(c.caps), Caps: c.caps, Start: found.Pose}
+	a := world.Arrival{Character: found.ID, Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(caps), Caps: caps,
+		Title: found.Title, Start: found.Pose}
 	if at, ok := cat.Archetype(kept); ok {
 		x, z, h := at.Spawn.ThreePose()
 		a.Home = &protocol.Pose{X: x, Z: z, H: h}
 	}
-	if v, ok := cat.StarterVehicle(kept, c.caps); ok {
+	if v, ok := cat.StarterVehicle(kept, caps); ok {
 		a.Vehicle = &world.VehicleSpec{Kind: v.ID, Speed: v.Speed}
 	}
 	return a, ""

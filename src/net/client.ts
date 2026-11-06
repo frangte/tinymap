@@ -5,7 +5,7 @@ import type { Profile } from '../game/profile';
 import { wrapAngle } from '../game/coords';
 import type { Look } from '../game/outfits';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
-import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Result, type SnapRow, type VehicleInfo } from './protocol';
+import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
 export type NetStatus = 'connecting' | 'online' | 'offline' | 'full' | 'replaced';
@@ -19,7 +19,7 @@ export interface NetEvents {
   welcome(players: PlayerInfo[], chat: ChatLine[], arch: string, apps: string[] | null, pose: Pose | null, vehicles: VehicleInfo[], npcs: NpcInfo[]): void;
   join(p: PlayerInfo): void;
   leave(id: number): void;
-  profile(id: number, name: string, look: Look): void;
+  profile(id: number, name: string, look: Look, title: string): void;
   /** `receivedAt` is performance.now() when the frame arrived; `out` are players that left our view */
   snap(rows: SnapRow[], receivedAt: number, out: number[]): void;
   /** our last move was refused: go back to this pose */
@@ -33,6 +33,8 @@ export interface NetEvents {
   /** a conversation with an NPC started or moved on (or, in a group, someone joined or left it) */
   interaction(i: Interaction): void;
   interactionEnd(sid: number, reason: EndReason): void;
+  /** our quests and achievements, on joining and whenever they change (only for a character with an account) */
+  progress(p: Progress): void;
   /** the last chat line was refused for being too fast */
   rateLimited(): void;
   /** the connection dropped: every remote player is gone until the next welcome */
@@ -166,6 +168,11 @@ export class NetClient {
     return this.request((rid) => ({ t: 'choose', sid, c: choice, step, rid }));
   }
 
+  /** Carry another title, among those earned ('' for none); the next `progress` shows it. */
+  sendTitle(title: string): void {
+    if (this.online) this.send({ t: 'title', title });
+  }
+
   /** Close a conversation; the server answers with `interactionEnd`. */
   leaveTalk(sid: number): void {
     if (this.online) this.send({ t: 'interact_leave', sid });
@@ -271,7 +278,7 @@ export class NetClient {
         this.on.leave(m.id);
         break;
       case 'profile':
-        if (m.id !== this.selfId) this.on.profile(m.id, m.name, m.look);
+        if (m.id !== this.selfId) this.on.profile(m.id, m.name, m.look, m.title);
         break;
       case 'snap':
         this.on.snap(m.rows, performance.now(), m.out);
@@ -303,6 +310,11 @@ export class NetClient {
       case 'result':
         this.settle(m.rid, { ok: m.ok, code: m.code });
         break;
+      case 'progress': {
+        const { t: _t, ...p } = m;
+        this.on.progress(p);
+        break;
+      }
       case 'error':
         if (m.code === 'full') this.full = true;
         else if (m.code === 'rate') this.on.rateLimited();

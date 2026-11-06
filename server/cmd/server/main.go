@@ -30,7 +30,9 @@ import (
 
 	"saigon-noir/server/content"
 	"saigon-noir/server/internal/dialogue"
+	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/identity"
+	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/web"
 	"saigon-noir/server/internal/world"
@@ -96,10 +98,14 @@ func run() error {
 	}
 	cfg.Move.RunSpeed, cfg.Move.Tolerance = catalog.Movement.RunSpeed, catalog.Movement.Tolerance
 	cfg.NPCs, cfg.Dialogue = world.NPCsFrom(catalog), dialogue.NewScript(catalog)
-	// quests listen for these from phase 4 on (docs/design/06-mvp-roadmap.md); until then they are only logged
-	cfg.OnSignal = func(s world.Signal) {
-		log.Info("dialogue signal", "character", s.Character, "player", s.Player, "npc", s.NPC, "signal", s.Signal)
+	cfg.Places, cfg.Emotes = catalog.Places, world.EmoteNames(catalog)
+	engine, err := quest.NewEngine(catalog)
+	if err != nil {
+		return fmt.Errorf("content: %w", err)
 	}
+	// the world publishes what players do; the quest service (made once the world exists) takes it from there
+	var quests *quest.Service
+	cfg.OnEvent = func(ev events.Event) { quests.Submit(ev) }
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -115,8 +121,12 @@ func run() error {
 	accounts := identity.New(db)
 
 	w := world.New(cfg, grid, log)
-	go w.Run(ctx)
+	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
 	sockets := ws.New(w, accounts, catalog, ws.DefaultConfig(), log)
+	sockets.Quests = quests
+	quests.OnCapability = sockets.Grant
+	go quests.Run(ctx)
+	go w.Run(ctx)
 
 	router, err := web.NewRouter(w, sockets, accounts, opt)
 	if err != nil {

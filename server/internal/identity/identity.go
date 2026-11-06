@@ -39,6 +39,9 @@ type Character struct {
 	Archetype string
 	// Pose is where the character stood when its player last left, nil before that
 	Pose *protocol.Pose
+	// Title is the title it carries ("" for none); Caps the capabilities it earned while playing
+	Title string
+	Caps  []string
 	// CreatedAt is unix milliseconds
 	CreatedAt int64
 }
@@ -49,6 +52,9 @@ type Arrived struct {
 	ID        string
 	Archetype string
 	Pose      *protocol.Pose
+	Title     string
+	// Caps are the capabilities it earned while playing (quest rewards), beyond its archetype's
+	Caps []string
 }
 
 // Profile is what a hello says about the player. Archetype must already be a known id, or "".
@@ -126,7 +132,7 @@ func (s *Service) Arrive(ctx context.Context, token string, p Profile) (Arrived,
 			return Arrived{}, fmt.Errorf("identity: arrive: %w", err)
 		}
 	}
-	return Arrived{ID: c.ID, Archetype: c.Archetype, Pose: c.Pose}, nil
+	return Arrived{ID: c.ID, Archetype: c.Archetype, Pose: c.Pose, Title: c.Title, Caps: c.Caps}, nil
 }
 
 // SavePose stores where the character stands, for its next visit.

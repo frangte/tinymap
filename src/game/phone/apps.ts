@@ -10,6 +10,8 @@ import type { RemotePlayer } from '../remotePlayers';
 import { NEARBY_RADIUS, type Channel } from '../../net/protocol';
 import { MiniMap } from './miniMap';
 import { badge } from '../badge';
+import { countOf, current, isDone, type QuestLog } from '../questLog';
+import { STAMPS, countText, titleName } from '../quests';
 
 export interface Notice {
   title: string;
@@ -31,6 +33,10 @@ export interface PhoneHost {
   openChat(): void;
   dress(): void;
   switchBody(): void;
+  /** the player's quests as the server last told it */
+  quests(): QuestLog;
+  /** carry another earned title ('' for none) */
+  chooseTitle(id: string): void;
 }
 
 export interface AppContext extends PhoneHost {
@@ -77,6 +83,27 @@ const profile: AppFactory = (root, ctx) => {
   fact('Trang phục', outfitStyle(p.look.outfit, p.look.body).name);
   fact('Nón', HAT_NAMES[p.look.hat]);
   root.append(facts);
+  const log = ctx.quests();
+  let stop: (() => void) | undefined;
+  if (log.titles.length > 0) {
+    // the title shown under the name, among those earned
+    const field = h('label', 'field');
+    field.append(h('span', '', 'Danh hiệu'));
+    const select = document.createElement('select');
+    select.className = 'title-select';
+    const none = new Option('Không mang danh hiệu', '');
+    select.append(none, ...log.titles.map((id) => new Option(titleName(id) ?? id, id)));
+    // the server has the last word: the picker shows what it says is carried, and waits while offline
+    const sync = (): void => {
+      select.value = log.title;
+      select.disabled = !ctx.online();
+    };
+    sync();
+    select.addEventListener('change', () => ctx.chooseTitle(select.value));
+    field.append(select);
+    root.append(field);
+    stop = log.onChange(sync);
+  }
   const actions = h('div', 'app-actions');
   const other = BODY_NAMES[p.look.body === 'man' ? 'woman' : 'man'];
   actions.append(
@@ -87,7 +114,7 @@ const profile: AppFactory = (root, ctx) => {
     button(`Đổi sang ${other}`, () => ctx.switchBody()),
   );
   root.append(actions);
-  return {};
+  return { dispose: stop };
 };
 
 const chat: AppFactory = (root, ctx) => {
@@ -150,6 +177,26 @@ const notices: AppFactory = (root, ctx) => {
 };
 
 const guide: AppFactory = (root, ctx) => {
+  const log = ctx.quests();
+  // the stamp book: one stamp per quest of the Traveler's questline (redrawn when one is earned)
+  const stamps = h('div', 'stamp-section');
+  const drawStamps = (): void => {
+    stamps.replaceChildren();
+    if (!log.known) return;
+    const earned = new Set(log.stamps);
+    stamps.append(h('strong', 'app-section', `Sổ tem · ${earned.size} / ${STAMPS.length}`));
+    const book = h('ol', 'stamp-book');
+    book.setAttribute('role', 'list');
+    for (const s of STAMPS) {
+      const li = h('li', earned.has(s.id) ? 'stamp is-earned' : 'stamp');
+      li.append(h('span', '', s.name.vi), h('span', 'sr-only', earned.has(s.id) ? ' (đã có)' : ' (chưa có)'));
+      book.append(li);
+    }
+    stamps.append(book);
+  };
+  drawStamps();
+  root.append(stamps);
+  const stop = log.onChange(drawStamps);
   const seen = ctx.landmarksSeen();
   root.append(h('p', 'app-text', `Đã ghé ${seen.size} / ${LANDMARKS.length} công trình trong chuyến này. Đi tới gần để đánh dấu.`));
   const ol = h('ol', 'app-list');
@@ -159,7 +206,7 @@ const guide: AppFactory = (root, ctx) => {
     ol.append(li);
   }
   root.append(ol);
-  return {};
+  return { dispose: stop };
 };
 
 const community: AppFactory = (root, ctx) => {
@@ -190,6 +237,93 @@ const community: AppFactory = (root, ctx) => {
   return { update: draw };
 };
 
+const questsApp: AppFactory = (root, ctx) => {
+  const log = ctx.quests();
+  let doneOpen = false;
+  const draw = (): void => {
+    // a redraw (progress ticking while the app is open) keeps the place and what was unfolded
+    const scroll = root.scrollTop;
+    root.replaceChildren();
+    if (!log.known) {
+      root.append(h('p', 'app-note', ctx.online()
+        ? 'Nhiệm vụ cần lưu tiến độ, mà lần này bạn đang chơi không có tài khoản. Tải lại trang để thử lại.'
+        : 'Đang mất kết nối, chưa xem được nhiệm vụ.'));
+      return;
+    }
+    const active = log.active();
+    const tracked = log.tracked();
+    if (active.length === 0) root.append(h('p', 'app-note', 'Xong hết nhiệm vụ rồi! Cứ đi dạo, sẽ có thêm.'));
+    for (const q of active) {
+      const now = current(q);
+      const card = h('section', q === tracked ? 'quest-card is-tracked' : 'quest-card');
+      card.append(h('strong', 'quest-title', q.def.title.vi), h('p', 'app-note', q.def.about.vi));
+      const goals = h('ul', 'quest-goals');
+      for (const o of q.def.objectives) {
+        const li = h('li', isDone(q, o) ? 'is-done' : now.includes(o) ? 'is-now' : '');
+        li.append(h('span', '', o.text.vi));
+        const c = countText(o, countOf(q, o));
+        if (c) li.append(h('small', '', c));
+        goals.append(li);
+      }
+      card.append(goals);
+      card.append(q === tracked ? h('small', 'quest-tracking', 'Đang theo dõi trên màn hình') : button('Theo dõi', () => log.track(q.def.id)));
+      root.append(card);
+    }
+    const done = log.done();
+    if (done.length > 0) {
+      const box = document.createElement('details');
+      box.className = 'quest-done';
+      box.open = doneOpen;
+      box.addEventListener('toggle', () => {
+        doneOpen = box.open;
+      });
+      box.append(h('summary', '', `Đã xong (${done.length})`));
+      const ol = h('ol', 'app-list');
+      for (const d of done) ol.append(h('li', 'landmark is-seen', d.title.vi));
+      box.append(ol);
+      root.append(box);
+    }
+    root.scrollTop = scroll;
+  };
+  draw();
+  return { dispose: log.onChange(draw) };
+};
+
+const achievementsApp: AppFactory = (root, ctx) => {
+  const log = ctx.quests();
+  const draw = (): void => {
+    root.replaceChildren();
+    if (!log.known) {
+      root.append(h('p', 'app-note', ctx.online() ? 'Thành tích cần một tài khoản để lưu.' : 'Đang mất kết nối, chưa xem được thành tích.'));
+      return;
+    }
+    const ol = h('ol', 'app-list');
+    for (const { def, state } of log.achievements()) {
+      const done = state?.done === true;
+      const secret = def.hidden && !done;
+      const li = h('li', done ? 'achievement is-done' : 'achievement');
+      li.append(h('strong', '', secret ? '???' : def.title.vi), h('span', '', secret ? 'Một thành tích bí mật.' : def.about.vi));
+      if (!done && def.count > 1) {
+        const n = Math.min(state?.n ?? 0, def.count);
+        const bar = h('span', 'meter');
+        bar.setAttribute('role', 'progressbar');
+        bar.setAttribute('aria-valuemin', '0');
+        bar.setAttribute('aria-valuemax', String(def.count));
+        bar.setAttribute('aria-valuenow', String(n));
+        bar.setAttribute('aria-label', def.title.vi);
+        const fill = h('i', '');
+        fill.style.width = `${Math.round((100 * n) / def.count)}%`;
+        bar.append(fill);
+        li.append(bar, h('small', '', countText(def, state?.n ?? 0)));
+      }
+      ol.append(li);
+    }
+    root.append(ol);
+  };
+  draw();
+  return { dispose: log.onChange(draw) };
+};
+
 const crabDriver: AppFactory = (root) => {
   const card = h('div', 'driver-card');
   card.append(h('strong', '', 'Chưa có cuốc xe'), h('span', '', 'Khách đặt xe qua app Crab sẽ hiện ở đây khi tính năng chở khách ra mắt.'));
@@ -199,6 +333,8 @@ const crabDriver: AppFactory = (root) => {
 
 export const APP_VIEWS: Readonly<Record<string, AppFactory>> = {
   profile,
+  quests: questsApp,
+  achievements: achievementsApp,
   chat,
   map,
   notices,

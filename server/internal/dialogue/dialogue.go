@@ -17,11 +17,13 @@ import (
 )
 
 // Speaker is who a line is for: the variant of a line follows the archetype, the answers offered follow the
-// capabilities, and {name} in a line becomes Name.
+// capabilities and the quests running, and {name} in a line becomes Name.
 type Speaker struct {
 	Name string
 	Arch string
 	Caps capability.Set
+	// Quests are the ids of the quests the speaker has running
+	Quests map[string]bool
 }
 
 // Line is a node of a conversation as one speaker sees it.
@@ -124,7 +126,7 @@ func (s *Script) Choose(graph, node string, who Speaker, choice int) (string, st
 func offered(n content.DialogueNode, who Speaker) []content.Choice {
 	out := make([]content.Choice, 0, len(n.Choices))
 	for _, ch := range n.Choices {
-		if who.Caps.HasAll(ch.Requires) {
+		if who.Caps.HasAll(ch.Requires) && (ch.RequiresQuest == "" || who.Quests[ch.RequiresQuest]) {
 			out = append(out, ch)
 		}
 	}

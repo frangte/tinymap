@@ -127,5 +127,7 @@ function bind(host: PhoneHost): PhoneHost {
     openChat: () => host.openChat(),
     dress: () => host.dress(),
     switchBody: () => host.switchBody(),
+    quests: () => host.quests(),
+    chooseTitle: (id) => host.chooseTitle(id),
   };
 }

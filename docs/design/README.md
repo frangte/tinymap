@@ -35,6 +35,7 @@ Update the status when a proposed decision is confirmed or changed.
 | D11 | Ride-hailing trips cost money: a simple wallet in **xu** per character (start balance, a daily top-up, fares, a platform cut, tips). See [08-ride-hailing.md](08-ride-hailing.md#money-d11). | **decided 2026-11-06** |
 | D12 | A ride request goes to **every on-duty driver nearby at once; the first to accept wins**. | **decided 2026-11-06** |
 | D13 | Ride-hailing is built **after phase 4**, as the roadmap orders it; the plan is [08-ride-hailing.md](08-ride-hailing.md). | **decided 2026-11-06** |
+| D14 | Quests **start by themselves** once available (no accept step, no NPC giving them out); achievements are passive quests on the same engine. Rewards are titles (the first earned is carried at once), stamps and capabilities. An accept step can come with daily quests (phase 5). | proposed 2026-11-06 (built in phase 4), to confirm |
 
 ## Where the code is today (2026-11-06, branch v4)
 
@@ -54,6 +55,7 @@ Update the status when a proposed decision is confirmed or changed.
 - **Phase 0 (foundations): done 2026-11-06, not deployed yet.** What was built, and what moved to later phases, is in [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-0-foundations-152-weeks). The table above describes the code as it was before phase 0.
 - **Phase 1 (identity, archetypes, phone): done 2026-11-06, not deployed yet.** See [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-1-identity-archetypes-phone-2-weeks).
 - **Phase 2 (movement and presence): done 2026-11-06, not deployed yet.** Server-checked movement, jump, emotes, the interest grid, the driver's motorbike, and the last position kept between visits. See [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-2-movement-and-presence-23-weeks).
+- **Phase 4 (quests and achievements): done 2026-11-06, not deployed yet.** The quest engine on world events, the Traveler's questline to the certificate, Citizen and driver starter quests, achievements, titles and stamps, the tracker and the phone apps. See [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-4-quests-and-achievements-3-weeks).
 - **Phase 3 (interaction, NPCs, dialogue): done 2026-11-06, not deployed yet.** Five NPCs with scripted dialogue (private, public and group conversations), the dialogue engine with archetype variants, NPCs in the interest grid, the conversation sheet, and the two baked figures they replace removed from the map. See [06-mvp-roadmap.md](06-mvp-roadmap.md#phase-3-interaction-npcs-dialogue-23-weeks).
 
 ## Open questions

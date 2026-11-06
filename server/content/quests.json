@@ -1,0 +1,227 @@
+{
+  "about": "Quests, achievements, titles and stamps (docs/design/03-domain-model.md, Quest). Shared by the server (server/internal/quest runs them) and the game (src/game/quests.ts shows them). A quest starts by itself once it is available: the character has one of tags_any (archetypes.json) and has completed every quest in requires. flow: sequence (objectives in order), all, or any. An objective's type is one of the objective types in server/internal/quest/objective (each checks its params); count is how many times it must happen (distinct places, NPCs or players where that makes sense; seconds for stay_place, metres for ride_distance). at is where the tracker points: a place or an NPC id. Rewards: titles, stamps, a capability. An achievement is a passive quest with one objective, open to everyone with one of its tags (or everyone without tags). Ids are stable: progress is stored by quest and objective id, so rename text freely but never an id.",
+  "titles": [
+    { "id": "nguoi_sai_gon_chinh_hieu", "name": { "vi": "Người Sài Gòn chính hiệu", "en": "True Saigonese" } },
+    { "id": "khach_quen", "name": { "vi": "Khách quen quán Chú Tư", "en": "Regular at Chú Tư's" } },
+    { "id": "nguoi_trong_xom", "name": { "vi": "Người trong xóm", "en": "One of the neighbourhood" } },
+    { "id": "nguoi_day_som", "name": { "vi": "Người dậy sớm", "en": "Early riser" } },
+    { "id": "hang_xom_than_thien", "name": { "vi": "Hàng xóm thân thiện", "en": "Friendly neighbour" } },
+    { "id": "tai_xe_moi", "name": { "vi": "Tài xế mới", "en": "New driver" } },
+    { "id": "thuoc_duong_quan_1", "name": { "vi": "Thuộc đường Quận 1", "en": "Knows District 1" } },
+    { "id": "di_khap_quan_1", "name": { "vi": "Đi khắp Quận 1", "en": "Been all over District 1" } }
+  ],
+  "stamps": [
+    { "id": "chao_sai_gon", "name": { "vi": "Chào Sài Gòn", "en": "Hello, Saigon" } },
+    { "id": "ca_phe_sua_da", "name": { "vi": "Cà phê sữa đá", "en": "Iced milk coffee" } },
+    { "id": "kien_truc_phap", "name": { "vi": "Kiến trúc Pháp", "en": "French architecture" } },
+    { "id": "banh_trang_tron", "name": { "vi": "Bánh tráng trộn", "en": "Bánh tráng trộn" } },
+    { "id": "hoi_duong", "name": { "vi": "Hỏi đường", "en": "Asking the way" } },
+    { "id": "chung_nhan", "name": { "vi": "Người Sài Gòn chính hiệu", "en": "True Saigonese" } }
+  ],
+  "quests": [
+    {
+      "id": "traveler.chao_sai_gon",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": { "vi": "Chào Sài Gòn", "en": "Hello, Saigon" },
+      "about": { "vi": "Cô Ba bán hàng ở cổng nam chợ Bến Thành sẽ dạy bạn ba câu chào hỏi đầu tiên.", "en": "Cô Ba, who sells at Bến Thành's south gate, teaches you your first three phrases." },
+      "tags_any": ["traveler"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "learn", "type": "dialogue_signal", "params": { "npc": "co_ba", "signal": "greetings_learned" }, "text": { "vi": "Học chào hỏi với Cô Ba", "en": "Learn to greet from Cô Ba" }, "at": "co_ba" }
+      ],
+      "rewards": { "stamps": ["chao_sai_gon"] }
+    },
+    {
+      "id": "traveler.ca_phe_sua_da",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": { "vi": "Một ly cà phê sữa đá", "en": "One iced milk coffee" },
+      "about": { "vi": "Gọi một ly cà phê sữa đá ở quán Chú Tư trên đường Lê Lai, rồi ngồi lại thưởng thức như người Sài Gòn.", "en": "Order an iced milk coffee at Chú Tư's on Lê Lai, then stay and enjoy it like a Saigonese." },
+      "tags_any": ["traveler"],
+      "requires": ["traveler.chao_sai_gon"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "order", "type": "dialogue_signal", "params": { "npc": "chu_tu", "signal": "order_ca_phe_sua_da" }, "text": { "vi": "Gọi cà phê sữa đá ở quán Chú Tư", "en": "Order an iced milk coffee at Chú Tư's" }, "at": "chu_tu" },
+        { "id": "sit", "type": "stay_place", "params": { "place": "day_nha_pho_le_lai" }, "count": 20, "text": { "vi": "Ngồi lại quán thưởng thức", "en": "Stay at the café and enjoy it" }, "at": "chu_tu" }
+      ],
+      "rewards": { "stamps": ["ca_phe_sua_da"] }
+    },
+    {
+      "id": "traveler.kien_truc_phap",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": { "vi": "Ba công trình thời Pháp", "en": "Three French buildings" },
+      "about": { "vi": "Ghé Nhà thờ Đức Bà, Bưu điện Thành phố và Nhà hát Thành phố, thứ tự nào cũng được.", "en": "Visit the Cathedral, the Post Office and the Opera House, in any order." },
+      "tags_any": ["traveler"],
+      "requires": ["traveler.chao_sai_gon"],
+      "flow": "all",
+      "objectives": [
+        { "id": "nha_tho", "type": "reach_place", "params": { "place": "nha_tho_duc_ba" }, "text": { "vi": "Ghé Nhà thờ Đức Bà", "en": "Visit the Cathedral" }, "at": "nha_tho_duc_ba" },
+        { "id": "buu_dien", "type": "reach_place", "params": { "place": "buu_dien_thanh_pho" }, "text": { "vi": "Ghé Bưu điện Thành phố", "en": "Visit the Post Office" }, "at": "buu_dien_thanh_pho" },
+        { "id": "nha_hat", "type": "reach_place", "params": { "place": "nha_hat_thanh_pho" }, "text": { "vi": "Ghé Nhà hát Thành phố", "en": "Visit the Opera House" }, "at": "nha_hat_thanh_pho" }
+      ],
+      "rewards": { "stamps": ["kien_truc_phap"] }
+    },
+    {
+      "id": "traveler.banh_trang_tron",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": { "vi": "Ăn vặt Hồ Con Rùa", "en": "A snack at Turtle Lake" },
+      "about": { "vi": "Mua một bịch bánh tráng trộn của Dì Năm rồi ngồi ăn bên Hồ Con Rùa.", "en": "Buy a bag of bánh tráng trộn from Dì Năm and eat it by Turtle Lake." },
+      "tags_any": ["traveler"],
+      "requires": ["traveler.chao_sai_gon"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "buy", "type": "dialogue_signal", "params": { "npc": "di_nam", "signal": "buy_banh_trang_tron" }, "text": { "vi": "Mua bánh tráng trộn của Dì Năm", "en": "Buy bánh tráng trộn from Dì Năm" }, "at": "di_nam" },
+        { "id": "eat", "type": "stay_place", "params": { "place": "ho_con_rua" }, "count": 15, "text": { "vi": "Ngồi ăn bên Hồ Con Rùa", "en": "Eat it by Turtle Lake" }, "at": "ho_con_rua" }
+      ],
+      "rewards": { "stamps": ["banh_trang_tron"] }
+    },
+    {
+      "id": "traveler.hoi_duong",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": { "vi": "Hỏi đường người Sài Gòn", "en": "Ask a Saigonese the way" },
+      "about": { "vi": "Người Sài Gòn chỉ đường nhiệt tình lắm. Chú Sáu chạy xe ôm ở bùng binh biết hết mọi ngả.", "en": "Saigonese love to give directions. Chú Sáu, the xe ôm driver at the roundabout, knows every way." },
+      "tags_any": ["traveler"],
+      "requires": ["traveler.chao_sai_gon"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "ask", "type": "dialogue_signal", "params": { "npc": "chu_sau", "signal": "asked_directions" }, "text": { "vi": "Hỏi Chú Sáu đường tới một công trình", "en": "Ask Chú Sáu the way to a landmark" }, "at": "chu_sau" }
+      ],
+      "rewards": { "stamps": ["hoi_duong"] }
+    },
+    {
+      "id": "traveler.bai_kiem_tra_cuoi",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": { "vi": "Bài kiểm tra cuối", "en": "The final test" },
+      "about": { "vi": "Quay lại gặp Cô Ba. Trả lời đúng năm câu hỏi về những gì bạn đã thấy là thành người Sài Gòn chính hiệu.", "en": "Go back to Cô Ba. Answer five questions about what you have seen and become a true Saigonese." },
+      "tags_any": ["traveler"],
+      "requires": ["traveler.ca_phe_sua_da", "traveler.kien_truc_phap", "traveler.banh_trang_tron", "traveler.hoi_duong"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "quiz", "type": "dialogue_signal", "params": { "npc": "co_ba", "signal": "final_quiz_passed" }, "text": { "vi": "Làm bài kiểm tra với Cô Ba", "en": "Take Cô Ba's test" }, "at": "co_ba" }
+      ],
+      "rewards": { "titles": ["nguoi_sai_gon_chinh_hieu"], "stamps": ["chung_nhan"], "capability": "local.certified" }
+    },
+    {
+      "id": "citizen.ca_phe_sang",
+      "version": 1,
+      "questline": "song_o_pho",
+      "title": { "vi": "Cà phê sáng", "en": "Morning coffee" },
+      "about": { "vi": "Sáng nào cũng vậy: một ly ở quán Chú Tư, ngồi ngó phố một chút rồi mới đi đâu thì đi.", "en": "Every morning: a coffee at Chú Tư's and a moment watching the street before anything else." },
+      "tags_any": ["citizen"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "order", "type": "dialogue_signal", "params": { "npc": "chu_tu", "signal": "order_ca_phe_sua_da" }, "text": { "vi": "Gọi một ly ở quán Chú Tư", "en": "Order a coffee at Chú Tư's" }, "at": "chu_tu" },
+        { "id": "sit", "type": "stay_place", "params": { "place": "day_nha_pho_le_lai" }, "count": 20, "text": { "vi": "Ngồi ngó phố", "en": "Sit and watch the street" }, "at": "chu_tu" }
+      ],
+      "rewards": { "titles": ["khach_quen"] }
+    },
+    {
+      "id": "citizen.chuyen_khu_pho",
+      "version": 1,
+      "questline": "song_o_pho",
+      "title": { "vi": "Chuyện khu phố", "en": "Neighbourhood news" },
+      "about": { "vi": "Ghé hỏi thăm mấy người quen trong khu phố coi có chuyện gì mới.", "en": "Drop by a few familiar faces and catch up on the neighbourhood news." },
+      "tags_any": ["citizen"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "talk", "type": "talk_npc", "params": {}, "count": 3, "text": { "vi": "Trò chuyện với 3 người quen khác nhau", "en": "Talk with 3 different neighbours" } }
+      ],
+      "rewards": { "titles": ["nguoi_trong_xom"] }
+    },
+    {
+      "id": "citizen.tap_the_duc",
+      "version": 1,
+      "questline": "song_o_pho",
+      "title": { "vi": "Tập thể dục", "en": "Morning exercise" },
+      "about": { "vi": "Người Sài Gòn tập thể dục ở công viên 23/9 từ sáng sớm. Ra đó tập chung cho vui.", "en": "Saigonese exercise in 23/9 Park from early morning. Go and join them." },
+      "tags_any": ["citizen"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "exercise", "type": "emote_at", "params": { "emote": "exercise", "place": "cong_vien_23_9" }, "text": { "vi": "Tập thể dục ở công viên 23/9", "en": "Exercise in 23/9 Park" }, "at": "cong_vien_23_9" }
+      ],
+      "rewards": { "titles": ["nguoi_day_som"] }
+    },
+    {
+      "id": "citizen.chao_hang_xom",
+      "version": 1,
+      "questline": "song_o_pho",
+      "title": { "vi": "Chào hàng xóm", "en": "Say hello" },
+      "about": { "vi": "Gặp ai ngoài phố thì vẫy tay chào một cái, người ta vẫy lại là quen. Người Sài Gòn là vậy.", "en": "Wave to the people you meet on the street; when they wave back, you know each other. That is how Saigon is." },
+      "tags_any": ["citizen"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "wave", "type": "greet", "params": { "emote": "wave" }, "count": 2, "text": { "vi": "Vẫy chào qua lại với 2 người khác nhau", "en": "Exchange waves with 2 different people" } }
+      ],
+      "rewards": { "titles": ["hang_xom_than_thien"] }
+    },
+    {
+      "id": "driver.nhan_xe",
+      "version": 1,
+      "questline": "tay_lai",
+      "title": { "vi": "Nhận xe", "en": "Your bike" },
+      "about": { "vi": "Chiếc xe số đậu ngay cạnh bạn. Lại gần rồi bấm E (hoặc nút Lên xe) để lên.", "en": "Your motorbike is parked right next to you. Walk up and press E (or the Lên xe button)." },
+      "tags_any": ["driver"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "mount", "type": "mount", "params": { "vehicle": "xe_so_110" }, "text": { "vi": "Lên xe của bạn", "en": "Get on your bike" } }
+      ],
+      "rewards": { "titles": ["tai_xe_moi"] }
+    },
+    {
+      "id": "driver.thuoc_duong",
+      "version": 1,
+      "questline": "tay_lai",
+      "title": { "vi": "Thuộc đường Quận 1", "en": "Learn District 1" },
+      "about": { "vi": "Chạy xe dọc Lê Lợi, rồi Đồng Khởi, rồi Hàm Nghi. Tài xế giỏi phải thuộc từng con đường.", "en": "Ride along Lê Lợi, then Đồng Khởi, then Hàm Nghi. A good driver knows every street." },
+      "tags_any": ["driver"],
+      "requires": ["driver.nhan_xe"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "le_loi", "type": "ride_through", "params": { "place": "duong_le_loi" }, "text": { "vi": "Chạy xe trên đường Lê Lợi", "en": "Ride along Lê Lợi" }, "at": "duong_le_loi" },
+        { "id": "dong_khoi", "type": "ride_through", "params": { "place": "duong_dong_khoi" }, "text": { "vi": "Chạy xe trên đường Đồng Khởi", "en": "Ride along Đồng Khởi" }, "at": "duong_dong_khoi" },
+        { "id": "ham_nghi", "type": "ride_through", "params": { "place": "duong_ham_nghi" }, "text": { "vi": "Chạy xe trên đường Hàm Nghi", "en": "Ride along Hàm Nghi" }, "at": "duong_ham_nghi" }
+      ],
+      "rewards": { "titles": ["thuoc_duong_quan_1"] }
+    }
+  ],
+  "achievements": [
+    {
+      "id": "kham_pha_quan_1",
+      "title": { "vi": "Đi khắp Quận 1", "en": "All over District 1" },
+      "about": { "vi": "Ghé đủ chín công trình của Quận 1.", "en": "Visit all nine landmarks of District 1." },
+      "objective": { "type": "reach_place", "params": { "kind": "landmark" }, "count": 9 },
+      "rewards": { "titles": ["di_khap_quan_1"] }
+    },
+    {
+      "id": "ban_cua_moi_nguoi",
+      "title": { "vi": "Bạn của mọi người", "en": "Everyone's friend" },
+      "about": { "vi": "Trò chuyện với cả năm người quen: Cô Ba, Chú Tư, Dì Năm, Chị Hạnh và Chú Sáu.", "en": "Talk with all five: Cô Ba, Chú Tư, Dì Năm, Chị Hạnh and Chú Sáu." },
+      "objective": { "type": "talk_npc", "params": {}, "count": 5 }
+    },
+    {
+      "id": "chao_ca_pho",
+      "title": { "vi": "Chào cả phố", "en": "Hello, everyone" },
+      "about": { "vi": "Vẫy chào qua lại với 10 người khác nhau.", "en": "Exchange waves with 10 different people." },
+      "objective": { "type": "greet", "params": { "emote": "wave" }, "count": 10 }
+    },
+    {
+      "id": "tay_lai_lua",
+      "title": { "vi": "Tay lái lụa", "en": "Smooth rider" },
+      "about": { "vi": "Chạy xe được 5 cây số.", "en": "Ride 5 kilometres." },
+      "tags_any": ["driver"],
+      "objective": { "type": "ride_distance", "params": {}, "count": 5000 }
+    },
+    {
+      "id": "nguoi_sai_gon_chinh_hieu",
+      "title": { "vi": "Người Sài Gòn chính hiệu", "en": "True Saigonese" },
+      "about": { "vi": "Hoàn thành bài kiểm tra cuối của Cô Ba.", "en": "Pass Cô Ba's final test." },
+      "tags_any": ["traveler"],
+      "objective": { "type": "quest_done", "params": { "quest": "traveler.bai_kiem_tra_cuoi" } }
+    }
+  ]
+}

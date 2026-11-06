@@ -25,17 +25,17 @@ func TestCatalogLoads(t *testing.T) {
 		caps := c.Grants(a.ID)
 		apps := c.AppsFor(caps)
 		// everyone has the core apps; each archetype adds at least one of its own
-		for _, core := range []string{"profile", "chat", "map", "notices"} {
+		for _, core := range []string{"profile", "quests", "chat", "map", "achievements", "notices"} {
 			if !slices.Contains(apps, core) {
 				t.Errorf("%s has no %s app", a.ID, core)
 			}
 		}
-		if len(apps) <= 4 {
+		if len(apps) <= len(c.AppsFor(c.Grants(""))) {
 			t.Errorf("%s gets no app of its own: %v", a.ID, apps)
 		}
 	}
 	// no archetype: the core apps only, and no uniform
-	if apps := c.AppsFor(c.Grants("")); len(apps) != 4 {
+	if apps := c.AppsFor(c.Grants("")); len(apps) != 6 {
 		t.Errorf("apps without an archetype = %v", apps)
 	}
 }
@@ -67,7 +67,7 @@ func TestCatalogRejects(t *testing.T) {
 	const caps = `"capabilities": [{"id": "a.app", "about": "x"}, {"id": "a.uniform", "about": "x"}]`
 	archetype := func(fields string) string {
 		base := map[string]string{
-			"id": `"a"`, "name": `{"vi": "A"}`, "pitch": `{"vi": "A"}`,
+			"id": `"a"`, "tags": `["a"]`, "name": `{"vi": "A"}`, "pitch": `{"vi": "A"}`,
 			"badge":        `{"short": "A", "color": "#112233", "text": "#FFFFFF"}`,
 			"spawn":        `{"place": "cho_ben_thanh", "at": [0, 0], "face": [1, 1], "button": {"vi": "Về"}}`,
 			"look":         `{"outfit": "thun", "hat": "none"}`,

@@ -4,6 +4,7 @@
 import { el } from './hud';
 import { CHAT_MAX, type Channel, type ChatLine } from '../net/protocol';
 import { badge } from './badge';
+import { titleName } from './quests';
 
 export interface ChatHandlers {
   /** @returns false when the line could not be sent (offline) */
@@ -146,6 +147,13 @@ export class ChatBox {
     if (l.npc) li.classList.add('is-npc');
     const b = l.npc ? null : badge(l.arch);
     if (b) li.append(' ', b);
+    const title = titleName(l.title);
+    if (title) {
+      const t = document.createElement('span');
+      t.className = 'chat-title';
+      t.textContent = title;
+      li.append(' ', t);
+    }
     if (l.ch === 'nearby') {
       // only the players around heard it
       li.classList.add('is-near');

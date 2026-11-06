@@ -105,6 +105,8 @@ type Choice struct {
 	Emit string `json:"emit,omitempty"`
 	// Requires: only players with every one of these capabilities are offered it
 	Requires []string `json:"requires,omitempty"`
+	// RequiresQuest: only players with this quest running (quests.json) are offered it
+	RequiresQuest string `json:"requires_quest,omitempty"`
 }
 
 // Limits on what NPCs say (characters).
@@ -296,6 +298,9 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 			if !caps[r] {
 				return fmt.Errorf("choice %d requires unknown capability %q", i, r)
 			}
+		}
+		if _, ok := c.questByID[ch.RequiresQuest]; ch.RequiresQuest != "" && !ok {
+			return fmt.Errorf("choice %d requires quest %q, which is not in quests.json", i, ch.RequiresQuest)
 		}
 	}
 	return nil

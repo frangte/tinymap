@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -41,12 +42,14 @@ const (
 	TypeInteract      = "interact"
 	TypeChoose        = "choose"
 	TypeInteractLeave = "interact_leave"
-	TypeWelcome       = "welcome"
-	TypeJoin          = "join"
-	TypeLeave         = "leave"
-	TypeSnap          = "snap"
-	TypeCorrect       = "correct"
-	TypeVehicle       = "vehicle"
+	// TypeTitle picks the title a character carries, among those it earned ("" for none)
+	TypeTitle   = "title"
+	TypeWelcome = "welcome"
+	TypeJoin    = "join"
+	TypeLeave   = "leave"
+	TypeSnap    = "snap"
+	TypeCorrect = "correct"
+	TypeVehicle = "vehicle"
 	// TypeVehicleGone: a vehicle left the world (its owner did)
 	TypeVehicleGone = "vehicle_gone"
 	// TypeInteraction shows a conversation's current line; TypeInteractionEnd closes it
@@ -54,7 +57,9 @@ const (
 	TypeInteractionEnd = "interaction_end"
 	// TypeResult answers a command that carried a request id (rid)
 	TypeResult = "result"
-	TypeError  = "error"
+	// TypeProgress is a character's quests, achievements, titles and stamps, and what just happened
+	TypeProgress = "progress"
+	TypeError    = "error"
 )
 
 // State flags (the "s" field of a state, and of every snapshot row).
@@ -196,6 +201,8 @@ type ClientMsg struct {
 	Step uint32 `json:"step"`
 	// Rid is a request id, in interact and choose: the server answers {"t":"result","rid":…} (0: no answer wanted)
 	Rid uint32 `json:"rid"`
+	// Title is the title to carry, in title only ("" for none)
+	Title string `json:"title"`
 }
 
 // Validation errors; the world drops the message (or the connection, for a bad hello).
@@ -211,6 +218,7 @@ var (
 	ErrBadTarget   = errors.New("no npc id")
 	ErrBadSession  = errors.New("no conversation id")
 	ErrBadChoice   = errors.New("choice out of range")
+	ErrBadTitle    = errors.New("not a title id")
 	ErrEmptyChat   = errors.New("empty chat")
 )
 
@@ -247,6 +255,9 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeInteract && m.T != TypeChoose {
 		m.Rid = 0
 	}
+	if m.T != TypeTitle {
+		m.Title = ""
+	}
 	switch m.T {
 	case TypeHello, TypeProfile:
 		if m.Look == nil || !m.Look.Valid() {
@@ -276,6 +287,10 @@ func Decode(data []byte) (ClientMsg, error) {
 		if m.N == 0 {
 			return m, ErrBadTarget
 		}
+	case TypeTitle:
+		if !titlePattern.MatchString(m.Title) {
+			return m, ErrBadTitle
+		}
 	case TypeChoose, TypeInteractLeave:
 		if m.Sid == 0 {
 			return m, ErrBadSession
@@ -300,6 +315,9 @@ func Decode(data []byte) (ClientMsg, error) {
 	}
 	return m, nil
 }
+
+// titlePattern is a title id (server/content/quests.json), or "" for none.
+var titlePattern = regexp.MustCompile(`^([a-z0-9]+(_[a-z0-9]+)*)?$`)
 
 func finite(vs ...float64) bool {
 	for _, v := range vs {
@@ -357,7 +375,9 @@ type Player struct {
 	Name string `json:"name"`
 	// Arch is the archetype id, absent for a player who has none (an older client)
 	Arch string `json:"arch,omitempty"`
-	Look Look   `json:"look"`
+	// Title is the title they carry (server/content/quests.json), absent for none
+	Title string `json:"title,omitempty"`
+	Look  Look   `json:"look"`
 }
 
 // ChatLine is one chat message, live (with T set) or inside the welcome history (global lines only).
@@ -365,8 +385,9 @@ type ChatLine struct {
 	T    string `json:"t,omitempty"`
 	ID   uint32 `json:"id"`
 	Name string `json:"name"`
-	// Arch is the sender's archetype, so the line keeps its badge after they leave
-	Arch string `json:"arch,omitempty"`
+	// Arch is the sender's archetype and Title its title, so the line keeps them after the sender leaves
+	Arch  string `json:"arch,omitempty"`
+	Title string `json:"title,omitempty"`
 	// NPC: an NPC said it (a call to passers-by, or a line of a public conversation); ID is the NPC's then
 	NPC  bool   `json:"npc,omitempty"`
 	Ch   string `json:"ch"`
@@ -411,6 +432,38 @@ type InteractionEnd struct {
 	T      string `json:"t"`
 	Sid    uint32 `json:"sid"`
 	Reason string `json:"reason"`
+}
+
+// Progress is a character's quests and achievements (server/content/quests.json has their text), sent when it
+// joins and whenever something changed. News is what changed just now, for the game to celebrate.
+type Progress struct {
+	T            string             `json:"t"`
+	Quests       []QuestState       `json:"quests"`
+	Achievements []AchievementState `json:"achievements"`
+	// Titles and Stamps are the ones earned; Title the one carried ("" for none)
+	Titles []string `json:"titles"`
+	Stamps []string `json:"stamps"`
+	Title  string   `json:"title"`
+	News   []News   `json:"news,omitempty"`
+}
+
+// QuestState is a started quest: done, or how far each objective got (by objective id).
+type QuestState struct {
+	ID   string         `json:"id"`
+	Done bool           `json:"done,omitempty"`
+	N    map[string]int `json:"n,omitempty"`
+}
+
+type AchievementState struct {
+	ID   string `json:"id"`
+	N    int    `json:"n"`
+	Done bool   `json:"done,omitempty"`
+}
+
+// News: Kind is quest, achievement, title or stamp; ID which one.
+type News struct {
+	Kind string `json:"kind"`
+	ID   string `json:"id"`
 }
 
 // Result answers a command that carried a request id; Code says why it failed (a Res… code).
@@ -473,10 +526,11 @@ type Leave struct {
 }
 
 type Profile struct {
-	T    string `json:"t"`
-	ID   uint32 `json:"id"`
-	Name string `json:"name"`
-	Look Look   `json:"look"`
+	T     string `json:"t"`
+	ID    uint32 `json:"id"`
+	Name  string `json:"name"`
+	Look  Look   `json:"look"`
+	Title string `json:"title,omitempty"`
 }
 
 // A snapshot is {"t":"snap","at":ms,"p":[row…],"out":[id…]}, built by hand because it is the one message sent

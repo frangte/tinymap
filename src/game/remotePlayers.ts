@@ -46,6 +46,8 @@ export class RemotePlayer {
   speed = 0;
   /** archetype id, '' for none */
   arch = '';
+  /** the title they carry (server/content/quests.json), '' for none */
+  title = '';
   /** roll into a turn while riding (rad), worked out from how fast the heading turns */
   lean = 0;
   readonly pose: AvatarPose = idlePose();
@@ -166,6 +168,7 @@ export class RemotePlayers {
     this.remove(info.id);
     const r = new RemotePlayer(info.id, info.name, info.look, this.floorAt);
     r.arch = info.arch;
+    r.title = info.title;
     // an older server sent the pose with the player; a current one sends it in the next snapshot
     if (info.pose) r.push(now - RENDER_DELAY, ...info.pose);
     this.players.set(info.id, r);
@@ -186,10 +189,11 @@ export class RemotePlayers {
     for (const id of [...this.players.keys()]) this.remove(id);
   }
 
-  setProfile(id: number, name: string, look: Look): void {
+  setProfile(id: number, name: string, look: Look, title: string): void {
     const r = this.players.get(id);
     if (!r) return;
     r.name = name;
+    r.title = title;
     r.avatar.setLook(look);
   }
 

@@ -9,6 +9,7 @@ import { clamp, smoothstep } from './coords';
 import type { RemotePlayers } from './remotePlayers';
 import type { Npcs } from './npcs';
 import { archetypeById } from './archetypes';
+import { titleName } from './quests';
 
 /** the local player's key: server ids start at 1 */
 export const SELF = 0;
@@ -29,6 +30,7 @@ class Tag {
   private readonly bubble = document.createElement('p');
   private readonly label = document.createElement('span');
   private role: HTMLElement | null = null;
+  private titleEl: HTMLElement | null = null;
   private name = '';
   private dot: string | null = null;
   private bubbleUntil = 0;
@@ -74,6 +76,23 @@ class Tag {
     }
     if (this.role.textContent === text) return;
     this.role.textContent = text;
+    this.w = this.h = -1;
+  }
+
+  /** a player's title in small print under the name (null: none) */
+  setTitle(text: string | null): void {
+    if ((this.titleEl?.textContent ?? null) === text || (!this.titleEl && text === null)) return;
+    if (text === null) {
+      this.titleEl?.remove();
+      this.titleEl = null;
+    } else {
+      if (!this.titleEl) {
+        this.titleEl = document.createElement('small');
+        this.titleEl.className = 'tag-title';
+        this.root.append(this.titleEl);
+      }
+      this.titleEl.textContent = text;
+    }
     this.w = this.h = -1;
   }
 
@@ -196,6 +215,11 @@ export class NameTags {
     this.self.setDot(archetypeById(arch)?.badge.color ?? null);
   }
 
+  /** our own title id ('' for none) */
+  setSelfTitle(title: string): void {
+    this.self.setTitle(titleName(title));
+  }
+
   /** A chat bubble over a head: `SELF` for our own lines. Unknown ids are ignored (not placed yet). */
   say(id: number, text: string, now: number): void {
     (id === SELF ? this.self : this.tags.get(id))?.say(text, now);
@@ -230,6 +254,7 @@ export class NameTags {
       }
       tag.setName(r.name);
       tag.setDot(archetypeById(r.arch)?.badge.color ?? null);
+      tag.setTitle(titleName(r.title));
       if (r.avatar.root.visible) this.project(tag, camera, r.position, now);
       else tag.hide();
     }

@@ -130,8 +130,10 @@ func (w *World) onState(p *Peer, m *member, msg protocol.ClientMsg) {
 	if to != m.pose || flags != m.flags {
 		m.view.moved = true
 	}
+	from, oldFlags := m.pose, m.flags
 	m.pose, m.poseAt, m.flags = to, w.now(), flags
 	p.setPose(to)
+	w.observeMove(m, from, oldFlags)
 }
 
 // checkMove says why a move from the member's accepted pose to `to` is refused, or "" if it is fine.

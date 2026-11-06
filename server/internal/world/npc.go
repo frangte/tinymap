@@ -53,8 +53,8 @@ func DefaultTalk() Talk {
 		TurnRate:    4,
 		LookFor:     5 * time.Second,
 		VoiceRadius: 14,
-		BarkEvery:   35 * time.Second,
-		BarkJitter:  20 * time.Second,
+		BarkEvery:   60 * time.Second,
+		BarkJitter:  30 * time.Second,
 		MaxGroup:    8,
 		PublicEvery: 3 * time.Second,
 	}
@@ -108,9 +108,9 @@ func (w *World) npcList() []protocol.NPC {
 	return out
 }
 
-// tickNPCs runs once a snapshot: conversations whose player walked away end, and every NPC turns, finishes its
-// emote and calls out.
-func (w *World) tickNPCs() {
+// tick runs once a snapshot: conversations whose player walked away end, every NPC turns, finishes its emote and
+// calls out, and players' whereabouts are published.
+func (w *World) tick() {
 	now := w.now()
 	dt := now.Sub(w.lastTick).Seconds()
 	if w.lastTick.IsZero() || dt > 0.5 {
@@ -121,6 +121,7 @@ func (w *World) tickNPCs() {
 	for _, n := range w.npcs {
 		w.behave(n, now, dt)
 	}
+	w.observePlaces(now)
 }
 
 func (w *World) behave(n *npc, now time.Time, dt float64) {
@@ -249,6 +250,15 @@ func NPCsFrom(c *content.Catalog) []NPCSpec {
 		x, z, h := n.ThreePose()
 		out = append(out, NPCSpec{Key: n.ID, Name: n.Name, X: x, Z: z, H: h, Mode: n.Mode, Dialogue: n.Dialogue, Reach: n.Reach,
 			Barks: n.Barks})
+	}
+	return out
+}
+
+// EmoteNames maps the emote codes of the game data to their ids, for emote events.
+func EmoteNames(c *content.Catalog) map[int]string {
+	out := make(map[int]string, len(c.Emotes))
+	for _, e := range c.Emotes {
+		out[e.Code] = e.ID
 	}
 	return out
 }

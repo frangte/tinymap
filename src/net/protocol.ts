@@ -27,6 +27,8 @@ export interface PlayerInfo {
   name: string;
   /** archetype id, '' when the player has none (an older client) */
   arch: string;
+  /** the title they carry (server/content/quests.json), '' for none */
+  title: string;
   look: Look;
   /** an older server sent the pose here; a current one only sends positions in snapshots, to those nearby */
   pose: Pose | null;
@@ -50,6 +52,8 @@ export interface ChatLine {
   name: string;
   /** the sender's archetype id ('' for none) */
   arch: string;
+  /** the sender's title ('' for none) */
+  title: string;
   /** an NPC said it (a call to passers-by, or a line of a public conversation); id is the NPC's then */
   npc: boolean;
   ch: Channel;
@@ -93,6 +97,38 @@ export interface Interaction {
 /** done: it reached its end; left: we closed it; far: we walked away; other: we started another one */
 export type EndReason = 'done' | 'left' | 'far' | 'other' | 'unknown';
 
+/** A started quest: done, or how far each objective got (by objective id). */
+export interface QuestState {
+  id: string;
+  done: boolean;
+  n: Record<string, number>;
+}
+
+export interface AchievementState {
+  id: string;
+  n: number;
+  done: boolean;
+}
+
+export type NewsKind = 'quest' | 'achievement' | 'title' | 'stamp';
+
+/** Something that just happened: a quest or achievement completed, a title or stamp earned. */
+export interface News {
+  kind: NewsKind;
+  id: string;
+}
+
+/** A character's quests and achievements (their text is in server/content/quests.json), and what just happened. */
+export interface Progress {
+  quests: QuestState[];
+  achievements: AchievementState[];
+  /** titles and stamps earned; the title carried ('' for none) */
+  titles: string[];
+  stamps: string[];
+  title: string;
+  news: News[];
+}
+
 /** The answer to a command that carried a request id. code says why it failed (offline / timeout: no answer came). */
 export interface Result {
   ok: boolean;
@@ -124,7 +160,7 @@ export type ServerMsg =
   | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; npcs: NpcInfo[]; chat: ChatLine[] }
   | { t: 'join'; p: PlayerInfo }
   | { t: 'leave'; id: number }
-  | { t: 'profile'; id: number; name: string; look: Look }
+  | { t: 'profile'; id: number; name: string; look: Look; title: string }
   /** out: players that left our view */
   | { t: 'snap'; at: number; rows: SnapRow[]; out: number[] }
   /** our last move was refused: back to pose, and echo k from now on */
@@ -135,6 +171,7 @@ export type ServerMsg =
   | ({ t: 'interaction' } & Interaction)
   | { t: 'interaction_end'; sid: number; reason: EndReason }
   | { t: 'result'; rid: number; ok: boolean; code: string }
+  | ({ t: 'progress' } & Progress)
   | { t: 'error'; code: ErrorCode };
 
 export type ClientMsg =
@@ -153,6 +190,8 @@ export type ClientMsg =
   /** c: the index of the answer among the choices shown; step: that line's step */
   | { t: 'choose'; sid: number; c: number; step: number; rid: number }
   | { t: 'interact_leave'; sid: number }
+  /** the title to carry, among those earned ('' for none) */
+  | { t: 'title'; title: string }
   | { t: 'chat'; ch: Channel; text: string };
 
 type Obj = Record<string, unknown>;
@@ -191,7 +230,7 @@ function player(v: unknown): PlayerInfo | null {
   const name = str(v.name, NAME_MAX);
   const look = parseLook(v.look);
   if (name === null || !look) return null;
-  return { id: v.id, name, arch: idOf(v.arch), look, pose: v.pose === undefined ? null : pose(v.pose) };
+  return { id: v.id, name, arch: idOf(v.arch), title: idOf(v.title), look, pose: v.pose === undefined ? null : pose(v.pose) };
 }
 
 function chatLine(v: unknown): ChatLine | null {
@@ -200,7 +239,7 @@ function chatLine(v: unknown): ChatLine | null {
   const body = str(v.text, CHAT_MAX);
   if (name === null || !body) return null;
   // older servers send no channel: everything was global then
-  return { id: v.id, name, arch: idOf(v.arch), npc: v.npc === true, ch: v.ch === 'nearby' ? 'nearby' : 'global', text: body, at: v.at };
+  return { id: v.id, name, arch: idOf(v.arch), title: idOf(v.title), npc: v.npc === true, ch: v.ch === 'nearby' ? 'nearby' : 'global', text: body, at: v.at };
 }
 
 function text(v: unknown, max: number): Text | null {
@@ -215,6 +254,58 @@ function npcInfo(v: unknown): NpcInfo | null {
   const p = pose(v.pose);
   const key = idOf(v.npc);
   return p && key ? { id: v.id, npc: key, pose: p } : null;
+}
+
+const NEWS: readonly NewsKind[] = ['quest', 'achievement', 'title', 'stamp'];
+/** quest ids are dotted ids (traveler.chao_sai_gon) */
+const QUEST_RE = /^[a-z0-9_]+(\.[a-z0-9_]+)*$/;
+
+function questId(v: unknown): string {
+  return typeof v === 'string' && v.length <= 64 && QUEST_RE.test(v) ? v : '';
+}
+
+/** more than the game data could ever have: anything past it is dropped */
+const QUESTS_MAX = 64;
+const NEWS_MAX = 16;
+const OBJECTIVES_MAX = 8;
+
+function counts(v: unknown): Record<string, number> {
+  // no prototype: an objective id can never find an inherited property
+  const out: Record<string, number> = Object.create(null) as Record<string, number>;
+  if (!isObj(v)) return out;
+  for (const [k, n] of Object.entries(v).slice(0, OBJECTIVES_MAX)) {
+    if ((k === '' || ID_RE.test(k)) && Number.isInteger(n) && (n as number) >= 0) out[k] = n as number;
+  }
+  return out;
+}
+
+/** the first of each id, at most max */
+function distinct<T extends { id: string }>(items: T[], max: number): T[] {
+  const seen = new Set<string>();
+  return items.filter((x) => !seen.has(x.id) && seen.add(x.id) !== undefined).slice(0, max);
+}
+
+function progress(m: Obj): Progress | null {
+  const quests = list(m.quests, (q) => (isObj(q) && questId(q.id) ? { id: questId(q.id), done: q.done === true, n: counts(q.n) } : null));
+  const achievements = list(m.achievements, (a) =>
+    isObj(a) && idOf(a.id) && Number.isInteger(a.n) && (a.n as number) >= 0 ? { id: idOf(a.id), n: a.n as number, done: a.done === true } : null,
+  );
+  const ids = (v: unknown): string[] => [...new Set(list(v, (x) => idOf(x) || null) ?? [])].slice(0, QUESTS_MAX);
+  if (!quests || !achievements) return null;
+  const news = list(m.news, (n) => {
+    if (!isObj(n)) return null;
+    const kind = NEWS.find((k) => k === n.kind);
+    const id = kind === 'quest' ? questId(n.id) : idOf(n.id);
+    return kind && id ? { kind, id } : null;
+  }) ?? [];
+  return {
+    quests: distinct(quests, QUESTS_MAX),
+    achievements: distinct(achievements, QUESTS_MAX),
+    titles: ids(m.titles),
+    stamps: ids(m.stamps),
+    title: idOf(m.title),
+    news: news.slice(0, NEWS_MAX),
+  };
 }
 
 const MODES: readonly TalkMode[] = ['private', 'public', 'group'];
@@ -278,7 +369,11 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       return isId(m.id) ? { t: 'leave', id: m.id } : null;
     case 'profile': {
       const p = player(m);
-      return p ? { t: 'profile', id: p.id, name: p.name, look: p.look } : null;
+      return p ? { t: 'profile', id: p.id, name: p.name, look: p.look, title: p.title } : null;
+    }
+    case 'progress': {
+      const p = progress(m);
+      return p ? { t: 'progress', ...p } : null;
     }
     case 'snap': {
       if (!num(m.at) || !Array.isArray(m.p)) return null;
