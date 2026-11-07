@@ -92,7 +92,7 @@ export class PlayMode {
       this.hud.setPlace(p);
       if (p && p.kind === 'landmark' && !this.seen.has(p)) {
         this.seen.add(p);
-        this.hud.toast(p);
+        this.hud.toast(p.name, p.note);
       }
     }
     if (!this.hintHidden && this.input.firstMove !== null && now - this.input.firstMove > 6000) {

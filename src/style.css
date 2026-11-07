@@ -115,6 +115,26 @@ button:disabled { cursor: progress; opacity: 0.55; transform: none; }
 .menu .status { margin: 6px 0 0; font: 600 12px/1.3 var(--body); letter-spacing: 0.06em; text-transform: uppercase; }
 .menu .status.is-error { color: var(--brick); text-transform: none; letter-spacing: 0; font-size: 14px; line-height: 1.45; }
 .loadrow { display: grid; gap: 6px; }
+/* character picker: a swatch of the outfit (hat / top / bottom) next to the name */
+.cast-wrap { display: grid; gap: 6px; margin-top: 4px; }
+.cast-label { font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.cast { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cast-btn { display: flex; align-items: center; gap: 9px; text-align: left; padding: 7px 10px 8px 8px; min-width: 0; }
+.cast-btn span { display: grid; gap: 2px; min-width: 0; }
+.cast-btn strong { font: 700 13px/1.15 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cast-btn small { font: 500 11px/1.25 var(--body); color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cast-btn[aria-pressed='true'] small { color: var(--paper-deep); }
+.swatch {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 30px;
+  border: 1.2px solid var(--ink);
+  border-radius: 3px;
+  background: linear-gradient(to bottom, var(--hat) 0 30%, var(--top) 30% 66%, var(--bottom) 66% 100%);
+  box-shadow: 1px 1px 0 var(--shade);
+}
+.cast-btn[aria-pressed='true'] .swatch { border-color: var(--paper); }
+
 .modes { display: grid; gap: 10px; }
 .mode {
   display: grid;

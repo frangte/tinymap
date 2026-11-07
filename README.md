@@ -42,7 +42,8 @@ src/game/
   ink.ts                colour + normal/depth passes and the ink composite
   nav.ts                walkable heightfield: floor height, walkable flag, building tops
   player.ts             movement: acceleration, turning, wall sliding, kerbs and ramps
-  character.ts          low-poly pedestrian (nón lá) with procedural idle / walk / run
+  character.ts          low-poly pedestrian rig, dressed by a style, with procedural idle / walk / run
+  characters.ts         the playable cast (colours + build switches) and the remembered pick
   followCamera.ts       third-person orbit camera with building avoidance
   input.ts              keyboard, mouse, touch joystick, pinch
   places.ts             named landmarks and streets for the HUD

@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import type { MoveIntent } from './input';
 import type { NavGrid } from './nav';
 import { damp, wrapAngle } from './coords';
-import { Pedestrian } from './character';
+import { blobShadow, Pedestrian } from './character';
+import { CHARACTERS, type CharacterStyle } from './characters';
 
 export interface PlayerTuning {
   walkSpeed: number;
@@ -33,16 +34,47 @@ const SLIDE = [0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.35, -1.35];
 const SUBSTEP = 0.12;
 
 export class Player {
-  readonly avatar = new Pedestrian();
+  /** the scene node: stays put across outfit changes, carrying the pedestrian and its blob shadow */
+  readonly root = new THREE.Group();
   readonly position = new THREE.Vector3();
   heading = 0;
   /** measured ground speed (m/s), drives the animation */
   speed = 0;
+  /** called after setCharacter() swapped the model, so the ink pass can retarget */
+  onAvatarChange: ((prev: THREE.Object3D, next: THREE.Object3D) => void) | null = null;
+  private ped: Pedestrian;
   private readonly vel = new THREE.Vector3();
   private readonly wish = new THREE.Vector3();
   private floor = 0;
 
-  constructor(private readonly nav: NavGrid, private readonly tuning: PlayerTuning = DEFAULT_TUNING) {}
+  constructor(private readonly nav: NavGrid, style: CharacterStyle = CHARACTERS[0], private readonly tuning: PlayerTuning = DEFAULT_TUNING) {
+    this.root.name = 'Player';
+    this.root.add(blobShadow());
+    this.ped = new Pedestrian(style);
+    this.root.add(this.ped.root);
+  }
+
+  get avatar(): Pedestrian {
+    return this.ped;
+  }
+
+  get character(): CharacterStyle {
+    return this.ped.style;
+  }
+
+  /** Dress the player as `style`, keeping the spot, the heading and the stride. */
+  setCharacter(style: CharacterStyle): void {
+    if (style === this.ped.style) return;
+    const prev = this.ped;
+    const next = new Pedestrian(style);
+    next.copyGait(prev);
+    this.root.remove(prev.root);
+    prev.dispose();
+    this.root.add(next.root);
+    this.ped = next;
+    this.syncAvatar();
+    this.onAvatarChange?.(prev.root, next.root);
+  }
 
   /** Place the player at three.js (x, z), or the nearest spot that fits, facing `heading` (0 = +Z). */
   spawn(x: number, z: number, heading: number): void {
@@ -138,7 +170,7 @@ export class Player {
   }
 
   private syncAvatar(): void {
-    this.avatar.root.position.copy(this.position);
-    this.avatar.root.rotation.y = this.heading;
+    this.root.position.copy(this.position);
+    this.root.rotation.y = this.heading;
   }
 }
