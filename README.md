@@ -63,6 +63,7 @@ scripts/
   inline.mjs            inlines the single-chunk build into one HTML file
   blender/export_glb.py exports the diorama GLB from the .blend
   blender/bake_nav.py   bakes the three nav files from the .blend
+  blender/nav_boxes.py  the walk-map boxes (NAV collection: buildings nobody walks into) in the .blend
 docs/
   PROJECT.md            project brief: style, palette, Blender conventions, landmark sheet
   img/                  renders of each landmark from the current map
@@ -72,17 +73,17 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
 
 ## Changing the map
 
-1. Edit the map. The v4 island is `new.sg.tinymap.blend`: the shipped GLB imported back into Blender (one scene, meshes merged by material). `export_glb.py` exports it as it is; `bake_nav.py` needs the original objects (scene `SaigonDiorama`; collections `SD_World` and `SD_NoInk`), so the nav maps cannot be re-baked from it. The root `sg.tinymap.blend` has that structure but an older layout. Frozen versions: `versions/sg.tinymap_v1.blend`, `_v2`, `_v3`.
-2. Export with `scripts/blender/export_glb.py`, shrink with the `gltf-transform` chain in its header to `export/saigon_q1.glb`, and copy that to `public/models/saigon_q1.glb`.
-3. Re-bake the nav maps:
+1. Edit the map. The current island is `models/temp.sg.tinymap.blend` (the v4 island with Bùi Viện and Tôn Đức Thắng): the shipped GLB imported back into Blender (one scene, meshes merged by material). Both scripts run on it. `sg.tinymap.blend` keeps the original objects (scene `SaigonDiorama`) of an older layout. Frozen versions: `versions/sg.tinymap_v1.blend`, `_v2`, `_v3`.
+2. Export with `scripts/blender/export_glb.py`, shrink with the `gltf-transform` chain in its header to `export/saigon_q1.glb`, and copy that to `public/models/` under the name `index.html` loads (`#stage data-model`, now `saigon_q1_v5.glb`).
+3. Re-bake the nav maps (about 15 s) and copy them to the server, which checks every move against its own copy:
    ```bash
-   blender sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
+   blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
+   npm run nav:sync
    ```
-   New buildings that the camera should not enter need their object name prefix in `ROOF_PREFIX` (and `SOLID_PREFIX` if nobody walks underneath).
+   Ground (grass, sand, asphalt, kerbs, road lines, rock, water) is told apart by material; anything else at body height blocks. A building nobody should walk into (or under) needs a `NAV_Solid_` box in the file's `NAV` collection: `scripts/blender/nav_boxes.py` makes the current ones, and its header explains the `NAV_Block_` and `NAV_Open_` boxes for fixing single spots. The boxes are hidden from the export.
 4. New landmark or street names go in `src/game/places.ts` (Blender XY).
 
 ## Next
 
 - Finish phase 5: fewer meshes per avatar (draw calls in a crowd) and a check on a real mid-range Android ([docs/design/06-mvp-roadmap.md](docs/design/06-mvp-roadmap.md)). Built so far: accounts and archetypes, the phone, server-checked movement and the motorbike, NPCs and dialogue, quests and achievements, Crab Bike rides with the xu wallet, daily quests, asking the way (the co-op quest), moderation, and a 300-bot load test ([docs/design/README.md](docs/design/README.md#progress)).
-- Bùi Viện walking street (tube-house rows are reserved for it).
 - UBND building on the site kept free at the north end of Nguyễn Huệ.

@@ -12,11 +12,11 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
   - Map v4: đảo khoảng 200×200 m giữa biển. Map quay theo hướng thật của thành phố (cổng nam chợ nhìn ra bùng binh Quách Thị Trang), nên các công trình nằm bên phải và phía trên chợ, gần giống vị trí thật: Lê Lợi dẫn tới Nhà hát; Đồng Khởi đi từ Nhà thờ xuống biển; Bưu điện cạnh Công xã Paris; Hồ Con Rùa nằm trên đường Phạm Ngọc Thạch; Bitexco ở bờ nước. Không thêm nhà mới. Cây trồng thành hàng dọc phố, chỉ vài xe đậu, không có người (NPC sẽ thêm sau theo cốt truyện).
   - Biển, mây, hải âu, cây đung đưa và âm thanh theo khu vực (bây giờ chỉ có bãi biển: tiếng sóng nhẹ) làm trong Three.js, không nằm trong file Blender.
   - Menu mở đầu có 2 chế độ: [1] xem bản đồ (xoay, zoom, bay tới từng công trình) và [2] vào game đi bộ (nhân vật đội nón lá, camera góc thứ 3 tự do, tên địa điểm hiện trên HUD).
-- **Đang làm trong `temp.sg.tinymap.blend` (2026-11-07, chưa export, chưa bake nav):** sửa bằng `scripts/blender/edit_v4_buivien.py` chạy trên `new.sg.tinymap.blend`:
+- **Trong `models/temp.sg.tinymap.blend` (2026-11-07, đã export thành `saigon_q1_v5.glb`, đã bake nav):** sửa bằng `scripts/blender/edit_v4_buivien.py` chạy trên `new.sg.tinymap.blend`:
   - Phố Bùi Viện trên đường Lê Lai: nhà ống hai bên phố (`SH_BuiVien_N/S`), biển hiệu quán bar, đèn dây, lồng đèn, cờ, bàn ghế nhựa, xe máy đậu (`SH_BuiVien_Life/Lights`), cổng "PHỐ ĐI BỘ BÙI VIỆN" ở đầu bùng binh. Dãy nam nông 4.6 m vì lối đi bộ ven biển chạy ngay sau lưng (y −37…−41); dãy bắc ngắn lại ở đầu tây cũng vì lối đi đó.
   - Đường Tôn Đức Thắng: Hàm Nghi không còn cụt ở Bitexco mà vòng sang nối vào Đồng Khởi (`IX_Roads_TonDucThang`), cắt qua đầu nam phố Nguyễn Huệ; đoạn cụt cũ của Đồng Khởi (y −60…−52) bỏ.
   - Bỏ hai đèn 4 bóng (một đứng giữa cổng nam chợ, một đứng trên mặt đường ở cửa đông bùng binh), bỏ các vạch qua đường vẽ chồng trên vòng xuyến, thêm một vạch sạch trên nhánh Lê Lai (`IX_RoadMarks_LeLaiZebra`).
-  - Nhà mới chưa có trong nav: người chơi đi xuyên qua cho tới khi bake lại (xem Pipeline, bước 4).
+  - Nav bake lại ngày 2026-11-07: hai dãy nhà là hộp `NAV_Solid_BuiVien_*` (đi tới quầy bar thì dừng, vỉa hè dưới ban công và biển hiệu vẫn đi được); chỗ đèn và bồn cây đã bỏ trên Tôn Đức Thắng, ở cửa đông bùng binh và chỗ hai tượng người cũ (sau Chú Tư, cạnh Chị Hạnh) đi qua được.
 - **Để dành, chưa làm:**
   - UBND: ô trống lát gạch ở đầu bắc phố đi bộ Nguyễn Huệ (x 48…72, y 12…31), sát đường Lê Thánh Tôn, giống vị trí thật.
 - **Tiếp theo:** NPC và quest.
@@ -117,18 +117,21 @@ Cầu Ba Son và bờ Thủ Thiêm đã bỏ từ v3; muốn xem lại thì mở
 
 ## Pipeline: từ Blender ra game
 
-1. Sửa map. Đảo v4 là `new.sg.tinymap.blend`: muốn sửa bằng script trên file gộp này thì xem `scripts/blender/edit_v4_buivien.py` (xoá theo cụm lưới liền nhau, cắt mặt đất theo đa giác, dựng thêm object mới bằng bộ `Geo` nạp từ Text của `sg.tinymap.blend`); file đó là file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` xuất được file này; `bake_nav.py` thì không, vì nó phân loại đất, nước, nhà và mái theo tên object gốc, nên chưa nướng lại nav từ file này được (đổi hình mà không đổi chỗ đi được thì vẫn xuất GLB bình thường). `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
+1. Sửa map. Đảo hiện tại là `models/temp.sg.tinymap.blend` (đảo v4 thêm Bùi Viện và Tôn Đức Thắng): muốn sửa bằng script trên file gộp này thì xem `scripts/blender/edit_v4_buivien.py` (xoá theo cụm lưới liền nhau, cắt mặt đất theo đa giác, dựng thêm object mới bằng bộ `Geo` nạp từ Text của `sg.tinymap.blend`); file đó là file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` và `bake_nav.py` đều chạy được trên file này. `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
 2. Export GLB, file `.blend` không bị đổi:
    ```bash
-   blender new.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
+   blender models/temp.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
    ```
-3. Thu nhỏ file bằng 5 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune`). Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/saigon_q1.glb`.
-4. Bake lại bản đồ đi lại (chỉ chạy được trên file còn object gốc, xem bước 1), mất khoảng 15 giây. Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
+3. Thu nhỏ file bằng 5 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune`). Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/` với tên mà `index.html` nạp (`data-model` của `#stage`, hiện là `saigon_q1_v5.glb`).
+4. Bake lại bản đồ đi lại, mất khoảng 15 giây, rồi copy sang server (server kiểm tra mọi bước đi theo bản của nó). Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
    ```bash
-   blender sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
+   blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
+   npm run nav:sync
    ```
-   - Nhà mới mà camera không được chui vào: thêm tiền tố tên vào `ROOF_PREFIX`.
-   - Nếu không ai đi được bên dưới nhà đó: thêm vào cả `SOLID_PREFIX`.
+   - Mặt đất nhận theo vật liệu (cỏ, cát, nhựa đường, bó vỉa, vạch đường, đá, nước); mọi thứ khác cao ngang người là vật cản.
+   - Nhà không ai được đi vào (hay đi bên dưới): thêm một hộp `NAV_Solid_<tên>` vào collection `NAV` của file (hộp đứng, chỉ tính khung nhìn từ trên xuống; trong hộp, ô nào có gì cao hơn sàn 2 m là bị chặn). Hộp hiện có do `scripts/blender/nav_boxes.py` tạo; đầu file đó giải thích thêm hộp `NAV_Block_` (chặn hẳn) và `NAV_Open_` (bỏ vật cản). Các hộp không bị export.
+   - Người chơi bước lên được bậc 0.5 m và bước xuống được 1.1 m (`src/game/player.ts`), nên nhảy lên ghế hay mép bồn cây thì vẫn xuống được.
+   - File gốc cũ (`sg.tinymap.blend`, scene `SaigonDiorama`) vẫn bake theo tên object như trước: `ROOF_PREFIX`, `SOLID_PREFIX`.
 5. Thêm tên địa điểm mới vào `src/game/places.ts`, toạ độ Blender XY.
 
 ![Trong game](img/12_gameplay.jpg)

@@ -58,9 +58,9 @@ def main():
     if sc:
         objs = [o for c in COLLECTIONS for o in bpy.data.collections[c].all_objects if o.type == 'MESH']
     else:
-        # a re-imported GLB: everything visible in the active scene
+        # a re-imported GLB: everything visible in the active scene, except the walk-map boxes (nav_boxes.py)
         sc = bpy.context.scene
-        objs = [o for o in sc.objects if o.type == 'MESH' and not o.hide_render and not o.hide_get()]
+        objs = [o for o in sc.objects if o.type == 'MESH' and not o.hide_render and not o.hide_get() and not o.name.startswith('NAV_')]
     vl = sc.view_layers[0]
     for o in sc.objects:
         o.select_set(False, view_layer=vl)

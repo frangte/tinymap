@@ -24,6 +24,8 @@ export interface PlayerTuning {
   radius: number;
   /** highest floor change one stride can climb (m): kerbs yes, walls no */
   maxStep: number;
+  /** deepest floor change one stride can step down (m): off a bench, a planter or a fountain rim */
+  maxDrop: number;
   jumpSpeed: number;
   gravity: number;
 }
@@ -34,7 +36,11 @@ export const DEFAULT_TUNING: PlayerTuning = {
   accel: 9,
   turnRate: 12,
   radius: 0.26,
-  maxStep: 0.45,
+  // the nav bake's MAX_STEP (scripts/blender/bake_nav.py): every walkable cell is reachable without a jump
+  maxStep: 0.5,
+  // whatever a jump climbs onto, a step must come down from, or the player is stuck up there; under the
+  // server's MaxClimb (1.2, server/internal/world/move.go), which it checks between two reported positions
+  maxDrop: 1.1,
   jumpSpeed: MOVEMENT.jumpSpeed,
   gravity: MOVEMENT.gravity,
 };
@@ -310,10 +316,10 @@ export class Player {
     p.y += (ground - p.y) * damp(ground > p.y ? 22 : 16, dt);
   }
 
-  /** The floor heights a step may reach (into lo, hi): one step either way, up to a step above the feet in a jump. */
+  /** The floor heights a step may reach (into lo, hi): a drop down, a step up, up to a step above the feet in a jump. */
   private reach(): void {
     const step = this.tuning.maxStep;
-    this.lo = this.floor - step;
+    this.lo = this.floor - this.tuning.maxDrop;
     this.hi = (this.airborne ? Math.max(this.floor, this.position.y) : this.floor) + step;
   }
 

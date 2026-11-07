@@ -9,6 +9,7 @@ server/data/
 *.log
 
 # Blender: only the main map (sg.tinymap.blend) is versioned
+*.blend
 *.blend1
 *.blend@
 Untitled.blend
@@ -27,3 +28,4 @@ renders/
 .claude/settings.local.json
 .claude/ecc/install-state.json
 server/cmd/server/app
+

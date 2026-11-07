@@ -106,7 +106,7 @@
     "lesson_thanks": {
       "say": {
         "default": {
-          "vi": "Giỏi! Giờ cô cho con trái quýt nè. Người ta cho thì con nói sao?",
+          "vi": "Giỏi! Giờ cô cho con trái xầu riêng tám ký nè. Người ta cho thì con nói sao?",
           "en": "Well done! Now here's a mandarin for you. What do you say when someone gives you something?"
         }
       },
@@ -114,7 +114,7 @@
         {
           "text": {
             "vi": "Dạ, con cảm ơn cô!",
-            "en": "Thank you, auntie!"
+            "en": "cảm ơn"
           },
           "goto": "lesson_price"
         },
@@ -147,7 +147,7 @@
     "lesson_price": {
       "say": {
         "default": {
-          "vi": "Ngoan quá. Câu cuối nè: con muốn mua cái nón lá kia, con hỏi giá sao?",
+          "vi": "Ngoan quá. Câu cuối nè: con muốn mua cái thùng phuy kia, con hỏi giá sao?",
           "en": "So polite. Last one: you want that conical hat over there. How do you ask the price?"
         }
       },
