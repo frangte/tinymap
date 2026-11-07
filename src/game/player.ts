@@ -66,9 +66,27 @@ export function rideTuning(topSpeed: number): RideTuning {
   return { topSpeed, cruise: 1 / RIDE_BOOST, accel: 7.2, brake: 12, turnRate: 2.3, radius: 0.42 };
 }
 
-/** headings to try, in order, when the straight move is blocked (radians off the wish direction) */
-const SLIDE = [0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.35, -1.35];
+/** headings off the wish direction a blocked step tries last (rad), the open side first; never 90°: a wall stays a wall */
+const SLIDE = [0.35, 0.7, 1.05, 1.4];
 const SUBSTEP = 0.12;
+/** a slide keeps going round the same side for this long after the last blocked step (s) */
+const SIDE_KEEP = 0.35;
+/** looking for the way round an obstacle: up to this far to either side (m), in steps of ROUND_STEP, with room to
+ *  go on ROUND_AHEAD beyond it; none within reach means a wall */
+const ROUND_REACH = 1.2;
+const ROUND_STEP = 0.15;
+const ROUND_AHEAD = 0.5;
+/** a slide shorter than this share of the step is head-on: go round on the open side instead, at ROUND_PACE */
+const HEAD_ON = 0.4;
+const ROUND_PACE = 0.8;
+/** a slide leading this far toward the other side than the open one runs into a corner (cosine) */
+const WRONG_WAY = 0.2;
+/** how far a slide may also step off the obstacle's surface to stay clear of it (m) */
+const PUSH_OUT = [0, 0.02, 0.05];
+/** on foot, moving less than this share of the velocity is being stopped (a wall): the velocity drops to it */
+const STOPPED = 0.1;
+/** on a vehicle, less than this share of the way wanted is a crash: the bike stops as short as it did */
+const RIDE_STOPPED = 0.5;
 /** a correction closer than this eases the avatar back; further, it jumps (m) */
 const EASE_LIMIT = 6;
 /** getting off: the rider steps this far to the left of the bike (m) */
@@ -109,6 +127,11 @@ export class Player {
   /** the floor heights the next step may reach, from reach() */
   private lo = 0;
   private hi = 0;
+  /** going round an obstacle: +1 left of the move, -1 right, 0 a wall; kept SIDE_KEEP s (slideFor) so a slide
+   *  does not flip sides at every step */
+  private slideSide = 0;
+  private slideFor = 0;
+  private readonly away = { x: 0, z: 0 };
 
   constructor(private readonly nav: NavGrid, private readonly tuning: PlayerTuning = DEFAULT_TUNING) {
     this.avatar.root.name = 'Player';
@@ -234,6 +257,7 @@ export class Player {
     }
     const mag = Math.min(1, this.wish.length());
     if (mag > 1e-3) this.wish.multiplyScalar(1 / this.wish.length());
+    this.slideFor -= dt;
     if (this.riding) this.ride(dt, mag, move.run, this.riding.tuning);
     else this.walk(dt, mag, move.run);
     this.fall(dt);
@@ -264,9 +288,9 @@ export class Player {
 
     const moved = this.travel(this.vel.x * dt, this.vel.z * dt, t.radius);
     const measured = dt > 0 ? moved / dt : 0;
-    // walking into a wall: drop the velocity to what actually happened
+    // stopped by a wall: drop the velocity to what actually happened; sliding round a trunk keeps the pace
     const vlen = Math.hypot(this.vel.x, this.vel.z);
-    if (vlen > 1e-3 && measured < vlen * 0.98) this.vel.multiplyScalar(Math.max(0, measured) / vlen);
+    if (vlen > 1e-3 && measured < vlen * STOPPED) this.vel.multiplyScalar(Math.max(0, measured) / vlen);
     this.speed += (measured - this.speed) * damp(14, dt);
     this.lean += (0 - this.lean) * damp(8, dt);
   }
@@ -287,8 +311,8 @@ export class Player {
     this.rideSpeed += clamp(goalSpeed - this.rideSpeed, -rate, rate);
     const want = this.rideSpeed * dt;
     const moved = this.travel(Math.sin(this.heading) * want, Math.cos(this.heading) * want, t.radius);
-    // into a wall: the bike stops as short as it did
-    if (want > 1e-4 && moved < want * 0.98) this.rideSpeed = dt > 0 ? moved / dt : 0;
+    // into a wall: the bike stops as short as it did; a glancing slide keeps its speed
+    if (want > 1e-4 && moved < want * RIDE_STOPPED) this.rideSpeed = dt > 0 ? moved / dt : 0;
     this.speed += ((dt > 0 ? moved / dt : 0) - this.speed) * damp(14, dt);
     this.yawRate += ((dt > 0 ? turn / dt : 0) - this.yawRate) * damp(10, dt);
     const lean = clamp(-this.yawRate * this.speed * 0.07, -0.42, 0.42);
@@ -347,23 +371,109 @@ export class Player {
   private tryStep(sx: number, sz: number, step: number, radius: number): number {
     const p = this.position;
     this.reach();
-    const { lo, hi } = this;
-    if (this.nav.canStandBetween(p.x + sx, p.z + sz, radius, lo, hi)) {
+    if (this.nav.canStandBetween(p.x + sx, p.z + sz, radius, this.lo, this.hi)) {
       this.commit(p.x + sx, p.z + sz);
       return step;
     }
-    const a0 = Math.atan2(sx, sz);
-    for (const off of SLIDE) {
-      const k = Math.cos(off);
-      const a = a0 + off;
-      const nx = p.x + Math.sin(a) * step * k;
-      const nz = p.z + Math.cos(a) * step * k;
-      if (this.nav.canStandBetween(nx, nz, radius, lo, hi)) {
-        this.commit(nx, nz);
-        return step * k;
+    const wx = sx / step;
+    const wz = sz / step;
+    if (this.slideFor <= 0) this.slideSide = this.wayRound(wx, wz, radius);
+    this.slideFor = SIDE_KEEP;
+    const slid = this.slideAlong(sx, sz, step, wx, wz, radius);
+    return slid > 0 ? slid : this.fan(sx, sz, step, radius);
+  }
+
+  /**
+   * Slide along the obstacle in the way: the clearance gradient is its surface normal, the step keeps the part along
+   * the surface. Head-on, or where the surface leads into a corner, go round on the open side (slideSide), or stop at
+   * a wall. Returns the distance moved.
+   */
+  private slideAlong(sx: number, sz: number, step: number, wx: number, wz: number, radius: number): number {
+    const p = this.position;
+    const n = this.away;
+    if (!this.nav.awayFromObstacle(p.x + sx, p.z + sz, n)) return 0;
+    const into = Math.min(0, sx * n.x + sz * n.z);
+    let tx = sx - into * n.x;
+    let tz = sz - into * n.z;
+    const tl = Math.hypot(tx, tz);
+    // left of the move
+    const lx = -wz;
+    const lz = wx;
+    const toLeft = tl > 1e-9 ? (tx * lx + tz * lz) / tl : 0;
+    if (tl < HEAD_ON * step || (this.slideSide !== 0 && toLeft * this.slideSide < -WRONG_WAY)) {
+      if (this.slideSide === 0) return 0;
+      // the surface's tangent, turned toward the open side
+      let ux = -n.z;
+      let uz = n.x;
+      if ((ux * lx + uz * lz) * this.slideSide < 0) {
+        ux = -ux;
+        uz = -uz;
+      }
+      tx = ux * ROUND_PACE * step;
+      tz = uz * ROUND_PACE * step;
+    }
+    for (const push of PUSH_OUT) {
+      const x = p.x + tx + n.x * push;
+      const z = p.z + tz + n.z * push;
+      if (this.nav.canStandBetween(x, z, radius, this.lo, this.hi)) {
+        const moved = Math.hypot(x - p.x, z - p.z);
+        this.commit(x, z);
+        return Math.min(step, moved);
       }
     }
     return 0;
+  }
+
+  /** Corners and steps: a fan of headings off the wish, the open side first. Returns the distance moved. */
+  private fan(sx: number, sz: number, step: number, radius: number): number {
+    const p = this.position;
+    const a0 = Math.atan2(sx, sz);
+    const side = this.slideSide || 1;
+    for (const off of SLIDE) {
+      const k = Math.cos(off);
+      for (let t = 0; t < 2; t++) {
+        const a = a0 + off * (t === 0 ? side : -side);
+        const x = p.x + Math.sin(a) * step * k;
+        const z = p.z + Math.cos(a) * step * k;
+        if (this.nav.canStandBetween(x, z, radius, this.lo, this.hi)) {
+          this.commit(x, z);
+          return step * k;
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Which way round the obstacle ahead of a move along (wx, wz): +1 to the left, -1 to the right, where the body
+   * fits beside it within ROUND_REACH and can go on; 0 when neither side opens (a wall). The side found last is
+   * tried first.
+   */
+  private wayRound(wx: number, wz: number, radius: number): number {
+    const p = this.position;
+    const lx = -wz;
+    const lz = wx;
+    const first = this.slideSide || 1;
+    for (let k = ROUND_STEP; k <= ROUND_REACH + 1e-6; k += ROUND_STEP) {
+      for (let t = 0; t < 2; t++) {
+        const sg = t === 0 ? first : -first;
+        const qx = p.x + lx * sg * k;
+        const qz = p.z + lz * sg * k;
+        if (this.nav.clearance(qx, qz) < radius) continue;
+        if (this.nav.clearance(qx + wx * ROUND_AHEAD, qz + wz * ROUND_AHEAD) < radius) continue;
+        if (this.sideOpen(lx * sg, lz * sg, k, radius)) return sg;
+      }
+    }
+    return 0;
+  }
+
+  /** Whether the body can shuffle `dist` metres along (dx, dz) without running into anything. */
+  private sideOpen(dx: number, dz: number, dist: number, radius: number): boolean {
+    const p = this.position;
+    for (let t = 0.1; t < dist; t += 0.1) {
+      if (this.nav.clearance(p.x + dx * t, p.z + dz * t) < radius * 0.8) return false;
+    }
+    return true;
   }
 
   private commit(x: number, z: number): void {
