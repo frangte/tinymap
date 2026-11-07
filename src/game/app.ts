@@ -11,6 +11,7 @@ import { NavGrid } from './nav';
 import { PlayMode } from './play';
 import { CameraFlight, MAP_STOPS, MENU_STOP, MapView } from './mapView';
 import { Hud, type Mode } from './hud';
+import { CHARACTERS, loadCharacterIndex, saveCharacterIndex } from './characters';
 import { damp } from './coords';
 
 const MODEL_BYTES = 3.55e6;
@@ -181,8 +182,29 @@ export async function startApp(): Promise<void> {
 
   const p = new PlayMode(nav, camera, hud, renderer.domElement);
   play = p;
-  scene.add(p.player.avatar.root);
-  ink.track(p.player.avatar.root);
+  scene.add(p.player.root);
+  ink.track(p.player.root);
+  p.player.onAvatarChange = (prev, next) => {
+    ink.untrack(prev);
+    ink.track(next);
+  };
+
+  // ---- character: picked on the start card or cycled in play; remembered across visits
+  let character = loadCharacterIndex();
+  const pickCharacter = (i: number, announce: boolean): void => {
+    character = ((i % CHARACTERS.length) + CHARACTERS.length) % CHARACTERS.length;
+    const style = CHARACTERS[character];
+    p.player.setCharacter(style);
+    hud.selectCharacter(character, style);
+    saveCharacterIndex(character);
+    if (announce) hud.toast(style.name, style.note);
+  };
+  hud.buildCast(CHARACTERS, (i) => pickCharacter(i, false));
+  pickCharacter(character, false);
+  hud.characterButton.addEventListener('click', () => {
+    pickCharacter(character + 1, true);
+    renderer.domElement.focus({ preventScroll: true });
+  });
 
   // ---- controls
   hud.buildStops(MAP_STOPS, (i) => {
@@ -208,6 +230,7 @@ export async function startApp(): Promise<void> {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (mode === 'menu' && (e.key === '1' || e.key === '2')) request(e.key === '1' ? 'map' : 'play');
     else if (mode !== 'menu' && e.key === 'Escape') request('menu');
+    else if (mode === 'play' && !flight.active && (e.key === 'c' || e.key === 'C')) pickCharacter(character + 1, true);
   });
 
   hud.ready();
@@ -221,7 +244,7 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, go: request, step, mode: () => mode, character: (i: number) => pickCharacter(i, false) } });
     if (manual) tick(0, simNow, true);
   }
 }

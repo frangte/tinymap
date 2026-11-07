@@ -3,6 +3,7 @@
 import type { Place } from './places';
 import type { JoystickView } from './input';
 import type { MapStop } from './mapView';
+import type { CharacterStyle } from './characters';
 
 export type Mode = 'menu' | 'map' | 'play';
 
@@ -23,6 +24,9 @@ export class Hud {
   readonly toMapButton = el<HTMLButtonElement>('to-map');
   readonly modeMapButton = el<HTMLButtonElement>('mode-map');
   readonly modePlayButton = el<HTMLButtonElement>('mode-play');
+  readonly characterButton = el<HTMLButtonElement>('character');
+  private readonly cast = el('cast');
+  private castEls: HTMLButtonElement[] = [];
   private readonly eyebrow = el('where-eyebrow');
   private readonly where = el('where');
   private readonly whereNote = el('wherenote');
@@ -96,12 +100,44 @@ export class Hud {
     }
   }
 
-  toast(p: Place): void {
+  /** One radio-style button per playable character; `onPick` gets the index. */
+  buildCast(cast: readonly CharacterStyle[], onPick: (i: number) => void): void {
+    this.cast.replaceChildren();
+    this.castEls = cast.map((c, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cast-btn';
+      b.setAttribute('aria-pressed', 'false');
+      const swatch = document.createElement('i');
+      swatch.className = 'swatch';
+      swatch.style.setProperty('--hat', c.hat);
+      swatch.style.setProperty('--top', c.top);
+      swatch.style.setProperty('--bottom', c.bottom);
+      const text = document.createElement('span');
+      const name = document.createElement('strong');
+      name.textContent = c.name;
+      const note = document.createElement('small');
+      note.textContent = c.note;
+      text.append(name, note);
+      b.append(swatch, text);
+      b.addEventListener('click', () => onPick(i));
+      this.cast.appendChild(b);
+      return b;
+    });
+  }
+
+  /** Mark the chosen character in the menu and name it on the play-mode button. */
+  selectCharacter(i: number, c: CharacterStyle): void {
+    this.castEls.forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+    this.characterButton.title = `Đang là ${c.name}. Bấm (hoặc phím C) để đổi nhân vật`;
+  }
+
+  toast(title: string, subtitle: string): void {
     this.toastEl.replaceChildren();
     const name = document.createElement('strong');
-    name.textContent = p.name;
+    name.textContent = title;
     const note = document.createElement('span');
-    note.textContent = p.note;
+    note.textContent = subtitle;
     this.toastEl.append(name, note);
     // re-show from display:none so the stamp animation plays again
     this.toastEl.hidden = true;

@@ -17,6 +17,10 @@
       <div class="eyebrow">Quận 1 · bản thu nhỏ</div>
       <h1 id="menu-title">Sài Gòn Q1</h1>
       <p class="lede">Chợ Bến Thành, Nhà hát, Nhà thờ Đức Bà, Bưu điện, Hồ Con Rùa, Bitexco và cầu Ba Son trên một hòn đảo vẽ tay.</p>
+      <div class="cast-wrap">
+        <div class="cast-label">Nhân vật của bạn</div>
+        <div class="cast" id="cast" aria-label="Chọn nhân vật"></div>
+      </div>
       <p class="status" id="menu-status" role="status" aria-live="polite">Đang dựng Quận 1…</p>
       <div class="loadrow" id="loadrow">
         <div class="bar"><i id="loadbar"></i></div>
@@ -42,6 +46,7 @@
 
     <div class="tools" data-modes="map play">
       <button id="ink" type="button" aria-pressed="true" title="Bật hoặc tắt nét mực">Nét mực</button>
+      <button id="character" type="button" data-modes="play" title="Đổi nhân vật (C)">Nhân vật</button>
       <button id="respawn" type="button" data-modes="play" title="Quay lại cổng chợ Bến Thành">Về chợ</button>
       <button id="to-map" type="button" data-modes="play" title="Xem toàn bộ bản đồ">Bản đồ</button>
       <button id="to-play" class="btn-primary" type="button" data-modes="map" title="Đi bộ trong Quận 1">Vào game</button>
@@ -54,6 +59,7 @@
       <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
       <span class="mouse-only">kéo chuột để xoay</span>
       <span class="mouse-only">cuộn để zoom</span>
+      <span class="mouse-only"><kbd>C</kbd> đổi nhân vật</span>
       <span class="mouse-only"><kbd>Esc</kbd> menu</span>
       <span class="touch-only">Kéo bên trái để đi, đẩy hết để chạy</span>
       <span class="touch-only">Vuốt bên phải để xoay, chụm hai ngón để zoom</span>

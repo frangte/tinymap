@@ -90,6 +90,19 @@ export class InkPass {
     });
   }
 
+  /** Forget every mesh under `root` (it left the scene). */
+  untrack(root: THREE.Object3D): void {
+    const gone = new Set<THREE.Object3D>();
+    root.traverse((o) => {
+      if (o instanceof THREE.Mesh) gone.add(o);
+    });
+    let keep = 0;
+    for (const t of this.tracked) {
+      if (!gone.has(t.mesh)) this.tracked[keep++] = t;
+    }
+    this.tracked.length = keep;
+  }
+
   /** Size in device pixels. */
   setSize(width: number, height: number, pixelRatio: number): void {
     this.colorRT.setSize(width, height);
