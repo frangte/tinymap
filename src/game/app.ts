@@ -23,6 +23,8 @@ import { RemotePlayers } from './remotePlayers';
 import { NameTags, SELF } from './nameTags';
 import { ChatBox } from './chatBox';
 import { ArchetypePicker } from './archetypePicker';
+import { StoryCard } from './storyCard';
+import { storyFor } from './stories';
 import { Phone } from './phone/phone';
 import { allowedLook, appsFor, archetypeById, grants, type Archetype } from './archetypes';
 import { sameLook } from './outfits';
@@ -114,10 +116,11 @@ export async function startApp(): Promise<void> {
   resize();
 
   let mode: Mode = 'menu';
-  /** the ink outline as the map's button left it; in play it is always off */
-  let inkWanted = ink.enabled;
+  /** the ink outline per mode: on behind the menu, off over the map (its button turns it on), never in play */
+  const inkWanted: Record<Mode, boolean> = { menu: true, map: false, play: false };
   const applyInk = (): void => {
-    ink.enabled = mode !== 'play' && inkWanted;
+    ink.enabled = mode !== 'play' && inkWanted[mode];
+    hud.inkButton.setAttribute('aria-pressed', String(ink.enabled));
   };
   let play: PlayMode | null = null;
   let dress: DressPanel | null = null;
@@ -125,6 +128,8 @@ export async function startApp(): Promise<void> {
   let phone: Phone | null = null;
   /** closes the archetype picker when leaving play (replaced once the map has loaded) */
   let closePicker = (): void => {};
+  /** closes the arrival card when leaving play (replaced once the map has loaded) */
+  let closeStory = (): void => {};
   /** walks out of a conversation when leaving play (replaced once the map has loaded) */
   let closeTalk = (): void => {};
   /** what happens when play starts: pick an archetype, dress, or go straight online (replaced once loaded) */
@@ -189,6 +194,7 @@ export async function startApp(): Promise<void> {
       chat?.close(false);
       phone?.close();
       closePicker();
+      closeStory();
       closeTalk();
       play.exit();
     }
@@ -350,14 +356,14 @@ export async function startApp(): Promise<void> {
       p.player.avatar.setLook(next.look);
       tags.setSelfName(next.name);
       closeDress();
-      goOnline();
+      welcome();
       netClient.setProfile(next);
     },
     cancel: () => {
       p.player.avatar.setLook(profile.look);
       closeDress();
       // a returning player who just picked an archetype has not gone online yet
-      goOnline();
+      welcome();
     },
   });
   dress = panel;
@@ -386,7 +392,7 @@ export async function startApp(): Promise<void> {
   chat = chatBox;
   const openChat = (): void => {
     // while talking the chat log makes room for the conversation sheet
-    if (mode !== 'play' || flight.active || panel.isOpen || !dressed || talk.isOpen) return;
+    if (mode !== 'play' || flight.active || panel.isOpen || story.isOpen || !dressed || talk.isOpen) return;
     chatBox.open();
   };
 
@@ -429,13 +435,39 @@ export async function startApp(): Promise<void> {
     p.setDressing(false);
     p.player.avatar.setLook(profile.look);
   };
+  // ---- the arrival card: who you are and what to do, once per visit, then online
+  const story = new StoryCard({
+    done: () => {
+      p.setDressing(false);
+      renderer.domElement.focus({ preventScroll: true });
+      goOnline();
+    },
+  });
+  closeStory = (): void => {
+    if (!story.isOpen) return;
+    story.close();
+    p.setDressing(false);
+  };
+  let storyTold = false;
+  const welcome = (): void => {
+    const a = archetypeById(profile.archetype);
+    if (storyTold || !a || mode !== 'play') {
+      goOnline();
+      return;
+    }
+    storyTold = true;
+    chatBox.close(false);
+    talk.close();
+    p.setDressing(true);
+    story.open(a, storyFor(a.id));
+  };
   arrive = (): void => {
     if (!profile.archetype) {
       chatBox.close(false);
       p.setDressing(true);
       picker.open();
     } else if (!dressed) openDress();
-    else goOnline();
+    else welcome();
   };
 
   // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
@@ -762,9 +794,8 @@ export async function startApp(): Promise<void> {
     hud.soundButton.setAttribute('aria-pressed', String(ambient.toggle()));
   });
   hud.inkButton.addEventListener('click', () => {
-    inkWanted = !inkWanted;
+    inkWanted[mode] = !inkWanted[mode];
     applyInk();
-    hud.inkButton.setAttribute('aria-pressed', String(inkWanted));
   });
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -772,6 +803,11 @@ export async function startApp(): Promise<void> {
     if (panel.isOpen && e.key === 'Escape') {
       e.preventDefault();
       panel.dismiss();
+      return;
+    }
+    if (story.isOpen && e.key === 'Escape') {
+      e.preventDefault();
+      story.dismiss();
       return;
     }
     if (isTyping(e)) return;
@@ -786,7 +822,7 @@ export async function startApp(): Promise<void> {
       return;
     }
     // P: the phone
-    if (mode === 'play' && e.code === 'KeyP' && !panel.isOpen && !picker.isOpen) {
+    if (mode === 'play' && e.code === 'KeyP' && !panel.isOpen && !picker.isOpen && !story.isOpen) {
       e.preventDefault();
       if (ph.isOpen) ph.close();
       else ph.open();
@@ -799,7 +835,7 @@ export async function startApp(): Promise<void> {
       openChat();
       return;
     }
-    if (mode === 'menu' && (e.key === '1' || e.key === '2')) request(e.key === '1' ? 'map' : 'play');
+    if (mode === 'menu' && (e.key === '1' || e.key === '2')) request(e.key === '1' ? 'play' : 'map');
     else if (mode !== 'menu' && e.key === 'Escape') request('menu');
   });
 
