@@ -25,13 +25,13 @@
         <small id="loadmb">0.0 / 2.0 MB</small>
       </div>
       <div class="modes">
-        <button class="mode" id="mode-map" type="button" disabled>
-          <kbd>1</kbd>
-          <span><strong>Xem bản đồ</strong><small>Xoay, zoom, bay tới từng công trình</small></span>
-        </button>
         <button class="mode mode-primary" id="mode-play" type="button" disabled>
-          <kbd>2</kbd>
+          <kbd>1</kbd>
           <span><strong>Vào game</strong><small>Đi bộ tự do từ cổng chợ Bến Thành</small></span>
+        </button>
+        <button class="mode" id="mode-map" type="button" disabled>
+          <kbd>2</kbd>
+          <span><strong>Xem bản đồ</strong><small>Xoay, zoom, bay tới từng công trình</small></span>
         </button>
       </div>
     </section>
@@ -58,7 +58,7 @@
 
     <div class="tools" data-modes="map play">
       <button id="sound" type="button" aria-pressed="true" title="Bật hoặc tắt âm thanh khu vực (tiếng sóng ở bãi biển)">Âm thanh</button>
-      <button id="ink" type="button" data-modes="map" aria-pressed="true" title="Bật hoặc tắt nét mực">Nét mực</button>
+      <button id="ink" type="button" data-modes="map" aria-pressed="false" title="Bật hoặc tắt nét mực">Nét mực</button>
       <button id="dress-open" type="button" data-modes="play" title="Đổi nhân vật và trang phục">Đổi đồ</button>
       <button id="respawn" type="button" data-modes="play" title="Quay lại cổng chợ Bến Thành">Về chợ</button>
       <button id="to-map" type="button" data-modes="play" title="Xem toàn bộ bản đồ">Bản đồ</button>
@@ -125,6 +125,31 @@
       <h2 id="picker-title">Bạn là ai?</h2>
       <p class="picker-lede">Cả Quận 1 chung một con phố, mỗi vai sống ở đó một kiểu. Chọn một lần là giữ luôn.</p>
       <div class="picker-cards" id="picker-cards"></div>
+    </section>
+
+    <!-- the arrival card (storyCard.ts): who you are and what to do, once per visit before going online -->
+    <section class="story card" id="story" data-modes="play" role="dialog" aria-modal="false" aria-labelledby="story-title" hidden>
+      <div class="story-head">
+        <span class="badge" id="story-badge"></span>
+        <div class="eyebrow">Câu chuyện của bạn</div>
+      </div>
+      <h2 id="story-title"></h2>
+      <p class="story-opening" id="story-opening"></p>
+      <div class="story-block">
+        <div class="eyebrow">Việc cần làm</div>
+        <ol class="story-todo" id="story-todo"></ol>
+      </div>
+      <p class="story-tip" id="story-tip"></p>
+      <div class="story-keys">
+        <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>
+        <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
+        <span class="mouse-only"><kbd>E</kbd> nói chuyện, lên xe</span>
+        <span class="mouse-only"><kbd>P</kbd> điện thoại</span>
+        <span class="mouse-only">kéo chuột để xoay</span>
+        <span class="touch-only">Kéo bên trái để đi, vuốt bên phải để xoay</span>
+        <span class="touch-only">Nút tròn góc dưới phải là điện thoại</span>
+      </div>
+      <button id="story-go" class="btn-primary" type="button">Bắt đầu</button>
     </section>
 
     <!-- a conversation with an NPC (dialogueSheet.ts): bottom centre, the answers as big buttons -->

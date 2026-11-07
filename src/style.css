@@ -584,6 +584,58 @@ body.is-chatting .actions { display: none !important; }
   .toast, .dress, .picker, .phone, .talk, .talk-say.is-new, .bubble.is-new { animation: none; }
 }
 
+/* the arrival card (storyCard.ts): same place as the picker, the player framed beside it */
+.story {
+  position: fixed;
+  right: var(--edge-r);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(400px, calc(100vw - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 10px;
+  border-width: 2px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
+}
+.story-head { display: flex; align-items: center; gap: 8px; }
+.story h2 { margin: -4px 0 0; font: 800 28px/1.05 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
+.story-opening { margin: 0; font: 500 14px/1.5 var(--body); color: var(--ink); text-wrap: pretty; }
+.story-block { display: grid; gap: 6px; padding: 10px 12px 11px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--paper); }
+.story-todo { margin: 0; padding: 0 0 0 20px; display: grid; gap: 4px; font: 500 13px/1.45 var(--body); color: var(--ink); text-wrap: pretty; }
+.story-todo li::marker { font: 700 12px var(--mono); color: var(--brick); }
+.story-tip { margin: 0; font: 500 12.5px/1.45 var(--body); color: var(--ink-soft); text-wrap: pretty; }
+.story-keys { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 12px/1.4 var(--body); color: var(--ink); }
+.story-keys > span { display: inline-flex; align-items: center; gap: 5px; }
+.story .btn-primary { justify-self: start; margin-top: 2px; padding: 11px 18px; font: 800 16px/1 var(--display); }
+body.is-story .hint,
+body.is-story .toast,
+body.is-story .corner,
+body.is-story .phone-toggle,
+body.is-story .phone,
+body.is-story .actions,
+body.is-story .tracker,
+body.is-story .offer,
+body.is-story #dress-open { display: none !important; }
+@media (max-width: 560px) {
+  .story {
+    left: var(--edge-l);
+    right: var(--edge-r);
+    top: auto;
+    bottom: var(--edge-b);
+    translate: none;
+    width: auto;
+    max-height: 62%;
+    padding: 12px 12px 12px;
+    gap: 8px;
+    animation-name: sheet-up;
+  }
+  .story h2 { font-size: 22px; }
+  .story-keys { display: none; }
+}
+
 /* "Bạn là ai?": the archetype cards, a card on the right on wide screens, a bottom sheet on phones */
 .picker {
   position: fixed;

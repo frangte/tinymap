@@ -1,6 +1,6 @@
 # Sài Gòn Q1
 
-A walkable miniature of District 1, Ho Chi Minh City: an island in the sea with Chợ Bến Thành as the starting point and the landmarks laid out east of it roughly as in the real city. The map is modelled in Blender (`sg.tinymap.blend`) and shown in Three.js + TypeScript. The start menu offers two ways in: **[1] map** (orbit, zoom and fly to each landmark) and **[2] play** (start in front of the south gate of Chợ Bến Thành and walk anywhere on the streets, plazas, lawns and the beach). Everything is drawn with shaders only: a toon paint shader (colour variation, street grime, rain streaks, paper grain), a screen-space ink outline and a toon sea that reads the scene depth for shallows and shore foam. Clouds, gulls, swaying trees and code-generated area sound (soft surf on the beach for now) keep it alive.
+A walkable miniature of District 1, Ho Chi Minh City: an island in the sea with Chợ Bến Thành as the starting point and the landmarks laid out east of it roughly as in the real city. The map is modelled in Blender (`sg.tinymap.blend`) and shown in Three.js + TypeScript. The start menu offers two ways in: **[1] play** (start in front of the south gate of Chợ Bến Thành and walk anywhere on the streets, plazas, lawns and the beach) and **[2] map** (orbit, zoom and fly to each landmark). Everything is drawn with shaders only: a toon paint shader (colour variation, street grime, rain streaks, paper grain), a screen-space ink outline and a toon sea that reads the scene depth for shallows and shore foam. Clouds, gulls, swaying trees and code-generated area sound (soft surf on the beach for now) keep it alive.
 
 **Start with [docs/PROJECT.md](docs/PROJECT.md)**: project context, the art style, the Blender file conventions and a sheet of every landmark with renders and reference photos.
 
@@ -19,7 +19,7 @@ The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so th
 
 | | Desktop | Touch |
 |---|---|---|
-| Menu | press 1 (map) or 2 (play); Esc goes back to the menu | tap a card |
+| Menu | press 1 (play) or 2 (map); Esc goes back to the menu | tap a card |
 | Map | drag to orbit, wheel to zoom, right-drag to pan, landmark chips to fly | swipe, pinch, two-finger drag, chips |
 | Walk | W A S D / arrow keys | drag on the left half (floating joystick) |
 | Run | hold Shift | push the joystick to the edge |
@@ -53,6 +53,8 @@ src/game/
   input.ts              keyboard, mouse, touch joystick, pinch
   places.ts             named landmarks and streets for the HUD
   hud.ts                DOM overlay helpers
+  storyCard.ts          the arrival card: the archetype's story and first steps, once per visit
+  stories.ts            that text per archetype
   coords.ts             Blender <-> three.js axes, small math helpers
 public/models/
   saigon_q1.glb         the diorama (export of sg.tinymap.blend)
