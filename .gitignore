@@ -2,10 +2,14 @@
 node_modules/
 dist/
 dist-single/
+server/bin/
+# the dev database (npm run server); production keeps it in /var/lib/sg-tinymap
+server/data/
 *.tsbuildinfo
 *.log
 
 # Blender: only the main map (sg.tinymap.blend) is versioned
+*.blend
 *.blend1
 *.blend@
 Untitled.blend
@@ -23,3 +27,5 @@ renders/
 # Claude Code: per-machine state
 .claude/settings.local.json
 .claude/ecc/install-state.json
+server/cmd/server/app
+

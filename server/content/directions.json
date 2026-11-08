@@ -1,0 +1,6 @@
+{
+  "about": "Asking the way, the co-op quest (server/internal/directions; docs/design/README.md, D18). A character with directions.ask asks the way to a landmark; every character online with directions.give gets a call and keeps the asker in view. The first to stand within reach metres and answer gives the way, and both get credit; a pair is credited once a day. Nobody answering within wait_seconds (or nobody online to ask) opens the NPC fallback of the quest. ask_gap_seconds is the least time between two asks of one character. Read by the server and the game.",
+  "wait_seconds": 180,
+  "reach": 4,
+  "ask_gap_seconds": 20
+}

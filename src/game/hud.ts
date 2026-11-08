@@ -1,35 +1,47 @@
 // DOM overlay: start menu (with the loader), place card, map stops, tool buttons, landmark toasts, hints.
+// The dressing panel has its own controller (dressPanel.ts).
 // Which elements show in which mode is CSS: <body data-mode> against each element's data-modes list.
 import type { Place } from './places';
 import type { JoystickView } from './input';
 import type { MapStop } from './mapView';
-import type { CharacterStyle } from './characters';
+import type { NetStatus } from '../net/client';
 
 export type Mode = 'menu' | 'map' | 'play';
 
-function el<T extends HTMLElement>(id: string): T {
+export function el<T extends HTMLElement>(id: string): T {
   const e = document.getElementById(id);
   if (!e) throw new Error(`#${id} missing in index.html`);
   return e as T;
 }
 
-const EYEBROW: Record<Mode, string> = { menu: 'Sài Gòn Q1', map: 'Sài Gòn Q1 · bản đồ', play: 'Sài Gòn Q1 · đang ở' };
+const ONLINE_TEXT: Record<NetStatus, (n: number) => string> = {
+  online: (n) => (n > 1 ? `${n} người đang ở Q1` : 'Chỉ có bạn ở Q1'),
+  connecting: () => 'Đang kết nối…',
+  offline: () => 'Mất kết nối, đang thử lại…',
+  full: () => 'Phố đông quá, chờ chút…',
+  replaced: () => 'Bạn đang chơi ở tab khác. Tải lại trang để chơi ở đây.',
+  banned: () => 'Tài khoản đang bị khóa vì vi phạm nội quy.',
+  kicked: () => 'Người điều hành đã mời bạn ra. Tải lại trang để vào lại.',
+};
+
+const EYEBROW: Record<Mode, string> ={ menu: 'Sài Gòn Q1', map: 'Sài Gòn Q1 · bản đồ', play: 'Sài Gòn Q1 · đang ở' };
 
 export class Hud {
   readonly stage = el<HTMLDivElement>('stage');
   readonly joystick: JoystickView = { base: el('joy'), knob: el('knob') };
   readonly inkButton = el<HTMLButtonElement>('ink');
+  readonly soundButton = el<HTMLButtonElement>('sound');
   readonly respawnButton = el<HTMLButtonElement>('respawn');
+  readonly dressButton = el<HTMLButtonElement>('dress-open');
   readonly toPlayButton = el<HTMLButtonElement>('to-play');
   readonly toMapButton = el<HTMLButtonElement>('to-map');
   readonly modeMapButton = el<HTMLButtonElement>('mode-map');
   readonly modePlayButton = el<HTMLButtonElement>('mode-play');
-  readonly characterButton = el<HTMLButtonElement>('character');
-  private readonly cast = el('cast');
-  private castEls: HTMLButtonElement[] = [];
   private readonly eyebrow = el('where-eyebrow');
   private readonly where = el('where');
   private readonly whereNote = el('wherenote');
+  private readonly online = el('online');
+  private readonly onlineText = el('online-text');
   private readonly toastEl = el('toast');
   private readonly hint = el('hint-play');
   private readonly chips = el('chips');
@@ -66,6 +78,13 @@ export class Hud {
     this.modePlayButton.disabled = true;
   }
 
+  /** Multiplayer status under the place name; `players` counts everyone here, this player included. */
+  setOnline(status: NetStatus, players: number): void {
+    this.online.hidden = false;
+    this.online.dataset.status = status;
+    this.onlineText.textContent = ONLINE_TEXT[status](players);
+  }
+
   setPlace(p: Place | null): void {
     this.where.textContent = p ? p.name : 'Quận 1';
     this.whereNote.textContent = p ? p.note : 'Sài Gòn';
@@ -100,44 +119,13 @@ export class Hud {
     }
   }
 
-  /** One radio-style button per playable character; `onPick` gets the index. */
-  buildCast(cast: readonly CharacterStyle[], onPick: (i: number) => void): void {
-    this.cast.replaceChildren();
-    this.castEls = cast.map((c, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'cast-btn';
-      b.setAttribute('aria-pressed', 'false');
-      const swatch = document.createElement('i');
-      swatch.className = 'swatch';
-      swatch.style.setProperty('--hat', c.hat);
-      swatch.style.setProperty('--top', c.top);
-      swatch.style.setProperty('--bottom', c.bottom);
-      const text = document.createElement('span');
-      const name = document.createElement('strong');
-      name.textContent = c.name;
-      const note = document.createElement('small');
-      note.textContent = c.note;
-      text.append(name, note);
-      b.append(swatch, text);
-      b.addEventListener('click', () => onPick(i));
-      this.cast.appendChild(b);
-      return b;
-    });
-  }
-
-  /** Mark the chosen character in the menu and name it on the play-mode button. */
-  selectCharacter(i: number, c: CharacterStyle): void {
-    this.castEls.forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
-    this.characterButton.title = `Đang là ${c.name}. Bấm (hoặc phím C) để đổi nhân vật`;
-  }
-
-  toast(title: string, subtitle: string): void {
+  /** A card that pops in and fades: a landmark first seen, a quest completed. */
+  toast(p: Pick<Place, 'name' | 'note'>): void {
     this.toastEl.replaceChildren();
     const name = document.createElement('strong');
-    name.textContent = title;
+    name.textContent = p.name;
     const note = document.createElement('span');
-    note.textContent = subtitle;
+    note.textContent = p.note;
     this.toastEl.append(name, note);
     // re-show from display:none so the stamp animation plays again
     this.toastEl.hidden = true;
@@ -156,5 +144,9 @@ export class Hud {
   /** Fade the play hint once the player has found their feet. */
   hideHint(): void {
     this.hint.classList.add('is-out');
+    // then out of the layout, so the chat above it drops into the corner
+    window.setTimeout(() => {
+      this.hint.hidden = true;
+    }, 900);
   }
 }

@@ -43,13 +43,13 @@ export function createScene(): THREE.Scene {
   scene.add(new THREE.AmbientLight(SHADOW_TINT, Math.PI));
   const sun = new THREE.DirectionalLight(LIGHT_TINT.clone().sub(SHADOW_TINT), Math.PI);
   const sunDir = new THREE.Vector3(-0.5506, 0.7708, -0.3204).normalize();
-  const center = fromBlender(45, -45, 0);
+  const center = fromBlender(38, 14, 0); // island centre
   sun.position.copy(center).addScaledVector(sunDir, 260);
   sun.target.position.copy(center);
   sun.castShadow = true;
   const res = Math.min(window.innerWidth, window.innerHeight) < 700 ? 2048 : 4096;
   sun.shadow.mapSize.set(res, res);
-  Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 150, bottom: -150, near: 20, far: 560 });
+  Object.assign(sun.shadow.camera, { left: -125, right: 125, top: 125, bottom: -125, near: 20, far: 560 });
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.06;
   scene.add(sun, sun.target);

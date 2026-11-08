@@ -1,0 +1,9 @@
+{
+  "about": "Emotes everyone can play (docs/design/05-frontend.md, \"Animation\"). code is what the state message carries in bits 4-7 of s (1-15, stable); seconds is how long one plays (0: until the player moves). An emote with requires needs that capability; the server strips the others.",
+  "emotes": [
+    { "id": "wave", "code": 1, "name": { "vi": "Vẫy tay", "en": "Wave" }, "seconds": 2.4 },
+    { "id": "bow", "code": 2, "name": { "vi": "Cúi chào", "en": "Bow" }, "seconds": 1.8 },
+    { "id": "photo", "code": 3, "name": { "vi": "Chụp ảnh", "en": "Take a photo" }, "seconds": 3 },
+    { "id": "exercise", "code": 4, "name": { "vi": "Tập thể dục", "en": "Exercise" }, "seconds": 0 }
+  ]
+}

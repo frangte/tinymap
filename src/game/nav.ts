@@ -1,6 +1,7 @@
 // Walkable heightfield baked from the Blender diorama (public/models/saigon_q1_nav.*):
 // a 0.35 m grid over the island with the floor height per cell, a walkable flag, and the building top
 // of every non-walkable cell (used to keep the camera out of buildings).
+import { clearanceField } from './clearance';
 import { clamp } from './coords';
 
 export interface NavMeta {
@@ -14,6 +15,10 @@ export interface NavMeta {
   ny: number;
   /** spawn point, Blender XY */
   spawn: [number, number];
+  /** sea level (Blender z); the sea is drawn at this height */
+  sea_level?: number;
+  /** centre of the island, Blender XY */
+  island_center?: [number, number];
 }
 
 interface Pixels {
@@ -43,14 +48,14 @@ function isNavMeta(v: unknown): v is NavMeta {
   return ['x0', 'y0', 'cell', 'nx', 'ny'].every((k) => typeof m[k] === 'number') && Array.isArray(m.spawn) && m.spawn.length === 2;
 }
 
-const RING = Array.from({ length: 8 }, (_, k) => [Math.cos((k * Math.PI) / 4), Math.sin((k * Math.PI) / 4)] as const);
-
 export class NavGrid {
   private constructor(
     readonly meta: NavMeta,
     private readonly floor: Float32Array,
     private readonly walk: Uint8Array,
     private readonly roof: Float32Array,
+    /** per cell, metres from its centre to the nearest blocked cell (clearance.ts) */
+    private readonly clear: Float32Array,
   ) {}
 
   /** Loads `<base>_nav.json`, `<base>_nav.png` and `<base>_roof.png`. */
@@ -73,7 +78,7 @@ export class NavGrid {
       walk[i] = nav.data[p + 2] > 127 ? 1 : 0;
       roof[i] = (top.data[p] * 256 + top.data[p + 1]) / 100;
     }
-    return new NavGrid(meta, floor, walk, roof);
+    return new NavGrid(meta, floor, walk, roof, clearanceField(walk, meta.nx, meta.ny, meta.cell));
   }
 
   /** Cell index for a three.js position (x, z), or -1 outside the grid. Row 0 is the south edge. */
@@ -120,6 +125,39 @@ export class NavGrid {
     return wsum > 0 ? sum / wsum : fallback;
   }
 
+  /**
+   * How far (x, z) is from the nearest cell nobody can walk on (m), blended between cell centres so obstacles read
+   * round: a trunk is a disc to slide around, not a square to catch on. Negative inside an obstacle and outside the grid.
+   */
+  clearance(x: number, z: number): number {
+    const { x0, y0, cell, nx, ny } = this.meta;
+    const fx = (x - x0) / cell - 0.5;
+    const fy = (-z - y0) / cell - 0.5;
+    const i0 = Math.floor(fx);
+    const j0 = Math.floor(fy);
+    const tx = fx - i0;
+    const ty = fy - j0;
+    const south = this.clearAt(i0, j0, nx, ny) * (1 - tx) + this.clearAt(i0 + 1, j0, nx, ny) * tx;
+    const north = this.clearAt(i0, j0 + 1, nx, ny) * (1 - tx) + this.clearAt(i0 + 1, j0 + 1, nx, ny) * tx;
+    return south * (1 - ty) + north * ty;
+  }
+
+  private clearAt(i: number, j: number, nx: number, ny: number): number {
+    return i < 0 || j < 0 || i >= nx || j >= ny ? -1 : this.clear[j * nx + i];
+  }
+
+  /** The way out of the nearest obstacle at (x, z), a unit vector on the ground written into `out`; false where there is none. */
+  awayFromObstacle(x: number, z: number, out: { x: number; z: number }): boolean {
+    const h = this.meta.cell / 2;
+    const gx = this.clearance(x + h, z) - this.clearance(x - h, z);
+    const gz = this.clearance(x, z + h) - this.clearance(x, z - h);
+    const len = Math.hypot(gx, gz);
+    if (len < 1e-9) return false;
+    out.x = gx / len;
+    out.z = gz / len;
+    return true;
+  }
+
   /** Building top above the cell (0 when open sky / walkable). */
   roofAt(x: number, z: number): number {
     const k = this.index(x, z);
@@ -142,16 +180,18 @@ export class NavGrid {
   }
 
   /**
-   * Whether a body of `radius` fits at (x, z): every sample on its footprint is walkable and the floor
-   * under its centre is within `maxStep` of `fromFloor` (kerbs yes, walls and drops no).
+   * Whether a body of `radius` fits at (x, z): nothing blocked within `radius` of it (its clearance) and the floor
+   * under its centre within `maxStep` of `fromFloor` (kerbs yes, walls and drops no).
    */
   canStand(x: number, z: number, radius: number, fromFloor: number, maxStep: number): boolean {
+    return this.canStandBetween(x, z, radius, fromFloor - maxStep, fromFloor + maxStep);
+  }
+
+  /** Like canStand, with the floor under the centre anywhere in [lo, hi] (a jump reaches higher than a step). */
+  canStandBetween(x: number, z: number, radius: number, lo: number, hi: number): boolean {
     const k = this.index(x, z);
     if (k < 0 || this.walk[k] !== 1) return false;
-    if (Math.abs(this.floor[k] - fromFloor) > maxStep) return false;
-    for (const [c, s] of RING) {
-      if (!this.isWalkable(x + c * radius, z + s * radius)) return false;
-    }
-    return true;
+    if (this.floor[k] < lo || this.floor[k] > hi) return false;
+    return radius <= 0 || this.clearance(x, z) >= radius;
   }
 }

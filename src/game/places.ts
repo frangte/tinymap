@@ -1,38 +1,30 @@
-// Named places on the map (Blender XY, metres). The HUD shows where the player is; landmarks also pop a
-// toast the first time the player walks up to them in a visit.
+// Named places on the v4 island (Blender XY, metres). The HUD shows where the player is; landmarks also pop a
+// toast the first time the player walks up to them in a visit. The list lives in server/content/places.json, which
+// the Go server embeds too (and whose tests keep it valid), so the game and the server agree on every place.
+import data from '../../server/content/places.json';
 
 export type PlaceKind = 'landmark' | 'street' | 'area';
 
 export interface Place {
+  /** stable id (quests refer to places by it) */
+  id: string;
   name: string;
   /** small print under the name (year built, kind of street…) */
   note: string;
   kind: PlaceKind;
-  /** a point, or a polyline for streets */
+  /** a point, or a polyline for streets and the coast */
   pts: ReadonlyArray<readonly [number, number]>;
   /** reach in metres from the point / line */
   r: number;
 }
 
-export const PLACES: readonly Place[] = [
-  { name: 'Chợ Bến Thành', note: 'xây năm 1914', kind: 'landmark', pts: [[8, 8]], r: 25 },
-  { name: 'Nhà hát Thành phố', note: 'xây năm 1900', kind: 'landmark', pts: [[65.4, -68.5]], r: 19 },
-  { name: 'Nhà thờ Đức Bà', note: 'xây năm 1880', kind: 'landmark', pts: [[98, -5]], r: 23 },
-  { name: 'Bưu điện Thành phố', note: 'xây năm 1891', kind: 'landmark', pts: [[94.9, -41.8]], r: 17 },
-  { name: 'Hồ Con Rùa', note: 'công trường Quốc tế', kind: 'landmark', pts: [[91.5, 22.4]], r: 15 },
-  { name: 'Bitexco', note: 'tháp tài chính, 2010', kind: 'landmark', pts: [[-15.5, -53.5]], r: 21 },
-  { name: 'Cầu Ba Son', note: 'cầu dây văng, 2022', kind: 'landmark', pts: [[95, -88]], r: 15 },
-  { name: 'Công xã Paris', note: 'tượng Đức Mẹ', kind: 'landmark', pts: [[79.7, -25.8]], r: 9 },
-  { name: 'Phố đi bộ Nguyễn Huệ', note: 'phố đi bộ', kind: 'street', pts: [[-5.8, -85.1], [30.5, -43.8], [46.4, -25.8]], r: 8.5 },
-  { name: 'Đường Lê Lợi', note: 'Quận 1', kind: 'street', pts: [[8, -24], [49.3, -54.3]], r: 8 },
-  { name: 'Đường Đồng Khởi', note: 'Quận 1', kind: 'street', pts: [[17.7, -90.2], [49.3, -54.3], [79.7, -25.8]], r: 7 },
-  { name: 'Đường Hàm Nghi', note: 'Quận 1', kind: 'street', pts: [[8, -24], [8, -69.4]], r: 7.5 },
-  { name: 'Đường Lê Lai', note: 'Quận 1', kind: 'street', pts: [[8, -24], [-70, -24]], r: 7.5 },
-  { name: 'Đường Lê Thánh Tôn', note: 'Quận 1', kind: 'street', pts: [[-13.5, 31], [30, 31.5], [52, 30], [68, 26.5], [91.5, 22.4]], r: 6.5 },
-  { name: 'Đường Tôn Đức Thắng', note: 'ven sông Sài Gòn', kind: 'street', pts: [[-92.6, -65.7], [-44.6, -74.9], [5.6, -87.6], [47.9, -92.3], [85.1, -76.1], [125.6, -41.6], [169.3, -15.4]], r: 7 },
-  { name: 'Bùng binh Quách Thị Trang', note: 'trước chợ Bến Thành', kind: 'street', pts: [[8, -24]], r: 13 },
-  { name: 'Thủ Thiêm', note: 'bờ đông sông Sài Gòn', kind: 'area', pts: [[112, -112]], r: 40 },
-];
+const KINDS: readonly PlaceKind[] = ['landmark', 'street', 'area'];
+
+export const PLACES: readonly Place[] = data.places.map((p): Place => {
+  const kind = KINDS.find((k) => k === p.kind);
+  if (!kind || p.pts.some((pt) => pt.length !== 2)) throw new Error(`server/content/places.json: bad place "${p.id}"`);
+  return { id: p.id, name: p.name, note: p.note, kind, pts: p.pts.map((pt) => [pt[0], pt[1]] as const), r: p.r };
+});
 
 const RANK: Record<PlaceKind, number> = { landmark: 0, street: 1, area: 2 };
 
@@ -44,7 +36,8 @@ function segDist(px: number, py: number, ax: number, ay: number, bx: number, by:
   return Math.hypot(px - (ax + vx * t), py - (ay + vy * t));
 }
 
-function distance(p: Place, x: number, y: number): number {
+/** How far the Blender point (x, y) is from a place: its point, or the nearest point of its line (m). */
+export function distance(p: Place, x: number, y: number): number {
   const pts = p.pts;
   if (pts.length === 1) return Math.hypot(x - pts[0][0], y - pts[0][1]);
   let d = Infinity;

@@ -1,0 +1,99 @@
+{
+  "id": "chu_sau",
+  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions: the NPC fallback of the Traveler's quest Hỏi đường người Sài Gòn when no Citizen player answers in time.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": { "vi": "Đi đâu con? Chú chở, giá mềm!", "en": "Where to? I'll take you, good price!" },
+        "traveler": { "vi": "Khách du lịch hả? Muốn đi đâu chú chỉ đường cho, hông đi xe cũng được!", "en": "A traveller? Tell me where you're going and I'll show you the way, ride or not!" },
+        "citizen": { "vi": "Ê {name}, nay rảnh hả con? Ngồi xuống nói chuyện chơi.", "en": "Hey {name}, free today? Sit down and chat." },
+        "driver": { "vi": "Ủa, Crab Bike hả? Nay chạy được nhiêu cuốc rồi con?", "en": "Oh, Crab Bike? How many rides today?" }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Chú chỉ đường giúp con được không?", "en": "Could you give me directions?" }, "goto": "where" },
+        { "text": { "vi": "Chạy xe ôm có vui không chú?", "en": "Do you like driving a xe ôm?" }, "goto": "life" },
+        { "text": { "vi": "Chú chở con đi một vòng nha?", "en": "Could you give me a ride?" }, "goto": "ride" },
+        { "text": { "vi": "Dạ thôi, con đi bộ.", "en": "No thanks, I'll walk." }, "goto": "bye" }
+      ]
+    },
+    "where": {
+      "say": {
+        "default": { "vi": "Muốn đi đâu? Nói chú nghe.", "en": "Where do you want to go?" }
+      },
+      "choices": [
+        { "text": { "vi": "Nhà thờ Đức Bà", "en": "The Cathedral" }, "goto": "to_church", "emit": "asked_directions" },
+        { "text": { "vi": "Nhà hát Thành phố", "en": "The Opera House" }, "goto": "to_opera", "emit": "asked_directions" },
+        { "text": { "vi": "Hồ Con Rùa", "en": "Turtle Lake" }, "goto": "to_lake", "emit": "asked_directions" },
+        { "text": { "vi": "Bitexco", "en": "Bitexco" }, "goto": "to_bitexco", "emit": "asked_directions" }
+      ]
+    },
+    "to_church": {
+      "say": {
+        "default": { "vi": "Đi thẳng Lê Lợi tới Nhà hát, quẹo trái lên Đồng Khởi, đi một khúc là thấy hai tháp chuông gạch đỏ. Dễ ợt!", "en": "Straight down Lê Lợi to the Opera House, turn left up Đồng Khởi, and soon you'll see two red-brick bell towers. Easy!" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn chú!", "en": "Thank you!" }, "goto": "bye_road" },
+        { "text": { "vi": "Còn chỗ khác thì sao chú?", "en": "And somewhere else?" }, "goto": "where" }
+      ]
+    },
+    "to_opera": {
+      "say": {
+        "default": { "vi": "Dễ nhất nè: cứ theo Lê Lợi đi thẳng một mạch, cuối đường là Nhà hát.", "en": "Easiest one: follow Lê Lợi all the way, the Opera House is at the end." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn chú!", "en": "Thank you!" }, "goto": "bye_road" },
+        { "text": { "vi": "Còn chỗ khác thì sao chú?", "en": "And somewhere else?" }, "goto": "where" }
+      ]
+    },
+    "to_lake": {
+      "say": {
+        "default": { "vi": "Lên Đồng Khởi tới Công xã Paris, chỗ Bưu điện, rồi theo Phạm Ngọc Thạch đi lên là tới Hồ Con Rùa.", "en": "Up Đồng Khởi to Paris Square by the Post Office, then follow Phạm Ngọc Thạch up to Turtle Lake." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn chú!", "en": "Thank you!" }, "goto": "bye_road" },
+        { "text": { "vi": "Còn chỗ khác thì sao chú?", "en": "And somewhere else?" }, "goto": "where" }
+      ]
+    },
+    "to_bitexco": {
+      "say": {
+        "default": { "vi": "Theo Hàm Nghi đi ra phía bờ nước. Cái tháp cao nhất có sân đậu trực thăng là Bitexco đó.", "en": "Follow Hàm Nghi towards the water. The tallest tower, the one with the helipad, is Bitexco." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn chú!", "en": "Thank you!" }, "goto": "bye_road" },
+        { "text": { "vi": "Còn chỗ khác thì sao chú?", "en": "And somewhere else?" }, "goto": "where" }
+      ]
+    },
+    "life": {
+      "say": {
+        "default": { "vi": "Chú chạy xe ôm ba chục năm rồi. Giờ người ta đặt xe trên điện thoại hết, mà khách quen vẫn kêu chú.", "en": "Thirty years on a xe ôm. Everyone books rides on their phones now, but my regulars still call me." },
+        "driver": { "vi": "Tụi con áo vàng chạy lẹ thiệt, mà khách quen ở bùng binh này vẫn là của chú nghen!", "en": "You yellow jackets are fast, but the regulars at this roundabout are still mine!" }
+      },
+      "choices": [
+        { "text": { "vi": "Chú chỉ đường giúp con nha?", "en": "Could you give me directions?" }, "goto": "where" },
+        { "text": { "vi": "Dạ, chúc chú đắt khách!", "en": "Good luck with the customers!" }, "goto": "bye" }
+      ]
+    },
+    "ride": {
+      "say": {
+        "default": { "vi": "Nay chú nghỉ trưa rồi, mỏi chân quá. Mà Quận 1 nhỏ xíu, đi bộ là tới hết đó con!", "en": "I'm on my lunch break, my legs are tired. But District 1 is tiny, you can walk everywhere!" },
+        "driver": { "vi": "Con cũng chạy xe mà, chở chú đi còn được nữa đó!", "en": "You ride a bike too, you could give me a ride!" }
+      },
+      "choices": [
+        { "text": { "vi": "Vậy chú chỉ đường cho con nha.", "en": "Then could you give me directions?" }, "goto": "where" },
+        { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "bye" }
+      ]
+    },
+    "bye_road": {
+      "say": {
+        "default": { "vi": "Đi đường cẩn thận nha, qua đường nhớ ngó trước ngó sau!", "en": "Take care, and look both ways when you cross!" }
+      }
+    },
+    "bye": {
+      "say": {
+        "default": { "vi": "Ừ, đi đi con. Cần xe thì kêu chú!", "en": "Off you go. Need a ride, just call me!" }
+      }
+    }
+  }
+}

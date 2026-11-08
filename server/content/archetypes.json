@@ -1,0 +1,61 @@
+{
+  "about": "Who a player can be (docs/design/01-gameplay.md). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities and has tags (which quests are offered, quests.json), and systems only ever check capabilities and tags, never the archetype id. vehicle is the starter vehicle (vehicles.json), parked next to the player on arrival. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
+  "capabilities": [
+    { "id": "traveler.guide_app", "about": "the Cẩm nang phone app: the landmarks of Quận 1 to discover" },
+    { "id": "citizen.community_app", "about": "the Hàng Xóm phone app: who is out on the street right now" },
+    { "id": "driver.app", "about": "the Crab Driver phone app (ride requests arrive with ride-hailing)" },
+    { "id": "directions.ask", "about": "may ask the Citizens online the way to a landmark (the co-op quest Hỏi đường người Sài Gòn)" },
+    { "id": "directions.give", "about": "gets Travelers' asks for the way, and may answer them by walking up (Thổ địa)" },
+    { "id": "moderation.act", "about": "moderators: mute, ban, kick and read chat reports with chat commands; given by `sg-server mod add` to an account, never by an archetype" },
+    { "id": "uniform.crab", "about": "may wear the yellow Crab Bike jacket and helmet" },
+    { "id": "vehicle.motorbike.ride", "about": "may ride a motorbike (vehicles.json); later also bought as an item" },
+    { "id": "ridehail.drive", "about": "may go on duty in the Crab Driver app and take ride requests (ridehail.json)" },
+    { "id": "local.certified", "about": "a true Saigonese: earned by finishing the Traveler's questline (quests.json); later unlocks a hidden spot" }
+  ],
+  "archetypes": [
+    {
+      "id": "traveler",
+      "tags": ["traveler"],
+      "name": { "vi": "Du khách", "en": "Traveler" },
+      "pitch": {
+        "vi": "Lần đầu tới Sài Gòn. Đi khắp Quận 1, gặp người địa phương, ghé từng công trình và trở thành người Sài Gòn chính hiệu.",
+        "en": "First time in Saigon. Walk all of District 1, meet the locals, visit every landmark and become a true Saigonese."
+      },
+      "badge": { "short": "Du khách", "color": "#4E7CA6", "text": "#F3EBDD" },
+      "spawn": { "place": "bung_binh_quach_thi_trang", "at": [8, -19], "face": [8, 8], "button": { "vi": "Về bùng binh", "en": "Back to the roundabout" } },
+      "look": { "outfit": "thun", "hat": "cap" },
+      "capabilities": ["traveler.guide_app", "directions.ask"]
+    },
+    {
+      "id": "citizen",
+      "tags": ["citizen"],
+      "name": { "vi": "Người Sài Gòn", "en": "Citizen" },
+      "pitch": {
+        "vi": "Dân Quận 1 chính gốc. Cà phê sáng, hàng xóm quen, những góc phố chỉ người địa phương mới biết, và chỉ đường cho du khách.",
+        "en": "Born and raised in District 1. Morning coffee, the neighbours, the corners only locals know, and showing travellers the way."
+      },
+      "badge": { "short": "Người SG", "color": "#3E7F5F", "text": "#F3EBDD" },
+      "spawn": { "place": "day_nha_pho_le_lai", "at": [-30, -19], "face": [-30, 0], "button": { "vi": "Về nhà", "en": "Back home" } },
+      "look": { "outfit": "baba", "hat": "nonla" },
+      "capabilities": ["citizen.community_app", "directions.give"]
+    },
+    {
+      "id": "driver",
+      "tags": ["driver"],
+      "name": { "vi": "Tài xế Crab Bike", "en": "Crab Bike driver" },
+      "pitch": {
+        "vi": "Áo khoác vàng, mũ bảo hiểm, thuộc từng con đường. Sắp tới: nhận cuốc xe trên điện thoại và chở khách khắp phố.",
+        "en": "Yellow jacket, helmet, knows every street. Coming soon: ride requests on the phone, and passengers all over town."
+      },
+      "badge": { "short": "Crab", "color": "#D9A21B", "text": "#2B211C" },
+      "spawn": { "place": "duong_ham_nghi", "at": [36, -37], "face": [62, -50], "button": { "vi": "Về bãi xe", "en": "Back to the bike stand" } },
+      "look": { "outfit": "crab", "hat": "helmet" },
+      "vehicle": "xe_so_110",
+      "capabilities": ["driver.app", "uniform.crab", "vehicle.motorbike.ride", "ridehail.drive"]
+    }
+  ],
+  "restricted_looks": [
+    { "outfit": "crab", "requires": "uniform.crab" },
+    { "hat": "helmet", "requires": "uniform.crab" }
+  ]
+}
