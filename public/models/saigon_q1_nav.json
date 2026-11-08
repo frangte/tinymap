@@ -1,12 +1,17 @@
 {
- "x0": -72.0,
- "y0": -142.0,
+ "x0": -84.0,
+ "y0": -98.0,
  "cell": 0.35,
- "nx": 674,
- "ny": 554,
+ "nx": 640,
+ "ny": 651,
  "spawn": [
   8.0,
   -12.8
+ ],
+ "sea_level": -0.45,
+ "island_center": [
+  36.0,
+  8.0
  ],
  "nav": "saigon_q1_nav.png: R*256+G = floor height cm + 1000, B=255 walkable",
  "roof": "saigon_q1_roof.png: R*256+G = building top cm (0 = open), camera occluder cells only",

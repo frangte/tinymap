@@ -1,0 +1,37 @@
+# systemd unit for the Go server, rendered and installed by scripts/deploy.sh. Edit this template, not the copy on the server.
+[Unit]
+Description=Tinymap Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{USER}}
+WorkingDirectory=/home/ubuntu/apps/sg.tinymap.live/
+ExecStart=/home/ubuntu/apps/sg.tinymap.live/server
+Environment=PORT=8787
+# nginx on this machine is the only client
+Environment=TRUSTED_PROXIES=127.0.0.1,::1
+Environment=MAX_PLAYERS=150
+Environment=ALLOWED_ORIGINS=https://sg.tinymap.live
+Environment=LOG_LEVEL=info
+# the player database and its backups live outside releases/ (which deploys swap and prune), in the one
+# folder this unit may write: systemd creates /var/lib/sg-tinymap for StateDirectory, owned by User
+StateDirectory=sg-tinymap
+StateDirectoryMode=0750
+Environment=DB_PATH=/var/lib/sg-tinymap/game.db
+Restart=on-failure
+RestartSec=2
+
+# the server writes only its StateDirectory and needs no privileges
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

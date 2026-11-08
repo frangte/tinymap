@@ -13,10 +13,23 @@ const MAX_PITCH = 1.3;
 /** keep this far in front of an occluding wall */
 const WALL_GAP = 0.55;
 
+/** Close framing of the whole body for the dressing panel. */
+export interface Framing {
+  /** look-at height above the feet (m); lower puts the player higher on screen */
+  height: number;
+  dist: number;
+  pitch: number;
+}
+
 export class FollowCamera {
   /** horizontal angle of the camera around the player; the camera looks along (-sin yaw, -cos yaw) */
   yaw = 0;
   pitch = 0.46;
+  /** set while dressing: ease into this framing; null = normal follow, easing the pitch back to where it was */
+  portrait: Framing | null = null;
+  private wasPortrait = false;
+  private pitchBefore = 0.46;
+  private pitchReturn: number | null = null;
   private goalDist = 10.5;
   private dist = 10.5;
   private readonly pivot = new THREE.Vector3();
@@ -40,6 +53,17 @@ export class FollowCamera {
     this.yaw = wrapAngle(this.yaw + look.yaw);
     this.pitch = clamp(this.pitch + look.pitch, MIN_PITCH, MAX_PITCH);
     this.goalDist = clamp(this.goalDist * Math.exp(look.zoom), MIN_DIST, MAX_DIST);
+    const frame = this.portrait;
+    if (frame && !this.wasPortrait) this.pitchBefore = this.pitch;
+    if (!frame && this.wasPortrait) this.pitchReturn = this.pitchBefore;
+    this.wasPortrait = frame !== null;
+    if (frame) {
+      this.pitch += (frame.pitch - this.pitch) * damp(5, dt);
+    } else if (this.pitchReturn !== null) {
+      // a drag takes over from the easing
+      if (look.pitch !== 0 || Math.abs(this.pitchReturn - this.pitch) < 1e-3) this.pitchReturn = null;
+      else this.pitch += (this.pitchReturn - this.pitch) * damp(4, dt);
+    }
     if (follow > 0) {
       const behind = wrapAngle(heading + Math.PI - this.yaw);
       // never whip round when the player turns to face the camera
@@ -49,11 +73,13 @@ export class FollowCamera {
     // the pivot trails the player slightly, which reads as weight
     this.pivot.x += (target.x - this.pivot.x) * damp(14, dt);
     this.pivot.z += (target.z - this.pivot.z) * damp(14, dt);
-    this.pivot.y += (target.y + PIVOT_H - this.pivot.y) * damp(9, dt);
+    this.pivot.y += (target.y + (frame ? frame.height : PIVOT_H) - this.pivot.y) * damp(frame ? 5 : 9, dt);
 
-    const free = this.clearDistance(this.goalDist);
-    // pull in at once, ease back out
-    this.dist += (free - this.dist) * damp(free < this.dist ? 30 : 3.5, dt);
+    const want = frame ? frame.dist : this.goalDist;
+    const free = this.clearDistance(want);
+    // pull in at once for a wall, glide in for the dressing framing, ease back out
+    const inRate = frame && free >= want ? 5 : 30;
+    this.dist += (free - this.dist) * damp(free < this.dist ? inRate : 3.5, dt);
     this.place();
   }
 

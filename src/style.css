@@ -9,6 +9,7 @@
   --ink-soft: #6a5a4c;
   --brick: #b5523b;
   --teal: #4f8f88;
+  --ochre: #e0b45a;
   --shade: rgba(43, 33, 28, 0.22);
   --display: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
   --body: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
@@ -52,11 +53,18 @@ body[data-mode='play'] [data-modes]:not([data-modes~='play']) { display: none !i
   box-shadow: 2px 3px 0 var(--shade);
 }
 
-/* where you are */
-.where {
+/* top left: where you are, and the quest tracker under it */
+.topleft {
   position: fixed;
   top: var(--edge-t);
   left: var(--edge-l);
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  pointer-events: none;
+}
+.topleft > * { pointer-events: auto; }
+.where {
   padding: 9px 13px 10px;
   max-width: min(300px, calc(100vw - 32px - 150px));
   display: grid;
@@ -65,6 +73,11 @@ body[data-mode='play'] [data-modes]:not([data-modes~='play']) { display: none !i
 .eyebrow { font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brick); }
 .where h1 { margin: 0; font: 800 22px/1.15 var(--display); letter-spacing: -0.01em; text-wrap: balance; }
 .where .note { font: 500 12px/1.3 var(--body); color: var(--ink-soft); }
+/* multiplayer status: a dot (teal online, ochre connecting, brick offline / full) and a short line */
+.online { display: flex; align-items: center; gap: 6px; margin-top: 4px; font: 600 11px/1.2 var(--body); color: var(--ink); }
+.online i { width: 7px; height: 7px; border-radius: 50%; border: 1.2px solid var(--ink); background: var(--brick); flex: none; }
+.online[data-status='online'] i { background: var(--teal); }
+.online[data-status='connecting'] i { background: var(--ochre); }
 
 /* tools */
 .tools {
@@ -115,26 +128,6 @@ button:disabled { cursor: progress; opacity: 0.55; transform: none; }
 .menu .status { margin: 6px 0 0; font: 600 12px/1.3 var(--body); letter-spacing: 0.06em; text-transform: uppercase; }
 .menu .status.is-error { color: var(--brick); text-transform: none; letter-spacing: 0; font-size: 14px; line-height: 1.45; }
 .loadrow { display: grid; gap: 6px; }
-/* character picker: a swatch of the outfit (hat / top / bottom) next to the name */
-.cast-wrap { display: grid; gap: 6px; margin-top: 4px; }
-.cast-label { font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
-.cast { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.cast-btn { display: flex; align-items: center; gap: 9px; text-align: left; padding: 7px 10px 8px 8px; min-width: 0; }
-.cast-btn span { display: grid; gap: 2px; min-width: 0; }
-.cast-btn strong { font: 700 13px/1.15 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cast-btn small { font: 500 11px/1.25 var(--body); color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cast-btn[aria-pressed='true'] small { color: var(--paper-deep); }
-.swatch {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 30px;
-  border: 1.2px solid var(--ink);
-  border-radius: 3px;
-  background: linear-gradient(to bottom, var(--hat) 0 30%, var(--top) 30% 66%, var(--bottom) 66% 100%);
-  box-shadow: 1px 1px 0 var(--shade);
-}
-.cast-btn[aria-pressed='true'] .swatch { border-color: var(--paper); }
-
 .modes { display: grid; gap: 10px; }
 .mode {
   display: grid;
@@ -198,12 +191,74 @@ button:disabled { cursor: progress; opacity: 0.55; transform: none; }
   to { opacity: 1; transform: none; }
 }
 
-/* control hint */
-.hint {
+/* dressing panel: a card on the right on wide screens, a bottom sheet on phones (play.ts frames the player to match) */
+.dress {
+  position: fixed;
+  right: var(--edge-r);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(344px, calc(100vw - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 14px;
+  border-width: 2px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
+}
+.dress h2 { margin: -8px 0 0; font: 800 28px/1.05 var(--display); letter-spacing: -0.02em; }
+.dress fieldset { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 7px; }
+.dress legend,
+.field > span { padding: 0; font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.dress legend { margin-bottom: 7px; }
+.field { display: grid; gap: 7px; }
+/* 16px keeps iOS from zooming into the field */
+.field input {
+  font: 600 16px/1.2 var(--body);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 9px 11px;
+  box-shadow: inset 1px 1px 0 var(--shade);
+  min-width: 0;
+}
+.field input::placeholder { color: color-mix(in srgb, var(--ink-soft) 70%, transparent); }
+.field input:focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.seg button { padding: 10px 8px; }
+.outfits { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.outfit { display: grid; justify-items: start; align-content: start; gap: 7px; padding: 9px 9px 10px; text-align: left; font-size: 12px; line-height: 1.2; }
+/* shirt over trousers, the two colours the outfit is recognised by */
+.outfit .sw { display: grid; grid-template-rows: 9px 7px; width: 30px; border: 1.2px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.outfit[aria-pressed='true'] .sw { border-color: var(--paper); }
+.dress-actions { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 2px; }
+.dress-actions button { padding: 11px 14px; font-size: 14px; }
+.dress-actions .btn-primary { grid-column: 2; font: 800 16px/1 var(--display); }
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+body.is-dressing .hint,
+body.is-dressing .toast,
+body.is-dressing #dress-open { display: none !important; }
+
+/* bottom-left corner in play: the chat over the control hint; lifted above the phone keyboard (--kb, chatBox.ts) */
+.corner {
   position: fixed;
   left: var(--edge-l);
-  bottom: var(--edge-b);
-  max-width: calc(100vw - 32px);
+  bottom: calc(var(--edge-b) + var(--kb, 0px));
+  width: min(380px, calc(100vw - 32px));
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  pointer-events: none;
+}
+
+/* control hint */
+.hint {
+  max-width: 100%;
   padding: 8px 11px;
   display: flex;
   flex-wrap: wrap;
@@ -256,6 +311,216 @@ kbd {
   box-shadow: 2px 2px 0 var(--shade);
 }
 
+/* names and chat bubbles over heads, placed with a transform by nameTags.ts (under every card) */
+.tags { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.tag-name {
+  font: 700 12px/1 var(--body);
+  color: var(--ink);
+  white-space: nowrap;
+  padding: 3px 7px 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  box-shadow: 0 0 0 1.2px var(--ink), 1px 2px 0 var(--shade);
+}
+/* a bubble up: it stands in for the name */
+.tag.is-speaking .tag-name { display: none; }
+/* our own name: ink on paper the other way round, so it reads as "you" */
+.tag.is-self .tag-name { color: var(--paper); background: color-mix(in srgb, var(--ink) 82%, transparent); }
+.bubble {
+  position: relative;
+  margin: 0 0 4px;
+  width: max-content;
+  max-width: 210px;
+  padding: 6px 10px 7px;
+  font: 600 13px/1.35 var(--body);
+  color: var(--ink);
+  text-align: center;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+/* the tail, pointing down at the speaker */
+.bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 9px;
+  height: 9px;
+  translate: -50% 0;
+  rotate: 45deg;
+  background: var(--paper);
+  border: solid var(--ink);
+  border-width: 0 1.5px 1.5px 0;
+}
+.bubble.is-new { animation: pop 0.28s cubic-bezier(0.2, 1.5, 0.4, 1) backwards; }
+@keyframes pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+
+/* chat: the last few lines as paper strips; opened, a card with the whole log and an input */
+.chat { display: grid; gap: 6px; width: 100%; transition: opacity 0.8s ease; }
+.chat.is-quiet .chat-log { opacity: 0; }
+.chat-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  transition: opacity 0.8s ease;
+}
+.chat-log:empty { display: none; }
+.chat-log li {
+  max-width: 100%;
+  padding: 3px 8px 4px;
+  border-radius: 3px;
+  font: 500 13px/1.35 var(--body);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 84%, transparent);
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* closed, only the newest lines show */
+.chat:not(.is-open) .chat-log li:nth-last-child(n + 6) { display: none; }
+.chat-log b { font-weight: 800; }
+.chat-log b[role='button'] { cursor: pointer; }
+.chat-log b[role='button']:focus-visible { outline: 2px solid var(--brick); outline-offset: 1px; }
+.chat-menu { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chat-menu button { padding: 3px 8px; font: 700 11.5px/1.2 var(--body); }
+.chat-log b[data-c='self'] { color: var(--ink); }
+.chat-log b[data-c='0'] { color: var(--brick); }
+.chat-log b[data-c='1'] { color: #3d7770; }
+.chat-log b[data-c='2'] { color: #42679a; }
+.chat-log b[data-c='3'] { color: #7d3326; }
+.chat-log b[data-c='4'] { color: #86621a; }
+.chat-log b[data-c='5'] { color: #6a4a86; }
+.chat-log li.sys { font-style: italic; font-size: 12px; color: var(--ink-soft); }
+.chat-note {
+  margin: 0;
+  padding: 4px 9px;
+  border-radius: 3px;
+  font: 600 12px/1.3 var(--body);
+  color: var(--paper);
+  background: var(--brick);
+}
+.chat.is-open {
+  pointer-events: auto;
+  padding: 8px;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.chat.is-open .chat-log { max-height: min(40vh, 300px); overflow-y: auto; overscroll-behavior: contain; justify-items: stretch; }
+.chat.is-open .chat-log li { background: none; padding: 1px 2px; }
+.chat-form { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.chat-form input {
+  min-width: 0;
+  font: 500 16px/1.2 var(--body);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 8px 10px;
+  box-shadow: inset 1px 1px 0 var(--shade);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.chat-form input:focus-visible { outline: 2px solid var(--brick); outline-offset: 1px; }
+.chat-form button { padding: 8px 14px; font-size: 14px; }
+body.is-chatting .hint,
+body.is-dressing .corner,
+body.is-dressing .phone-toggle,
+body.is-dressing .phone,
+body.is-picking .corner,
+body.is-picking .toast,
+body.is-picking .phone-toggle,
+body.is-picking #dress-open,
+body.is-chatting .phone-toggle { display: none !important; }
+
+/* the phone's round button, bottom right (all screens) */
+.phone-toggle {
+  position: fixed;
+  right: var(--edge-r);
+  bottom: var(--edge-b);
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border-width: 2px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.phone-toggle[aria-expanded='true'] { background: var(--ink); }
+
+/* jump, the action at hand and the emotes, in a column above the phone button */
+.actions {
+  position: fixed;
+  right: var(--edge-r);
+  bottom: calc(var(--edge-b) + 66px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.actions > *, .act-row > * { pointer-events: auto; }
+.act {
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border-width: 2px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.act[aria-expanded='true'] { background: var(--ink); color: var(--paper); }
+.act-use {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 22px;
+  border-width: 2px;
+  font-weight: 700;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.act-row { display: flex; align-items: center; gap: 8px; pointer-events: none; }
+.emote-menu { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 6px; max-width: min(360px, calc(100vw - 32px - 70px)); }
+.emote-menu[hidden] { display: none; }
+.emote { min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.actions kbd, .emote kbd { font: 700 11px var(--mono); min-width: 0; padding: 1px 5px; color: inherit; background: transparent; border: 1.5px solid currentColor; border-radius: 3px; box-shadow: none; }
+#phone:not([hidden]) ~ .actions,
+body.is-dressing .actions,
+body.is-picking .actions,
+body.is-chatting .actions { display: none !important; }
+.phone-dot { position: absolute; top: 3px; right: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--ochre); border: 1.5px solid var(--ink); }
+@media (pointer: coarse) {
+  /* the phone's profile app has it; the short tool row keeps its room */
+  #dress-open { display: none !important; }
+  .corner { width: min(380px, calc(100vw - 32px - 70px)); }
+  body.is-chatting .corner { width: auto; right: var(--edge-r); }
+}
+
 /* loader (inside the menu) */
 .bar { height: 6px; border: 1.5px solid var(--ink); border-radius: 2px; overflow: hidden; background: var(--paper); }
 .bar i { display: block; height: 100%; width: 0%; background: var(--brick); transition: width 0.2s ease; }
@@ -264,6 +529,7 @@ kbd {
 @media (max-width: 560px) {
   .where h1 { font-size: 18px; }
   .where { padding: 7px 10px 8px; max-width: calc(100vw - 32px - 132px); }
+  .tracker { max-width: calc(100vw - 32px - 132px); }
   .tools { max-width: 124px; }
   .toast strong { font-size: 20px; }
   .tools button { padding: 8px 10px; font-size: 12px; }
@@ -278,8 +544,353 @@ kbd {
   }
   .menu h1 { font-size: 32px; }
   .menu .lede { font-size: 14px; }
+  .dress {
+    left: var(--edge-l);
+    right: var(--edge-r);
+    top: auto;
+    bottom: var(--edge-b);
+    translate: none;
+    width: auto;
+    max-height: 50%;
+    padding: 12px 12px 0;
+    gap: 9px;
+    animation-name: sheet-up;
+  }
+  /* the sheet must leave the player visible above it: no title, swatch beside the label, the confirm button pinned */
+  .dress .eyebrow,
+  .dress h2 { display: none; }
+  .dress legend { margin-bottom: 5px; }
+  .field { grid-template-columns: auto 1fr; align-items: center; gap: 10px; }
+  .field input { padding: 7px 10px; }
+  .seg button { padding: 9px 6px; }
+  .outfits { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .outfit { grid-template-columns: auto 1fr; align-items: center; gap: 6px; padding: 8px 6px; font-size: 11px; }
+  .outfit .sw { width: 18px; grid-template-rows: 8px 6px; }
+  .dress-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -12px;
+    padding: 9px 12px 10px;
+    background: var(--paper);
+    border-top: 1.5px solid var(--ink);
+  }
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  button, .bar i, .toast, .hint, .menu { transition: none; }
-  .toast { animation: none; }
+  button, .bar i, .toast, .hint, .menu, .chat, .chat-log { transition: none; }
+  .toast, .dress, .picker, .phone, .talk, .talk-say.is-new, .bubble.is-new { animation: none; }
 }
+
+/* the arrival card (storyCard.ts): same place as the picker, the player framed beside it */
+.story {
+  position: fixed;
+  right: var(--edge-r);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(400px, calc(100vw - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 10px;
+  border-width: 2px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
+}
+.story-head { display: flex; align-items: center; gap: 8px; }
+.story h2 { margin: -4px 0 0; font: 800 28px/1.05 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
+.story-opening { margin: 0; font: 500 14px/1.5 var(--body); color: var(--ink); text-wrap: pretty; }
+.story-block { display: grid; gap: 6px; padding: 10px 12px 11px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--paper); }
+.story-todo { margin: 0; padding: 0 0 0 20px; display: grid; gap: 4px; font: 500 13px/1.45 var(--body); color: var(--ink); text-wrap: pretty; }
+.story-todo li::marker { font: 700 12px var(--mono); color: var(--brick); }
+.story-tip { margin: 0; font: 500 12.5px/1.45 var(--body); color: var(--ink-soft); text-wrap: pretty; }
+.story-keys { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 12px/1.4 var(--body); color: var(--ink); }
+.story-keys > span { display: inline-flex; align-items: center; gap: 5px; }
+.story .btn-primary { justify-self: start; margin-top: 2px; padding: 11px 18px; font: 800 16px/1 var(--display); }
+body.is-story .hint,
+body.is-story .toast,
+body.is-story .corner,
+body.is-story .phone-toggle,
+body.is-story .phone,
+body.is-story .actions,
+body.is-story .tracker,
+body.is-story .offer,
+body.is-story #dress-open { display: none !important; }
+@media (max-width: 560px) {
+  .story {
+    left: var(--edge-l);
+    right: var(--edge-r);
+    top: auto;
+    bottom: var(--edge-b);
+    translate: none;
+    width: auto;
+    max-height: 62%;
+    padding: 12px 12px 12px;
+    gap: 8px;
+    animation-name: sheet-up;
+  }
+  .story h2 { font-size: 22px; }
+  .story-keys { display: none; }
+}
+
+/* "Bạn là ai?": the archetype cards, a card on the right on wide screens, a bottom sheet on phones */
+.picker {
+  position: fixed;
+  right: var(--edge-r);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 12px;
+  border-width: 2px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
+}
+.picker h2 { margin: -6px 0 0; font: 800 28px/1.05 var(--display); letter-spacing: -0.02em; }
+.picker-lede { margin: 0; font: 500 13px/1.45 var(--body); color: var(--ink-soft); }
+.picker-cards { display: grid; gap: 8px; }
+.arch-card { display: grid; justify-items: start; gap: 6px; padding: 12px 13px 13px; text-align: left; }
+.arch-card strong { font: 800 18px/1.1 var(--display); }
+.arch-pitch { font: 500 12.5px/1.4 var(--body); color: var(--ink-soft); }
+.arch-card:hover, .arch-card:focus-visible { background: var(--paper-deep); }
+
+/* an archetype's badge next to a name: its colours come from server/content/archetypes.json */
+.badge { display: inline-block; padding: 2px 6px 3px; border: 1.2px solid var(--ink); border-radius: 3px; font: 700 10px/1 var(--body); letter-spacing: 0.03em; white-space: nowrap; vertical-align: 1px; }
+.tag-name.has-dot::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--dot); border: 1.2px solid var(--ink); vertical-align: 0; }
+
+/* chat: the channel button left of the field; lines only the players around heard */
+.chat-form { grid-template-columns: auto 1fr auto; }
+.chat-ch { padding: 8px 9px; font-size: 12px; white-space: nowrap; }
+.chat-ch[data-ch='nearby'] { background: var(--teal); color: var(--paper); }
+.chat-log li.is-near i { font: 600 10px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: #3d7770; }
+
+/* the quest tracker: the followed quest, what to do next, an arrow and the distance (questTracker.ts) */
+.tracker {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  max-width: min(300px, calc(100vw - 32px - 150px));
+  padding: 8px 10px 9px 12px;
+  text-align: left;
+  border-radius: 3px;
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.tracker[hidden] { display: none; }
+.tracker-text { display: grid; gap: 3px; min-width: 0; }
+.tracker-goal { font: 600 13px/1.3 var(--body); color: var(--ink); text-wrap: pretty; }
+.tracker-way { display: grid; justify-items: center; gap: 2px; min-width: 38px; color: var(--brick); }
+.tracker-arrow { transition: transform 0.12s linear; }
+.tracker-arrow[hidden] { display: none; }
+.tracker-dist { font: 600 11px/1 var(--mono); color: var(--ink); white-space: nowrap; }
+body.is-dressing .tracker,
+body.is-picking .tracker { display: none !important; }
+
+/* a ride offer for a driver on duty (offerBanner.ts), top centre over the game */
+.offer {
+  position: absolute;
+  top: var(--edge-t);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: grid;
+  gap: 8px;
+  width: min(340px, calc(100vw - 32px));
+  padding: 11px 12px 14px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: color-mix(in srgb, #d9a21b 22%, var(--paper));
+  box-shadow: 2px 3px 0 var(--shade);
+}
+.offer[hidden] { display: none; }
+.offer-text { display: grid; gap: 3px; }
+.offer-text strong { font: 800 17px/1.15 var(--display); }
+.offer-text span { font: 600 12.5px/1.35 var(--body); color: var(--ink); }
+.offer-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.offer-actions button { padding: 9px 12px; }
+.offer-hint { align-self: center; font: 600 12px/1.3 var(--body); color: var(--ink-soft); }
+.offer-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--brick); transform-origin: left; }
+body.is-dressing .offer,
+body.is-picking .offer { display: none !important; }
+
+/* the phone's quests and achievements; titles under names and in chat */
+.app-section { font: 800 14px/1.2 var(--display); }
+.quest-card { display: grid; gap: 6px; padding: 10px 11px 11px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--paper); }
+.quest-card.is-tracked { border-width: 2px; box-shadow: 2px 2px 0 var(--shade); background: color-mix(in srgb, var(--ochre) 14%, var(--paper)); }
+.quest-title { font: 800 15px/1.2 var(--display); }
+.quest-goals { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font: 500 12.5px/1.35 var(--body); }
+.quest-goals li { display: grid; grid-template-columns: 16px 1fr auto; gap: 6px; align-items: baseline; color: var(--ink-soft); }
+.quest-goals li::before { content: '○'; color: var(--ink-soft); }
+.quest-goals li.is-now { color: var(--ink); font-weight: 700; }
+.quest-goals li.is-now::before { content: '●'; color: var(--brick); }
+.quest-goals li.is-done { text-decoration: line-through; }
+.quest-goals li.is-done::before { content: '✓'; color: #3d7770; text-decoration: none; }
+.quest-goals small { font: 500 11px/1 var(--mono); white-space: nowrap; }
+.quest-card > button { justify-self: start; padding: 7px 11px; font-size: 12px; }
+.quest-tracking { font: 600 11px/1.2 var(--body); color: var(--brick); }
+.quest-reward { font: 700 11px/1.2 var(--body); color: var(--ink-soft); }
+.quest-card.is-done { gap: 3px; border-style: dashed; color: var(--ink-soft); background: transparent; }
+.mute-section { display: grid; gap: 8px; margin-top: 6px; }
+.mute-section li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ask-section { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1.5px dashed var(--ink-soft); }
+.ask-places { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ask-places button { padding: 8px 6px; font-size: 12px; }
+.daily-section { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1.5px dashed var(--ink-soft); }
+.stamp-book.is-small { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stamp-book.is-small .stamp { font-size: 9.5px; }
+.quest-done summary { cursor: pointer; font: 700 13px/1.3 var(--body); padding: 4px 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.stamp-section { display: grid; gap: 10px; }
+.stamp-section:empty { display: none; }
+.stamp-book { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stamp { display: grid; place-items: center; aspect-ratio: 1; min-width: 0; padding: 6px; overflow-wrap: anywhere; hyphens: auto; border: 1.5px dashed var(--ink-soft); border-radius: 50%; text-align: center; font: 600 10.5px/1.15 var(--body); color: var(--ink-soft); }
+.stamp.is-earned { border: 2px solid var(--brick); color: var(--brick); background: color-mix(in srgb, var(--brick) 8%, var(--paper)); transform: rotate(-8deg); }
+.achievement { grid-template-columns: 1fr auto; }
+.achievement strong, .achievement > span { grid-column: 1 / -1; }
+.achievement.is-done { background: color-mix(in srgb, var(--teal) 18%, var(--paper)); }
+.achievement.is-done strong::after { content: ' ✓'; color: #3d7770; }
+.meter { height: 6px; border: 1.2px solid var(--ink); border-radius: 2px; overflow: hidden; background: var(--paper); align-self: center; }
+.meter i { display: block; height: 100%; background: var(--teal); }
+.title-select { font: 600 14px/1.2 var(--body); color: var(--ink); background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; padding: 7px 9px; }
+.tag-title { font: 600 10px/1 var(--body); letter-spacing: 0.02em; color: var(--ink); white-space: nowrap; padding: 2px 6px 3px; border-radius: 3px; background: color-mix(in srgb, var(--paper) 80%, transparent); box-shadow: 0 0 0 1.2px var(--brick); margin-top: -3px; }
+.tag.is-speaking .tag-title { display: none; }
+.chat-title { font: 600 10px/1 var(--body); color: var(--brick); }
+
+/* a conversation with an NPC: bottom left, where the chat steps aside for it, so the NPC and the player stay in
+   view in the middle; a bottom sheet left of the action buttons on narrow screens */
+.talk {
+  position: fixed;
+  left: var(--edge-l);
+  bottom: var(--edge-b);
+  width: min(400px, calc(100vw - 32px - 80px));
+  max-height: calc(100% - var(--edge-t) - var(--edge-b) - 130px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 12px 14px 14px;
+  display: grid;
+  gap: 10px;
+  border-width: 2px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-up 0.24s ease-out backwards;
+}
+.talk-head { display: grid; grid-template-columns: 1fr auto auto; align-items: start; gap: 8px; }
+.talk-who { display: grid; gap: 2px; min-width: 0; }
+.talk-who h2 { margin: 0; font: 800 20px/1.1 var(--display); letter-spacing: -0.01em; }
+.talk-role { font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brick); }
+.talk-group { align-self: center; padding: 3px 7px 4px; border: 1.2px solid var(--ink); border-radius: 3px; background: var(--teal); color: var(--paper); font: 700 11px/1 var(--body); white-space: nowrap; }
+.talk-close { width: 32px; height: 30px; padding: 0; font: 700 18px/1 var(--body); box-shadow: none; }
+/* the NPC's line: a speech bubble, the English (when there is one) small under it */
+.talk-line { display: grid; gap: 4px; padding: 10px 12px 11px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--paper); }
+.talk-say { margin: 0; font: 600 15px/1.45 var(--body); text-wrap: pretty; }
+.talk-say.is-new { animation: line-in 0.22s ease-out backwards; }
+@keyframes line-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.talk-gloss { margin: 0; font: 500 12px/1.4 var(--body); color: var(--ink-soft); }
+.talk-wait { margin: 0; font: 600 12px/1.3 var(--body); color: #3d7770; }
+.talk-choices { display: grid; gap: 6px; }
+.talk-choice { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 9px; row-gap: 1px; min-height: 44px; padding: 8px 12px; text-align: left; font: 600 14px/1.3 var(--body); }
+.talk-choice kbd { grid-row: span 2; font: 700 11px var(--mono); padding: 1px 5px; border: 1.5px solid currentColor; border-radius: 3px; box-shadow: none; background: transparent; }
+.talk-choice small { grid-column: 2; font: 500 11.5px/1.3 var(--body); color: var(--ink-soft); }
+.talk-choice:disabled { cursor: default; opacity: 0.6; }
+.talk-choice.is-bye { background: var(--brick); color: var(--paper); }
+.talk-choice.is-bye:hover { background: color-mix(in srgb, var(--brick) 86%, var(--ink)); }
+.talk.is-busy .talk-choice { cursor: progress; opacity: 0.6; }
+@media (pointer: coarse) {
+  .talk-choice { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .talk { width: auto; right: calc(var(--edge-r) + 66px); max-height: 52%; }
+}
+@media (max-width: 560px) {
+  .talk { padding: 10px 11px 12px; gap: 8px; }
+  .talk-who h2 { font-size: 17px; }
+  .talk-say { font-size: 14px; }
+}
+/* while talking the chat log and the hint make room; the action buttons stay (walking off is always allowed) */
+body.is-talking .corner,
+body.is-talking .toast { display: none !important; }
+
+/* NPCs: what they do under the name; their lines in the chat log in ochre */
+.tag-role { font: 600 10px/1 var(--body); letter-spacing: 0.04em; color: var(--ink); white-space: nowrap; padding: 2px 6px 3px; border-radius: 3px; background: color-mix(in srgb, var(--ochre) 80%, transparent); box-shadow: 0 0 0 1.2px var(--ink); margin-top: -3px; }
+.tag.is-npc .tag-name { background: color-mix(in srgb, var(--paper) 94%, transparent); }
+.tag.is-speaking .tag-role { display: none; }
+.chat-log b[data-c='npc'] { color: #86621a; }
+
+/* the phone: above its button, bottom right; a home screen of apps, or one app */
+.phone {
+  position: fixed;
+  right: var(--edge-r);
+  bottom: calc(var(--edge-b) + 64px);
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(560px, calc(100% - var(--edge-t) - var(--edge-b) - 140px));
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border-width: 2px;
+  border-radius: 14px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-up 0.22s ease-out backwards;
+}
+.phone-bar { display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; padding: 8px 10px; border-bottom: 1.5px solid var(--ink); background: var(--paper-deep); }
+.phone-bar h2 { margin: 0; text-align: center; font: 800 15px/1.1 var(--display); }
+.phone-bar button { width: 34px; height: 30px; padding: 0; font: 700 18px/1 var(--body); box-shadow: none; }
+.phone-close { grid-column: 3; }
+.phone-home { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px; overflow: auto; align-content: start; }
+.app-tile { display: grid; justify-items: center; gap: 6px; padding: 12px 4px 10px; font-size: 11.5px; line-height: 1.15; text-align: center; }
+.app-tile svg { width: 26px; height: 26px; fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.phone-view { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; padding: 14px; overflow: auto; overscroll-behavior: contain; }
+.app-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.app-name { font: 800 22px/1.1 var(--display); }
+.app-text { margin: 0; font: 500 13px/1.45 var(--body); }
+.app-note { margin: 0; font: 500 12px/1.4 var(--body); color: var(--ink-soft); }
+.app-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font: 500 13px/1.3 var(--body); }
+.app-facts dt { color: var(--ink-soft); }
+.app-facts dd { margin: 0; font-weight: 700; }
+.app-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.app-actions button, .phone-view > button { padding: 10px 12px; font-size: 13px; }
+.app-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.app-list li { display: grid; gap: 2px; padding: 8px 10px; border: 1.2px solid var(--ink); border-radius: 3px; background: var(--paper); font: 500 12px/1.35 var(--body); }
+.app-list strong { font: 700 13px/1.2 var(--body); }
+.app-list small { color: var(--ink-soft); font-size: 11px; }
+.landmark { grid-template-columns: 1fr; }
+.landmark.is-seen { background: color-mix(in srgb, var(--teal) 18%, var(--paper)); }
+.landmark.is-seen strong::after { content: ' ✓'; color: #3d7770; }
+.app-list li.neighbour { grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; }
+.driver-card { display: grid; gap: 4px; padding: 12px; border: 1.5px solid var(--ink); border-radius: 3px; background: color-mix(in srgb, #d9a21b 22%, var(--paper)); font: 500 12.5px/1.4 var(--body); }
+.driver-card strong { font: 800 16px/1.1 var(--display); }
+.crab-wallet { margin: 0; font: 700 12px/1.2 var(--mono); color: var(--ink-soft); }
+.crab-dest { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
+.crab-dest-info { display: grid; gap: 2px; min-width: 0; }
+.crab-dest-fare { font: 500 11.5px/1.3 var(--mono); color: var(--ink-soft); }
+.crab-dest button { padding: 7px 11px; font-size: 12px; }
+.crab-rate { display: grid; gap: 10px; }
+.crab-stars { display: flex; gap: 4px; }
+.crab-stars button { padding: 4px 8px; font-size: 20px; line-height: 1; color: var(--ink-soft); }
+.crab-stars button[aria-pressed='true'] { background: var(--paper); color: #c98a00; }
+.mini-map { width: 100%; aspect-ratio: 1; border: 1.5px solid var(--ink); border-radius: 3px; display: block; }
+@media (max-width: 560px) {
+  .picker {
+    left: var(--edge-l);
+    right: var(--edge-r);
+    top: auto;
+    bottom: var(--edge-b);
+    translate: none;
+    width: auto;
+    max-height: 62%;
+    padding: 12px 12px 14px;
+    gap: 9px;
+    animation-name: sheet-up;
+  }
+  .picker h2 { font-size: 22px; }
+  .arch-card { padding: 9px 11px 10px; }
+  .arch-pitch { font-size: 12px; }
+}
+.act.touch-only { justify-content: center; align-items: center; }

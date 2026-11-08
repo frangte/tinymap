@@ -1,0 +1,14 @@
+{
+  "about": "Words the chat filter masks (server/internal/chatfilter; docs/design/04-backend.md, Moderation). accented: words as written with their Vietnamese marks, matched exactly (lower case), so their unmarked look-alikes stay readable (lồn/lon, cặc/các, buồi/buổi, đéo/đeo). plain: forms typed without marks (only đ may stay), matched only when a word has no other marks; keep them to forms nobody types by accident. Phrases of up to three words are allowed. Letters spread apart (đ.ị.t, f u c k), stretched (fuuuck) or spelled with digits (fvck, sh1t) are caught too.",
+  "accented": [
+    "địt", "đụ", "lồn", "cặc", "buồi", "đĩ", "đéo", 
+    "đm", "đmm", "đcm", "đkm", "đjt", "đù", "đù má", "đụ má", "địt mẹ", "đụ mẹ", "con đĩ",
+    "vãi lồn", "vãi cặc", "cái lồn", "con cặc", "đồ chó"
+  ],
+  "plain": [
+    "dm", "dmm", "dcm", "dkm", "dmcs", "dit", "djt", "du ma", "dit me", "du me", "dume", "duma",
+    "vcl", "vkl", "vl", "vcc", "clgt", "clm", "cmm", "loz", "lozz", 
+    "fuck", "fucking", "fucker", "fucked", "motherfucker", "fck", "fuk", "wtf", "shit", "bullshit", "bitch",
+    "cunt", "asshole", "bastard", "pussy", "nigger", "nigga", "faggot", "whore", "slut"
+  ]
+}

@@ -1,7 +1,8 @@
-// Screen-space ink outline: the scene is drawn once in colour (MSAA) and once as flat normals + depth,
+// Screen-space ink outline: the scene is drawn once as flat normals + depth and once in colour (MSAA),
 // then a full-screen shader draws wobbly ink where depth or normals break, plus paper grain and vignette.
+// The depth pass runs first so see-through materials drawn in colour (the sea) can read the depth behind them.
 import * as THREE from 'three';
-import { SEE_THROUGH, SEE_THROUGH_GLSL } from './paint';
+import { FOLIAGE, FOLIAGE_FRAG_GLSL, FOLIAGE_PROJECT, FOLIAGE_VERT_GLSL } from './paint';
 
 const VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 
@@ -42,13 +43,17 @@ export class InkPass {
   private readonly colorRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
   private readonly normalRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.UnsignedByteType });
   private readonly normalMat = new THREE.MeshNormalMaterial({ flatShading: true, side: THREE.DoubleSide });
-  /** the normal pass of see-through foliage dissolves the same way as its colour pass */
-  private readonly normalSeeMat = seeThroughNormalMaterial();
+  /** foliage sways and dissolves in the normal pass exactly as in its colour pass */
+  private readonly normalFoliageMat = foliageNormalMaterial();
   /** meshes drawn in the normal pass, with the material they use there */
   private readonly tracked: Array<{ mesh: THREE.Mesh; normal: THREE.Material; color: THREE.Material | THREE.Material[] }> = [];
+  /** objects left out of the normal/depth pass (the sea: it reads that depth instead) */
+  private readonly skipped: THREE.Object3D[] = [];
   private readonly post: THREE.ShaderMaterial;
   private readonly quadScene = new THREE.Scene();
   private readonly quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  /** render size in device pixels, shared with materials that sample the depth texture */
+  readonly resolution = new THREE.Vector2(1, 1);
   private inkOn = true;
 
   constructor(camera: THREE.PerspectiveCamera) {
@@ -58,7 +63,7 @@ export class InkPass {
         tColor: { value: this.colorRT.texture },
         tNormal: { value: this.normalRT.texture },
         tDepth: { value: this.normalRT.depthTexture },
-        uRes: { value: new THREE.Vector2(1, 1) },
+        uRes: { value: this.resolution },
         uNear: { value: camera.near },
         uFar: { value: camera.far },
         uInk: { value: 1.0 },
@@ -81,71 +86,86 @@ export class InkPass {
     this.post.uniforms.uInk.value = on ? 1 : 0;
   }
 
-  /** Draw every mesh under `root` in the normal pass (with see-through foliage where `userData.seeThrough`). */
+  /** Scene depth of the current frame (valid during the colour pass). */
+  get depthTexture(): THREE.DepthTexture {
+    return this.normalRT.depthTexture;
+  }
+
+  /** Draw every mesh under `root` in the normal pass (foliage where `userData.foliage`). */
   track(root: THREE.Object3D): void {
     root.traverse((o) => {
       if (o instanceof THREE.Mesh) {
-        this.tracked.push({ mesh: o, normal: o.userData.seeThrough === true ? this.normalSeeMat : this.normalMat, color: o.material });
+        this.tracked.push({ mesh: o, normal: o.userData.foliage === true ? this.normalFoliageMat : this.normalMat, color: o.material });
       }
     });
   }
 
-  /** Forget every mesh under `root` (it left the scene). */
+  /** Stop drawing the meshes under `root` (call before removing it from the scene for good). */
   untrack(root: THREE.Object3D): void {
     const gone = new Set<THREE.Object3D>();
-    root.traverse((o) => {
-      if (o instanceof THREE.Mesh) gone.add(o);
-    });
+    root.traverse((o) => gone.add(o));
     let keep = 0;
-    for (const t of this.tracked) {
-      if (!gone.has(t.mesh)) this.tracked[keep++] = t;
-    }
+    for (const t of this.tracked) if (!gone.has(t.mesh)) this.tracked[keep++] = t;
     this.tracked.length = keep;
+  }
+
+  /** Leave `o` out of the normal/depth pass. */
+  skip(o: THREE.Object3D): void {
+    this.skipped.push(o);
   }
 
   /** Size in device pixels. */
   setSize(width: number, height: number, pixelRatio: number): void {
     this.colorRT.setSize(width, height);
     this.normalRT.setSize(width, height);
-    (this.post.uniforms.uRes.value as THREE.Vector2).set(width, height);
+    this.resolution.set(width, height);
     this.post.uniforms.uPx.value = pixelRatio > 1.4 ? 1.35 : 1.0;
   }
 
   render(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera): void {
     this.post.uniforms.uNear.value = camera.near;
     this.post.uniforms.uFar.value = camera.far;
+    // the scene is drawn twice: its matrices are worked out once for both passes (in a crowd, walking the scene
+    // graph for them is the biggest cost of a frame)
+    scene.updateMatrixWorld();
+    const autoUpdate = scene.matrixWorldAutoUpdate;
+    scene.matrixWorldAutoUpdate = false;
+    // 1. flat normals + depth: always drawn, the sea needs the depth even with the ink turned off
+    const bg = scene.background;
+    scene.background = null;
+    for (const t of this.tracked) {
+      t.color = t.mesh.material;
+      t.mesh.material = t.normal;
+    }
+    for (const o of this.skipped) o.visible = false;
+    renderer.setClearColor(0x8080ff, 1);
+    renderer.setRenderTarget(this.normalRT);
+    renderer.clear();
+    renderer.render(scene, camera);
+    for (const o of this.skipped) o.visible = true;
+    for (const t of this.tracked) t.mesh.material = t.color;
+    scene.background = bg;
+    // 2. colour
     renderer.setRenderTarget(this.colorRT);
     renderer.render(scene, camera);
-    if (this.inkOn) {
-      const bg = scene.background;
-      scene.background = null;
-      for (const t of this.tracked) {
-        t.color = t.mesh.material;
-        t.mesh.material = t.normal;
-      }
-      renderer.setClearColor(0x8080ff, 1);
-      renderer.setRenderTarget(this.normalRT);
-      renderer.clear();
-      renderer.render(scene, camera);
-      for (const t of this.tracked) t.mesh.material = t.color;
-      scene.background = bg;
-    }
+    scene.matrixWorldAutoUpdate = autoUpdate;
+    // 3. ink + paper
     renderer.setRenderTarget(null);
     renderer.render(this.quadScene, this.quadCam);
   }
 }
 
-function seeThroughNormalMaterial(): THREE.MeshNormalMaterial {
+function foliageNormalMaterial(): THREE.MeshNormalMaterial {
   const m = new THREE.MeshNormalMaterial({ flatShading: true, side: THREE.DoubleSide });
   m.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, SEE_THROUGH);
+    Object.assign(sh.uniforms, FOLIAGE);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\n${FOLIAGE_VERT_GLSL}`)
+      .replace('#include <project_vertex>', `${FOLIAGE_PROJECT}\nvWPos = sdWorld.xyz;`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <clipping_planes_pars_fragment>', `#include <clipping_planes_pars_fragment>\nvarying vec3 vWPos;\n${SEE_THROUGH_GLSL}`)
+      .replace('#include <clipping_planes_pars_fragment>', `#include <clipping_planes_pars_fragment>\nvarying vec3 vWPos;\n${FOLIAGE_FRAG_GLSL}`)
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nseeThrough(vWPos);');
   };
-  m.customProgramCacheKey = () => 'ink-normal-see';
+  m.customProgramCacheKey = () => 'ink-normal-foliage';
   return m;
 }

@@ -1,0 +1,8 @@
+{
+  "about": "How fast everyone moves on foot (docs/design/04-backend.md, \"What the server enforces\"). Shared by the game (src/game/player.ts) and the server, which refuses moves faster than the top speed times tolerance, averaged over one second. Vehicle speeds are in vehicles.json.",
+  "walk_speed": 3.1,
+  "run_speed": 6.8,
+  "jump_speed": 4.6,
+  "gravity": 15,
+  "tolerance": 1.25
+}

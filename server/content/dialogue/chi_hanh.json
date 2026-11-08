@@ -1,0 +1,60 @@
+{
+  "id": "chi_hanh",
+  "about": "Chị Hạnh guides tours on Lam Sơn square. She talks in group mode: everyone who walks up joins one conversation, and its first member picks the questions. Finishing the tour sends tour_lam_son.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": { "vi": "Xin chào mọi người! Mình là Hạnh, hướng dẫn viên. Ai muốn nghe chuyện quảng trường Lam Sơn thì lại gần nha!", "en": "Hello everyone! I'm Hạnh, a guide. Come closer if you'd like to hear about Lam Sơn square!" },
+        "traveler": { "vi": "Chào bạn! Đi tour với nhóm mình hông? Miễn phí nha!", "en": "Hi! Want to join our tour? It's free!" },
+        "citizen": { "vi": "Ủa, dân Sài Gòn mà cũng nghe tour hả? Vô đi, biết đâu có chuyện bạn chưa nghe!", "en": "A local on a tour? Join in, maybe there's a story you haven't heard!" },
+        "driver": { "vi": "Anh tài xế ơi, nghe xong nhớ chở khách đi tham quan giùm em nha!", "en": "Hey driver, listen in, then take your passengers sightseeing!" }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Kể về Nhà hát Thành phố đi chị.", "en": "Tell us about the Opera House." }, "goto": "opera" },
+        { "text": { "vi": "Quảng trường này có gì hay?", "en": "What's special about this square?" }, "goto": "square" },
+        { "text": { "vi": "Nên đi đâu tiếp theo chị?", "en": "Where should we go next?" }, "goto": "next" },
+        { "text": { "vi": "Cảm ơn chị, để bữa khác.", "en": "Thanks, another time." }, "goto": "bye" }
+      ]
+    },
+    "opera": {
+      "say": {
+        "default": { "vi": "Nhà hát Thành phố xây xong năm 1900, theo kiểu nhà hát Pháp, mặt tiền trang trí rất cầu kỳ. Giờ vẫn diễn ca múa nhạc với kịch đó.", "en": "The Opera House was finished in 1900 in the French style, with a richly decorated front. It still hosts music, dance and theatre." }
+      },
+      "choices": [
+        { "text": { "vi": "Còn quảng trường thì sao chị?", "en": "And the square?" }, "goto": "square" },
+        { "text": { "vi": "Nên đi đâu tiếp theo chị?", "en": "Where should we go next?" }, "goto": "next" }
+      ]
+    },
+    "square": {
+      "say": {
+        "default": { "vi": "Quảng trường Lam Sơn nằm ngay chỗ Lê Lợi gặp Đồng Khởi. Người Sài Gòn hay hẹn nhau ở đây, tối nào cũng có người chụp hình.", "en": "Lam Sơn square is where Lê Lợi meets Đồng Khởi. Saigonese like to meet here, and every evening people take photos." }
+      },
+      "choices": [
+        { "text": { "vi": "Kể về Nhà hát đi chị.", "en": "Tell us about the Opera House." }, "goto": "opera" },
+        { "text": { "vi": "Nên đi đâu tiếp theo chị?", "en": "Where should we go next?" }, "goto": "next" }
+      ]
+    },
+    "next": {
+      "say": {
+        "default": { "vi": "Theo Đồng Khởi lên Nhà thờ Đức Bà với Bưu điện, rồi qua Hồ Con Rùa ăn bánh tráng. Muốn ra bờ nước thì xuống Bitexco.", "en": "Follow Đồng Khởi up to the Cathedral and the Post Office, then Turtle Lake for bánh tráng. For the waterfront, head down to Bitexco." }
+      },
+      "choices": [
+        { "text": { "vi": "Cảm ơn chị, tour hay quá!", "en": "Thank you, great tour!" }, "goto": "thanks", "emit": "tour_lam_son" },
+        { "text": { "vi": "Kể lại về Nhà hát đi chị.", "en": "Tell us about the Opera House again." }, "goto": "opera" }
+      ]
+    },
+    "thanks": {
+      "say": {
+        "default": { "vi": "Cảm ơn cả nhóm nha! Đi chơi vui, nhớ chụp hình thật nhiều!", "en": "Thank you all! Have fun, and take lots of photos!" }
+      },
+      "emote": "bow"
+    },
+    "bye": {
+      "say": {
+        "default": { "vi": "Hẹn gặp lại nha, mình đứng đây cả ngày!", "en": "See you later, I'm here all day!" }
+      }
+    }
+  }
+}

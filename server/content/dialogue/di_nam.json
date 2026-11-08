@@ -1,0 +1,70 @@
+{
+  "id": "di_nam",
+  "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the Traveler's quest Ăn vặt Hồ Con Rùa).",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": { "vi": "Ăn bánh tráng trộn hông con? Dì trộn liền!", "en": "Want some bánh tráng trộn? I'll mix it right now!" },
+        "traveler": { "vi": "Khách du lịch hả? Thử bánh tráng trộn đi, món ăn vặt của dân Sài Gòn đó!", "en": "A traveller? Try bánh tráng trộn, Saigon's favourite snack!" },
+        "citizen": { "vi": "{name} hả, như mọi bữa hông? Nhiều sa tế?", "en": "{name}! The usual? Extra chilli?" },
+        "driver": { "vi": "Ăn lẹ một bịch rồi chạy nè con!", "en": "Grab a bag quick and get back on the road!" }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Cho con một bịch!", "en": "One bag, please!" }, "goto": "order", "emit": "buy_banh_trang_tron" },
+        { "text": { "vi": "Trong đó có gì vậy dì?", "en": "What's in it?" }, "goto": "what" },
+        { "text": { "vi": "Sao gọi là Hồ Con Rùa vậy dì?", "en": "Why is it called Turtle Lake?" }, "goto": "lake" },
+        { "text": { "vi": "Dạ thôi dì.", "en": "No thanks." }, "goto": "bye" }
+      ]
+    },
+    "what": {
+      "say": {
+        "default": { "vi": "Bánh tráng cắt sợi trộn xoài, trứng cút, khô bò, rau răm, đậu phộng, tắc với sa tế. Chua cay mặn ngọt đủ hết!", "en": "Rice paper strips with mango, quail eggs, beef jerky, herbs, peanuts, kumquat and chilli. Sour, hot, salty, sweet!" }
+      },
+      "choices": [
+        { "text": { "vi": "Nghe ngon quá, cho con một bịch!", "en": "Sounds great, one bag!" }, "goto": "order", "emit": "buy_banh_trang_tron" },
+        { "text": { "vi": "Dạ, để lát con ăn.", "en": "Maybe later." }, "goto": "bye" }
+      ]
+    },
+    "lake": {
+      "say": {
+        "default": { "vi": "Hồi xưa giữa hồ có tượng con rùa, nên ai cũng kêu Hồ Con Rùa. Tên thiệt là công trường Quốc tế đó con.", "en": "There used to be a turtle statue in the middle, so everyone calls it Turtle Lake. Its real name is International Square." }
+      },
+      "choices": [
+        { "text": { "vi": "Cho con một bịch bánh tráng!", "en": "One bag of bánh tráng, please!" }, "goto": "order", "emit": "buy_banh_trang_tron" },
+        { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you." }, "goto": "bye" }
+      ]
+    },
+    "order": {
+      "say": {
+        "default": { "vi": "Có liền! Thêm trứng cút, khô bò, đậu phộng, chút sa tế. Ăn cay được hông con?", "en": "Coming up! Quail eggs, beef jerky, peanuts, a little chilli. Can you take it hot?" }
+      },
+      "choices": [
+        { "text": { "vi": "Cay luôn dì!", "en": "Hot, please!" }, "goto": "spicy" },
+        { "text": { "vi": "Ít cay thôi dì.", "en": "Just a little." }, "goto": "mild" }
+      ]
+    },
+    "spicy": {
+      "say": {
+        "default": { "vi": "Chịu chơi ghê! Nè, mười lăm ngàn. Ngồi ăn ngắm hồ cho mát nha.", "en": "Brave! Here you go, fifteen thousand. Sit by the lake and enjoy." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you!" }, "goto": "bye" }
+      ]
+    },
+    "mild": {
+      "say": {
+        "default": { "vi": "Ừ, dì bỏ chút xíu thôi. Mười lăm ngàn nghen con.", "en": "Alright, just a pinch. Fifteen thousand, dear." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you!" }, "goto": "bye" }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": { "vi": "Ừ, đi chơi vui nha! Thèm thì quay lại dì trộn cho.", "en": "Have fun! Come back when you're hungry." }
+      }
+    }
+  }
+}

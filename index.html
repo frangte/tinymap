@@ -10,43 +10,56 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   </head>
   <body data-mode="menu">
-    <div id="stage" data-model="models/saigon_q1.glb" data-nav="models/saigon_q1"></div>
+    <div id="stage" data-model="models/saigon_q1_v5.glb" data-nav="models/saigon_q1"></div>
+    <!-- names and chat bubbles over the other players (nameTags.ts), under every card -->
+    <div class="tags" id="tags" data-modes="play" aria-hidden="true"></div>
 
     <!-- start menu: shows the loader first, then the two ways in -->
     <section class="menu card" id="menu" data-modes="menu" aria-labelledby="menu-title">
       <div class="eyebrow">Quận 1 · bản thu nhỏ</div>
       <h1 id="menu-title">Sài Gòn Q1</h1>
-      <p class="lede">Chợ Bến Thành, Nhà hát, Nhà thờ Đức Bà, Bưu điện, Hồ Con Rùa, Bitexco và cầu Ba Son trên một hòn đảo vẽ tay.</p>
-      <div class="cast-wrap">
-        <div class="cast-label">Nhân vật của bạn</div>
-        <div class="cast" id="cast" aria-label="Chọn nhân vật"></div>
-      </div>
+      <p class="lede">Một hòn đảo vẽ tay giữa biển: từ chợ Bến Thành đi Lê Lợi tới Nhà hát, lên Nhà thờ Đức Bà, Bưu điện, Hồ Con Rùa, ra Bitexco bên bờ nước.</p>
       <p class="status" id="menu-status" role="status" aria-live="polite">Đang dựng Quận 1…</p>
       <div class="loadrow" id="loadrow">
         <div class="bar"><i id="loadbar"></i></div>
-        <small id="loadmb">0.0 / 3.6 MB</small>
+        <small id="loadmb">0.0 / 2.0 MB</small>
       </div>
       <div class="modes">
-        <button class="mode" id="mode-map" type="button" disabled>
-          <kbd>1</kbd>
-          <span><strong>Xem bản đồ</strong><small>Xoay, zoom, bay tới từng công trình</small></span>
-        </button>
         <button class="mode mode-primary" id="mode-play" type="button" disabled>
-          <kbd>2</kbd>
+          <kbd>1</kbd>
           <span><strong>Vào game</strong><small>Đi bộ tự do từ cổng chợ Bến Thành</small></span>
+        </button>
+        <button class="mode" id="mode-map" type="button" disabled>
+          <kbd>2</kbd>
+          <span><strong>Xem bản đồ</strong><small>Xoay, zoom, bay tới từng công trình</small></span>
         </button>
       </div>
     </section>
 
-    <header class="where card" data-modes="map play" aria-live="polite">
-      <div class="eyebrow" id="where-eyebrow">Sài Gòn Q1</div>
-      <h1 id="where">Quận 1</h1>
-      <div class="note" id="wherenote">Sài Gòn</div>
-    </header>
+    <!-- top left: where you are, and under it the quest tracker (questTracker.ts) in play -->
+    <div class="topleft" data-modes="map play">
+      <header class="where card" data-modes="map play" aria-live="polite">
+        <div class="eyebrow" id="where-eyebrow">Sài Gòn Q1</div>
+        <h1 id="where">Quận 1</h1>
+        <div class="note" id="wherenote">Sài Gòn</div>
+        <div class="online" id="online" data-status="offline" hidden><i aria-hidden="true"></i><span id="online-text"></span></div>
+      </header>
+      <button class="tracker card" id="tracker" type="button" data-modes="play" hidden>
+        <span class="tracker-text">
+          <span class="eyebrow" id="tracker-quest"></span>
+          <span class="tracker-goal" id="tracker-goal"></span>
+        </span>
+        <span class="tracker-way">
+          <svg class="tracker-arrow" id="tracker-arrow" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l7 17-7-4-7 4z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+          <span class="tracker-dist" id="tracker-dist"></span>
+        </span>
+      </button>
+    </div>
 
     <div class="tools" data-modes="map play">
-      <button id="ink" type="button" aria-pressed="true" title="Bật hoặc tắt nét mực">Nét mực</button>
-      <button id="character" type="button" data-modes="play" title="Đổi nhân vật (C)">Nhân vật</button>
+      <button id="sound" type="button" aria-pressed="true" title="Bật hoặc tắt âm thanh khu vực (tiếng sóng ở bãi biển)">Âm thanh</button>
+      <button id="ink" type="button" data-modes="map" aria-pressed="false" title="Bật hoặc tắt nét mực">Nét mực</button>
+      <button id="dress-open" type="button" data-modes="play" title="Đổi nhân vật và trang phục">Đổi đồ</button>
       <button id="respawn" type="button" data-modes="play" title="Quay lại cổng chợ Bến Thành">Về chợ</button>
       <button id="to-map" type="button" data-modes="play" title="Xem toàn bộ bản đồ">Bản đồ</button>
       <button id="to-play" class="btn-primary" type="button" data-modes="map" title="Đi bộ trong Quận 1">Vào game</button>
@@ -54,15 +67,164 @@
 
     <div class="toast card" id="toast" role="status" data-modes="play" hidden></div>
 
-    <div class="hint card" id="hint-play" data-modes="play">
-      <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>
-      <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
-      <span class="mouse-only">kéo chuột để xoay</span>
-      <span class="mouse-only">cuộn để zoom</span>
-      <span class="mouse-only"><kbd>C</kbd> đổi nhân vật</span>
-      <span class="mouse-only"><kbd>Esc</kbd> menu</span>
-      <span class="touch-only">Kéo bên trái để đi, đẩy hết để chạy</span>
-      <span class="touch-only">Vuốt bên phải để xoay, chụm hai ngón để zoom</span>
+    <!-- a ride offer for a driver on duty (src/game/offerBanner.ts) -->
+    <section class="offer card" id="offer" data-modes="play" aria-labelledby="offer-who" hidden>
+      <div class="offer-text">
+        <strong id="offer-who" aria-live="assertive"></strong>
+        <span id="offer-where"></span>
+      </div>
+      <div class="offer-actions">
+        <button class="btn-primary" id="offer-take" type="button">Nhận cuốc</button>
+        <button id="offer-skip" type="button">Bỏ qua</button>
+      </div>
+      <i class="offer-bar" id="offer-bar" aria-hidden="true"></i>
+    </section>
+
+    <!-- a Traveler asking the way, for a Citizen (src/game/callBanner.ts) -->
+    <section class="offer card" id="way-call" data-modes="play" aria-labelledby="way-call-who" hidden>
+      <div class="offer-text">
+        <strong id="way-call-who" aria-live="assertive"></strong>
+        <span id="way-call-where"></span>
+      </div>
+      <div class="offer-actions">
+        <span class="offer-hint" id="way-call-hint"></span>
+        <button id="way-call-skip" type="button">Bỏ qua</button>
+      </div>
+      <i class="offer-bar" id="way-call-bar" aria-hidden="true"></i>
+    </section>
+
+    <!-- dressing: opens on the first "Vào game" and from "Đổi đồ"; buttons are filled in by dressPanel.ts -->
+    <section class="dress card" id="dress" data-modes="play" aria-labelledby="dress-title" hidden>
+      <div class="eyebrow">Nhân vật</div>
+      <h2 id="dress-title">Chọn nhân vật</h2>
+      <label class="field">
+        <span>Tên hiển thị</span>
+        <input id="dress-name" type="text" autocomplete="nickname" spellcheck="false" enterkeyhint="done" placeholder="Khách 123" />
+      </label>
+      <fieldset>
+        <legend>Giới tính</legend>
+        <div class="seg" id="dress-body"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Trang phục</legend>
+        <div class="outfits" id="dress-outfit"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Nón</legend>
+        <div class="seg" id="dress-hat"></div>
+      </fieldset>
+      <div class="dress-actions">
+        <button id="dress-cancel" type="button">Huỷ</button>
+        <button id="dress-done" class="btn-primary" type="button">Vào phố</button>
+      </div>
+    </section>
+
+    <!-- "Bạn là ai?": the archetype cards, once before the first dressing (archetypePicker.ts fills them in) -->
+    <section class="picker card" id="picker" data-modes="play" aria-labelledby="picker-title" hidden>
+      <div class="eyebrow">Nhân vật</div>
+      <h2 id="picker-title">Bạn là ai?</h2>
+      <p class="picker-lede">Cả Quận 1 chung một con phố, mỗi vai sống ở đó một kiểu. Chọn một lần là giữ luôn.</p>
+      <div class="picker-cards" id="picker-cards"></div>
+    </section>
+
+    <!-- the arrival card (storyCard.ts): who you are and what to do, once per visit before going online -->
+    <section class="story card" id="story" data-modes="play" role="dialog" aria-modal="false" aria-labelledby="story-title" hidden>
+      <div class="story-head">
+        <span class="badge" id="story-badge"></span>
+        <div class="eyebrow">Câu chuyện của bạn</div>
+      </div>
+      <h2 id="story-title"></h2>
+      <p class="story-opening" id="story-opening"></p>
+      <div class="story-block">
+        <div class="eyebrow">Việc cần làm</div>
+        <ol class="story-todo" id="story-todo"></ol>
+      </div>
+      <p class="story-tip" id="story-tip"></p>
+      <div class="story-keys">
+        <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>
+        <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
+        <span class="mouse-only"><kbd>E</kbd> nói chuyện, lên xe</span>
+        <span class="mouse-only"><kbd>P</kbd> điện thoại</span>
+        <span class="mouse-only">kéo chuột để xoay</span>
+        <span class="touch-only">Kéo bên trái để đi, vuốt bên phải để xoay</span>
+        <span class="touch-only">Nút tròn góc dưới phải là điện thoại</span>
+      </div>
+      <button id="story-go" class="btn-primary" type="button">Bắt đầu</button>
+    </section>
+
+    <!-- a conversation with an NPC (dialogueSheet.ts): bottom centre, the answers as big buttons -->
+    <section class="talk card" id="talk" data-modes="play" role="dialog" aria-modal="false" aria-labelledby="talk-name" hidden>
+      <header class="talk-head">
+        <div class="talk-who">
+          <h2 id="talk-name"></h2>
+          <span class="talk-role" id="talk-role"></span>
+        </div>
+        <span class="talk-group" id="talk-group" hidden></span>
+        <button class="talk-close" id="talk-close" type="button" aria-label="Thôi nói chuyện" title="Thôi nói chuyện (Esc)">×</button>
+      </header>
+      <div class="talk-line" aria-live="polite" aria-atomic="true">
+        <p class="talk-say" id="talk-say"></p>
+        <p class="talk-gloss" id="talk-gloss" lang="en" hidden></p>
+      </div>
+      <p class="talk-wait" id="talk-wait" hidden>Người dẫn nhóm đang chọn câu hỏi…</p>
+      <div class="talk-choices" id="talk-choices" role="group" aria-label="Trả lời"></div>
+    </section>
+
+    <!-- bottom left in play: the chat (chatBox.ts) stacked over the control hint -->
+    <div class="corner" data-modes="play">
+      <section class="chat" id="chat" aria-label="Trò chuyện">
+        <ol class="chat-log" id="chat-log" aria-live="polite"></ol>
+        <p class="chat-note" id="chat-note" role="status" hidden></p>
+        <form class="chat-form" id="chat-form" hidden>
+          <button type="button" class="chat-ch" id="chat-ch">Cả phố</button>
+          <input id="chat-input" type="text" autocomplete="off" spellcheck="false" enterkeyhint="send" aria-label="Tin nhắn" />
+          <button type="submit" class="btn-primary">Gửi</button>
+        </form>
+      </section>
+      <div class="hint card" id="hint-play" data-modes="play">
+        <span class="mouse-only"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> đi</span>
+        <span class="mouse-only"><kbd>Shift</kbd> chạy</span>
+        <span class="mouse-only"><kbd>Space</kbd> nhảy</span>
+        <span class="mouse-only"><kbd>1</kbd>…<kbd>4</kbd> điệu bộ</span>
+        <span class="mouse-only"><kbd>E</kbd> nói chuyện, lên xe</span>
+        <span class="mouse-only">kéo chuột để xoay</span>
+        <span class="mouse-only">cuộn để zoom</span>
+        <span class="mouse-only"><kbd>Enter</kbd> chat</span>
+        <span class="mouse-only"><kbd>P</kbd> điện thoại</span>
+        <span class="mouse-only"><kbd>Esc</kbd> menu</span>
+        <span class="touch-only">Kéo bên trái để đi, đẩy hết để chạy</span>
+        <span class="touch-only">Vuốt bên phải để xoay, chụm hai ngón để zoom</span>
+        <span class="touch-only">Nút mũi tên để nhảy, mặt cười để làm điệu bộ</span>
+      </div>
+    </div>
+
+    <!-- the in-game phone (src/game/phone/): the apps the server lists, drawn by id; the round button bottom right -->
+    <section class="phone card" id="phone" data-modes="play" aria-labelledby="phone-title" hidden>
+      <header class="phone-bar">
+        <button class="phone-back" id="phone-back" type="button" aria-label="Về màn hình chính" hidden>‹</button>
+        <h2 id="phone-title">Điện thoại</h2>
+        <button class="phone-close" id="phone-close" type="button" aria-label="Cất điện thoại">×</button>
+      </header>
+      <div class="phone-home" id="phone-home"></div>
+      <div class="phone-view" id="phone-view" hidden></div>
+    </section>
+    <button class="phone-toggle btn-primary" id="phone-toggle" type="button" data-modes="play" aria-expanded="false" aria-controls="phone" aria-label="Điện thoại">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" stroke-width="2.2" fill="none" /><path d="M11 17.5h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
+      <span class="phone-dot" id="phone-dot" hidden></span>
+    </button>
+
+    <!-- jump, the action at hand and the emotes (src/game/actionPad.ts), above the phone button -->
+    <div class="actions" data-modes="play">
+      <button class="act-use btn-primary" id="act-use" type="button" hidden><kbd class="mouse-only">E</kbd><span id="act-use-text">Lên xe</span></button>
+      <div class="act-row">
+        <div class="emote-menu card" id="emote-menu" role="group" aria-label="Điệu bộ" hidden></div>
+        <button class="act" id="act-emote" type="button" aria-expanded="false" aria-controls="emote-menu" aria-label="Điệu bộ" title="Điệu bộ">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.2" fill="none" /><path d="M8 14.2c1 1.6 2.4 2.3 4 2.3s3-.7 4-2.3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" /><circle cx="9" cy="9.8" r="1.3" fill="currentColor" /><circle cx="15" cy="9.8" r="1.3" fill="currentColor" /></svg>
+        </button>
+      </div>
+      <button class="act touch-only" id="act-jump" type="button" aria-label="Nhảy" title="Nhảy">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 19V6M6.5 11.5 12 6l5.5 5.5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </button>
     </div>
 
     <div class="dock" data-modes="map">

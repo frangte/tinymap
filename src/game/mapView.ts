@@ -16,20 +16,20 @@ export interface MapStop {
 }
 
 export const MAP_STOPS: readonly MapStop[] = [
-  { name: 'Toàn cảnh', note: 'Quận 1', t: [40, -38, 0], az: -118, el: 34, d: 270 },
-  { name: 'Chợ Bến Thành', note: '1914', t: [8, 0, 6], az: -90, el: 24, d: 72 },
-  { name: 'Nhà hát Thành phố', note: '1900', t: [65.4, -68.5, 6], az: 139, el: 18, d: 60 },
-  { name: 'Nhà thờ Đức Bà', note: '1880', t: [96.85, -6.3, 10], az: -131, el: 16, d: 78 },
-  { name: 'Bưu điện Thành phố', note: '1891', t: [94.9, -41.8, 6], az: 139, el: 20, d: 60 },
-  { name: 'Hồ Con Rùa', note: '1967', t: [91.5, 22.4, 7], az: 232, el: 40, d: 52 },
-  { name: 'Bitexco', note: '2010', t: [-14, -54, 20], az: -150, el: 12, d: 108 },
-  { name: 'Cầu Ba Son', note: '2022', t: [95, -88, 8], az: 215, el: 12, d: 82 },
+  { name: 'Toàn cảnh', note: 'Quận 1', t: [38, 10, 0], az: -112, el: 40, d: 270 },
+  { name: 'Chợ Bến Thành', note: '1914', t: [8, 4, 6], az: -100, el: 26, d: 72 },
+  { name: 'Nhà hát Thành phố', note: '1900', t: [104, -4, 6], az: 195, el: 18, d: 62 },
+  { name: 'Nhà thờ Đức Bà', note: '1880', t: [78, 76, 10], az: -105, el: 16, d: 82 },
+  { name: 'Bưu điện Thành phố', note: '1891', t: [98, 54, 6], az: 200, el: 20, d: 58 },
+  { name: 'Hồ Con Rùa', note: '1967', t: [44, 90, 6], az: -120, el: 38, d: 54 },
+  { name: 'Bitexco', note: '2010', t: [44, -62, 20], az: -130, el: 14, d: 100 },
+  { name: 'Bãi biển', note: 'quanh đảo', t: [70, -70, 1], az: -40, el: 12, d: 70 },
 ];
 
-/** the pose behind the start menu: a lower, closer three-quarter view that slowly circles the island */
-export const MENU_STOP: MapStop = { name: 'Sài Gòn Q1', note: 'Quận 1', t: [44, -40, 0], az: -100, el: 26, d: 215 };
+/** the pose behind the start menu: a lower three-quarter view from the south-west, the market in front */
+export const MENU_STOP: MapStop = { name: 'Sài Gòn Q1', note: 'Quận 1', t: [40, 12, 0], az: -118, el: 24, d: 250 };
 
-const BOUND = new THREE.Box3().setFromPoints([fromBlender(-70, -140, -2), fromBlender(160, 50, 40)]);
+const BOUND = new THREE.Box3().setFromPoints([fromBlender(-100, -120, -2), fromBlender(160, 150, 40)]);
 
 interface Flight {
   t0: number;

@@ -3,14 +3,29 @@
 import * as THREE from 'three';
 import type { NavGrid } from './nav';
 import { Player } from './player';
-import { FollowCamera } from './followCamera';
+import { FollowCamera, type Framing } from './followCamera';
 import { InputController, type LookDelta, type MoveIntent } from './input';
 import { placeAt, type Place } from './places';
-import { SEE_THROUGH } from './paint';
+import { FOLIAGE } from './paint';
+import { damp, wrapAngle } from './coords';
 import type { Hud } from './hud';
+import type { Spawn } from './archetypes';
 
 /** auto-follow resumes this long after the last camera drag (ms) */
 const FOLLOW_DELAY = 1400;
+/**
+ * dressing: whole body beside the side panel (wide screens) or above the bottom sheet (phones). The phone framing
+ * looks down from about 2.4 m at a point below the feet, which lifts the player clear of the sheet and keeps
+ * low props the camera does not collide with (the roundabout decoration) under the frame.
+ */
+const FRAME_WIDE: Framing = { height: 0.9, dist: 4.4, pitch: 0.16 };
+const FRAME_TALL: Framing = { height: -0.5, dist: 5.4, pitch: 0.55 };
+/** the panel is a bottom sheet below this width (keep in sync with style.css) */
+const SHEET_MAX_WIDTH = 560;
+/** how fast the player turns round to face the camera while dressing (1/s) */
+const FACE_RATE = 6;
+/** spawn up to this far (m) from the market spawn point on each axis */
+const SPAWN_SPREAD = 1.5;
 
 export class PlayMode {
   readonly player: Player;
@@ -24,19 +39,54 @@ export class PlayMode {
   private readonly savePos = new THREE.Vector3();
   private readonly saveQuat = new THREE.Quaternion();
   private hintHidden = false;
+  /** where spawn() puts the player: the archetype's start, or null for the market gate */
+  private home: Spawn | null = null;
+  /** a landmark seen for the first time this visit (the phone notes it) */
+  onLandmark: (p: Place) => void = () => {};
+  /** E or the action button: the action at hand (talking to an NPC, getting on or off the bike) */
+  onUse: () => void = () => {};
+  /** the emote codes keys 1-9 play, in order */
+  emoteKeys: readonly number[] = [];
+  /** a digit key (1-9) goes here first (an answer in a conversation); false leaves it to the emotes */
+  pressDigit: (n: number) => boolean = () => false;
+  /** between enter() and exit() */
+  private active = false;
+  private dressing = false;
 
   constructor(private readonly nav: NavGrid, private readonly camera: THREE.PerspectiveCamera, private readonly hud: Hud, surface: HTMLElement) {
     this.player = new Player(nav);
     this.follow = new FollowCamera(camera, nav);
     this.input = new InputController(surface, hud.joystick);
     this.input.enabled = false;
-    this.spawnAtMarket();
+    this.spawnAtHome();
   }
 
-  /** Back to the square in front of the south gate, facing the market (Blender +Y = three -Z). */
-  spawnAtMarket(): void {
-    const [bx, by] = this.nav.meta.spawn;
-    this.player.spawn(bx, -by, Math.PI);
+  /** Where spawnAtHome() goes from now on: the archetype's start, or null for the market gate. */
+  setHome(home: Spawn | null): void {
+    this.home = home;
+  }
+
+  /** Landmarks first seen this visit, in the order they were found. */
+  get landmarksSeen(): ReadonlySet<Place> {
+    return this.seen;
+  }
+
+  /**
+   * Back to the start: the archetype's spawn point facing its `face` point, or (without one) the square in front of
+   * the market's south gate, facing the market (Blender +Y = three -Z). A small random offset keeps players who
+   * arrive together from standing inside each other; spawn() snaps it to a walkable cell.
+   */
+  spawnAtHome(): void {
+    const jitter = (): number => (Math.random() - 0.5) * 2 * SPAWN_SPREAD;
+    if (!this.home) {
+      const [bx, by] = this.nav.meta.spawn;
+      this.player.spawn(bx + jitter(), -by + jitter(), Math.PI);
+      return;
+    }
+    const [bx, by] = this.home.at;
+    const [fx, fy] = this.home.face;
+    // three.js heading 0 faces +Z; Blender (x, y) is three (x, -y)
+    this.player.spawn(bx + jitter(), -by + jitter(), Math.atan2(fx - bx, -(fy - by)));
   }
 
   /**
@@ -56,14 +106,40 @@ export class PlayMode {
   /** Start taking input; the camera should already sit at entryPose(). */
   enter(): void {
     this.follow.snapBehind(this.player.position, this.player.heading);
-    this.input.enabled = true;
-    SEE_THROUGH.uSee.value = 1;
+    this.active = true;
+    this.input.enabled = !this.dressing;
+    FOLIAGE.uSee.value = 1;
     this.place = null;
     this.hud.setPlace(null);
   }
 
   exit(): void {
+    this.active = false;
     this.input.enabled = false;
+  }
+
+  /** While dressing the player stands still, turns to face the camera and the camera frames the whole body. */
+  setDressing(on: boolean): void {
+    this.dressing = on;
+    this.input.enabled = this.active && !on;
+    if (!on) this.follow.portrait = null;
+  }
+
+  /** Whether the player is in control: playing, not dressing or picking. */
+  get controlling(): boolean {
+    return this.active && !this.dressing;
+  }
+
+  jump(): void {
+    if (this.controlling) this.player.jump();
+  }
+
+  emote(code: number): void {
+    if (this.controlling) this.player.playEmote(code);
+  }
+
+  use(): void {
+    if (this.controlling) this.onUse();
   }
 
   /** Current look-at point of the follow camera. */
@@ -77,22 +153,35 @@ export class PlayMode {
   update(dt: number, now: number, clock: number, driveCamera: boolean): void {
     this.input.readMove(this.move);
     this.input.consumeLook(this.look);
+    if (this.input.consumeJump()) this.jump();
+    if (this.input.consumeUse()) this.use();
+    const key = this.input.consumeEmoteKey();
+    if (key > 0 && !(this.controlling && this.pressDigit(key)) && key <= this.emoteKeys.length) this.emote(this.emoteKeys[key - 1]);
+    if (this.dressing) {
+      // the model faces +Z rotated by heading; the camera sits along (sin yaw, cos yaw), so heading = yaw faces it
+      const h = this.player.heading;
+      this.player.heading = wrapAngle(h + wrapAngle(this.follow.yaw - h) * damp(FACE_RATE, dt));
+      this.follow.portrait = window.innerWidth <= SHEET_MAX_WIDTH ? FRAME_TALL : FRAME_WIDE;
+    }
     this.follow.forward(this.forward);
     this.player.update(dt, this.move, this.forward, clock);
     if (!driveCamera) return;
 
     const steering = now - this.input.lastLook < FOLLOW_DELAY;
     const followAmt = steering ? 0 : Math.max(0, this.move.y) * Math.min(1, this.player.speed / 2.5);
-    this.follow.update(dt, this.player.position, this.player.heading, this.look, followAmt);
-    SEE_THROUGH.uPivot.value.copy(this.follow.target);
+    // the drawn position: after a correction the camera eases back with the avatar
+    this.follow.update(dt, this.player.drawn, this.player.heading, this.look, followAmt);
+    FOLIAGE.uPivot.value.copy(this.follow.target);
 
     const p = placeAt(this.player.position.x, -this.player.position.z, this.place);
     if (p !== this.place) {
       this.place = p;
       this.hud.setPlace(p);
-      if (p && p.kind === 'landmark' && !this.seen.has(p)) {
+      // not while picking an archetype or dressing: the player has not walked anywhere yet
+      if (p && p.kind === 'landmark' && !this.seen.has(p) && !this.dressing) {
         this.seen.add(p);
-        this.hud.toast(p.name, p.note);
+        this.hud.toast(p);
+        this.onLandmark(p);
       }
     }
     if (!this.hintHidden && this.input.firstMove !== null && now - this.input.firstMove > 6000) {
