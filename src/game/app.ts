@@ -26,8 +26,8 @@ import { ArchetypePicker } from './archetypePicker';
 import { StoryCard } from './storyCard';
 import { storyFor } from './stories';
 import { Phone } from './phone/phone';
-import { allowedLook, appsFor, archetypeById, grants, type Archetype } from './archetypes';
-import { sameLook } from './outfits';
+import { allowedLook, appsFor, archetypeById, grants, outfitAllowed, type Archetype } from './archetypes';
+import { OUTFITS, outfitStyle, sameLook, type Look } from './outfits';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
 import { Vehicles, type RiderView } from './vehicles';
 import { Riding } from './riding';
@@ -46,6 +46,8 @@ import { CallBanner } from './callBanner';
 import { Mutes } from './mutes';
 import { Directions } from './directions';
 
+/** quick look changes reach the server this long after the last one (ms) */
+const LOOK_SEND_DELAY_MS = 400;
 const MODEL_BYTES = 2.01e6;
 /** distance from the island centre to the beach (m) */
 const COAST_R = 92;
@@ -396,14 +398,33 @@ export async function startApp(): Promise<void> {
     chatBox.open();
   };
 
-  // ---- phones: Đổi đồ / Nam·Nữ / Chat behind the round button bottom right
-  const switchBody = (): void => {
-    if (mode !== 'play' || flight.active || panel.isOpen || !dressed) return;
-    const body = profile.look.body === 'man' ? 'woman' : 'man';
-    profile = { ...profile, look: { ...profile.look, body } };
+  // ---- quick changes outside the dressing panel: saved, worn at once, sent to everyone like the panel's
+  let sendLook = 0;
+  const wear = (look: Look): void => {
+    profile = { ...profile, look };
     saveProfile(profile);
-    p.player.avatar.setLook(profile.look);
-    netClient.setProfile(profile);
+    p.player.avatar.setLook(look);
+    // a few quick presses in a row send once, after the last: the server takes a profile every 250 ms at most
+    window.clearTimeout(sendLook);
+    sendLook = window.setTimeout(() => netClient.setProfile(profile), LOOK_SEND_DELAY_MS);
+  };
+  const canChange = (): boolean => mode === 'play' && !flight.active && !panel.isOpen && dressed;
+  // Nam·Nữ in the phone
+  const switchBody = (): void => {
+    if (!canChange()) return;
+    wear({ ...profile.look, body: profile.look.body === 'man' ? 'woman' : 'man' });
+  };
+  // C: the next outfit this character may wear
+  const nextOutfit = (): void => {
+    if (!canChange()) return;
+    const from = OUTFITS.indexOf(profile.look.outfit);
+    for (let k = 1; k < OUTFITS.length; k++) {
+      const outfit = OUTFITS[(from + k) % OUTFITS.length];
+      if (!outfitAllowed(outfit, caps)) continue;
+      wear({ ...profile.look, outfit });
+      hud.toast({ name: outfitStyle(outfit, profile.look.body).name, note: 'Đổi áo · phím C' });
+      return;
+    }
   };
 
   // ---- "Bạn là ai?": once, before the first dressing (and once for players from before archetypes)
@@ -826,6 +847,12 @@ export async function startApp(): Promise<void> {
       e.preventDefault();
       if (ph.isOpen) ph.close();
       else ph.open();
+      return;
+    }
+    // C: the next outfit (held down, it changes once)
+    if (mode === 'play' && e.code === 'KeyC' && !e.repeat && !ph.isOpen && !picker.isOpen && !story.isOpen && !talk.isOpen) {
+      e.preventDefault();
+      nextOutfit();
       return;
     }
     // Enter / T: chat (Enter on a focused button presses the button instead)

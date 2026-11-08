@@ -3,8 +3,9 @@
 
 export const BODIES = ['man', 'woman'] as const;
 // crab and helmet are the Crab Bike uniform: who may wear them is in server/content/archetypes.json
-export const OUTFITS = ['thun', 'aodai', 'baba', 'somi', 'xeom', 'bikini', 'crab'] as const;
-export const HATS = ['nonla', 'cap', 'helmet', 'none'] as const;
+export const OUTFITS = ['thun', 'aodai', 'baba', 'somi', 'xeom', 'hoa', 'bikini', 'crab'] as const;
+// bun is a hairstyle rather than a hat, but it takes the same place on the head
+export const HATS = ['nonla', 'cap', 'bucket', 'helmet', 'bun', 'none'] as const;
 
 export type Body = (typeof BODIES)[number];
 export type OutfitId = (typeof OUTFITS)[number];
@@ -74,6 +75,11 @@ const OUTFIT_DEFS: Record<OutfitId, OutfitDef> = {
     name: 'Áo khoác xe ôm', top: '#3E7F5F', bottom: '#4E6A8A', shoe: '#2B211C', accent: '#E0B45A', bag: null,
     sleeves: 'long', legs: 'pants', flaps: false, torso: 'shirt',
   },
+  // the tourist: a loud short-sleeved shirt, khaki shorts, light sneakers and a backpack
+  hoa: {
+    name: 'Áo hoa', top: '#E0A93A', bottom: '#C9B48F', shoe: '#EFE8DA', accent: '#B5523B', bag: '#B5523B',
+    sleeves: 'short', legs: 'shorts', flaps: false, torso: 'shirt',
+  },
   // for the beach: a bikini, or swim trunks and no shirt; dép tông on the feet. `top` is the swatch colour,
   // so the men's swatch shows bare skin over the trunks
   bikini: {
@@ -89,7 +95,14 @@ const OUTFIT_DEFS: Record<OutfitId, OutfitDef> = {
 };
 
 export const BODY_NAMES: Record<Body, string> = { man: 'Nam', woman: 'Nữ' };
-export const HAT_NAMES: Record<HatId, string> = { nonla: 'Nón lá', cap: 'Nón kết', helmet: 'Mũ bảo hiểm', none: 'Không nón' };
+export const HAT_NAMES: Record<HatId, string> = {
+  nonla: 'Nón lá',
+  cap: 'Nón kết',
+  bucket: 'Mũ tai bèo',
+  helmet: 'Mũ bảo hiểm',
+  bun: 'Tóc búi',
+  none: 'Không nón',
+};
 
 export const DEFAULT_LOOK: Readonly<Look> = { body: 'man', outfit: 'thun', hat: 'nonla' };
 /** what a body starts in when the player has not picked an outfit yet */

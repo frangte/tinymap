@@ -55,6 +55,18 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("got %+v", m)
 				}
 			}},
+		{name: "tourist", in: `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"hoa","hat":"bucket"}}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Look.Outfit != "hoa" || m.Look.Hat != "bucket" {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "hair bun", in: `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"bun"}}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Look.Hat != "bun" {
+					t.Fatalf("got %+v", m)
+				}
+			}},
 		{name: "hello with token", in: `{"t":"hello","token":"abc_-123","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`,
 			check: func(t *testing.T, m ClientMsg) {
 				if m.Token != "abc_-123" {
