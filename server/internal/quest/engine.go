@@ -240,6 +240,7 @@ func (e *Engine) Refresh(p Player, b *Book, now int64) Outcome {
 
 func (e *Engine) refresh(p Player, b *Book, now int64, out *Outcome) {
 	day := gameday.OfMilli(now)
+	elsewhere := e.dealtElsewhere(p, b, day)
 	for _, t := range e.tracks {
 		r, started := b.Records[t.id]
 		if t.daily && started && r.Cycle != day {
@@ -248,6 +249,9 @@ func (e *Engine) refresh(p Player, b *Book, now int64, out *Outcome) {
 			started = false
 		}
 		if started || !t.availableTo(p, b) || (t.daily && !e.onToday(t, day)) {
+			continue
+		}
+		if t.daily && len(t.tagsAny) > 0 && elsewhere {
 			continue
 		}
 		r = &Record{ID: t.id, Version: t.version, State: StateActive, Objectives: map[string]*objective.Progress{}, StartedAt: now}
@@ -262,8 +266,25 @@ func (e *Engine) refresh(p Player, b *Book, now int64, out *Outcome) {
 	}
 }
 
+// dealtElsewhere: today the character already has the dailies of another archetype (it changed archetype since
+// they were dealt). A character gets one archetype's dailies a day, the first it plays that day, so changing
+// archetype does not deal another set; the dailies open to everyone are dealt either way.
+func (e *Engine) dealtElsewhere(p Player, b *Book, day string) bool {
+	for _, t := range e.tracks {
+		if r := b.Records[t.id]; r != nil && t.daily && r.Cycle == day && len(t.tagsAny) > 0 && !t.taggedFor(p) {
+			return true
+		}
+	}
+	return false
+}
+
+// taggedFor: the track is offered to the player's archetype (or to everyone).
+func (t *track) taggedFor(p Player) bool {
+	return len(t.tagsAny) == 0 || slices.ContainsFunc(t.tagsAny, func(tag string) bool { return slices.Contains(p.Tags, tag) })
+}
+
 func (t *track) availableTo(p Player, b *Book) bool {
-	if len(t.tagsAny) > 0 && !slices.ContainsFunc(t.tagsAny, func(tag string) bool { return slices.Contains(p.Tags, tag) }) {
+	if !t.taggedFor(p) {
 		return false
 	}
 	for _, id := range t.requires {

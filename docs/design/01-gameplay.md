@@ -31,6 +31,8 @@ Each one's progress feeds off the others. That's what makes one shared world wor
 3. **The phone buzzes.** That one notification teaches the phone, the quest tracker and the first goal at the same time. Movement tips sit on top of the screen until the first objective is done.
 4. After the first achievement, offer to link a real account so the progress isn't lost.
 
+**Changing archetype later (D1).** **Đổi vai** in the phone's Hồ sơ app opens the same cards, with the current one marked. The change happens where the player stands: the new archetype's starter clothes, apps, home button and quests; a driver's bike goes, and a new driver's bike is parked beside them; the new archetype's arrival card shows once. Quests already started, titles, stamps and the wallet stay. The server allows one change a minute, and none during a Crab Bike trip, an ask for the way or a conversation. A character gets one archetype's daily quests a day, the first it plays, so changing archetype does not deal a second set.
+
 ## The archetypes: why you'd pick each
 
 | | **Traveler: Du khách** | **Citizen: Người Sài Gòn** | **Crab Bike driver: Tài xế Crab Bike** |

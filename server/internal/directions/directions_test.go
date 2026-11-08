@@ -308,3 +308,33 @@ func TestLeavingEndsTheAskAndLateCitizensAreCalled(t *testing.T) {
 		t.Fatalf("pins left: %v", h.pins)
 	}
 }
+
+func TestAnAskHoldsTheArchetypeAndACitizenWhoChangesIsNoLongerCalled(t *testing.T) {
+	h, s := setup(t)
+	if s.ArchBusy(h.members[traveler]) {
+		t.Fatal("a Traveler not asking may change archetype")
+	}
+	id := ask(s, h, "nha_hat_thanh_pho")["id"].(string)
+	if !s.ArchBusy(h.members[traveler]) {
+		t.Fatal("a Traveler asking the way must not change archetype")
+	}
+	// Minh is a Traveler now (the world changed the capabilities first)
+	h.members[citizenA].caps = capability.Of(content.CapAskWay)
+	s.ArchChanged(h.members[citizenA])
+	if g := h.last(citizenA, "way_gone"); g == nil || g["id"] != id || g["why"] != "changed" {
+		t.Fatalf("the call to the former Citizen: %v", g)
+	}
+	if h.pins[[2]uint32{traveler, citizenA}] || !h.pins[[2]uint32{traveler, citizenB}] {
+		t.Fatalf("pins after the change: %v", h.pins)
+	}
+	send(s, h, citizenA, protocol.ClientMsg{T: protocol.TypeWayAnswer, Ask: id})
+	if e := h.last(citizenA, "way_error"); e == nil {
+		t.Fatal("a former Citizen must not answer")
+	}
+	// a Citizen who stays one keeps the call
+	h.inbox[citizenB] = nil
+	s.ArchChanged(h.members[citizenB])
+	if g := h.last(citizenB, "way_gone"); g != nil {
+		t.Fatalf("a Citizen still is called: %v", g)
+	}
+}

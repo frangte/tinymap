@@ -119,12 +119,14 @@
       </div>
     </section>
 
-    <!-- "Bạn là ai?": the archetype cards, once before the first dressing (archetypePicker.ts fills them in) -->
+    <!-- "Bạn là ai?": the archetype cards, before the first dressing and from the phone's Hồ sơ app to change
+         archetype (archetypePicker.ts fills them in and sets the title and lede) -->
     <section class="picker card" id="picker" data-modes="play" aria-labelledby="picker-title" hidden>
       <div class="eyebrow">Nhân vật</div>
       <h2 id="picker-title">Bạn là ai?</h2>
-      <p class="picker-lede">Cả Quận 1 chung một con phố, mỗi vai sống ở đó một kiểu. Chọn một lần là giữ luôn.</p>
+      <p class="picker-lede" id="picker-lede"></p>
       <div class="picker-cards" id="picker-cards"></div>
+      <button id="picker-cancel" class="picker-cancel" type="button" hidden>Huỷ</button>
     </section>
 
     <!-- the arrival card (storyCard.ts): who you are and what to do, once per visit before going online -->

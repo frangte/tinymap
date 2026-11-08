@@ -67,6 +67,8 @@ type Identity interface {
 	Arrive(ctx context.Context, token string, p identity.Profile) (identity.Arrived, error)
 	// SaveProfile stores a changed name or look.
 	SaveProfile(ctx context.Context, characterID, name string, look protocol.Look) error
+	// ChangeArchetype stores the archetype a character changed to in game, and the look it came with.
+	ChangeArchetype(ctx context.Context, characterID, archetype string, look protocol.Look) error
 	// SavePose stores where the character stands, for its next visit.
 	SavePose(ctx context.Context, characterID string, p protocol.Pose) error
 }
@@ -82,6 +84,8 @@ type Quests interface {
 	Join(character string, session uint64, who quest.Player)
 	Leave(character string, session uint64)
 	ChooseTitle(character, title string)
+	// Retag: the character changed archetype during the visit
+	Retag(character string, session uint64, who quest.Player)
 }
 
 type Server struct {
@@ -131,8 +135,10 @@ func (s *Server) Grant(character, capability string) {
 	if c == nil {
 		return
 	}
-	caps := maps.Clone(*c.caps.Load())
-	caps[capability] = struct{}{}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.extra[capability] = struct{}{}
+	caps := c.capsOf(c.arch)
 	c.caps.Store(&caps)
 	s.world.SetCaps(c.peer, caps)
 }
@@ -184,11 +190,27 @@ type client struct {
 	// character is the account's character, "" for a guest without an account (or when the lookup failed)
 	character string
 	// caps are what the character may do (its archetype's grants and the ones it earned): which phone apps it has,
-	// which looks it may wear; replaced whole when it earns one (Server.Grant)
+	// which looks it may wear; replaced whole when it earns one (Server.Grant) or changes archetype
 	caps atomic.Pointer[capability.Set]
+	// mu orders Grant (on the quest service's goroutine) with archetype changes: arch is the archetype as the
+	// server keeps it, extra the capabilities beyond its grants (earned ones, a moderator's)
+	mu    sync.Mutex
+	arch  string
+	extra capability.Set
+	// look is what the player wears, as the world has it (the reader goroutine's alone)
+	look protocol.Look
+	// session is this visit's number for the quest service, 0 without quests (the reader goroutine's alone)
+	session uint64
 }
 
 func (c *client) can() capability.Set { return *c.caps.Load() }
+
+// capsOf is what the character may do with archetype arch: its grants and the extra ones. Call it under mu.
+func (c *client) capsOf(arch string) capability.Set {
+	caps := c.s.catalog.Grants(arch)
+	maps.Copy(caps, c.extra)
+	return caps
+}
 
 // readLoop never closes the socket itself while the world runs: every way out ends in a Leave, the world then
 // closes the outbox, and writeLoop closes the socket after flushing what is queued (such as an error code).
@@ -234,9 +256,9 @@ func (c *client) readLoop() {
 		c.s.play(c)
 		defer c.s.stop(c)
 		if q := c.s.Quests; q != nil {
-			session := c.s.sessions.Add(1)
-			q.Join(c.character, session, quest.Player{Tags: c.s.catalog.TagsOf(arrival.Arch)})
-			defer q.Leave(c.character, session)
+			c.session = c.s.sessions.Add(1)
+			q.Join(c.character, c.session, quest.Player{Tags: c.s.catalog.TagsOf(arrival.Arch)})
+			defer q.Leave(c.character, c.session)
 		}
 	}
 
@@ -299,7 +321,13 @@ func (c *client) readLoop() {
 			}
 			msg.Name = c.s.cleanName(msg.Name)
 			ok = w.Handle(c.peer, msg)
+			c.look = *msg.Look
 			c.saveProfile(msg)
+		case protocol.TypeArch:
+			if !profiles.Allow() {
+				continue
+			}
+			ok = c.changeArch(msg.Arch)
 		case protocol.TypeTitle:
 			// whether it was earned is the quest service's to check
 			if profiles.Allow() && c.character != "" && c.s.Quests != nil {
@@ -346,13 +374,13 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	}
 	kept := found.Archetype
 	c.character = found.ID
-	caps := cat.Grants(kept)
-	for _, earned := range found.Caps {
-		caps[earned] = struct{}{}
-	}
+	c.extra = capability.Of(found.Caps...)
 	if found.Standing.Moderator {
-		caps[content.CapModerate] = struct{}{}
+		c.extra[content.CapModerate] = struct{}{}
 	}
+	// nobody else knows the client yet: no lock needed for arch and extra
+	c.arch = kept
+	caps := c.capsOf(kept)
 	c.caps.Store(&caps)
 	if kept != arch {
 		// the character already had another archetype: what it may wear follows that one
@@ -361,6 +389,7 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 			c.saveProfile(protocol.ClientMsg{Name: hello.Name, Look: &look})
 		}
 	}
+	c.look = look
 	a := world.Arrival{Character: found.ID, Name: hello.Name, Look: look, Arch: kept, Apps: cat.AppsFor(caps), Caps: caps,
 		Title: found.Title, Start: found.Pose, Since: time.Now()}
 	if found.CreatedAt > 0 {
@@ -385,6 +414,58 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 		}
 	}
 	return a, ""
+}
+
+// changeArch changes the player's archetype in game: the new one's capabilities (with the earned ones kept), apps,
+// starter clothes, home and starter vehicle, if the world accepts it (it refuses a busy player, or a change too
+// soon after the last), then the store and the quest service hear of it. False when the world has stopped.
+func (c *client) changeArch(arch string) bool {
+	cat := c.s.catalog
+	at, known := cat.Archetype(arch)
+	c.mu.Lock()
+	if !known || arch == c.arch {
+		c.mu.Unlock()
+		return true // an id this server does not know only comes from a tampered client; the same one is no change
+	}
+	caps := c.capsOf(arch)
+	look := cat.AllowedLook(protocol.Look{Body: c.look.Body, Outfit: at.Look.Outfit, Hat: at.Look.Hat}, caps)
+	x, z, h := at.Spawn.ThreePose()
+	change := world.ArchChange{Arch: arch, Apps: cat.AppsFor(caps), Caps: caps, Look: look, Home: &protocol.Pose{X: x, Z: z, H: h}}
+	if v, ok := cat.StarterVehicle(arch, caps); ok {
+		change.Vehicle = &world.VehicleSpec{Kind: v.ID, Speed: v.Speed}
+	}
+	// under mu while the world answers, so a capability earned meanwhile is added to the new archetype's
+	code, ok := c.s.world.ChangeArch(c.peer, change)
+	if ok && code == "" {
+		c.arch = arch
+		c.caps.Store(&caps)
+		c.look = look
+	}
+	c.mu.Unlock()
+	if !ok {
+		select {
+		case <-c.peer.Gone():
+			return true // dropped meanwhile: the read loop ends on its own
+		default:
+			return false
+		}
+	}
+	if code != "" {
+		return true // refused: the world told the player why
+	}
+	if c.character == "" {
+		return true // a guest's archetype lasts the visit
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), identityWait)
+	defer cancel()
+	if err := c.s.ids.ChangeArchetype(ctx, c.character, arch, look); err != nil {
+		// the change holds for this visit; the next one starts as the archetype stored before
+		c.s.log.Warn("saving archetype", "character", c.character, "err", err)
+	}
+	if q := c.s.Quests; q != nil && c.session != 0 {
+		q.Retag(c.character, c.session, quest.Player{Tags: cat.TagsOf(arch)})
+	}
+	return true
 }
 
 // keepPose saves where the character stands every poseSaveEvery while it plays, and once more when the world

@@ -7,7 +7,7 @@ import type { Look } from '../game/outfits';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
 import type { RideClientMsg, RideServerMsg } from './rideProtocol';
 import type { WayClientMsg, WayServerMsg } from './wayProtocol';
-import { parseServerMsg, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
+import { parseServerMsg, type ArchRefusal, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
 /** banned, kicked: a moderator sent this player out; this one stops trying too */
@@ -22,7 +22,12 @@ export interface NetEvents {
   welcome(players: PlayerInfo[], chat: ChatLine[], arch: string, apps: string[] | null, pose: Pose | null, vehicles: VehicleInfo[], npcs: NpcInfo[]): void;
   join(p: PlayerInfo): void;
   leave(id: number): void;
-  profile(id: number, name: string, look: Look, title: string): void;
+  /** arch is '' from an older server, which does not say */
+  profile(id: number, name: string, look: Look, title: string, arch: string): void;
+  /** our archetype changed (we asked with sendArch): the one we have now, our phone apps, what we wear now */
+  archChanged(arch: string, apps: string[], look: Look): void;
+  /** the server kept our archetype: we are busy (a trip, an ask, a conversation), or changed a moment ago */
+  archRefused(code: ArchRefusal): void;
   /** `receivedAt` is performance.now() when the frame arrived; `out` are players that left our view */
   snap(rows: SnapRow[], receivedAt: number, out: number[]): void;
   /** our last move was refused: go back to this pose */
@@ -140,6 +145,11 @@ export class NetClient {
     this.connect();
   }
 
+  /** Keep the profile for the next hello without sending it (the server already has it, as after an archetype change). */
+  keepProfile(profile: Profile): void {
+    this.profile = profile;
+  }
+
   setProfile(profile: Profile): void {
     this.profile = profile;
     if (this.online) this.send({ t: 'profile', name: profile.name, look: profile.look });
@@ -187,6 +197,13 @@ export class NetClient {
   /** Pick an answer: its index among the choices of the line at `step` (the server refuses it once the line is gone). */
   choose(sid: number, step: number, choice: number): Promise<Result> {
     return this.request((rid) => ({ t: 'choose', sid, c: choice, step, rid }));
+  }
+
+  /** Ask to change archetype; the answer is `archChanged` or `archRefused`. False when offline. */
+  sendArch(arch: string): boolean {
+    if (!this.online) return false;
+    this.send({ t: 'arch', arch });
+    return true;
   }
 
   /** Carry another title, among those earned ('' for none); the next `progress` shows it. */
@@ -322,7 +339,10 @@ export class NetClient {
         this.on.leave(m.id);
         break;
       case 'profile':
-        if (m.id !== this.selfId) this.on.profile(m.id, m.name, m.look, m.title);
+        if (m.id !== this.selfId) this.on.profile(m.id, m.name, m.look, m.title, m.arch);
+        break;
+      case 'arch':
+        this.on.archChanged(m.arch, m.apps, m.look);
         break;
       case 'snap': {
         // a frame is never early: the largest offset seen is the one that travelled fastest
@@ -368,6 +388,7 @@ export class NetClient {
         if (m.code === 'full') this.full = true;
         else if (m.code === 'rate') this.on.rateLimited();
         else if (m.code === 'mount') this.on.mountRefused();
+        else if (m.code === 'arch_busy' || m.code === 'arch_wait') this.on.archRefused(m.code);
         else if (m.code === 'replaced') this.replaced = true;
         else if (m.code === 'banned' || m.code === 'kicked') this.sentOut = m.code;
         else if (m.code === 'slow' || m.code === 'repeat' || m.code === 'new_player' || m.code === 'muted') this.on.chatRefused(m.code);

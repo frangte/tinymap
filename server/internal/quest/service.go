@@ -63,6 +63,8 @@ const (
 	jobTitle
 	// jobNewDay: a day began; every character on the worker gets that day's dailies
 	jobNewDay
+	// jobRetag: the character changed archetype; the quests of the new one open
+	jobRetag
 )
 
 type job struct {
@@ -149,6 +151,13 @@ func (s *Service) Leave(character string, session uint64) {
 	s.enqueue(job{kind: jobLeave, character: character, session: session}, true)
 }
 
+// Retag tells the service a playing character changed archetype: the quests the new one is offered open, the
+// ones already started keep going, and the game hears where the character stands. A visit that ended (another
+// session) is left alone.
+func (s *Service) Retag(character string, session uint64, who Player) {
+	s.enqueue(job{kind: jobRetag, character: character, session: session, player: who}, true)
+}
+
 // ChooseTitle changes the title a character carries to one it earned ("" for none).
 func (s *Service) ChooseTitle(character, title string) {
 	s.enqueue(job{kind: jobTitle, character: character, title: title}, false)
@@ -225,6 +234,14 @@ func (s *Service) do(ctx context.Context, players map[string]*player, j job) {
 	case jobNewDay:
 		for character, p := range players {
 			s.apply(ctx, character, p, func(b *Book, now int64) Outcome { return s.engine.Refresh(p.who, b, now) })
+		}
+	case jobRetag:
+		if p := players[j.character]; p != nil && p.session == j.session {
+			p.who = j.player
+			// the game shows the new archetype's quests and achievements even when nothing opened
+			if !s.apply(ctx, j.character, p, func(b *Book, now int64) Outcome { return s.engine.Refresh(p.who, b, now) }) {
+				s.send(j.character, p.book, nil, s.now().UnixMilli())
+			}
 		}
 	}
 }

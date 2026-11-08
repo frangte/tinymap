@@ -604,6 +604,55 @@ func TestDriverWearsTheUniform(t *testing.T) {
 	}
 }
 
+func TestTheArchetypeChangesInGame(t *testing.T) {
+	srv := startServer(t, testConfig())
+	_, _, token := postGuest(t, srv, "")
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "driver", "crab", "helmet"))
+	w := next(t, a, "welcome")
+	if len(w.Vehicles) != 1 || w.Vehicles[0].Owner != w.ID {
+		t.Fatalf("a driver arrives with a bike: %+v", w.Vehicles)
+	}
+	bike := w.Vehicles[0].ID
+	next(t, a, "progress")
+	b := dial(t, srv)
+	send(t, b, helloAs("", "traveler", "thun", "cap"))
+	next(t, b, "welcome")
+
+	send(t, a, `{"t":"arch","arch":"citizen"}`)
+	ch := next(t, a, "arch")
+	if ch.Arch != "citizen" || !slices.Contains(ch.Apps, "community") || slices.Contains(ch.Apps, "crab_driver") ||
+		ch.Look == nil || *ch.Look != (look{Body: "woman", Outfit: "baba", Hat: "nonla"}) {
+		t.Fatalf("the change: arch %q apps %v look %+v", ch.Arch, ch.Apps, ch.Look)
+	}
+	if p := next(t, a, "progress"); !hasQuest(p, "citizen.ca_phe_sang", false) || !hasQuest(p, "driver.nhan_xe", false) {
+		t.Fatalf("the Citizen's quests open, the driver's stay: %+v", p.Quests)
+	}
+	if g := next(t, b, "vehicle_gone"); g.ID != bike {
+		t.Fatalf("the others see the bike go: %+v", g)
+	}
+	if pr := next(t, b, "profile"); pr.ID != w.ID || pr.Arch != "citizen" || pr.Look == nil || pr.Look.Outfit != "baba" {
+		t.Fatalf("the others see %+v", pr)
+	}
+	eventually(t, "the change to be stored", func() bool {
+		c, err := storedCharacter(srv, token)
+		return err == nil && c.Archetype == "citizen" && c.Look.Outfit == "baba"
+	})
+	// another change at once waits
+	send(t, a, `{"t":"arch","arch":"traveler"}`)
+	if e := next(t, a, "error"); e.Code != protocol.ErrArchWait {
+		t.Fatalf("a second change at once = %+v", e)
+	}
+	a.Close()
+
+	// the next visit is a Citizen, whatever the hello asks for
+	c := dial(t, srv)
+	send(t, c, helloAs(token, "driver", "baba", "nonla"))
+	if w := next(t, c, "welcome"); w.Arch != "citizen" || len(w.Vehicles) != 0 {
+		t.Fatalf("after the change: arch %q vehicles %+v", w.Arch, w.Vehicles)
+	}
+}
+
 func TestNearbyChatStaysNearby(t *testing.T) {
 	cfg := testConfig()
 	cfg.MaxPlayers = 3

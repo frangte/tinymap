@@ -209,6 +209,27 @@ func (s *Service) Tick(now time.Time) {
 	}
 }
 
+var _ world.ArchHook = (*Service)(nil)
+
+// ArchBusy: no archetype change while asking the way (the ask stands until it is answered, cancelled or runs out).
+func (s *Service) ArchBusy(m world.Member) bool { return s.asks[m.ID()] != nil }
+
+// ArchChanged: a Citizen who is no longer one is not called to answer asks any more (a new Citizen is called by
+// the next sweep).
+func (s *Service) ArchChanged(m world.Member) {
+	if m.Caps().Has(content.CapGiveWay) {
+		return
+	}
+	for _, a := range s.asks {
+		if !a.called[m.ID()] {
+			continue
+		}
+		delete(a.called, m.ID())
+		s.h.Pin(a.asker, m.ID(), false)
+		s.h.Send(m.ID(), encode(goneMsg{T: typeGone, ID: a.id, Why: "changed"}))
+	}
+}
+
 // Left: an asker who leaves takes their ask along; a Citizen who leaves is no longer called (the world drops
 // their pins).
 func (s *Service) Left(m world.Member) {

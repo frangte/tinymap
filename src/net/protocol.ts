@@ -151,9 +151,13 @@ const CHOICES_MAX = 6;
 
 /**
  * auth: the hello's account token is unknown to the server (forget it and get a new one); mount: getting on a
- * vehicle was refused; replaced: the same character joined from somewhere else (another tab), so this one stops
+ * vehicle was refused; replaced: the same character joined from somewhere else (another tab), so this one stops;
+ * arch_busy, arch_wait: no archetype change now (on a trip, asking the way, talking; or one a moment ago)
  */
-export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'auth' | 'mount' | 'replaced' | 'slow' | 'repeat' | 'new_player' | 'muted' | 'banned' | 'kicked' | 'unknown';
+export type ErrorCode = 'full' | 'bad_hello' | 'rate' | 'auth' | 'mount' | 'replaced' | 'slow' | 'repeat' | 'new_player' | 'muted' | 'banned' | 'kicked' | 'arch_busy' | 'arch_wait' | 'unknown';
+
+/** Why the server kept our archetype as it was. */
+export type ArchRefusal = 'arch_busy' | 'arch_wait';
 
 /** [id, x, y, z, heading, flags, age]: age = ms between the server receiving this pose and sending the snapshot */
 export type SnapRow = [number, number, number, number, number, number, number];
@@ -167,7 +171,10 @@ export type ServerMsg =
   | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; npcs: NpcInfo[]; chat: ChatLine[]; wallet: number | null }
   | { t: 'join'; p: PlayerInfo }
   | { t: 'leave'; id: number }
-  | { t: 'profile'; id: number; name: string; look: Look; title: string }
+  /** arch: '' from an older server, which does not say (archetypes did not change then) */
+  | { t: 'profile'; id: number; name: string; arch: string; look: Look; title: string }
+  /** our archetype changed: the one we have now, our phone apps and what we wear now */
+  | { t: 'arch'; arch: string; apps: string[]; look: Look }
   /** out: players that left our view */
   | { t: 'snap'; at: number; rows: SnapRow[]; out: number[] }
   /** our last move was refused: back to pose, and echo k from now on */
@@ -205,6 +212,8 @@ export type ClientMsg =
   | { t: 'interact_leave'; sid: number }
   /** the title to carry, among those earned ('' for none) */
   | { t: 'title'; title: string }
+  /** change archetype; the answer is an arch, or an error arch_busy / arch_wait */
+  | { t: 'arch'; arch: string }
   | { t: 'chat'; ch: Channel; text: string }
   /** report player n to the moderators */
   | { t: 'report'; n: number }
@@ -328,7 +337,7 @@ function interaction(m: Obj): Interaction | null {
   return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices };
 }
 
-const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth', 'mount', 'replaced', 'slow', 'repeat', 'new_player', 'muted', 'banned', 'kicked'];
+const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth', 'mount', 'replaced', 'slow', 'repeat', 'new_player', 'muted', 'banned', 'kicked', 'arch_busy', 'arch_wait'];
 /** a moderation notice is a line or two for the chat log */
 const NOTICE_MAX = 400;
 
@@ -363,7 +372,13 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       return isId(m.id) ? { t: 'leave', id: m.id } : null;
     case 'profile': {
       const p = player(m);
-      return p ? { t: 'profile', id: p.id, name: p.name, look: p.look, title: p.title } : null;
+      return p ? { t: 'profile', id: p.id, name: p.name, arch: p.arch, look: p.look, title: p.title } : null;
+    }
+    case 'arch': {
+      const arch = idOf(m.arch);
+      const look = parseLook(m.look);
+      const apps = Array.isArray(m.apps) ? m.apps.map(idOf).filter((a) => a !== '') : null;
+      return arch && look && apps ? { t: 'arch', arch, apps, look } : null;
     }
     case 'progress': {
       const p = progress(m);

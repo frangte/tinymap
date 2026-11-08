@@ -151,6 +151,17 @@ export class Riding {
     }
   }
 
+  /**
+   * Offline, after an archetype change: off the local bike, which goes with the old archetype, and the new one's
+   * parked beside the player, if it has one. Online the server swaps the bikes (vehicle and vehicle_gone).
+   */
+  swapLocal(): void {
+    if (this.d.net.isOnline) return;
+    this.leave();
+    this.d.vehicles.remove(LOCAL_VEHICLE);
+    this.start();
+  }
+
   /** Offline from the start: park the local bike, if the archetype has one. */
   start(): void {
     if (this.d.net.isOnline || !this.d.starter()) return;
