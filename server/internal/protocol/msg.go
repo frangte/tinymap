@@ -176,8 +176,8 @@ const (
 // Who may wear crab and helmet is decided by capabilities (server/content/archetypes.json), not here.
 var (
 	bodies  = map[string]bool{"man": true, "woman": true}
-	outfits = map[string]bool{"thun": true, "aodai": true, "baba": true, "somi": true, "xeom": true, "bikini": true, "crab": true}
-	hats    = map[string]bool{"nonla": true, "cap": true, "none": true, "helmet": true}
+	outfits = map[string]bool{"thun": true, "aodai": true, "baba": true, "somi": true, "xeom": true, "hoa": true, "bikini": true, "crab": true}
+	hats    = map[string]bool{"nonla": true, "cap": true, "bucket": true, "bun": true, "none": true, "helmet": true}
 )
 
 // OutfitKnown and HatKnown say whether an id exists at all (for checking content files).

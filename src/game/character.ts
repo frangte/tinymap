@@ -19,6 +19,7 @@ const BASE_COLORS = {
   shoe: '#2B211C',
   bag: '#4F8F88',
   cap: '#4F8F88',
+  bucket: '#D7C7A2',
   helmet: CRAB_YELLOW,
 } as const;
 type Slot = keyof typeof BASE_COLORS;
@@ -136,7 +137,9 @@ export class Pedestrian {
   private readonly longHair: THREE.Mesh;
   private readonly nonLa: THREE.Mesh;
   private readonly cap = new THREE.Group();
+  private readonly bucket = new THREE.Group();
   private readonly helmet = new THREE.Group();
+  private readonly bun: THREE.Mesh;
   /** a phone in the right hand, for the photo emote */
   private readonly phone: THREE.Mesh;
   /** the contact shadow, kept on the ground in a jump */
@@ -210,6 +213,13 @@ export class Pedestrian {
     this.cap.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.168, 0.1, 10), m.cap), 0, 0.315, -0.005));
     this.cap.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.018, 0.13), m.cap), 0, 0.272, 0.16));
     this.neck.add(this.cap);
+    // mũ tai bèo: a soft crown and a wide drooping brim
+    this.bucket.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.155, 0.13, 10), m.bucket), 0, 0.3, 0.005));
+    this.bucket.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 0.03, 12), m.bucket), 0, 0.245, 0.005));
+    this.neck.add(this.bucket);
+    // tóc búi: the hair gathered in a knot at the back of the head (the long hair is put up)
+    this.bun = at(new THREE.Mesh(new THREE.IcosahedronGeometry(0.075, 1), m.hair), 0, 0.27, -0.14);
+    this.neck.add(this.bun);
     // mũ bảo hiểm (the Crab Bike helmet): a yellow half shell over the hair and a dark visor brim
     const shell = new THREE.SphereGeometry(0.178, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
     shell.scale(1, 0.92, 1.05);
@@ -274,10 +284,12 @@ export class Pedestrian {
     this.bag.visible = s.bag !== null;
     this.skirt.visible = s.legs === 'skirt';
     this.flapFront.visible = this.flapBack.visible = s.flaps;
-    this.longHair.visible = look.body === 'woman';
+    this.longHair.visible = look.body === 'woman' && look.hat !== 'bun';
     this.nonLa.visible = look.hat === 'nonla';
     this.cap.visible = look.hat === 'cap';
+    this.bucket.visible = look.hat === 'bucket';
     this.helmet.visible = look.hat === 'helmet';
+    this.bun.visible = look.hat === 'bun';
   }
 
   /** Free the GPU resources of a pedestrian that leaves the scene (the shared blob texture stays). */

@@ -100,7 +100,7 @@ Schema changes are new numbered files in `internal/store/migrations/`. They only
 
 JSON text frames, one message per frame, the type in `t`. The client mirrors this in `src/net/protocol.ts`. Positions are three.js metres (Y up) and the heading is radians (0 = facing +Z), which matches `Player.position` and `Player.heading` in the game.
 
-`look` is `{"body": "man"|"woman", "outfit": "thun"|"aodai"|"baba"|"somi"|"xeom"|"bikini"|"crab", "hat": "nonla"|"cap"|"helmet"|"none"}` (`src/game/outfits.ts`). `crab` and `helmet` are the Crab Bike uniform: only a character whose archetype grants `uniform.crab` may wear them (`content/archetypes.json`). In a hello the server swaps them for `thun` / `none`; a profile message wearing them is dropped.
+`look` is `{"body": "man"|"woman", "outfit": "thun"|"aodai"|"baba"|"somi"|"xeom"|"hoa"|"bikini"|"crab", "hat": "nonla"|"cap"|"bucket"|"helmet"|"bun"|"none"}` (`src/game/outfits.ts`). `crab` and `helmet` are the Crab Bike uniform: only a character whose archetype grants `uniform.crab` may wear them (`content/archetypes.json`). In a hello the server swaps them for `thun` / `none`; a profile message wearing them is dropped.
 
 Archetype ids (`arch`) are the ids in `content/archetypes.json` (`traveler`, `citizen`, `driver`). A character keeps the first archetype it picks; its capabilities decide its phone apps (`content/apps.json`). An archetype with a `vehicle` (the driver's `xe_so_110`) arrives with it parked beside them.
 
