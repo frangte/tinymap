@@ -89,6 +89,10 @@ type frame struct {
 	Name    string          `json:"name"`
 	Text    string          `json:"text"`
 	NPC     bool            `json:"npc"`
+	// archetype changes and profiles
+	Arch string        `json:"arch"`
+	Apps []string      `json:"apps"`
+	Look protocol.Look `json:"look"`
 }
 
 // drain returns every frame queued for p, and how many bytes they were.

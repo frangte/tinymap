@@ -56,6 +56,8 @@ type Config struct {
 	// world goroutine, so it must not block; nil drops them. Guests without an account have no events.
 	OnEvent func(events.Event)
 	Chat    ChatRules
+	// ArchGap is how long after an archetype change the next one waits (0: no wait)
+	ArchGap time.Duration
 }
 
 // ChatRules keep chat readable at hundreds of players (docs/design/04-backend.md, Chat at hundreds of players).
@@ -90,6 +92,7 @@ func DefaultConfig() Config {
 		View:         DefaultView(),
 		Talk:         DefaultTalk(),
 		Chat:         DefaultChatRules(),
+		ArchGap:      DefaultArchGap,
 	}
 }
 
@@ -178,6 +181,7 @@ const (
 	evTitle
 	// from the connection, by peer
 	evCaps
+	evArch
 	// a module's job finished: its done runs in the loop
 	evDone
 )
@@ -196,6 +200,9 @@ type event struct {
 	title     string
 	caps      capability.Set
 	done      func()
+	// for evArch: the change, and where the answer goes
+	change *ArchChange
+	reply  chan<- string
 }
 
 // entity is what others see of anything in the world, a player or an NPC: where it is and what it is doing.
@@ -241,6 +248,8 @@ type member struct {
 	lastLine     string
 	lastLineAt   time.Time
 	lastGlobalAt time.Time
+	// archAt is when a guest last changed archetype (a character's is World.archAt)
+	archAt time.Time
 }
 
 type World struct {
@@ -271,6 +280,8 @@ type World struct {
 	snaps    snapScratch
 	modules  []Module
 	jobs     jobQueue
+	// archAt is when each character last changed archetype, for ArchGap; pruned as changes come
+	archAt map[string]time.Time
 }
 
 // New makes the world and places its NPCs. NPC ids come first, then players'.
@@ -287,6 +298,7 @@ func New(cfg Config, grid *nav.Grid, log *slog.Logger) *World {
 		npcByID:  make(map[uint32]*npc),
 		sessions: make(map[uint32]*session),
 		places:   shapesOf(cfg.Places),
+		archAt:   make(map[string]time.Time),
 	}
 	for _, spec := range cfg.NPCs {
 		w.addNPC(spec)
@@ -398,6 +410,8 @@ func (w *World) handle(e event) {
 		if m, ok := w.members[e.p]; ok {
 			m.caps = e.caps
 		}
+	case evArch:
+		w.onArch(e.p, *e.change, e.reply)
 	case evDeliver, evQuests, evTitle:
 		w.onService(e)
 	case evDone:
@@ -421,7 +435,7 @@ func (w *World) onService(e event) {
 			return
 		}
 		m.title = e.title
-		w.broadcast(protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Look: m.look, Title: m.title}), nil)
+		w.broadcast(m.profile(), nil)
 	}
 }
 
@@ -527,7 +541,7 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 			m.name = msg.Name
 		}
 		m.look = *msg.Look
-		w.broadcast(protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Look: m.look, Title: m.title}), p)
+		w.broadcast(m.profile(), p)
 	case protocol.TypeChat:
 		w.onChat(p, m, msg)
 	default:
@@ -586,6 +600,11 @@ func (w *World) sendNearby(from *Peer, sender *member, b []byte) {
 
 func (m *member) player() protocol.Player {
 	return protocol.Player{ID: m.id, Name: m.name, Arch: m.arch, Title: m.title, Look: m.look}
+}
+
+// profile is the frame that tells the others the member's name, archetype, look or title changed.
+func (m *member) profile() []byte {
+	return protocol.Encode(protocol.Profile{T: protocol.TypeProfile, ID: m.id, Name: m.name, Arch: m.arch, Look: m.look, Title: m.title})
 }
 
 // broadcast queues b for every member except `except`; members whose queue is full are dropped.

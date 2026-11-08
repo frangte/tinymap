@@ -765,3 +765,31 @@ func TestLeavingTheSeatSomeOtherWayIsGettingOffEarly(t *testing.T) {
 		t.Fatalf("Lan pays the whole fare: %d", f.balance(f.char(lan)))
 	}
 }
+
+func TestATripHoldsBothArchetypesUntilItsMoneyMoved(t *testing.T) {
+	f := newFixture(t, config())
+	f.onDuty(tai, hoa)
+	if f.s.ArchBusy(f.members[lan]) || f.s.ArchBusy(f.members[tai]) {
+		t.Fatal("nobody on a trip yet")
+	}
+	offers := f.book()
+	if !f.s.ArchBusy(f.members[lan]) {
+		t.Fatal("a passenger who booked must not change archetype")
+	}
+	f.accept(tai, offers[tai])
+	if !f.s.ArchBusy(f.members[tai]) || f.s.ArchBusy(f.members[hoa]) {
+		t.Fatal("only the driver who accepted is held")
+	}
+	f.pickUp(tai)
+	f.rideTo(tai, 100)
+	f.send(tai, protocol.ClientMsg{T: protocol.TypeRideComplete})
+	if f.s.ArchBusy(f.members[lan]) || f.s.ArchBusy(f.members[tai]) {
+		t.Fatalf("a completed trip holds nobody: %v / %v", f.inbox[lan], f.inbox[tai])
+	}
+	// a driver who changed archetype is off duty, and told so
+	f.clear()
+	f.s.ArchChanged(f.members[hoa])
+	if d := f.last(hoa, "duty"); d == nil || d["on"] != false {
+		t.Fatalf("after the change: %v", f.inbox[hoa])
+	}
+}

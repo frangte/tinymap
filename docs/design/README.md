@@ -23,7 +23,7 @@ Update the status when a proposed decision is confirmed or changed.
 
 | # | Decision | Status |
 |---|---|---|
-| D1 | The archetype is fixed per character; capabilities can be earned on top. The schema allows several characters per account; the MVP uses one. | accepted 2026-11-06 |
+| D1 | A character picks an archetype on its first visit and **can change it in game** (Đổi vai in the phone's Hồ sơ app): at most once a minute, and not during a Crab Bike trip, an ask for the way or a conversation. It keeps its quests, titles, stamps, wallet and earned capabilities, wears the new archetype's starter clothes, and gets one archetype's dailies a day (the first it plays that day). Capabilities can be earned on top. The schema allows several characters per account; the MVP uses one. | accepted 2026-11-06 (fixed per character); **changed 2026-11-08** (Khoa: players can change archetype in game) |
 | D2 | **SQLite** (pure-Go `modernc.org/sqlite`) for now; move to Postgres when the game runs on more than one process | **decided 2026-11-06**, built in phase 0 |
 | D3 | Guest accounts first (an anonymous token), real login linked later | accepted 2026-11-06, built in phase 0 |
 | D4 | The client moves and the server checks every move against the nav grid; the server owns quests, rewards, items and interactions | accepted 2026-11-06 |

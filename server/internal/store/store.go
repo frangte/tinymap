@@ -379,6 +379,27 @@ func (db *DB) SetArchetype(ctx context.Context, characterID, archetype string, a
 	return nil
 }
 
+// ChangeArchetype gives a character another archetype and the look that comes with it, in one update.
+func (db *DB) ChangeArchetype(ctx context.Context, characterID, archetype string, look protocol.Look, at int64) error {
+	b, err := json.Marshal(look)
+	if err != nil {
+		return fmt.Errorf("store: change archetype: %w", err)
+	}
+	res, err := db.sql.ExecContext(ctx, `update characters set archetype_id = ?, appearance = ?, updated_at = ?
+		where id = ?`, archetype, string(b), at, characterID)
+	if err != nil {
+		return fmt.Errorf("store: change archetype: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("store: change archetype: %w", err)
+	}
+	if n == 0 {
+		return identity.ErrNotFound
+	}
+	return nil
+}
+
 // SavePose stores where the character stands, for its next visit.
 func (db *DB) SavePose(ctx context.Context, characterID string, p protocol.Pose, at int64) error {
 	res, err := db.sql.ExecContext(ctx, `update characters set last_x = ?, last_y = ?, last_z = ?, last_h = ?, updated_at = ?

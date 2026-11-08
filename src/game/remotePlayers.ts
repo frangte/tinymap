@@ -232,11 +232,13 @@ export class RemotePlayers {
     for (const id of [...this.players.keys()]) this.remove(id);
   }
 
-  setProfile(id: number, name: string, look: Look, title: string): void {
+  /** @param arch '' keeps the one they have (an older server does not say) */
+  setProfile(id: number, name: string, look: Look, title: string, arch: string): void {
     const r = this.players.get(id);
     if (!r) return;
     r.name = name;
     r.title = title;
+    if (arch) r.arch = arch;
     r.avatar.setLook(look);
   }
 

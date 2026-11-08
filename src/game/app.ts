@@ -38,7 +38,7 @@ import { Talk } from './talk';
 import { QuestLog } from './questLog';
 import { QuestTracker } from './questTracker';
 import { ACHIEVEMENTS, STAMPS, STREAK_STAMPS, questById, titleName } from './quests';
-import type { News } from '../net/protocol';
+import type { ArchRefusal, News } from '../net/protocol';
 import { loadPose, savePose } from './lastPose';
 import { Rides, xu } from './rides';
 import { OfferBanner } from './offerBanner';
@@ -48,6 +48,11 @@ import { Directions } from './directions';
 
 /** quick look changes reach the server this long after the last one (ms) */
 const LOOK_SEND_DELAY_MS = 400;
+/** why the server kept our archetype, for the toast */
+const ARCH_REFUSED: Record<ArchRefusal, string> = {
+  arch_busy: 'Xong chuyến xe, lời hỏi đường hay cuộc trò chuyện rồi đổi nhé.',
+  arch_wait: 'Vừa đổi vai xong. Đợi một phút rồi đổi tiếp nhé.',
+};
 const MODEL_BYTES = 2.01e6;
 /** distance from the island centre to the beach (m) */
 const COAST_R = 92;
@@ -427,7 +432,9 @@ export async function startApp(): Promise<void> {
     }
   };
 
-  // ---- "Bạn là ai?": once, before the first dressing (and once for players from before archetypes)
+  // ---- "Bạn là ai?": once before the first dressing (and once for players from before archetypes), then from
+  // the phone's Hồ sơ app to change archetype
+  const starterLook = (a: Archetype): Look => ({ body: profile.look.body, outfit: a.look.outfit, hat: a.look.hat });
   const choose = (a: Archetype): void => {
     caps = grants(a.id);
     riding.leave();
@@ -444,12 +451,59 @@ export async function startApp(): Promise<void> {
     // the dressing panel next, so a returning player also sees what the archetype adds
     openDress();
   };
-  const picker = new ArchetypePicker({
+  const picker: ArchetypePicker = new ArchetypePicker({
     preview: (a) => {
-      if (!dressed) p.player.avatar.setLook({ body: profile.look.body, outfit: a.look.outfit, hat: a.look.hat });
+      // a new player starts in the archetype's clothes, and a change of archetype puts them on (their own card
+      // shows what they wear now)
+      if (picker.isChanging) p.player.avatar.setLook(a.id === profile.archetype ? profile.look : starterLook(a));
+      else if (!dressed) p.player.avatar.setLook(starterLook(a));
     },
-    pick: choose,
+    pick: (a, change) => (change ? changeTo(a) : choose(a)),
+    cancel: () => {
+      p.setDressing(false);
+      p.player.avatar.setLook(profile.look);
+      backToGame();
+    },
   });
+  const openArchetypes = (): void => {
+    if (!canChange() || picker.isOpen || story.isOpen) return;
+    chatBox.close(false);
+    p.setDressing(true);
+    picker.open(profile.archetype);
+  };
+  /** an archetype changed while offline, for the server once we are back ('' for none) */
+  let offlineArch = '';
+  /** waiting for the server's answer to the offline change, and what it had before (adopted if it refuses) */
+  let syncingArch = false;
+  let serverArch = '';
+  let welcomeApps: string[] | null = null;
+  // online the server decides and answers (archChanged, archRefused); offline the change is made at once
+  const changeTo = (a: Archetype): void => {
+    p.setDressing(false);
+    p.player.avatar.setLook(profile.look);
+    backToGame();
+    if (netClient.sendArch(a.id)) return;
+    offlineArch = a.id;
+    becomeArchetype(a.id, starterLook(a), null, true);
+  };
+  /** Take on another archetype: its grants, apps, start and bike, the clothes given, and (tell) its story. */
+  const becomeArchetype = (arch: string, look: Look, apps: string[] | null, tell: boolean): void => {
+    const a = archetypeById(arch);
+    if (!a) return;
+    caps = grants(arch);
+    profile = { ...profile, archetype: arch, look };
+    saveProfile(profile);
+    // the server has it already (or hears of it on the next welcome): the next hello just carries it
+    netClient.keepProfile(profile);
+    p.player.avatar.setLook(look);
+    serverApps = apps;
+    applyArchetype();
+    riding.swapLocal();
+    if (!tell) return;
+    ph.notify('Đổi vai', `Bạn là ${a.name.vi} từ giờ. Nút "${a.spawn.button.vi}" đưa bạn về chỗ xuất phát mới.`);
+    storyTold = false;
+    welcome();
+  };
   closePicker = (): void => {
     if (!picker.isOpen) return;
     picker.close();
@@ -547,8 +601,13 @@ export async function startApp(): Promise<void> {
       const now = performance.now();
       for (const info of players) others.add(info, now);
       chatBox.history(lines, netClient.selfId);
-      adoptArchetype(arch);
-      serverApps = apps;
+      // an archetype changed while we were offline goes to the server now; its answer settles which one we are
+      serverArch = arch;
+      welcomeApps = apps;
+      syncingArch = offlineArch !== '' && arch !== '' && offlineArch !== arch && netClient.sendArch(offlineArch);
+      offlineArch = '';
+      if (!syncingArch) adoptArchetype(arch);
+      serverApps = syncingArch ? null : apps;
       applyArchetype();
       riding.welcome(list);
       // the server says where we are: where we left off last time, or the start
@@ -580,10 +639,29 @@ export async function startApp(): Promise<void> {
       others.remove(id);
       showOnline();
     },
-    profile: (id, name, look, title) => {
-      const before = others.get(id)?.name;
-      if (before !== undefined && before !== name) chatBox.system(`${before} đổi tên thành ${name}`);
-      others.setProfile(id, name, look, title);
+    profile: (id, name, look, title, arch) => {
+      const had = others.get(id);
+      if (had && had.name !== name) chatBox.system(`${had.name} đổi tên thành ${name}`);
+      const role = archetypeById(arch);
+      if (had && role && had.arch !== arch) chatBox.system(`${name} giờ là ${role.name.vi}`);
+      others.setProfile(id, name, look, title, arch);
+    },
+    archChanged: (arch, apps, look) => {
+      // the answer to an offline change needs no story: the player saw it when they made the change
+      const quiet = syncingArch;
+      syncingArch = false;
+      becomeArchetype(arch, look, apps, !quiet);
+    },
+    archRefused: (code) => {
+      if (syncingArch) {
+        syncingArch = false;
+        adoptArchetype(serverArch);
+        serverApps = welcomeApps;
+        applyArchetype();
+        hud.toast({ name: 'Vai đổi lúc mất mạng chưa được lưu', note: ARCH_REFUSED[code] });
+        return;
+      }
+      hud.toast({ name: 'Chưa đổi vai được', note: ARCH_REFUSED[code] });
     },
     progress: (pr) => {
       // quests that started just now (not on arriving: those were already there)
@@ -727,7 +805,7 @@ export async function startApp(): Promise<void> {
     if (dressed) netClient.start(profile);
   };
   let welcomed = false;
-  /** the server keeps the archetype a character picked first: if it differs from ours, the server's wins */
+  /** the server keeps the character's archetype (picked first, changed in game): if it differs from ours, the server's wins */
   const adoptArchetype = (arch: string): void => {
     if (!arch || arch === profile.archetype || !archetypeById(arch)) return;
     caps = grants(arch);
@@ -749,6 +827,7 @@ export async function startApp(): Promise<void> {
     setChannel: (ch) => chatBox.setChannel(ch),
     openChat: () => openChat(),
     dress: () => openDress(),
+    changeArchetype: () => openArchetypes(),
     switchBody: () => {
       switchBody();
       ph.rerender();
@@ -829,6 +908,11 @@ export async function startApp(): Promise<void> {
     if (story.isOpen && e.key === 'Escape') {
       e.preventDefault();
       story.dismiss();
+      return;
+    }
+    if (picker.isChanging && e.key === 'Escape') {
+      e.preventDefault();
+      picker.dismiss();
       return;
     }
     if (isTyping(e)) return;

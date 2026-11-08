@@ -40,7 +40,8 @@ type callMsg struct {
 	Until int64  `json:"until"`
 }
 
-// goneMsg withdraws a call: taken (someone else answered), cancelled, expired, left (the asker left).
+// goneMsg withdraws a call: taken (someone else answered), cancelled, expired, left (the asker left), changed (the
+// one called is no longer a Citizen).
 type goneMsg struct {
 	T   string `json:"t"`
 	ID  string `json:"id"`

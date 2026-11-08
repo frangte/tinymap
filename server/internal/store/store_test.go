@@ -225,6 +225,27 @@ func TestAccountsAndCharacters(t *testing.T) {
 	if err := db.UpdateProfile(ctx, "nobody", "x", xeom, 0); !errors.Is(err, identity.ErrNotFound) {
 		t.Fatalf("unknown character: %v", err)
 	}
+
+	// an archetype is set once by SetArchetype, and changed after by ChangeArchetype, with the look
+	if err := db.SetArchetype(ctx, "C1", "driver", 4000); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SetArchetype(ctx, "C1", "traveler", 4000); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := db.CharacterOf(ctx, "A1"); c.Archetype != "driver" {
+		t.Fatalf("SetArchetype must leave a chosen archetype alone: %q", c.Archetype)
+	}
+	baba := protocol.Look{Body: "woman", Outfit: "baba", Hat: "nonla"}
+	if err := db.ChangeArchetype(ctx, "C1", "citizen", baba, 5000); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := db.CharacterOf(ctx, "A1"); c.Archetype != "citizen" || c.Look != baba || c.Name != "Lan Anh" {
+		t.Fatalf("after ChangeArchetype = %+v", c)
+	}
+	if err := db.ChangeArchetype(ctx, "nobody", "citizen", baba, 0); !errors.Is(err, identity.ErrNotFound) {
+		t.Fatalf("unknown character: %v", err)
+	}
 	err := db.CreateCharacter(ctx, identity.Character{ID: "C2", AccountID: "nobody", Look: lan})
 	if err == nil || !strings.Contains(err.Error(), "FOREIGN KEY") {
 		t.Fatalf("a character needs an account: %v", err)

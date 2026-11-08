@@ -659,6 +659,12 @@ body.is-story #dress-open { display: none !important; }
 .arch-card strong { font: 800 18px/1.1 var(--display); }
 .arch-pitch { font: 500 12.5px/1.4 var(--body); color: var(--ink-soft); }
 .arch-card:hover, .arch-card:focus-visible { background: var(--paper-deep); }
+.arch-head { display: flex; align-items: center; gap: 8px; }
+.arch-now { display: none; font: 700 10px/1 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--brick); }
+/* changing archetype: the one being played is marked, and picking it again changes nothing */
+.arch-card.is-current { background: var(--paper-deep); box-shadow: inset 0 0 0 1.5px var(--ink), 2px 2px 0 var(--shade); }
+.arch-card.is-current .arch-now { display: inline; }
+.picker-cancel { justify-self: start; padding: 10px 14px; font-size: 14px; }
 
 /* an archetype's badge next to a name: its colours come from server/content/archetypes.json */
 .badge { display: inline-block; padding: 2px 6px 3px; border: 1.2px solid var(--ink); border-radius: 3px; font: 700 10px/1 var(--body); letter-spacing: 0.03em; white-space: nowrap; vertical-align: 1px; }
@@ -856,6 +862,7 @@ body.is-talking .toast { display: none !important; }
 .app-facts dd { margin: 0; font-weight: 700; }
 .app-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .app-actions button, .phone-view > button { padding: 10px 12px; font-size: 13px; }
+.app-actions .app-wide { grid-column: 1 / -1; }
 .app-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .app-list li { display: grid; gap: 2px; padding: 8px 10px; border: 1.2px solid var(--ink); border-radius: 3px; background: var(--paper); font: 500 12px/1.35 var(--body); }
 .app-list strong { font: 700 13px/1.2 var(--body); }

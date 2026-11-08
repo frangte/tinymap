@@ -305,6 +305,18 @@ func (s *Service) checkSeat(r *ride) {
 	}
 }
 
+var _ world.ArchHook = (*Service)(nil)
+
+// ArchBusy: no archetype change during a trip, in either role, from the booking until the money has moved (a
+// passenger may still rate a completed trip as someone else).
+func (s *Service) ArchBusy(m world.Member) bool {
+	r := s.of[m.ID()]
+	return r != nil && r.state != StateCompleted
+}
+
+// ArchChanged: a driver who changed archetype got off their bike, which went with the old archetype: off duty.
+func (s *Service) ArchChanged(m world.Member) { s.offDuty(m.ID(), true) }
+
 func (s *Service) Left(m world.Member) {
 	s.offDuty(m.ID(), false)
 	r := s.of[m.ID()]

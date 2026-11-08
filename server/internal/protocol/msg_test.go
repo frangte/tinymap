@@ -87,6 +87,21 @@ func TestDecode(t *testing.T) {
 				}
 			}},
 		{name: "archetype too long", in: `{"t":"hello","arch":"` + strings.Repeat("a", ArchMax+1) + `","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`, wantErr: ErrBadArch},
+		{name: "archetype change", in: `{"t":"arch","arch":"citizen"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Arch != "citizen" {
+					t.Fatalf("arch = %q", m.Arch)
+				}
+			}},
+		{name: "archetype change without an id", in: `{"t":"arch"}`, wantErr: ErrBadArch},
+		{name: "archetype change to a malformed id", in: `{"t":"arch","arch":"Driver!"}`, wantErr: ErrBadArch},
+		{name: "archetype change too long", in: `{"t":"arch","arch":"` + strings.Repeat("a", ArchMax+1) + `"}`, wantErr: ErrBadArch},
+		{name: "only hello and arch carry an archetype", in: `{"t":"profile","arch":"driver","name":"Lan","look":{"body":"woman","outfit":"aodai","hat":"nonla"}}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Arch != "" {
+					t.Fatalf("arch = %q, want it dropped", m.Arch)
+				}
+			}},
 		{name: "chat defaults to global", in: `{"t":"chat","text":"chào"}`,
 			check: func(t *testing.T, m ClientMsg) {
 				if m.Ch != ChannelGlobal {

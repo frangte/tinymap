@@ -38,6 +38,8 @@ export interface PhoneHost {
   openChat(): void;
   dress(): void;
   switchBody(): void;
+  /** open the archetype cards to change archetype */
+  changeArchetype(): void;
   /** the player's quests as the server last told it */
   quests(): QuestLog;
   /** carry another earned title ('' for none) */
@@ -112,6 +114,12 @@ const profile: AppFactory = (root, ctx) => {
     }, true),
     button(`Đổi sang ${other}`, () => ctx.switchBody()),
   );
+  const change = button(a ? 'Đổi vai' : 'Chọn vai', () => {
+    ctx.close();
+    ctx.changeArchetype();
+  });
+  change.classList.add('app-wide');
+  actions.append(change);
   root.append(actions);
   return { dispose: stop };
 };

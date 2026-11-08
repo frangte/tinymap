@@ -44,6 +44,9 @@ const (
 	TypeInteractLeave = "interact_leave"
 	// TypeTitle picks the title a character carries, among those it earned ("" for none)
 	TypeTitle = "title"
+	// TypeArch changes the player's archetype (arch). The server answers the player with an arch of its own
+	// (the archetype, phone apps and look it now has) or an error: ErrArchBusy, ErrArchWait.
+	TypeArch = "arch"
 	// Crab Bike trips (server/internal/ridehail): a driver goes on duty; a passenger books, cancels, gets on,
 	// gets off early, rates; a driver accepts an offer and completes the trip
 	TypeDuty         = "duty"
@@ -120,6 +123,11 @@ const (
 	ErrAuth = "auth"
 	// ErrMount: a mount was refused (not your vehicle, too far away, already riding)
 	ErrMount = "mount"
+	// ErrArchBusy: no archetype change now: the player is on a trip or booking one, sitting behind someone,
+	// carrying a passenger, asking the way or talking to an NPC
+	ErrArchBusy = "arch_busy"
+	// ErrArchWait: the archetype changed less than a minute ago; the next change waits until then
+	ErrArchWait = "arch_wait"
 	// ErrReplaced: the same character joined again from another connection (a reconnect after the network
 	// dropped, or a second tab); this one is closed. The client should not reconnect on its own.
 	ErrReplaced = "replaced"
@@ -207,7 +215,8 @@ type ClientMsg struct {
 	// Token is the account token, in hello only; empty for a guest without an account.
 	Token string `json:"token"`
 	Name  string `json:"name"`
-	// Arch is the archetype the player picked, in hello only; the server keeps the one a character already has.
+	// Arch is the archetype the player picked, in hello (the server keeps the one a character already has) and
+	// in arch (the one to change to).
 	Arch string `json:"arch"`
 	// Ch is the chat channel, in chat only: "global" (also when empty, as older clients send) or "nearby".
 	Ch   string  `json:"ch"`
@@ -253,7 +262,7 @@ var (
 	ErrUnknownType = errors.New("unknown message type")
 	ErrBadLook     = errors.New("invalid look")
 	ErrBadToken    = errors.New("token too long")
-	ErrBadArch     = errors.New("archetype id too long")
+	ErrBadArch     = errors.New("not an archetype id")
 	ErrBadChannel  = errors.New("unknown chat channel")
 	ErrBadPose     = errors.New("pose out of bounds")
 	ErrBadFlags    = errors.New("unknown state flags")
@@ -273,7 +282,10 @@ func Decode(data []byte) (ClientMsg, error) {
 		return m, err
 	}
 	if m.T != TypeHello {
-		m.Token, m.Arch = "", "" // only a hello carries the account and the archetype
+		m.Token = "" // only a hello carries the account
+	}
+	if m.T != TypeHello && m.T != TypeArch {
+		m.Arch = ""
 	}
 	if m.T != TypeChat {
 		m.Ch = ""
@@ -349,6 +361,10 @@ func Decode(data []byte) (ClientMsg, error) {
 	case TypeTitle:
 		if !titlePattern.MatchString(m.Title) {
 			return m, ErrBadTitle
+		}
+	case TypeArch:
+		if m.Arch == "" || len(m.Arch) > ArchMax || !titlePattern.MatchString(m.Arch) {
+			return m, ErrBadArch
 		}
 	case TypeDuty, TypeRideCancel, TypeRideBoard, TypeRideAlight, TypeRideComplete:
 	case TypeRideRequest, TypeWayAsk:
@@ -570,8 +586,8 @@ type Welcome struct {
 	T    string `json:"t"`
 	ID   uint32 `json:"id"`
 	Name string `json:"name"`
-	// Arch is the player's archetype as the server keeps it (an archetype is chosen once); Apps the phone apps
-	// its capabilities give, in phone order
+	// Arch is the player's archetype as the server keeps it (a hello only sets the first one; arch changes it);
+	// Apps the phone apps its capabilities give, in phone order
 	Arch       string   `json:"arch,omitempty"`
 	Apps       []string `json:"apps"`
 	MaxPlayers int      `json:"max"`
@@ -621,12 +637,24 @@ type Leave struct {
 	ID uint32 `json:"id"`
 }
 
+// Profile is a player's changed name, look, title or archetype, sent to everyone else.
 type Profile struct {
-	T     string `json:"t"`
-	ID    uint32 `json:"id"`
-	Name  string `json:"name"`
+	T    string `json:"t"`
+	ID   uint32 `json:"id"`
+	Name string `json:"name"`
+	// Arch is the archetype id, absent for none
+	Arch  string `json:"arch,omitempty"`
 	Look  Look   `json:"look"`
 	Title string `json:"title,omitempty"`
+}
+
+// Arch tells the player their archetype changed: the one they have now, the phone apps it gives (in phone order)
+// and the look they wear now (the archetype's starter clothes on their body).
+type Arch struct {
+	T    string   `json:"t"`
+	Arch string   `json:"arch"`
+	Apps []string `json:"apps"`
+	Look Look     `json:"look"`
 }
 
 // A snapshot is {"t":"snap","at":ms,"p":[row…],"out":[id…]}, built by hand because it is the one message sent

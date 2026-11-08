@@ -90,7 +90,7 @@ func TestArchetypeIsChosenOnce(t *testing.T) {
 	}{
 		{"a character from before archetypes has none", "", ""},
 		{"its first choice is kept", "traveler", "traveler"},
-		{"a later hello cannot change it", "driver", "traveler"},
+		{"a later hello cannot change it (only an arch message does)", "driver", "traveler"},
 		{"nor can a hello without one", "", "traveler"},
 	}
 	token, err := svc.NewGuest(ctx)
@@ -109,6 +109,30 @@ func TestArchetypeIsChosenOnce(t *testing.T) {
 	other, _ := svc.NewGuest(ctx)
 	if _, arch, err := arrive(ctx, svc, other, lan("citizen")); err != nil || arch != "citizen" {
 		t.Fatalf("new character = %q, %v", arch, err)
+	}
+}
+
+func TestArchetypeChangesInGame(t *testing.T) {
+	ctx := context.Background()
+	svc := identity.New(openDB(t, filepath.Join(t.TempDir(), "game.db")))
+	token, err := svc.NewGuest(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, _, err := arrive(ctx, svc, token, lan("driver"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	citizen := protocol.Look{Body: "woman", Outfit: "baba", Hat: "nonla"}
+	if err := svc.ChangeArchetype(ctx, id, "citizen", citizen); err != nil {
+		t.Fatal(err)
+	}
+	// the next visit is a Citizen in the Citizen's clothes, whatever its hello says
+	if _, arch, err := arrive(ctx, svc, token, identity.Profile{Name: "Lan", Look: citizen, Archetype: "driver"}); err != nil || arch != "citizen" {
+		t.Fatalf("after the change = %q, %v; want citizen", arch, err)
+	}
+	if err := svc.ChangeArchetype(ctx, "nobody", "citizen", citizen); !errors.Is(err, identity.ErrNotFound) {
+		t.Fatalf("unknown character: %v", err)
 	}
 }
 

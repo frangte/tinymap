@@ -264,3 +264,62 @@ func TestAPlayerOnlineAtMidnightGetsTheNewDaysDailies(t *testing.T) {
 		}
 	}
 }
+
+// todaysDailies are the dailies in the book for an archetype tag, "" for the ones open to everyone.
+func todaysDailies(e *Engine, b *Book, tag string) []string {
+	var out []string
+	for id := range b.Records {
+		t := e.byID[id]
+		if t == nil || !t.daily {
+			continue
+		}
+		if (tag == "" && len(t.tagsAny) == 0) || (tag != "" && slices.Contains(t.tagsAny, tag)) {
+			out = append(out, id)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+func TestChangingArchetypeDealsNoSecondSetOfDailies(t *testing.T) {
+	e := engine(t)
+	traveler, citizen := Player{Tags: []string{"traveler"}}, Player{Tags: []string{"citizen"}}
+	b := NewBook(Saved{})
+	e.Refresh(traveler, b, noon(10))
+	dealt := todaysDailies(e, b, "traveler")
+	if len(dealt) == 0 || len(todaysDailies(e, b, "")) == 0 {
+		t.Fatalf("a Traveler's first visit of the day deals its dailies and everyone's: %v", b.Active())
+	}
+
+	// a Citizen from the afternoon on: the Citizen's quests open, its dailies wait for tomorrow
+	e.Refresh(citizen, b, noon(10)+3*3600*1000)
+	if got := todaysDailies(e, b, "citizen"); len(got) != 0 {
+		t.Fatalf("a second set of dailies on the day of the change: %v", got)
+	}
+	if b.Records["citizen.ca_phe_sang"] == nil {
+		t.Fatal("the Citizen's questline must open on the change")
+	}
+	if got := todaysDailies(e, b, "traveler"); !slices.Equal(got, dealt) {
+		t.Fatalf("the Traveler's dailies of the day stay to be done: %v, want %v", got, dealt)
+	}
+	if len(todaysDailies(e, b, "")) == 0 {
+		t.Fatal("the daily open to everyone stays")
+	}
+
+	// the next day it is a Citizen's dailies, and only those
+	e.Refresh(citizen, b, noon(11))
+	if got := todaysDailies(e, b, "citizen"); len(got) == 0 {
+		t.Fatal("the next day deals the Citizen's dailies")
+	}
+	if got := todaysDailies(e, b, "traveler"); len(got) != 0 {
+		t.Fatalf("yesterday's Traveler dailies are gone: %v", got)
+	}
+	// changing back the same day deals nothing more either
+	e.Refresh(traveler, b, noon(11)+1000)
+	if got := todaysDailies(e, b, "traveler"); len(got) != 0 {
+		t.Fatalf("changing back dealt the Traveler's dailies again: %v", got)
+	}
+	if b.Records["traveler.chao_sai_gon"] == nil {
+		t.Fatal("the quests started as a Traveler are kept")
+	}
+}

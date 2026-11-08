@@ -37,7 +37,8 @@ type Character struct {
 	AccountID string
 	Name      string
 	Look      protocol.Look
-	// Archetype is the archetype id, "" until the player has chosen one; then it stays
+	// Archetype is the archetype id, "" until the player has chosen one; a hello only sets the first one, and
+	// ChangeArchetype the ones after
 	Archetype string
 	// Pose is where the character stood when its player last left, nil before that
 	Pose *protocol.Pose
@@ -87,6 +88,8 @@ type Repo interface {
 	UpdateProfile(ctx context.Context, characterID, name string, look protocol.Look, at int64) error
 	// SetArchetype sets the archetype of a character that has none yet, and leaves one that has alone.
 	SetArchetype(ctx context.Context, characterID, archetype string, at int64) error
+	// ChangeArchetype gives a character another archetype and the look that comes with it.
+	ChangeArchetype(ctx context.Context, characterID, archetype string, look protocol.Look, at int64) error
 	SavePose(ctx context.Context, characterID string, p protocol.Pose, at int64) error
 }
 
@@ -110,8 +113,8 @@ func (s *Service) NewGuest(ctx context.Context) (string, error) {
 }
 
 // Arrive finds the character behind a hello's token, creating it on the account's first visit, and stores the
-// name and look the hello came with. An archetype is chosen once, so a character that has one keeps it whatever
-// the hello says. An empty token is a guest without an account: no id, and the hello's archetype for this visit.
+// name and look the hello came with. A hello only chooses the first archetype: a character that has one keeps it
+// whatever the hello says (it changes in game, with ChangeArchetype). An empty token is a guest without an account: no id, and the hello's archetype for this visit.
 func (s *Service) Arrive(ctx context.Context, token string, p Profile) (Arrived, error) {
 	if token == "" {
 		return Arrived{Archetype: p.Archetype}, nil
@@ -156,6 +159,15 @@ func (s *Service) Arrive(ctx context.Context, token string, p Profile) (Arrived,
 func (s *Service) SavePose(ctx context.Context, characterID string, p protocol.Pose) error {
 	if err := s.repo.SavePose(ctx, characterID, p, s.now().UnixMilli()); err != nil {
 		return fmt.Errorf("identity: save pose: %w", err)
+	}
+	return nil
+}
+
+// ChangeArchetype stores the character's new archetype and the look it changed into. The caller has checked the
+// archetype id and the look.
+func (s *Service) ChangeArchetype(ctx context.Context, characterID, archetype string, look protocol.Look) error {
+	if err := s.repo.ChangeArchetype(ctx, characterID, archetype, look, s.now().UnixMilli()); err != nil {
+		return fmt.Errorf("identity: change archetype: %w", err)
 	}
 	return nil
 }
