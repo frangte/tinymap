@@ -203,8 +203,8 @@ func (c *Catalog) checkNPC(n NPC, places map[string]bool) error {
 		return errors.New("id must be lower_snake_case ascii")
 	case n.Name == "" || protocol.CleanName(n.Name) != n.Name:
 		return fmt.Errorf("needs a name of at most %d characters, without extra spaces", protocol.NameMax)
-	case n.Role.VI == "":
-		return errors.New("needs a Vietnamese role")
+	case n.Role.VI == "" || n.Role.EN == "":
+		return errors.New("needs a role in Vietnamese and English")
 	case !n.Look.Valid():
 		return errors.New("unknown body, outfit or hat")
 	case !places[n.Place]:
@@ -311,6 +311,10 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 func checkText(t Text, max int, placeholders bool) error {
 	if t.VI == "" {
 		return errors.New("needs Vietnamese")
+	}
+	// the game shows the English to players who chose it (src/game/i18n), so every line has one
+	if t.EN == "" {
+		return errors.New("needs English")
 	}
 	for _, s := range []string{t.VI, t.EN} {
 		if utf8.RuneCountInString(s) > max {

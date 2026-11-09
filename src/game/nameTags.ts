@@ -10,6 +10,7 @@ import type { RemotePlayers } from './remotePlayers';
 import type { Npcs } from './npcs';
 import { archetypeById } from './archetypes';
 import { titleName } from './quests';
+import { tx } from './i18n';
 
 /** the local player's key: server ids start at 1 */
 export const SELF = 0;
@@ -240,9 +241,10 @@ export class NameTags {
       if (!tag) {
         tag = new Tag(this.layer, false);
         tag.setName(n.def.name);
-        tag.setRole(n.def.role.vi);
         this.tags.set(n.id, tag);
       }
+      // every frame, so a language switch shows at once (it writes nothing while the text stays the same)
+      tag.setRole(tx(n.def.role));
       if (n.actor.avatar.root.visible) this.project(tag, camera, n.position, now);
       else tag.hide();
     }

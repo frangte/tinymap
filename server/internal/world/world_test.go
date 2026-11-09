@@ -88,6 +88,7 @@ type frame struct {
 	OK      bool            `json:"ok"`
 	Name    string          `json:"name"`
 	Text    string          `json:"text"`
+	EN      string          `json:"en"`
 	NPC     bool            `json:"npc"`
 	// archetype changes and profiles
 	Arch string        `json:"arch"`

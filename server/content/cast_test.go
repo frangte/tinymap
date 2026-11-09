@@ -78,7 +78,7 @@ func distToPlace(p Place, x, y float64) float64 {
 var noQuests = []byte(`{"titles": [], "stamps": [], "quests": [], "achievements": []}`)
 
 func TestCastRejects(t *testing.T) {
-	const npc = `{"id": "x", "name": "Cô X", "role": {"vi": "bán hàng"}, "look": {"body": "woman", "outfit": "baba", "hat": "nonla"},
+	const npc = `{"id": "x", "name": "Cô X", "role": {"vi": "bán hàng", "en": "bán hàng"}, "look": {"body": "woman", "outfit": "baba", "hat": "nonla"},
 		"place": "cho_ben_thanh", "at": [2, -11.5], "face": [8, -17], "mode": "private", "dialogue": "x", "reach": 3 %s}`
 	npcs := func(extra string) []byte {
 		return []byte(`{"npcs": [` + strings.Replace(npc, "%s", extra, 1) + `]}`)
@@ -86,7 +86,7 @@ func TestCastRejects(t *testing.T) {
 	dialogue := func(nodes string) map[string][]byte {
 		return map[string][]byte{"x.json": []byte(`{"id": "x", "start": "a", "nodes": {` + nodes + `}}`)}
 	}
-	const okNodes = `"a": {"say": {"default": {"vi": "Chào"}}, "choices": [{"text": {"vi": "Thôi"}, "goto": "end"}]}`
+	const okNodes = `"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Thôi", "en": "Thôi"}, "goto": "end"}]}`
 	cases := []struct {
 		name      string
 		npcs      []byte
@@ -101,18 +101,19 @@ func TestCastRejects(t *testing.T) {
 		{"a bark too long for chat", npcs(`, "barks": [{"vi": "` + strings.Repeat("a", BarkMax+1) + `"}]`), dialogue(okNodes), "bark"},
 		{"no start", npcs(""), map[string][]byte{"x.json": []byte(`{"id": "x", "start": "b", "nodes": {` + okNodes + `}}`)}, "start node"},
 		{"a file named for another id", npcs(""), map[string][]byte{"y.json": []byte(`{"id": "x", "start": "a", "nodes": {` + okNodes + `}}`)}, "file name"},
-		{"a goto to nowhere", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào"}}, "choices": [{"text": {"vi": "Đi"}, "goto": "b"}]}`), "not a node"},
-		{"an unreachable node", npcs(""), dialogue(okNodes + `, "b": {"say": {"default": {"vi": "Ơ"}}}`), "cannot be reached"},
-		{"no default line", npcs(""), dialogue(`"a": {"say": {"traveler": {"vi": "Chào"}}}`), "default"},
-		{"a line for an archetype that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào"}, "tourist": {"vi": "Hi"}}}`), "not an archetype"},
-		{"a placeholder other than {name}", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {player}"}}}`), "placeholder"},
-		{"an emote that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào"}}, "emote": "dance"}`), "emote"},
-		{"an answer needing an unknown capability", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào"}}, "choices": [{"text": {"vi": "Đi"}, "goto": "end", "requires": ["no.such"]}]}`), "unknown capability"},
-		{"a signal that is not an id", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào"}}, "choices": [{"text": {"vi": "Đi"}, "goto": "end", "emit": "Bought It"}]}`), "signal"},
-		{"a public line too long for chat", npcs(`, "mode": "public"`), dialogue(`"a": {"say": {"default": {"vi": "` + strings.Repeat("a", BarkMax+1) + `"}}}`), "public"},
-		{"a control character in a line", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào\u0007"}}}`), "control"},
-		{"an invisible character in a line", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào\u200b cô"}}}`), "invisible"},
-		{"a double space", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào  cô"}}}`), "double"},
+		{"a goto to nowhere", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "b"}]}`), "not a node"},
+		{"an unreachable node", npcs(""), dialogue(okNodes + `, "b": {"say": {"default": {"vi": "Ơ", "en": "Ơ"}}}`), "cannot be reached"},
+		{"no default line", npcs(""), dialogue(`"a": {"say": {"traveler": {"vi": "Chào", "en": "Chào"}}}`), "default"},
+		{"a line for an archetype that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}, "tourist": {"vi": "Hi", "en": "Hi"}}}`), "not an archetype"},
+		{"a placeholder other than {name}", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {player}", "en": "Chào {player}"}}}`), "placeholder"},
+		{"an emote that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "emote": "dance"}`), "emote"},
+		{"an answer needing an unknown capability", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "end", "requires": ["no.such"]}]}`), "unknown capability"},
+		{"a signal that is not an id", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "end", "emit": "Bought It"}]}`), "signal"},
+		{"a public line too long for chat", npcs(`, "mode": "public"`), dialogue(`"a": {"say": {"default": {"vi": "` + strings.Repeat("a", BarkMax+1) + `", "en": "a"}}}`), "public"},
+		{"a line without English", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào cô"}}}`), "needs English"},
+		{"a control character in a line", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào\u0007", "en": "Chào\u0007"}}}`), "control"},
+		{"an invisible character in a line", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào\u200b cô", "en": "Chào\u200b cô"}}}`), "invisible"},
+		{"a double space", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào  cô", "en": "Chào  cô"}}}`), "double"},
 		{"a dialogue nobody speaks", npcs(""), map[string][]byte{"x.json": dialogue(okNodes)["x.json"], "y.json": []byte(`{"id": "y", "start": "a", "nodes": {` + okNodes + `}}`)}, "no npc speaks it"},
 	}
 	for _, c := range cases {

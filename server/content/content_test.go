@@ -31,22 +31,24 @@ func TestEmbeddedPlacesAreValid(t *testing.T) {
 }
 
 func TestParsePlacesRejects(t *testing.T) {
-	const ok = `{"id":"cho","name":"Chợ","note":"","kind":"landmark","pts":[[8,8]],"r":25}`
+	const ok = `{"id":"cho","name":{"vi":"Chợ","en":"Market"},"note":{"vi":"","en":""},"kind":"landmark","pts":[[8,8]],"r":25}`
 	cases := []struct {
 		name string
 		json string
 		want string
 	}{
 		{"no places", `{"places":[]}`, "no places"},
-		{"unknown field", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,0]],"r":1,"radius":3}]}`, "unknown field"},
-		{"bad id", `{"places":[{"id":"Chợ","name":"A","kind":"area","pts":[[0,0]],"r":1}]}`, "lower_snake_case"},
+		{"unknown field", `{"places":[{"id":"a","name":{"vi":"A","en":"A"},"kind":"area","pts":[[0,0]],"r":1,"radius":3}]}`, "unknown field"},
+		{"bad id", `{"places":[{"id":"Chợ","name":{"vi":"A","en":"A"},"kind":"area","pts":[[0,0]],"r":1}]}`, "lower_snake_case"},
 		{"duplicate id", `{"places":[` + ok + `,` + ok + `]}`, "duplicate"},
-		{"no name", `{"places":[{"id":"a","name":"","kind":"area","pts":[[0,0]],"r":1}]}`, "no name"},
-		{"unknown kind", `{"places":[{"id":"a","name":"A","kind":"cafe","pts":[[0,0]],"r":1}]}`, "unknown kind"},
-		{"no points", `{"places":[{"id":"a","name":"A","kind":"area","pts":[],"r":1}]}`, "no points"},
-		{"zero reach", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,0]],"r":0}]}`, "reach"},
-		{"3d point", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,0,0]],"r":1}]}`, "[x, y]"},
-		{"off the map", `{"places":[{"id":"a","name":"A","kind":"area","pts":[[0,9000]],"r":1}]}`, "within"},
+		{"no name", `{"places":[{"id":"a","name":{"vi":"","en":""},"kind":"area","pts":[[0,0]],"r":1}]}`, "no name"},
+		{"no English name", `{"places":[{"id":"a","name":{"vi":"A"},"kind":"area","pts":[[0,0]],"r":1}]}`, "no name in Vietnamese and English"},
+		{"note in one language", `{"places":[{"id":"a","name":{"vi":"A","en":"A"},"note":{"vi":"x"},"kind":"area","pts":[[0,0]],"r":1}]}`, "both Vietnamese and English"},
+		{"unknown kind", `{"places":[{"id":"a","name":{"vi":"A","en":"A"},"kind":"cafe","pts":[[0,0]],"r":1}]}`, "unknown kind"},
+		{"no points", `{"places":[{"id":"a","name":{"vi":"A","en":"A"},"kind":"area","pts":[],"r":1}]}`, "no points"},
+		{"zero reach", `{"places":[{"id":"a","name":{"vi":"A","en":"A"},"kind":"area","pts":[[0,0]],"r":0}]}`, "reach"},
+		{"3d point", `{"places":[{"id":"a","name":{"vi":"A","en":"A"},"kind":"area","pts":[[0,0,0]],"r":1}]}`, "[x, y]"},
+		{"off the map", `{"places":[{"id":"a","name":{"vi":"A","en":"A"},"kind":"area","pts":[[0,9000]],"r":1}]}`, "within"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

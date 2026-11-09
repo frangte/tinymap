@@ -2,6 +2,7 @@
 // action at hand ("Lên xe" next to your bike, "Xuống xe" on it; E), and the emotes (1-9), which open as a row.
 import { el } from './hud';
 import type { Emote } from './motion';
+import { onLangChange, tx } from './i18n';
 
 export interface ActionPadEvents {
   jump(): void;
@@ -17,6 +18,7 @@ export class ActionPad {
   private readonly emoteButton = el<HTMLButtonElement>('act-emote');
   private readonly menu = el('emote-menu');
   private useLabel: string | null = null;
+  private emotes: readonly Emote[] = [];
 
   constructor(private readonly on: ActionPadEvents) {
     el<HTMLButtonElement>('act-jump').addEventListener('click', () => {
@@ -28,10 +30,13 @@ export class ActionPad {
       on.done();
     });
     this.emoteButton.addEventListener('click', () => (this.menu.hidden ? this.openMenu() : this.closeMenu()));
+    // the action button follows by itself (its label is asked for again and again)
+    onLangChange(() => this.setEmotes(this.emotes));
   }
 
   /** The emotes the player may play; keys 1-9 follow this order. */
   setEmotes(list: readonly Emote[]): void {
+    this.emotes = list;
     this.menu.replaceChildren(...list.map((e, i) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -39,7 +44,7 @@ export class ActionPad {
       const key = document.createElement('kbd');
       key.className = 'mouse-only';
       key.textContent = String(i + 1);
-      b.append(key, document.createTextNode(e.name.vi));
+      b.append(key, document.createTextNode(tx(e.name)));
       b.addEventListener('click', () => {
         this.closeMenu();
         this.on.emote(e.code);

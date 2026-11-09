@@ -193,6 +193,13 @@ func TestAMuteSilencesUntilItEndsAndUnmuteLiftsIt(t *testing.T) {
 	if st.muted["c3"] != h.now.Add(10*time.Minute).UnixMilli() {
 		t.Fatalf("stored mute %v", st.muted)
 	}
+	// what the player is told comes in English too; the moderator's reply is the team's, Vietnamese only
+	if en, _ := h.got(minh, "mod_notice")["en"].(string); !strings.Contains(en, "muted your chat") {
+		t.Fatalf("Minh's notice in English: %q", en)
+	}
+	if en, ok := h.got(mod, "mod_notice")["en"]; ok {
+		t.Fatalf("a moderator's reply came with English: %v", en)
+	}
 	if n := h.notes(minh); len(n) != 1 || !strings.Contains(n[0], "tắt chat") {
 		t.Fatalf("Minh heard %v", n)
 	}

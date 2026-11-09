@@ -1,10 +1,11 @@
 // The phone's map: the island drawn flat (north up), its streets and landmarks, the NPCs to talk to as diamonds,
 // everyone out right now as a dot in their archetype's colour, and an arrow for the player. Redrawn a few times a
 // second while the app is open.
-import { PLACES } from '../places';
+import { PLACES, placeTitle } from '../places';
 import { NPC_DEFS } from '../npcs';
 import { archetypeById } from '../archetypes';
 import type { RemotePlayer } from '../remotePlayers';
+import { L } from '../i18n/phone';
 
 const SEA = '#9FCFCB';
 const LAND = '#E7DBC4';
@@ -38,7 +39,7 @@ export class MiniMap {
   constructor() {
     this.canvas.className = 'mini-map';
     this.canvas.setAttribute('role', 'img');
-    this.canvas.setAttribute('aria-label', 'Bản đồ Quận 1');
+    this.canvas.setAttribute('aria-label', L.mapLabel);
   }
 
   /**
@@ -91,7 +92,7 @@ export class MiniMap {
       // landmarks listed first win: a label that would sit on one already drawn is left out
       if (labelled.some(([lx, ly]) => Math.hypot(lx - x, ly - y) < LABEL_GAP * dpr)) continue;
       labelled.push([x, y]);
-      g.fillText(l.name, x, y - 5 * dpr);
+      g.fillText(placeTitle(l), x, y - 5 * dpr);
     }
     // NPCs stand at their spots (they only turn round), so the shared list says where they are
     g.fillStyle = NPC_MARK;

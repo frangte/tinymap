@@ -223,7 +223,7 @@ func (w *World) npcSays(n *npc, t protocol.Text) {
 		return
 	}
 	b := protocol.Encode(protocol.ChatLine{T: protocol.TypeChat, ID: n.id, Name: n.spec.Name, NPC: true, Ch: protocol.ChannelNearby,
-		Text: text, At: w.now().UnixMilli()})
+		Text: text, EN: protocol.CleanChat(t.EN), At: w.now().UnixMilli()})
 	r2 := w.cfg.Talk.VoiceRadius * w.cfg.Talk.VoiceRadius
 	var slow []*Peer
 	for p, m := range w.members {

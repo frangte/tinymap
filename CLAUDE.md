@@ -10,12 +10,13 @@ For gameplay, multiplayer and backend work (archetypes, quests, NPCs, phone, cha
 
 - `npm run dev` — dev server at http://localhost:5173 (`?debug` exposes `window.sgGame`, `?debug&manual` stops the loop for stepping)
 - `npm run typecheck` — `tsc --noEmit`
+- `npm run i18n:check` — fails on interface text typed outside the catalogs in `src/game/i18n/`
 - `npm run build` — type-check + production build into `dist/`
 - `npm run build:single` — one HTML file at `dist-single/saigon-noir.html` (serve `models/` next to it)
 - `blender models/temp.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb` — export the GLB (then the gltf-transform chain in that file's header)
 - `blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1` — re-bake the nav maps after a map change, then `npm run nav:sync` (the server checks moves against its own embedded copy; `go test` fails until they match). The map file is the shipped GLB imported back (meshes merged by material), so the bake tells ground from obstacles by material, and buildings nobody walks into are `NAV_Solid_` boxes in its `NAV` collection (`scripts/blender/nav_boxes.py`; see docs/PROJECT.md, Pipeline)
 
-No test runner and no linter. Verify changes with `npm run typecheck`, then play in the browser.
+No test runner and no linter. Verify changes with `npm run typecheck` and `npm run i18n:check`, then play in the browser (in both languages: `?lang=vi`, `?lang=en`).
 
 ## Conventions
 
@@ -25,6 +26,7 @@ No test runner and no linter. Verify changes with `npm run typecheck`, then play
 - Every mesh added to the scene must be registered with `InkPass.track()`, otherwise the normal pass draws it with its colour material.
 - The sun shadow map is baked once (`shadowMap.autoUpdate = false`); moving things use a blob shadow.
 - Movement and the camera only read the nav grid; never raycast the city meshes per frame.
+- The game is in Vietnamese and English. Interface text lives in the catalogs in `src/game/i18n/` (`en: typeof vi`), `index.html` text in `i18n/page.ts` via `data-i18n` keys, and content text in `server/content/` as `{vi, en}` pairs shown with `tx()`. Views that keep text on screen redraw on `onLangChange()`. README.md, "Adding text".
 
 ## Overrides for the ECC rules in `.claude/rules/ecc/`
 

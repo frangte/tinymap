@@ -1,9 +1,12 @@
 // The Crab apps (docs/design/08-ride-hailing.md): Crab books a Crab Bike for anyone, Crab Driver puts a driver on
 // duty and lists the offers. Both draw what rides.ts holds, and redraw only when what they show changes shape (a
 // trip's state, the offers on the list); the parts that tick (a countdown, how far the driver is) are rewritten in
-// place a few times a second, so buttons stay under the finger and keep the keyboard focus.
+// place a few times a second, so buttons stay under the finger and keep the keyboard focus. A language switch
+// redraws the whole app.
 import { CUT_PERCENT, DESTINATIONS, OFFER_RADIUS, TIPS, fareTo, placeName, xu, type Rides } from '../rides';
-import { distance } from '../places';
+import { distance, placeTitle } from '../places';
+import { lang, onLangChange } from '../i18n';
+import { L } from '../i18n/crabApps';
 import { button, h } from './dom';
 import type { AppContext, AppFactory } from './apps';
 import type { Ride, RidePerson } from '../../net/rideProtocol';
@@ -25,7 +28,7 @@ interface Choice {
 }
 
 function far(d: number | null): string {
-  return d === null ? 'chưa thấy trên đường' : d < 4 ? 'ở ngay đây' : `cách ${Math.round(d)} m`;
+  return d === null ? L.farUnseen : d < 4 ? L.farHere : L.farAway(Math.round(d));
 }
 
 /** text that follows f() a few times a second */
@@ -45,20 +48,20 @@ function keyed(b: HTMLButtonElement, key: string): HTMLButtonElement {
 }
 
 function walletLine(rides: Rides): HTMLElement {
-  return h('p', 'crab-wallet', rides.balance === null ? 'Ví Crab: chưa có' : `Ví Crab: ${xu(rides.balance)}`);
+  return h('p', 'crab-wallet', rides.balance === null ? L.walletNone : L.wallet(xu(rides.balance)));
 }
 
 function driverCard(p: RidePerson, sub: HTMLElement): HTMLElement {
   const card = h('div', 'driver-card');
-  const stars = p.trips > 0 ? `★ ${p.stars.toFixed(1)} · ${p.trips} cuốc` : 'Tài xế mới';
+  const stars = p.trips > 0 ? L.driverStars(p.stars.toFixed(1), p.trips) : L.newDriver;
   card.append(h('strong', '', p.name), h('span', '', stars), sub);
   return card;
 }
 
 /** Whether the phone can do anything about trips now; if not, a note why. */
 function unavailable(root: HTMLElement, ctx: AppContext, rides: Rides): boolean {
-  if (!ctx.online()) root.append(h('p', 'app-note', 'Đang mất kết nối, chưa đặt xe được.'));
-  else if (rides.balance === null) root.append(h('p', 'app-note', 'Đặt xe cần một tài khoản có ví, mà lần này bạn đang chơi không có tài khoản. Tải lại trang để thử lại.'));
+  if (!ctx.online()) root.append(h('p', 'app-note', L.offline));
+  else if (rides.balance === null) root.append(h('p', 'app-note', L.noAccount));
   else return false;
   return true;
 }
@@ -76,17 +79,17 @@ function redrawer(root: HTMLElement, shape: () => string, draw: () => void): () 
   };
 }
 
-/** what a Crab app shows, as a string that changes when it must be redrawn */
+/** what a Crab app shows, as a string that changes when it must be redrawn (the language too) */
 function shapeOf(ctx: AppContext, rides: Rides): string {
   const r = rides.ride;
-  return JSON.stringify([ctx.online(), rides.balance, rides.duty, rides.rating, r?.id, r?.state, r?.end, r?.driver?.id, [...rides.offers.keys()].sort()]);
+  return JSON.stringify([lang(), ctx.online(), rides.balance, rides.duty, rides.rating, r?.id, r?.state, r?.end, r?.driver?.id, [...rides.offers.keys()].sort()]);
 }
 
 // ---- Crab: booking
 
 function destinations(root: HTMLElement, ctx: AppContext, rides: Rides, ticks: Live[]): void {
   const me = ctx.self().position;
-  root.append(h('p', 'app-text', 'Chọn nơi muốn tới. Giá tính theo đường chim bay, trả trước từ ví; huỷ trước khi lên xe được hoàn tiền.'));
+  root.append(h('p', 'app-text', L.chooseDest));
   const ol = h('ol', 'app-list');
   const here = (id: string): boolean => {
     const p = DESTINATIONS.find((d) => d.id === id);
@@ -96,11 +99,11 @@ function destinations(root: HTMLElement, ctx: AppContext, rides: Rides, ticks: L
   for (const p of sorted) {
     const li = h('li', 'crab-dest');
     const info = h('span', 'crab-dest-info');
-    info.append(h('strong', '', p.name), live('crab-dest-fare', () => {
+    info.append(h('strong', '', placeTitle(p)), live('crab-dest-fare', () => {
       const at = ctx.self().position;
       return `${Math.round(distance(p, at.x, -at.z))} m · ${xu(fareTo(p, at.x, at.z))}`;
     }, ticks));
-    const book = keyed(button('Đặt xe', () => rides.book(p.id), true), `book:${p.id}`);
+    const book = keyed(button(L.book, () => rides.book(p.id), true), `book:${p.id}`);
     // the fare follows the player: so does whether the wallet covers it
     const afford = (): void => {
       const at = ctx.self().position;
@@ -115,34 +118,34 @@ function destinations(root: HTMLElement, ctx: AppContext, rides: Rides, ticks: L
 }
 
 function rating(root: HTMLElement, rides: Rides, r: Ride, choice: Choice): void {
-  root.append(h('p', 'app-text', r.end === 'completed' ? `Đã tới ${placeName(r.dest)}. Đã trả ${xu(r.fare)}.` : `Bạn đã xuống xe giữa đường. Đã trả ${xu(r.fare)}.`));
+  root.append(h('p', 'app-text', r.end === 'completed' ? L.arrivedPaid(placeName(r.dest), xu(r.fare)) : L.alightedPaid(xu(r.fare))));
   if (!r.driver) return;
   const box = h('section', 'crab-rate');
-  box.append(h('strong', 'app-section', `Đánh giá ${r.driver.name}`));
+  box.append(h('strong', 'app-section', L.rateDriver(r.driver.name)));
   const row = h('div', 'crab-stars');
   row.setAttribute('role', 'group');
-  row.setAttribute('aria-label', 'Số sao');
+  row.setAttribute('aria-label', L.starsGroup);
   const starButtons = STARS.map((n) => {
     const b = keyed(button('★', () => {
       choice.stars = n;
       sync();
     }), `star:${n}`);
-    b.setAttribute('aria-label', `${n} sao`);
+    b.setAttribute('aria-label', L.stars(n));
     row.append(b);
     return b;
   });
   const tips = h('div', 'seg');
   tips.setAttribute('role', 'group');
-  tips.setAttribute('aria-label', 'Tiền tip');
+  tips.setAttribute('aria-label', L.tipGroup);
   const tipButtons = TIPS.map((t) => {
-    const b = keyed(button(t === 0 ? 'Không tip' : `+${xu(t)}`, () => {
+    const b = keyed(button(t === 0 ? L.noTip : `+${xu(t)}`, () => {
       choice.tip = t;
       sync();
     }), `tip:${t}`);
     tips.append(b);
     return [t, b] as const;
   });
-  const send = keyed(button('Gửi đánh giá', () => rides.rate(choice.stars, choice.tip), true), 'rate');
+  const send = keyed(button(L.sendRating, () => rides.rate(choice.stars, choice.tip), true), 'rate');
   const sync = (): void => {
     starButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(i < choice.stars)));
     for (const [t, b] of tipButtons) {
@@ -150,35 +153,35 @@ function rating(root: HTMLElement, rides: Rides, r: Ride, choice: Choice): void 
       b.disabled = rides.balance !== null && t > rides.balance;
     }
     send.disabled = rides.rating;
-    send.textContent = rides.rating ? 'Đang gửi…' : 'Gửi đánh giá';
+    send.textContent = rides.rating ? L.sending : L.sendRating;
   };
   sync();
   const actions = h('div', 'app-actions');
-  actions.append(send, keyed(button('Bỏ qua', () => rides.skipRating()), 'skip'));
+  actions.append(send, keyed(button(L.skip, () => rides.skipRating()), 'skip'));
   box.append(row, tips, actions);
   root.append(box);
 }
 
 function booked(root: HTMLElement, rides: Rides, r: Ride, ticks: Live[], choice: Choice): void {
   const dest = placeName(r.dest);
-  const left = (): string => `Còn ${Math.max(0, Math.ceil((r.deadline - rides.now()) / 1000))} giây`;
+  const left = (): string => L.secondsLeft(Math.max(0, Math.ceil((r.deadline - rides.now()) / 1000)));
   switch (r.state) {
     case 'requested': {
       const card = h('div', 'driver-card');
-      card.append(h('strong', '', 'Đang tìm tài xế…'), h('span', '', `Tới ${dest} · ${xu(r.fare)}`), live('', left, ticks));
-      root.append(card, keyed(button('Huỷ chuyến', () => rides.cancel()), 'cancel'));
+      card.append(h('strong', '', L.finding), h('span', '', L.toFare(dest, xu(r.fare))), live('', left, ticks));
+      root.append(card, keyed(button(L.cancelTrip, () => rides.cancel()), 'cancel'));
       return;
     }
     case 'accepted': {
       const d = r.driver;
-      if (d) root.append(driverCard(d, live('', () => `Đang tới đón bạn · ${far(rides.howFar(d.id))}`, ticks)));
-      root.append(h('p', 'app-text', `Tới ${dest} · ${xu(r.fare)}. Xe tới và dừng cạnh bạn thì bấm Lên xe Crab (phím E).`),
-        keyed(button('Huỷ chuyến', () => rides.cancel()), 'cancel'));
+      if (d) root.append(driverCard(d, live('', () => L.comingFor(far(rides.howFar(d.id))), ticks)));
+      root.append(h('p', 'app-text', L.boardHow(dest, xu(r.fare))),
+        keyed(button(L.cancelTrip, () => rides.cancel()), 'cancel'));
       return;
     }
     case 'on_trip': {
-      if (r.driver) root.append(driverCard(r.driver, h('span', '', `Đang chở bạn tới ${dest}`)));
-      root.append(h('p', 'app-note', 'Xuống xe giữa đường vẫn tính đủ tiền chuyến.'));
+      if (r.driver) root.append(driverCard(r.driver, h('span', '', L.carrying(dest))));
+      root.append(h('p', 'app-note', L.fullFare));
       return;
     }
     default:
@@ -196,13 +199,26 @@ export const crab: AppFactory = (root, ctx) => {
     root.replaceChildren(walletLine(rides));
     if (unavailable(root, ctx, rides)) return;
     const r = rides.ride;
-    if (r?.role === 'rider') root.append(h('p', 'app-note', 'Bạn đang chở khách: xem trong app Crab Driver.'));
+    if (r?.role === 'rider') root.append(h('p', 'app-note', L.seeDriverApp));
     else if (r) booked(root, rides, r, ticks, choice);
     else destinations(root, ctx, rides, ticks);
   });
-  draw();
-  return { update: () => ticks.forEach((f) => f()), dispose: rides.onChange(draw) };
+  return mount(draw, rides, () => ticks);
 };
+
+/** Draw now, redraw on a trip change or a language switch; the view's update runs the ticking parts. */
+function mount(draw: () => void, rides: Rides, ticks: () => Live[]): { update(): void; dispose(): void } {
+  draw();
+  const stopRides = rides.onChange(draw);
+  const stopLang = onLangChange(draw);
+  return {
+    update: () => ticks().forEach((f) => f()),
+    dispose: () => {
+      stopRides();
+      stopLang();
+    },
+  };
+}
 
 // ---- Crab Driver: duty and offers
 
@@ -210,20 +226,20 @@ function driving(root: HTMLElement, rides: Rides, r: Ride, ticks: Live[]): void 
   const card = h('div', 'driver-card');
   const dest = placeName(r.dest);
   if (r.state === 'accepted') {
-    card.append(h('strong', '', `Đón ${r.passenger.name}`), h('span', '', `Tới ${dest} · ${xu(r.fare)}`),
+    card.append(h('strong', '', L.pickUp(r.passenger.name)), h('span', '', L.toFare(dest, xu(r.fare))),
       live('', () => far(rides.howFar(r.passenger.id)), ticks));
-    root.append(card, h('p', 'app-text', 'Chạy tới chỗ khách theo mũi tên, dừng xe cạnh khách để khách lên.'),
-      keyed(button('Huỷ cuốc', () => rides.cancel()), 'cancel'));
+    root.append(card, h('p', 'app-text', L.pickupHow),
+      keyed(button(L.cancelRide, () => rides.cancel()), 'cancel'));
     return;
   }
-  card.append(h('strong', '', `Chở ${r.passenger.name} tới ${dest}`), h('span', '', `${xu(r.fare)}, bạn nhận ${100 - CUT_PERCENT} %`));
-  root.append(card, h('p', 'app-text', 'Tới nơi thì dừng xe và bấm Trả khách (phím E). Xuống xe giữa đường là huỷ cuốc, khách được hoàn tiền.'));
+  card.append(h('strong', '', L.carryTo(r.passenger.name, dest)), h('span', '', L.yourShare(xu(r.fare), 100 - CUT_PERCENT)));
+  root.append(card, h('p', 'app-text', L.dropOffHow));
 }
 
 function offers(root: HTMLElement, rides: Rides, ticks: Live[]): void {
   const list = [...rides.offers.values()].sort((a, b) => a.expires - b.expires);
   if (list.length === 0) {
-    root.append(h('p', 'app-text', `Đang chờ khách… Khách đặt xe trong vòng ${OFFER_RADIUS} m sẽ hiện ở đây và trên màn hình.`));
+    root.append(h('p', 'app-text', L.waiting(OFFER_RADIUS)));
     return;
   }
   const ol = h('ol', 'app-list');
@@ -232,9 +248,9 @@ function offers(root: HTMLElement, rides: Rides, ticks: Live[]): void {
     const info = h('span', 'crab-dest-info');
     info.append(h('strong', '', `${o.passenger.name} → ${placeName(o.dest)}`), live('crab-dest-fare', () => {
       const secs = Math.max(0, Math.ceil((o.expires - rides.now()) / 1000));
-      return `${xu(o.fare)} · đón cách ${Math.round(rides.howFarTo(o.pickup[0], o.pickup[1]))} m · ${secs} giây`;
+      return L.offerInfo(xu(o.fare), Math.round(rides.howFarTo(o.pickup[0], o.pickup[1])), secs);
     }, ticks));
-    li.append(info, keyed(button('Nhận', () => rides.accept(o.offer), true), `take:${o.offer}`));
+    li.append(info, keyed(button(L.take, () => rides.accept(o.offer), true), `take:${o.offer}`));
     ol.append(li);
   }
   root.append(ol);
@@ -253,15 +269,14 @@ export const crabDriver: AppFactory = (root, ctx) => {
       return;
     }
     if (r) {
-      root.append(h('p', 'app-note', 'Bạn đang đi Crab: xem trong app Crab.'));
+      root.append(h('p', 'app-note', L.seeCrabApp));
       return;
     }
-    const toggle = keyed(button(rides.duty ? 'Tắt nhận cuốc' : 'Bật nhận cuốc', () => rides.setDuty(!rides.duty), !rides.duty), 'duty');
+    const toggle = keyed(button(rides.duty ? L.dutyOff : L.dutyOn, () => rides.setDuty(!rides.duty), !rides.duty), 'duty');
     toggle.setAttribute('aria-pressed', String(rides.duty));
-    root.append(toggle, h('p', 'app-note', 'Nhận cuốc khi đang ngồi trên xe của bạn; xuống xe là tắt nhận cuốc.'));
+    root.append(toggle, h('p', 'app-note', L.dutyNote));
     if (rides.duty) offers(root, rides, ticks);
-    else root.append(h('p', 'app-text', 'Trong lúc chờ: chạy dọc Lê Lợi, Đồng Khởi và Hàm Nghi cho thuộc đường Quận 1.'));
+    else root.append(h('p', 'app-text', L.idleTip));
   });
-  draw();
-  return { update: () => ticks.forEach((f) => f()), dispose: rides.onChange(draw) };
+  return mount(draw, rides, () => ticks);
 };

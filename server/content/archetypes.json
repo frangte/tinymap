@@ -21,7 +21,7 @@
         "vi": "Lần đầu tới Sài Gòn. Đi khắp Quận 1, gặp người địa phương, ghé từng công trình và trở thành người Sài Gòn chính hiệu.",
         "en": "First time in Saigon. Walk all of District 1, meet the locals, visit every landmark and become a true Saigonese."
       },
-      "badge": { "short": "Du khách", "color": "#4E7CA6", "text": "#F3EBDD" },
+      "badge": { "short": { "vi": "Du khách", "en": "Traveler" }, "color": "#4E7CA6", "text": "#F3EBDD" },
       "spawn": { "place": "bung_binh_quach_thi_trang", "at": [8, -19], "face": [8, 8], "button": { "vi": "Về bùng binh", "en": "Back to the roundabout" } },
       "look": { "outfit": "thun", "hat": "cap" },
       "capabilities": ["traveler.guide_app", "directions.ask"]
@@ -34,7 +34,7 @@
         "vi": "Dân Quận 1 chính gốc. Cà phê sáng, hàng xóm quen, những góc phố chỉ người địa phương mới biết, và chỉ đường cho du khách.",
         "en": "Born and raised in District 1. Morning coffee, the neighbours, the corners only locals know, and showing travellers the way."
       },
-      "badge": { "short": "Người SG", "color": "#3E7F5F", "text": "#F3EBDD" },
+      "badge": { "short": { "vi": "Người SG", "en": "Citizen" }, "color": "#3E7F5F", "text": "#F3EBDD" },
       "spawn": { "place": "day_nha_pho_le_lai", "at": [-30, -19], "face": [-30, 0], "button": { "vi": "Về nhà", "en": "Back home" } },
       "look": { "outfit": "baba", "hat": "nonla" },
       "capabilities": ["citizen.community_app", "directions.give"]
@@ -47,7 +47,7 @@
         "vi": "Áo khoác vàng, mũ bảo hiểm, thuộc từng con đường. Sắp tới: nhận cuốc xe trên điện thoại và chở khách khắp phố.",
         "en": "Yellow jacket, helmet, knows every street. Coming soon: ride requests on the phone, and passengers all over town."
       },
-      "badge": { "short": "Crab", "color": "#D9A21B", "text": "#2B211C" },
+      "badge": { "short": { "vi": "Crab", "en": "Crab" }, "color": "#D9A21B", "text": "#2B211C" },
       "spawn": { "place": "duong_ham_nghi", "at": [36, -37], "face": [62, -50], "button": { "vi": "Về bãi xe", "en": "Back to the bike stand" } },
       "look": { "outfit": "crab", "hat": "helmet" },
       "vehicle": "xe_so_110",

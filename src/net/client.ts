@@ -4,6 +4,8 @@
 import type { Profile } from '../game/profile';
 import { wrapAngle } from '../game/coords';
 import type { Look } from '../game/outfits';
+import { tx } from '../game/i18n';
+import { L } from '../game/i18n/client';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
 import type { RideClientMsg, RideServerMsg } from './rideProtocol';
 import type { WayClientMsg, WayServerMsg } from './wayProtocol';
@@ -399,10 +401,10 @@ export class NetClient {
         } else console.error('game server refused the connection:', m.code);
         break;
       case 'mod_notice':
-        this.on.notice(m.text);
+        this.on.notice(tx(m.text));
         break;
       case 'reported':
-        this.on.notice('Đã gửi báo cáo cho người điều hành. Cảm ơn bạn!');
+        this.on.notice(L.reported);
         break;
       case 'way':
       case 'way_call':

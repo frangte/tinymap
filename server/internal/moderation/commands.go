@@ -27,7 +27,7 @@ const help = "Lệnh điều hành: /mute <tên hoặc #số> [30m|2h|1d], /unmu
 // command runs a moderator's chat command; anyone else is told it is not for them.
 func (s *Service) command(m world.Member, text string) {
 	if !m.Caps().Has(content.CapModerate) {
-		s.note(m.ID(), "Lệnh này chỉ dành cho người điều hành.")
+		s.tell(m.ID(), protocol.Text{VI: "Lệnh này chỉ dành cho người điều hành.", EN: "This command is for moderators only."})
 		return
 	}
 	f := strings.Fields(text)
@@ -159,7 +159,7 @@ func (s *Service) mute(mod world.Member, args []string) {
 	until := s.h.Now().Add(d)
 	s.muted[o.Character()] = until
 	who, char, by := o.Name(), o.Character(), mod.Character()
-	s.note(o.ID(), "Người điều hành đã tắt chat của bạn đến "+clock(until)+".")
+	s.tell(o.ID(), protocol.Text{VI: "Người điều hành đã tắt chat của bạn đến " + clock(until) + ".", EN: "A moderator has muted your chat until " + clock(until) + "."})
 	s.log.Info("muted", "moderator", by, "character", char, "until", until)
 	s.store(mod, "mute", func(ctx context.Context) error {
 		return s.db.SetMuted(ctx, char, until.UnixMilli(), by, s.h.Now().UnixMilli())
@@ -174,7 +174,7 @@ func (s *Service) unmute(mod world.Member, args []string) {
 	}
 	s.muted[o.Character()] = time.Time{}
 	who, char, by := o.Name(), o.Character(), mod.Character()
-	s.note(o.ID(), "Bạn đã được chat lại.")
+	s.tell(o.ID(), protocol.Text{VI: "Bạn đã được chat lại.", EN: "You can chat again."})
 	s.store(mod, "unmute", func(ctx context.Context) error { return s.db.SetMuted(ctx, char, 0, by, s.h.Now().UnixMilli()) },
 		func() { s.note(mod.ID(), "Đã cho "+who+" chat lại.") })
 }

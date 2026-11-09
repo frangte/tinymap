@@ -37,9 +37,9 @@ func TestQuestsLoad(t *testing.T) {
 func TestQuestsRejects(t *testing.T) {
 	quest := func(fields string) string {
 		base := map[string]string{
-			"id": `"a.one"`, "version": `1`, "questline": `"line"`, "title": `{"vi": "Một"}`, "about": `{"vi": "Thử"}`,
+			"id": `"a.one"`, "version": `1`, "questline": `"line"`, "title": `{"vi": "Một", "en": "Một"}`, "about": `{"vi": "Thử", "en": "Thử"}`,
 			"flow": `"sequence"`, "rewards": `{}`,
-			"objectives": `[{"id": "go", "type": "reach_place", "params": {"place": "cho_ben_thanh"}, "text": {"vi": "Đi"}}]`,
+			"objectives": `[{"id": "go", "type": "reach_place", "params": {"place": "cho_ben_thanh"}, "text": {"vi": "Đi", "en": "Đi"}}]`,
 		}
 		for _, kv := range strings.Split(fields, ";") {
 			if k, v, ok := strings.Cut(kv, "="); ok {
@@ -53,7 +53,7 @@ func TestQuestsRejects(t *testing.T) {
 		return `{` + strings.Join(parts, ", ") + `}`
 	}
 	file := func(quests ...string) []byte {
-		return []byte(`{"titles": [{"id": "t", "name": {"vi": "Danh hiệu"}}], "stamps": [], "achievements": [], "quests": [` +
+		return []byte(`{"titles": [{"id": "t", "name": {"vi": "Danh hiệu", "en": "Danh hiệu"}}], "stamps": [], "achievements": [], "quests": [` +
 			strings.Join(quests, ", ") + `]}`)
 	}
 	cases := []struct {
@@ -68,9 +68,9 @@ func TestQuestsRejects(t *testing.T) {
 		{"two quests with one id", file(quest(""), quest("")), "duplicate"},
 		{"an unknown flow", file(quest(`flow="whenever"`)), "flow"},
 		{"no objectives", file(quest(`objectives=[]`)), "objectives"},
-		{"two objectives with one id", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": {}, "text": {"vi": "Đi"}}, {"id": "go", "type": "reach_place", "params": {}, "text": {"vi": "Đi"}}]`)), "unique"},
-		{"pointing at nothing", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": {}, "text": {"vi": "Đi"}, "at": "nowhere"}]`)), "neither a place nor an NPC"},
-		{"params that are not an object", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": [], "text": {"vi": "Đi"}}]`)), "params"},
+		{"two objectives with one id", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": {}, "text": {"vi": "Đi", "en": "Đi"}}, {"id": "go", "type": "reach_place", "params": {}, "text": {"vi": "Đi", "en": "Đi"}}]`)), "unique"},
+		{"pointing at nothing", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": {}, "text": {"vi": "Đi", "en": "Đi"}, "at": "nowhere"}]`)), "neither a place nor an NPC"},
+		{"params that are not an object", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": [], "text": {"vi": "Đi", "en": "Đi"}}]`)), "params"},
 		{"an objective without text", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": {}}]`)), "text"},
 		{"a title reward that does not exist", file(quest(`rewards={"titles": ["nope"]}`)), "reward title"},
 		{"a capability reward that does not exist", file(quest(`rewards={"capability": "no.such"}`)), "reward capability"},

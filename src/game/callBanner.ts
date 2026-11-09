@@ -5,6 +5,8 @@ import data from '../../server/content/directions.json';
 import { el } from './hud';
 import { landmarkName, type Directions } from './directions';
 import type { WayCall } from '../net/wayProtocol';
+import { onLangChange } from './i18n';
+import { L } from './i18n/callBanner';
 
 const WAIT_MS = data.wait_seconds * 1000;
 
@@ -21,6 +23,7 @@ export class CallBanner {
       if (this.shown) directions.dismiss(this.shown.id);
     });
     directions.onChange(() => this.refresh());
+    onLangChange(() => this.draw());
   }
 
   /** A few times a second in play mode: the bar runs down, the distance follows the player. */
@@ -30,9 +33,9 @@ export class CallBanner {
     const left = Math.max(0, c.until - this.now());
     this.bar.style.transform = `scaleX(${Math.min(1, left / WAIT_MS).toFixed(3)})`;
     const d = this.directions.distanceTo(c);
-    const where = `Tới ${landmarkName(c.dest)} · ${Number.isFinite(d) ? `cách bạn ${Math.round(d)} m` : 'ở xa'}`;
+    const where = L.where(landmarkName(c.dest), Number.isFinite(d) ? L.metres(Math.round(d)) : L.far);
     if (this.where.textContent !== where) this.where.textContent = where;
-    const hint = this.directions.label() ? 'Bấm E để chỉ đường' : 'Lại gần để chỉ đường';
+    const hint = this.directions.label() ? L.pressE : L.closer;
     if (this.hint.textContent !== hint) this.hint.textContent = hint;
   }
 
@@ -41,8 +44,14 @@ export class CallBanner {
     if (c === this.shown) return;
     this.shown = c;
     this.root.hidden = !c;
+    this.draw();
+  }
+
+  /** The call's text, in the language of the moment. */
+  private draw(): void {
+    const c = this.shown;
     if (!c) return;
-    this.who.textContent = `${c.from.name} hỏi đường`;
+    this.who.textContent = L.who(c.from.name);
     this.update();
   }
 }

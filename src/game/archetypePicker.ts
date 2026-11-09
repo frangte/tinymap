@@ -3,6 +3,8 @@
 // or focusing a card previews that archetype's starter look on the player.
 import { el } from './hud';
 import { ARCHETYPES, type Archetype } from './archetypes';
+import { onLangChange, tx } from './i18n';
+import { L } from './i18n/archetypePicker';
 
 export interface PickerHandlers {
   /** a card is hovered or focused: show its starter look */
@@ -13,8 +15,13 @@ export interface PickerHandlers {
   cancel(): void;
 }
 
-const LEDE_FIRST = 'Cả Quận 1 chung một con phố, mỗi vai sống ở đó một kiểu. Muốn đổi vai sau này thì vào app Hồ sơ trên điện thoại.';
-const LEDE_CHANGE = 'Đổi vai ngay tại chỗ, mặc đồ của vai mới. Nhiệm vụ, danh hiệu và ví vẫn giữ nguyên.';
+interface Card {
+  button: HTMLButtonElement;
+  badge: HTMLElement;
+  now: HTMLElement;
+  name: HTMLElement;
+  pitch: HTMLElement;
+}
 
 export class ArchetypePicker {
   private readonly root = el('picker');
@@ -22,6 +29,7 @@ export class ArchetypePicker {
   private readonly lede = el('picker-lede');
   private readonly cancelButton = el<HTMLButtonElement>('picker-cancel');
   private readonly cards = new Map<string, HTMLButtonElement>();
+  private readonly texts: Array<{ a: Archetype; card: Card }> = [];
   /** the archetype being changed from, '' for a first pick */
   private current = '';
 
@@ -35,19 +43,16 @@ export class ArchetypePicker {
       head.className = 'arch-head';
       const badge = document.createElement('span');
       badge.className = 'badge';
-      badge.textContent = a.badge.short;
       badge.style.background = a.badge.color;
       badge.style.color = a.badge.text;
       const now = document.createElement('span');
       now.className = 'arch-now';
-      now.textContent = 'Vai hiện tại';
       head.append(badge, now);
       const name = document.createElement('strong');
-      name.textContent = a.name.vi;
       const pitch = document.createElement('span');
       pitch.className = 'arch-pitch';
-      pitch.textContent = a.pitch.vi;
       b.append(head, name, pitch);
+      this.texts.push({ a, card: { button: b, badge, now, name, pitch } });
       b.addEventListener('pointerenter', () => on.preview(a));
       b.addEventListener('focus', () => on.preview(a));
       b.addEventListener('click', () => {
@@ -63,6 +68,20 @@ export class ArchetypePicker {
       this.cards.set(a.id, b);
     }
     this.cancelButton.addEventListener('click', () => this.dismiss());
+    this.label();
+    onLangChange(() => this.label());
+  }
+
+  /** Every text on the cards and the heading, in the current language. */
+  private label(): void {
+    for (const { a, card } of this.texts) {
+      card.badge.textContent = tx(a.badge.short);
+      card.now.textContent = L.current;
+      card.name.textContent = tx(a.name);
+      card.pitch.textContent = tx(a.pitch);
+    }
+    this.title.textContent = this.current ? L.titleChange : L.titleFirst;
+    this.lede.textContent = this.current ? L.ledeChange : L.ledeFirst;
   }
 
   get isOpen(): boolean {
@@ -77,8 +96,7 @@ export class ArchetypePicker {
   /** @param current the archetype being changed from; '' (the default) for the first pick */
   open(current = ''): void {
     this.current = current;
-    this.title.textContent = current ? 'Đổi vai' : 'Bạn là ai?';
-    this.lede.textContent = current ? LEDE_CHANGE : LEDE_FIRST;
+    this.label();
     this.cancelButton.hidden = !current;
     for (const [id, b] of this.cards) {
       const mine = id === current;

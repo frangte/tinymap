@@ -65,6 +65,8 @@ export interface ChatLine {
   npc: boolean;
   ch: Channel;
   text: string;
+  /** the English of an NPC's line ('' for none: players' lines are not translated, older servers send none) */
+  en: string;
   /** server time, ms since the epoch */
   at: number;
 }
@@ -188,7 +190,7 @@ export type ServerMsg =
   | ({ t: 'progress' } & Progress)
   | { t: 'error'; code: ErrorCode }
   /** a moderation line for our chat log: a command's answer, a mute, a report received */
-  | { t: 'mod_notice'; text: string }
+  | { t: 'mod_notice'; text: Text }
   /** our report of player n was stored */
   | { t: 'reported'; n: number }
   | RideServerMsg
@@ -247,7 +249,9 @@ function chatLine(v: unknown): ChatLine | null {
   const body = str(v.text, CHAT_MAX);
   if (name === null || !body) return null;
   // older servers send no channel: everything was global then
-  return { id: v.id, name, arch: idOf(v.arch), title: idOf(v.title), npc: v.npc === true, ch: v.ch === 'nearby' ? 'nearby' : 'global', text: body, at: v.at };
+  const npc = v.npc === true;
+  const en = npc ? (str(v.en, CHAT_MAX) ?? '') : '';
+  return { id: v.id, name, arch: idOf(v.arch), title: idOf(v.title), npc, ch: v.ch === 'nearby' ? 'nearby' : 'global', text: body, en, at: v.at };
 }
 
 function text(v: unknown, max: number): Text | null {
@@ -385,8 +389,9 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       return p ? { t: 'progress', ...p } : null;
     }
     case 'mod_notice': {
-      const text = str(m.text, NOTICE_MAX);
-      return text ? { t: 'mod_notice', text } : null;
+      // a notice for players carries its English too; replies to moderators are Vietnamese only
+      const vi = str(m.text, NOTICE_MAX);
+      return vi ? { t: 'mod_notice', text: { vi, en: str(m.en, NOTICE_MAX) ?? '' } } : null;
     }
     case 'reported':
       return isId(m.n) ? { t: 'reported', n: m.n } : null;

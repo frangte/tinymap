@@ -11,8 +11,8 @@ export interface Text {
 }
 
 export interface Badge {
-  /** label next to a name */
-  short: string;
+  /** label next to a name, in Vietnamese and English (show it with tx) */
+  short: Text;
   /** background and text colours */
   color: string;
   text: string;

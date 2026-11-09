@@ -4,6 +4,8 @@
 import data from '../../server/content/quests.json';
 import type { Text } from './archetypes';
 import { PLACES } from './places';
+import { tx } from './i18n';
+import { L } from './i18n/quests';
 import { NPC_DEFS } from './npcs';
 
 export type Flow = 'sequence' | 'all' | 'any';
@@ -98,17 +100,18 @@ const titles = new Map(data.titles.map((t) => [t.id, t.name]));
 
 /** A title's name, null for none or an unknown id. */
 export function titleName(id: string): string | null {
-  return id ? (titles.get(id)?.vi ?? null) : null;
+  const t = id ? titles.get(id) : undefined;
+  return t ? tx(t) : null;
 }
 
 export function questById(id: string): QuestDef | undefined {
   return QUESTS.find((q) => q.id === id);
 }
 
-/** "12 / 20 giây", "2 / 3", "" for something done once. */
+/** "12 / 20 giây" ("12 / 20 s"), "2 / 3", "" for something done once. */
 export function countText(o: Objective | AchievementDef, n: number): string {
   if (o.count <= 1) return '';
-  if (o.type === 'stay_place') return `${Math.min(n, o.count)} / ${o.count} giây`;
+  if (o.type === 'stay_place') return L.seconds(Math.min(n, o.count), o.count);
   if (o.type === 'ride_distance') return `${(Math.min(n, o.count) / 1000).toFixed(1)} / ${(o.count / 1000).toFixed(1)} km`;
   return `${Math.min(n, o.count)} / ${o.count}`;
 }

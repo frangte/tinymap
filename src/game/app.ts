@@ -21,10 +21,9 @@ import { defaultProfile, loadProfile, saveProfile, type Profile } from './profil
 import { isTyping } from './input';
 import { RemotePlayers } from './remotePlayers';
 import { NameTags, SELF } from './nameTags';
-import { ChatBox } from './chatBox';
+import { ChatBox, spoken } from './chatBox';
 import { ArchetypePicker } from './archetypePicker';
 import { StoryCard } from './storyCard';
-import { storyFor } from './stories';
 import { Phone } from './phone/phone';
 import { allowedLook, appsFor, archetypeById, grants, outfitAllowed, type Archetype } from './archetypes';
 import { OUTFITS, outfitStyle, sameLook, type Look } from './outfits';
@@ -45,13 +44,18 @@ import { OfferBanner } from './offerBanner';
 import { CallBanner } from './callBanner';
 import { Mutes } from './mutes';
 import { Directions } from './directions';
+import { placeNote, placeTitle } from './places';
+import { onLangChange, tx } from './i18n';
+import { L } from './i18n/app';
+import { startPageTranslation } from './i18n/page';
+import { LangSwitch } from './langSwitch';
 
 /** quick look changes reach the server this long after the last one (ms) */
 const LOOK_SEND_DELAY_MS = 400;
 /** why the server kept our archetype, for the toast */
-const ARCH_REFUSED: Record<ArchRefusal, string> = {
-  arch_busy: 'Xong chuyến xe, lời hỏi đường hay cuộc trò chuyện rồi đổi nhé.',
-  arch_wait: 'Vừa đổi vai xong. Đợi một phút rồi đổi tiếp nhé.',
+const ARCH_REFUSED: Record<ArchRefusal, () => string> = {
+  arch_busy: () => L.archBusy,
+  arch_wait: () => L.archWait,
 };
 const MODEL_BYTES = 2.01e6;
 /** distance from the island centre to the beach (m) */
@@ -86,17 +90,21 @@ function assetUrls(stage: HTMLElement): { model: string; nav: string } {
 }
 
 export async function startApp(): Promise<void> {
+  startPageTranslation();
+  new LangSwitch();
   const hud = new Hud();
   hud.setMode('menu');
   if (!document.createElement('canvas').getContext('webgl2')) {
-    hud.fail('Trình duyệt này không hỗ trợ WebGL 2, nên không mở được bản đồ.');
+    hud.fail(() => L.noWebGL);
     return;
   }
   const renderer = createRenderer(hud.stage);
-  renderer.domElement.setAttribute('aria-label', 'Sài Gòn Q1: Quận 1 thu nhỏ');
+  const labelCanvas = (): void => renderer.domElement.setAttribute('aria-label', L.canvasLabel);
+  labelCanvas();
+  onLangChange(labelCanvas);
   renderer.domElement.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
-    hud.fail('Mất kết nối với card đồ họa. Tải lại trang để xem tiếp.');
+    hud.fail(() => L.contextLost);
   });
   const scene = createScene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.25, 1500);
@@ -315,7 +323,8 @@ export async function startApp(): Promise<void> {
     [world, nav] = await Promise.all([loadModel(urls.model, MODEL_BYTES, (l, t) => hud.progress(l, t)), NavGrid.load(urls.nav)]);
   } catch (err) {
     console.error(err);
-    hud.fail(`Không tải được bản đồ (${err instanceof Error ? err.message : String(err)}). Tải lại trang để thử lại.`);
+    const why = err instanceof Error ? err.message : String(err);
+    hud.fail(() => L.loadFailed(why));
     running = false;
     return;
   }
@@ -328,12 +337,18 @@ export async function startApp(): Promise<void> {
   play = p;
   p.player.avatar.setLook(profile.look);
   tags.setSelfName(profile.name);
+  // the respawn button names the archetype's start, in the current language
+  const labelRespawn = (): void => {
+    const a = archetypeById(profile.archetype);
+    hud.respawnButton.textContent = a ? tx(a.spawn.button) : L.respawn;
+    hud.respawnButton.title = a ? L.respawnTitle : L.respawnTitleMarket;
+  };
+  onLangChange(labelRespawn);
   // the archetype's start (the market gate without one), its tool button label, badge and apps
   const applyArchetype = (): void => {
     const a = archetypeById(profile.archetype);
     p.setHome(a?.spawn ?? null);
-    hud.respawnButton.textContent = a?.spawn.button.vi ?? 'Về chợ';
-    hud.respawnButton.title = a ? 'Quay lại chỗ xuất phát' : 'Quay lại cổng chợ Bến Thành';
+    labelRespawn();
     tags.setSelfArch(profile.archetype);
     phone?.setApps(serverApps ?? appsFor(caps));
     if (pad) setEmotes();
@@ -427,7 +442,7 @@ export async function startApp(): Promise<void> {
       const outfit = OUTFITS[(from + k) % OUTFITS.length];
       if (!outfitAllowed(outfit, caps)) continue;
       wear({ ...profile.look, outfit });
-      hud.toast({ name: outfitStyle(outfit, profile.look.body).name, note: 'Đổi áo · phím C' });
+      hud.toast({ name: outfitStyle(outfit, profile.look.body).name, note: L.outfitToast });
       return;
     }
   };
@@ -500,7 +515,7 @@ export async function startApp(): Promise<void> {
     applyArchetype();
     riding.swapLocal();
     if (!tell) return;
-    ph.notify('Đổi vai', `Bạn là ${a.name.vi} từ giờ. Nút "${a.spawn.button.vi}" đưa bạn về chỗ xuất phát mới.`);
+    ph.notify(L.roleChanged, L.roleChangedBody(tx(a.name), tx(a.spawn.button)));
     storyTold = false;
     welcome();
   };
@@ -534,7 +549,7 @@ export async function startApp(): Promise<void> {
     chatBox.close(false);
     talk.close();
     p.setDressing(true);
-    story.open(a, storyFor(a.id));
+    story.open(a);
   };
   arrive = (): void => {
     if (!profile.archetype) {
@@ -553,32 +568,33 @@ export async function startApp(): Promise<void> {
   log.onChange(() => tags.setSelfTitle(log.title));
   /** what the progress says just happened: a toast for the biggest thing, a phone notice for each */
   const celebrate = (news: readonly News[], opened: readonly string[]): void => {
-    let toast: { name: string; note: string } | null = null;
+    // an achievement's toast wins over a quest's
+    let toast: { name: string; note: string; achievement: boolean } | null = null;
     for (const n of news) {
       if (n.kind === 'quest') {
         const q = questById(n.id);
         if (!q) continue;
         const paid = q.xu > 0 ? ` · +${xu(q.xu)}` : '';
-        ph.notify(q.daily ? 'Xong nhiệm vụ hằng ngày' : 'Hoàn thành nhiệm vụ', q.title.vi + paid);
-        if (!toast || toast.note !== 'Thành tích mới') toast = { name: q.title.vi, note: (q.daily ? 'Nhiệm vụ hằng ngày' : 'Hoàn thành nhiệm vụ') + paid };
+        ph.notify(q.daily ? L.dailyDone : L.questDone, tx(q.title) + paid);
+        if (!toast?.achievement) toast = { name: tx(q.title), note: (q.daily ? L.dailyQuest : L.questDone) + paid, achievement: false };
       } else if (n.kind === 'achievement') {
         const a = ACHIEVEMENTS.find((x) => x.id === n.id);
         if (!a) continue;
-        ph.notify('Thành tích mới', a.title.vi);
-        toast = { name: a.title.vi, note: 'Thành tích mới' };
+        ph.notify(L.newAchievement, tx(a.title));
+        toast = { name: tx(a.title), note: L.newAchievement, achievement: true };
       } else if (n.kind === 'title') {
         const t = titleName(n.id);
-        if (t) ph.notify('Danh hiệu mới', `${t}. Đổi danh hiệu trong app Hồ sơ.`);
+        if (t) ph.notify(L.newTitle, L.newTitleBody(t));
       } else {
         const s = STAMPS.find((x) => x.id === n.id);
         if (!s) continue;
-        const where = STREAK_STAMPS.includes(s) ? 'mục Hằng ngày (app Nhiệm vụ)' : 'Sổ tem (app Cẩm nang)';
-        ph.notify('Nhận tem', `${s.name.vi}: xem trong ${where}.`);
+        const where = STREAK_STAMPS.includes(s) ? L.stampInDaily : L.stampInBook;
+        ph.notify(L.newStamp, L.stampBody(tx(s.name), where));
       }
     }
     for (const id of opened) {
       const q = questById(id);
-      if (q) ph.notify('Nhiệm vụ mới', q.title.vi);
+      if (q) ph.notify(L.newQuest, tx(q.title));
     }
     if (toast && mode === 'play') hud.toast(toast);
   };
@@ -624,26 +640,26 @@ export async function startApp(): Promise<void> {
       if (!welcomed) {
         welcomed = true;
         const a = archetypeById(profile.archetype);
-        ph.notify('Chào mừng tới Quận 1', a ? `Bạn là ${a.name.vi}. ${a.pitch.vi}` : 'Đi dạo, trò chuyện, ghé các công trình.');
+        ph.notify(L.welcome, a ? L.welcomeBody(tx(a.name), tx(a.pitch)) : L.welcomeNoRole);
       }
       showOnline();
     },
     join: (info) => {
       others.add(info, performance.now());
-      chatBox.system(`${info.name} vào phố`);
+      chatBox.system(L.joined(info.name));
       showOnline();
     },
     leave: (id) => {
       const gone = others.get(id);
-      if (gone) chatBox.system(`${gone.name} rời phố`);
+      if (gone) chatBox.system(L.left(gone.name));
       others.remove(id);
       showOnline();
     },
     profile: (id, name, look, title, arch) => {
       const had = others.get(id);
-      if (had && had.name !== name) chatBox.system(`${had.name} đổi tên thành ${name}`);
+      if (had && had.name !== name) chatBox.system(L.renamed(had.name, name));
       const role = archetypeById(arch);
-      if (had && role && had.arch !== arch) chatBox.system(`${name} giờ là ${role.name.vi}`);
+      if (had && role && had.arch !== arch) chatBox.system(L.roleNow(name, tx(role.name)));
       others.setProfile(id, name, look, title, arch);
     },
     archChanged: (arch, apps, look) => {
@@ -658,10 +674,10 @@ export async function startApp(): Promise<void> {
         adoptArchetype(serverArch);
         serverApps = welcomeApps;
         applyArchetype();
-        hud.toast({ name: 'Vai đổi lúc mất mạng chưa được lưu', note: ARCH_REFUSED[code] });
+        hud.toast({ name: L.roleOfflineNotSaved, note: ARCH_REFUSED[code]() });
         return;
       }
-      hud.toast({ name: 'Chưa đổi vai được', note: ARCH_REFUSED[code] });
+      hud.toast({ name: L.roleNotChanged, note: ARCH_REFUSED[code]() });
     },
     progress: (pr) => {
       // quests that started just now (not on arriving: those were already there)
@@ -683,7 +699,7 @@ export async function startApp(): Promise<void> {
       const self = line.id === netClient.selfId;
       chatBox.line(line, netClient.selfId);
       if (!self && !line.npc && mutes.has(line.id, line.name)) return;
-      tags.say(self ? SELF : line.id, line.text, performance.now());
+      tags.say(self ? SELF : line.id, spoken(line), performance.now());
     },
     chatRefused: (code) => chatBox.refused(code),
     notice: (text) => chatBox.system(text),
@@ -851,7 +867,7 @@ export async function startApp(): Promise<void> {
   directions.onChange(guide);
   phone = ph;
   applyArchetype();
-  p.onLandmark = (place) => ph.notify(`Đã ghé ${place.name}`, place.note);
+  p.onLandmark = (place) => ph.notify(L.visited(placeTitle(place)), placeNote(place));
 
   const [icx, icy] = nav.meta.island_center ?? [36, 8];
   fromBlender(icx, icy, 0, islandCenter);
