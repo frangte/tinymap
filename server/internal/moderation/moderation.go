@@ -102,7 +102,7 @@ func (s *Service) Chat(m world.Member, msg protocol.ClientMsg) bool {
 	}
 	if until := s.mutedUntil(m); s.h.Now().Before(until) {
 		s.h.Send(m.ID(), encode(protocol.Error{T: protocol.TypeError, Code: protocol.ErrMuted}))
-		s.note(m.ID(), "Bạn đang bị tắt chat đến "+clock(until)+".")
+		s.tell(m.ID(), protocol.Text{VI: "Bạn đang bị tắt chat đến " + clock(until) + ".", EN: "Your chat is muted until " + clock(until) + "."})
 		return true
 	}
 	if m.Character() != "" {
@@ -127,16 +127,16 @@ func (s *Service) onReport(m world.Member, targetID uint32) {
 	target, ok := s.h.Member(targetID)
 	switch {
 	case m.Character() == "":
-		s.note(m.ID(), "Báo cáo cần một tài khoản.")
+		s.tell(m.ID(), protocol.Text{VI: "Báo cáo cần một tài khoản.", EN: "Reporting needs an account."})
 		return
 	case !ok || target.Character() == "" || target.ID() == m.ID():
-		s.note(m.ID(), "Không báo cáo được người này.")
+		s.tell(m.ID(), protocol.Text{VI: "Không báo cáo được người này.", EN: "You can't report this player."})
 		return
 	}
 	pair := [2]string{m.Character(), target.Character()}
 	now := s.h.Now()
 	if now.Sub(s.reported[pair]) < reportGap {
-		s.note(m.ID(), "Bạn vừa báo cáo người này rồi. Cảm ơn bạn!")
+		s.tell(m.ID(), protocol.Text{VI: "Bạn vừa báo cáo người này rồi. Cảm ơn bạn!", EN: "You just reported this player. Thank you!"})
 		return
 	}
 	s.reported[pair] = now
@@ -149,7 +149,7 @@ func (s *Service) onReport(m world.Member, targetID uint32) {
 		if err != nil {
 			s.log.Error("saving a chat report", "err", err)
 			delete(s.reported, pair)
-			s.note(reporter, "Chưa gửi được báo cáo, thử lại sau nhé.")
+			s.tell(reporter, protocol.Text{VI: "Chưa gửi được báo cáo, thử lại sau nhé.", EN: "The report didn't go through. Please try again later."})
 			return
 		}
 		s.h.Send(reporter, encode(reportedMsg{T: typeReported, N: targetID}))
@@ -183,9 +183,15 @@ func (s *Service) Tick(now time.Time) {
 // Left needs nothing: lines stay for reports, mutes are by character.
 func (s *Service) Left(world.Member) {}
 
-// note answers one player with a line of text (the game shows it in the chat log).
+// note answers a moderator with a line of text (the game shows it in the chat log). Moderators are the team:
+// their replies are in Vietnamese only.
 func (s *Service) note(id uint32, text string) {
-	s.h.Send(id, encode(noticeMsg{T: typeNotice, Text: text}))
+	s.tell(id, protocol.Text{VI: text})
+}
+
+// tell sends a player a line for the chat log, in Vietnamese and English; the game shows the player's language.
+func (s *Service) tell(id uint32, t protocol.Text) {
+	s.h.Send(id, encode(noticeMsg{T: typeNotice, Text: t.VI, EN: t.EN}))
 }
 
 func (s *Service) toModerators(text string) {

@@ -4,6 +4,7 @@ import { BODIES, BODY_NAMES, DEFAULT_OUTFIT, HATS, HAT_NAMES, OUTFITS, outfitSty
 import { NAME_MAX, cleanName, randomName, type Profile } from './profile';
 import { el } from './hud';
 import { hatAllowed, outfitAllowed } from './archetypes';
+import { onLangChange } from './i18n';
 
 export interface DressHandlers {
   /** every change, so the avatar can show it at once */
@@ -73,7 +74,16 @@ export class DressPanel {
     this.nameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.finish();
     });
+    onLangChange(() => this.relabel());
   }
+
+  /** The body and hat names in the current language (outfit names follow in render). */
+  private relabel(): void {
+    for (const [k, b] of this.bodyButtons) b.textContent = BODY_NAMES[k];
+    for (const [k, b] of this.hatButtons) b.textContent = HAT_NAMES[k];
+    this.render();
+  }
+
 
   get isOpen(): boolean {
     return !this.root.hidden;

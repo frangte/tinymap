@@ -492,7 +492,9 @@ type ChatLine struct {
 	NPC  bool   `json:"npc,omitempty"`
 	Ch   string `json:"ch"`
 	Text string `json:"text"`
-	At   int64  `json:"at"`
+	// EN is the English of an NPC's line (players' lines have none: chat is not translated)
+	EN string `json:"en,omitempty"`
+	At int64  `json:"at"`
 }
 
 // Text is a line in each language the game speaks; Vietnamese is always there.

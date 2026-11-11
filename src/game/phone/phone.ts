@@ -5,11 +5,12 @@ import { el } from '../hud';
 import { PHONE_APPS } from '../archetypes';
 import { APP_VIEWS, type AppContext, type AppView, type Notice, type PhoneHost } from './apps';
 import { icon } from './icons';
+import { onLangChange, tx } from '../i18n';
+import { L } from '../i18n/phone';
 
 /** live apps (the map, who is around) redraw this often while open (ms) */
 const REFRESH = 250;
 const KEEP_NOTICES = 30;
-const HOME_TITLE = 'Điện thoại';
 
 export class Phone {
   private readonly root = el('phone');
@@ -30,6 +31,7 @@ export class Phone {
     this.toggle.addEventListener('click', () => (this.isOpen ? this.close() : this.open()));
     el('phone-close').addEventListener('click', () => this.close());
     this.back.addEventListener('click', () => this.showHome());
+    onLangChange(() => this.retranslate());
   }
 
   get isOpen(): boolean {
@@ -74,6 +76,13 @@ export class Phone {
     if (this.current) this.openApp(this.current.id);
   }
 
+  /** After a language switch: the app names, the title and the open app, rebuilt as on opening it. */
+  private retranslate(): void {
+    this.renderHome();
+    if (this.current) this.openApp(this.current.id);
+    else this.title.textContent = L.home;
+  }
+
   private renderHome(): void {
     this.home.replaceChildren(...this.apps.map((id) => {
       const def = PHONE_APPS.find((a) => a.id === id);
@@ -81,7 +90,7 @@ export class Phone {
       b.type = 'button';
       b.className = 'app-tile';
       const name = document.createElement('span');
-      name.textContent = def?.name.vi ?? id;
+      name.textContent = def ? tx(def.name) : id;
       b.append(icon(def?.icon ?? ''), name);
       b.addEventListener('click', () => this.openApp(id));
       return b;
@@ -93,7 +102,8 @@ export class Phone {
     this.home.hidden = true;
     this.screen.hidden = false;
     this.back.hidden = false;
-    this.title.textContent = PHONE_APPS.find((a) => a.id === id)?.name.vi ?? id;
+    const def = PHONE_APPS.find((a) => a.id === id);
+    this.title.textContent = def ? tx(def.name) : id;
     this.screen.replaceChildren();
     this.screen.dataset.app = id;
     this.current = { id, view: APP_VIEWS[id](this.screen, this.ctx) };
@@ -109,7 +119,7 @@ export class Phone {
     this.screen.hidden = true;
     this.home.hidden = false;
     this.back.hidden = true;
-    this.title.textContent = HOME_TITLE;
+    this.title.textContent = L.home;
     this.home.querySelector<HTMLButtonElement>('.app-tile')?.focus({ preventScroll: true });
   }
 }

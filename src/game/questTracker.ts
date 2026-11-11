@@ -7,6 +7,8 @@ import { el } from './hud';
 import { current, countOf, type QuestLog } from './questLog';
 import { countText, type Objective } from './quests';
 import type { Guide } from './rides';
+import { onLangChange, tx } from './i18n';
+import { L } from './i18n/questTracker';
 
 /** closer than this the arrow gives way to "ở đây" (m) */
 const HERE = 6;
@@ -43,6 +45,10 @@ export class QuestTracker {
       this.root.blur();
     });
     log.onChange(() => this.refresh());
+    onLangChange(() => {
+      this.lastText = '';
+      this.refresh();
+    });
     this.refresh();
   }
 
@@ -102,7 +108,7 @@ export class QuestTracker {
     }
     this.hasTarget = Number.isFinite(best);
     this.arrow.hidden = !this.hasTarget || best < HERE;
-    const dist = !this.hasTarget ? '' : best < HERE ? 'ở đây' : `${Math.round(best)} m`;
+    const dist = !this.hasTarget ? '' : best < HERE ? L.here : `${Math.round(best)} m`;
     if (this.dist.textContent !== dist) this.dist.textContent = dist;
   }
 
@@ -130,8 +136,9 @@ export class QuestTracker {
     const o = goals[0];
     const more = goals.length > 1 ? ` (+${goals.length - 1})` : '';
     const count = o ? countText(o, countOf(q, o)) : '';
-    const goal = (o?.text.vi ?? '') + more + (count ? ` · ${count}` : '');
-    this.show(q.def.title.vi, goal, `Nhiệm vụ: ${q.def.title.vi}. ${goal}. Mở danh sách nhiệm vụ`);
+    const goal = (o ? tx(o.text) : '') + more + (count ? ` · ${count}` : '');
+    const title = tx(q.def.title);
+    this.show(title, goal, L.label(title, goal));
   }
 
   private show(title: string, goal: string, label: string): void {

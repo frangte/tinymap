@@ -87,8 +87,8 @@ func (c *Catalog) checkMotion(caps map[string]bool) error {
 		switch {
 		case !idPattern.MatchString(v.ID) || c.vehicleByID[v.ID].ID != "":
 			return fmt.Errorf("vehicles.json: vehicle %q: needs a unique lower_snake_case id", v.ID)
-		case v.Name.VI == "":
-			return fmt.Errorf("vehicles.json: vehicle %q: needs a Vietnamese name", v.ID)
+		case !bilingual(v.Name):
+			return fmt.Errorf("vehicles.json: vehicle %q: needs a name in Vietnamese and English", v.ID)
 		case !(v.Speed > 0 && v.Speed <= maxSpeed) || v.Seats < 1:
 			return fmt.Errorf("vehicles.json: vehicle %q: needs a speed in (0, 30] m/s and at least one seat", v.ID)
 		case !caps[v.Requires]:
@@ -103,8 +103,8 @@ func (c *Catalog) checkMotion(caps map[string]bool) error {
 			return fmt.Errorf("emotes.json: emote %q: needs a unique lower_snake_case id", e.ID)
 		case e.Code < 1 || e.Code > MaxEmoteCode || codes[e.Code]:
 			return fmt.Errorf("emotes.json: emote %q: code must be unique and in 1…%d", e.ID, MaxEmoteCode)
-		case e.Name.VI == "" || !(e.Seconds >= 0 && e.Seconds <= maxEmoteSeconds):
-			return fmt.Errorf("emotes.json: emote %q: needs a Vietnamese name and seconds in [0, %d] (0 loops)", e.ID, maxEmoteSeconds)
+		case !bilingual(e.Name) || !(e.Seconds >= 0 && e.Seconds <= maxEmoteSeconds):
+			return fmt.Errorf("emotes.json: emote %q: needs a name in Vietnamese and English and seconds in [0, %d] (0 loops)", e.ID, maxEmoteSeconds)
 		case e.Requires != "" && !caps[e.Requires]:
 			return fmt.Errorf("emotes.json: emote %q requires unknown capability %q", e.ID, e.Requires)
 		}

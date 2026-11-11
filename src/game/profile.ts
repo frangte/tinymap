@@ -2,6 +2,7 @@
 // Storage can be missing (private windows, blocked site data): the game then just asks again next time.
 import { DEFAULT_LOOK, parseLook, type Look } from './outfits';
 import { archetypeById } from './archetypes';
+import { L } from './i18n/profile';
 
 export interface Profile {
   name: string;
@@ -20,7 +21,7 @@ export function cleanName(raw: string): string {
 }
 
 export function randomName(): string {
-  return `Khách ${100 + Math.floor(Math.random() * 900)}`;
+  return L.guestName(100 + Math.floor(Math.random() * 900));
 }
 
 export function defaultProfile(): Profile {

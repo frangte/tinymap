@@ -6,9 +6,11 @@
 import * as THREE from 'three';
 import data from '../../server/content/directions.json';
 import type { WayAsk, WayCall, WayClientMsg, WayError, WayServerMsg } from '../net/wayProtocol';
-import { PLACES } from './places';
+import { placeById, placeTitle } from './places';
 import { NPC_DEFS } from './npcs';
 import type { Guide } from './rides';
+import { onLangChange } from './i18n';
+import { L } from './i18n/directions';
 
 /** the button offers to answer a little inside the server's reach, which has the last word (m) */
 const ANSWER_NEAR = data.reach - 0.5;
@@ -19,15 +21,15 @@ const FALLBACK_NPC = 'chu_sau';
 /** this close to Chú Sáu the tracker has done its job (m) */
 const AT_NPC = 4;
 
-const ERRORS: Record<WayError, string> = {
-  no_account: 'Hỏi đường cần một tài khoản. Tải lại trang để thử lại.',
-  not_allowed: 'Bạn không hỏi hoặc chỉ đường được lúc này.',
-  busy: 'Bạn đang hỏi đường rồi.',
-  unknown_place: 'Chỉ hỏi đường tới các công trình được thôi.',
-  too_soon: 'Đợi một chút rồi hỏi lại nhé.',
-  gone: 'Người đó không còn hỏi đường nữa.',
-  too_far: 'Lại gần hơn chút nữa để chỉ đường.',
-  already_helped: 'Hôm nay bạn đã chỉ đường cho người này rồi.',
+const ERRORS: Record<WayError, () => string> = {
+  no_account: () => L.errNoAccount,
+  not_allowed: () => L.errNotAllowed,
+  busy: () => L.errBusy,
+  unknown_place: () => L.errUnknownPlace,
+  too_soon: () => L.errTooSoon,
+  gone: () => L.errGone,
+  too_far: () => L.errTooFar,
+  already_helped: () => L.errAlreadyHelped,
 };
 
 export interface DirectionsDeps {
@@ -39,14 +41,16 @@ export interface DirectionsDeps {
   notify(title: string, text: string): void;
 }
 
-/** A place's name, or its id when unknown. */
+/** A place's name in the player's language, or its id when unknown. */
 export function landmarkName(id: string): string {
-  return PLACES.find((p) => p.id === id)?.name ?? id;
+  const p = placeById(id);
+  return p ? placeTitle(p) : id;
 }
 
 /** where the tracker points once the way is known */
 interface Shown {
-  goal: string;
+  /** what the tracker says, in the language of the moment */
+  goal: () => string;
   until: number;
   /** Blender XY of where to go */
   at: readonly [number, number];
@@ -65,7 +69,10 @@ export class Directions {
   private readonly listeners = new Set<() => void>();
   private readonly to = new THREE.Vector3();
 
-  constructor(private readonly d: DirectionsDeps) {}
+  constructor(private readonly d: DirectionsDeps) {
+    // whatever shows our guidance draws it again in the new language
+    onLangChange(() => this.changed());
+  }
 
   onChange(fn: () => void): () => void {
     this.listeners.add(fn);
@@ -86,7 +93,7 @@ export class Directions {
         break;
       case 'way_call': {
         const { t: _t, ...call } = m;
-        if (!this.calls.has(call.id)) this.d.notify('Có người hỏi đường', `${call.from.name} hỏi đường tới ${landmarkName(call.dest)}. Tới chỗ họ để chỉ đường.`);
+        if (!this.calls.has(call.id)) this.d.notify(L.callTitle, L.callText(call.from.name, landmarkName(call.dest)));
         this.calls.set(call.id, call);
         break;
       }
@@ -95,10 +102,10 @@ export class Directions {
         break;
       case 'way_done':
         this.calls.delete(m.id);
-        this.d.say(`Bạn đã chỉ đường tới ${landmarkName(m.dest)} cho ${m.to.name}. Cảm ơn bạn!`);
+        this.d.say(L.helped(landmarkName(m.dest), m.to.name));
         break;
       case 'way_error':
-        this.d.say(ERRORS[m.code]);
+        this.d.say(ERRORS[m.code]());
         break;
     }
     this.changed();
@@ -106,8 +113,8 @@ export class Directions {
 
   /** What our own ask became. */
   private ours(m: WayAsk): void {
-    const place = PLACES.find((p) => p.id === m.dest);
-    const name = place?.name ?? m.dest;
+    const place = placeById(m.dest);
+    const name = (): string => landmarkName(m.dest);
     switch (m.state) {
       case 'asking':
         this.ask = m;
@@ -115,19 +122,17 @@ export class Directions {
         break;
       case 'answered': {
         this.ask = null;
-        const helper = m.helper?.name ?? 'Một người Sài Gòn';
-        this.d.say(`${helper} chỉ đường cho bạn tới ${name}.`);
-        if (place) this.shown = { goal: `Tới ${name} (${helper} chỉ)`, until: Date.now() + SHOW_WAY_MS, at: place.pts[0], near: place.r };
+        const helper = (): string => m.helper?.name ?? L.someSaigonese;
+        this.d.say(L.answered(helper(), name()));
+        if (place) this.shown = { goal: () => L.goShown(name(), helper()), until: Date.now() + SHOW_WAY_MS, at: place.pts[0], near: place.r };
         break;
       }
       case 'unanswered': {
         this.ask = null;
         this.fallback = true;
-        this.d.say(m.why === 'nobody'
-          ? 'Chưa có người Sài Gòn nào đang chơi. Hỏi Chú Sáu xe ôm ở bùng binh nhé!'
-          : 'Không ai tới kịp. Hỏi Chú Sáu xe ôm ở bùng binh nhé!');
+        this.d.say(m.why === 'nobody' ? L.nobodyPlaying : L.nobodyCame);
         const npc = NPC_DEFS.find((n) => n.id === FALLBACK_NPC);
-        if (npc) this.shown = { goal: `Hỏi ${npc.name} đường tới ${name}`, until: Date.now() + SHOW_WAY_MS, at: npc.at, near: AT_NPC };
+        if (npc) this.shown = { goal: () => L.askNpc(npc.name, name()), until: Date.now() + SHOW_WAY_MS, at: npc.at, near: AT_NPC };
         break;
       }
       case 'cancelled':
@@ -160,7 +165,7 @@ export class Directions {
   // ---- commands (the answers come back through handle)
 
   askWay(dest: string): void {
-    if (!this.d.net.sendWay({ t: 'way_ask', dest })) this.d.say('Đang mất kết nối, chưa hỏi đường được.');
+    if (!this.d.net.sendWay({ t: 'way_ask', dest })) this.d.say(L.offline);
   }
 
   cancel(): void {
@@ -203,7 +208,7 @@ export class Directions {
 
   label(): string | null {
     const c = this.callInReach();
-    return c ? `Chỉ đường cho ${c.from.name}` : null;
+    return c ? L.answer(c.from.name) : null;
   }
 
   use(): boolean {
@@ -219,11 +224,11 @@ export class Directions {
   guide(): Guide | null {
     const c = this.nextCall();
     if (c) {
-      return { title: 'Hỏi đường', goal: `${c.from.name} hỏi đường tới ${landmarkName(c.dest)}`, target: () => this.d.other(c.from.id)?.position ?? null };
+      return { title: L.tracker, goal: L.callGoal(c.from.name, landmarkName(c.dest)), target: () => this.d.other(c.from.id)?.position ?? null };
     }
-    if (this.ask) return { title: 'Hỏi đường', goal: 'Đang chờ người Sài Gòn tới chỉ đường…', target: () => null };
+    if (this.ask) return { title: L.tracker, goal: L.waiting, target: () => null };
     const s = this.shown;
-    if (s) return { title: 'Hỏi đường', goal: s.goal, target: () => this.to.set(s.at[0], 0, -s.at[1]) };
+    if (s) return { title: L.tracker, goal: s.goal(), target: () => this.to.set(s.at[0], 0, -s.at[1]) };
     return null;
   }
 

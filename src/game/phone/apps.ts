@@ -3,7 +3,7 @@
 // Text only ever goes in through textContent.
 import type * as THREE from 'three';
 import { archetypeById } from '../archetypes';
-import { PLACES, type Place } from '../places';
+import { PLACES, placeById, placeNote, placeTitle, type Place } from '../places';
 import { BODY_NAMES, HAT_NAMES, outfitStyle } from '../outfits';
 import type { Profile } from '../profile';
 import type { RemotePlayer } from '../remotePlayers';
@@ -17,6 +17,8 @@ import { button, h } from './dom';
 import type { Directions } from '../directions';
 import type { Mutes } from '../mutes';
 import { crab, crabDriver } from './crabApps';
+import { tx } from '../i18n';
+import { L } from '../i18n/phoneApps';
 
 export interface Notice {
   title: string;
@@ -67,6 +69,12 @@ export type AppFactory = (root: HTMLElement, ctx: AppContext) => AppView;
 
 const LANDMARKS = PLACES.filter((p) => p.kind === 'landmark');
 
+/** a destination's name, its id for one this build does not know */
+const destName = (id: string): string => {
+  const p = placeById(id);
+  return p ? placeTitle(p) : id;
+};
+
 const profile: AppFactory = (root, ctx) => {
   const p = ctx.profile();
   const a = archetypeById(p.archetype);
@@ -75,24 +83,24 @@ const profile: AppFactory = (root, ctx) => {
   const b = badge(p.archetype);
   if (b) head.append(b);
   root.append(head);
-  if (a) root.append(h('p', 'app-text', a.pitch.vi));
+  if (a) root.append(h('p', 'app-text', tx(a.pitch)));
   const facts = h('dl', 'app-facts');
   const fact = (k: string, v: string): void => facts.append(h('dt', '', k), h('dd', '', v));
-  fact('Vai', a ? a.name.vi : 'Chưa chọn');
-  fact('Trang phục', outfitStyle(p.look.outfit, p.look.body).name);
-  fact('Nón', HAT_NAMES[p.look.hat]);
+  fact(L.role, a ? tx(a.name) : L.roleNone);
+  fact(L.outfit, outfitStyle(p.look.outfit, p.look.body).name);
+  fact(L.hat, HAT_NAMES[p.look.hat]);
   const balance = ctx.rides().balance;
-  if (balance !== null) fact('Ví', xu(balance));
+  if (balance !== null) fact(L.wallet, xu(balance));
   root.append(facts);
   const log = ctx.quests();
   let stop: (() => void) | undefined;
   if (log.titles.length > 0) {
     // the title shown under the name, among those earned
     const field = h('label', 'field');
-    field.append(h('span', '', 'Danh hiệu'));
+    field.append(h('span', '', L.title));
     const select = document.createElement('select');
     select.className = 'title-select';
-    const none = new Option('Không mang danh hiệu', '');
+    const none = new Option(L.titleNone, '');
     select.append(none, ...log.titles.map((id) => new Option(titleName(id) ?? id, id)));
     // the server has the last word: the picker shows what it says is carried, and waits while offline
     const sync = (): void => {
@@ -108,13 +116,13 @@ const profile: AppFactory = (root, ctx) => {
   const actions = h('div', 'app-actions');
   const other = BODY_NAMES[p.look.body === 'man' ? 'woman' : 'man'];
   actions.append(
-    button('Đổi đồ', () => {
+    button(L.dress, () => {
       ctx.close();
       ctx.dress();
     }, true),
-    button(`Đổi sang ${other}`, () => ctx.switchBody()),
+    button(L.switchBody(other), () => ctx.switchBody()),
   );
-  const change = button(a ? 'Đổi vai' : 'Chọn vai', () => {
+  const change = button(a ? L.changeRole : L.chooseRole, () => {
     ctx.close();
     ctx.changeArchetype();
   });
@@ -125,9 +133,9 @@ const profile: AppFactory = (root, ctx) => {
 };
 
 const chat: AppFactory = (root, ctx) => {
-  root.append(h('p', 'app-text', `Cả phố: ai đang ở Quận 1 cũng đọc được. Gần đây: chỉ những người quanh bạn, trong ${NEARBY_RADIUS} m.`));
+  root.append(h('p', 'app-text', L.channelsAbout(NEARBY_RADIUS)));
   const seg = h('div', 'seg');
-  const choices: Array<[Channel, string]> = [['global', 'Cả phố'], ['nearby', 'Gần đây']];
+  const choices: Array<[Channel, string]> = [['global', L.channelGlobal], ['nearby', L.channelNearby]];
   const sync = (): void => {
     for (const [ch, b] of buttons) b.setAttribute('aria-pressed', String(ctx.channel() === ch));
   };
@@ -140,23 +148,22 @@ const chat: AppFactory = (root, ctx) => {
     return [ch, b] as const;
   });
   sync();
-  root.append(seg, button('Viết tin nhắn', () => {
+  root.append(seg, button(L.writeMessage, () => {
     ctx.close();
     ctx.openChat();
   }, true));
-  if (!ctx.online()) root.append(h('p', 'app-note', 'Đang mất kết nối, chưa chat được.'));
+  if (!ctx.online()) root.append(h('p', 'app-note', L.chatOffline));
   // personal mutes: whom this player chose not to hear, and how to bring them back
   const muted = h('section', 'mute-section');
   const mutes = ctx.mutes();
   const drawMuted = (): void => {
-    muted.replaceChildren(h('strong', 'app-section', 'Tắt tiếng và báo cáo'),
-      h('p', 'app-note', 'Bấm vào tên một người trong khung chat để tắt tiếng họ, hoặc báo cáo cho người điều hành.'));
+    muted.replaceChildren(h('strong', 'app-section', L.muteTitle), h('p', 'app-note', L.muteAbout));
     const names = mutes.list();
     if (names.length === 0) return;
     const ol = h('ol', 'app-list');
     for (const name of names) {
       const li = h('li', 'landmark');
-      li.append(h('strong', '', name), button('Bật lại', () => mutes.remove(name)));
+      li.append(h('strong', '', name), button(L.unmute, () => mutes.remove(name)));
       ol.append(li);
     }
     muted.append(ol);
@@ -168,7 +175,7 @@ const chat: AppFactory = (root, ctx) => {
 
 const map: AppFactory = (root, ctx) => {
   const m = new MiniMap();
-  root.append(m.canvas, h('p', 'app-note', 'Chấm màu là người đang ở ngoài phố, theo vai của họ. Hình thoi vàng là người quen để ghé nói chuyện: Cô Ba, Chú Tư, Dì Năm…'));
+  root.append(m.canvas, h('p', 'app-note', L.mapAbout));
   const draw = (): void => {
     const s = ctx.self();
     m.draw({ x: s.position.x, z: s.position.z, heading: s.heading }, ctx.others());
@@ -180,15 +187,15 @@ const map: AppFactory = (root, ctx) => {
 
 const clock = (at: number): string => {
   const mins = Math.round((Date.now() - at) / 60000);
-  if (mins < 1) return 'vừa xong';
-  if (mins < 60) return `${mins} phút trước`;
-  return new Date(at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  if (mins < 1) return L.justNow;
+  if (mins < 60) return L.minutesAgo(mins);
+  return new Date(at).toLocaleTimeString(L.timeLocale, { hour: '2-digit', minute: '2-digit' });
 };
 
 const notices: AppFactory = (root, ctx) => {
   const list = ctx.notices();
   if (list.length === 0) {
-    root.append(h('p', 'app-note', 'Chưa có thông báo nào.'));
+    root.append(h('p', 'app-note', L.noNotices));
     return {};
   }
   const ol = h('ol', 'app-list');
@@ -213,25 +220,22 @@ function askSection(ctx: AppContext): { root: HTMLElement; update(): void; dispo
   const root = h('section', 'ask-section');
   const status = h('p', 'app-note');
   const draw = (): void => {
-    root.replaceChildren(h('strong', 'app-section', 'Hỏi đường người Sài Gòn'));
+    root.replaceChildren(h('strong', 'app-section', L.askTitle));
     const a = directions.ask;
     if (a) {
-      root.append(h('p', 'app-text', `Đang hỏi đường tới ${LANDMARKS.find((l) => l.id === a.dest)?.name ?? a.dest}. Người Sài Gòn đang chơi sẽ tới chỉ cho bạn.`), status,
-        button('Thôi, không hỏi nữa', () => directions.cancel()));
+      root.append(h('p', 'app-text', L.asking(destName(a.dest))), status, button(L.askCancel, () => directions.cancel()));
       update();
       return;
     }
-    root.append(h('p', 'app-note', directions.fallback
-      ? 'Lần trước không ai tới: Chú Sáu xe ôm ở bùng binh sẽ chỉ đường cho bạn. Hoặc hỏi lại:'
-      : 'Hỏi người Sài Gòn đang chơi đường tới:'));
+    root.append(h('p', 'app-note', directions.fallback ? L.askFallback : L.askPick));
     const grid = h('div', 'ask-places');
-    for (const l of LANDMARKS) grid.append(button(l.name, () => directions.askWay(l.id)));
+    for (const l of LANDMARKS) grid.append(button(placeTitle(l), () => directions.askWay(l.id)));
     root.append(grid);
   };
   const update = (): void => {
     const a = directions.ask;
     if (!a) return;
-    const text = `Còn ${clockLeft(a.until - ctx.rides().now())} trước khi hỏi Chú Sáu.`;
+    const text = L.askLeft(clockLeft(a.until - ctx.rides().now()));
     if (status.textContent !== text) status.textContent = text;
   };
   draw();
@@ -249,17 +253,17 @@ const guide: AppFactory = (root, ctx) => {
     if (!log.known) return;
     const earned = new Set(log.stamps);
     const have = BOOK_STAMPS.filter((s) => earned.has(s.id)).length;
-    stamps.append(h('strong', 'app-section', `Sổ tem · ${have} / ${BOOK_STAMPS.length}`), stampRow(BOOK_STAMPS, earned));
+    stamps.append(h('strong', 'app-section', L.stampBook(have, BOOK_STAMPS.length)), stampRow(BOOK_STAMPS, earned));
   };
   drawStamps();
   root.append(stamps);
   const stop = log.onChange(drawStamps);
   const seen = ctx.landmarksSeen();
-  root.append(h('p', 'app-text', `Đã ghé ${seen.size} / ${LANDMARKS.length} công trình trong chuyến này. Đi tới gần để đánh dấu.`));
+  root.append(h('p', 'app-text', L.landmarksSeen(seen.size, LANDMARKS.length)));
   const ol = h('ol', 'app-list');
   for (const l of LANDMARKS) {
     const li = h('li', seen.has(l) ? 'landmark is-seen' : 'landmark');
-    li.append(h('strong', '', l.name), h('span', '', l.note));
+    li.append(h('strong', '', placeTitle(l)), h('span', '', placeNote(l)));
     ol.append(li);
   }
   root.append(ol);
@@ -283,16 +287,16 @@ const community: AppFactory = (root, ctx) => {
       .map((r) => ({ r, d: r.inView ? Math.hypot(r.position.x - me.x, r.position.z - me.z) : Infinity }))
       .sort((a, b) => a.d - b.d);
     intro.textContent = !ctx.online()
-      ? 'Đang mất kết nối, chưa thấy ai.'
+      ? L.communityOffline
       : people.length === 0
-        ? 'Chưa có ai khác ngoài phố. Rủ bạn bè vào chơi nhé!'
-        : `${people.length} người đang ở ngoài phố, gần nhất trước.`;
+        ? L.communityEmpty
+        : L.communityCount(people.length);
     ol.replaceChildren(...people.map(({ r, d }) => {
       const li = h('li', 'neighbour');
       li.append(h('strong', '', r.name));
       const b = badge(r.arch);
       if (b) li.append(b);
-      li.append(h('small', '', Number.isFinite(d) ? `${Math.round(d)} m` : 'ở xa'));
+      li.append(h('small', '', Number.isFinite(d) ? `${Math.round(d)} m` : L.farAway));
       return li;
     }));
   };
@@ -306,7 +310,7 @@ function stampRow(stamps: readonly StampDef[], earned: ReadonlySet<string>, cls 
   book.setAttribute('role', 'list');
   for (const s of stamps) {
     const li = h('li', earned.has(s.id) ? 'stamp is-earned' : 'stamp');
-    li.append(h('span', '', s.name.vi), h('span', 'sr-only', earned.has(s.id) ? ' (đã có)' : ' (chưa có)'));
+    li.append(h('span', '', tx(s.name)), h('span', 'sr-only', earned.has(s.id) ? L.stampEarned : L.stampMissing));
     book.append(li);
   }
   return book;
@@ -316,31 +320,31 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Saigon is UTC+7 all year: the dailies start over at its midnight */
 const SAIGON_OFFSET_MS = 7 * 60 * 60 * 1000;
 
-/** "4 giờ 12 phút" until the dailies start over. */
+/** "4 giờ 12 phút" ("4 h 12 min") until the dailies start over. */
 function untilMidnight(now: number): string {
   const t = now + SAIGON_OFFSET_MS;
   const left = Math.max(0, (Math.floor(t / DAY_MS) + 1) * DAY_MS - t);
   const hours = Math.floor(left / 3_600_000);
   const minutes = Math.ceil((left % 3_600_000) / 60_000);
-  return hours > 0 ? `${hours} giờ ${minutes} phút` : `${minutes} phút`;
+  return hours > 0 ? L.hoursMinutes(hours, minutes) : L.minutes(minutes);
 }
 
 /** One quest's card: its objectives, and how to track it. */
 function questCard(q: ActiveQuest, log: QuestLog, tracked: ActiveQuest | null): HTMLElement {
   const now = current(q);
   const card = h('section', q.def === tracked?.def ? 'quest-card is-tracked' : 'quest-card');
-  card.append(h('strong', 'quest-title', q.def.title.vi), h('p', 'app-note', q.def.about.vi));
+  card.append(h('strong', 'quest-title', tx(q.def.title)), h('p', 'app-note', tx(q.def.about)));
   const goals = h('ul', 'quest-goals');
   for (const o of q.def.objectives) {
     const li = h('li', isDone(q, o) ? 'is-done' : now.includes(o) ? 'is-now' : '');
-    li.append(h('span', '', o.text.vi));
+    li.append(h('span', '', tx(o.text)));
     const c = countText(o, countOf(q, o));
     if (c) li.append(h('small', '', c));
     goals.append(li);
   }
   card.append(goals);
-  if (q.def.xu > 0) card.append(h('small', 'quest-reward', `Thưởng ${xu(q.def.xu)}`));
-  card.append(q.def === tracked?.def ? h('small', 'quest-tracking', 'Đang theo dõi trên màn hình') : button('Theo dõi', () => log.track(q.def.id)));
+  if (q.def.xu > 0) card.append(h('small', 'quest-reward', L.reward(xu(q.def.xu))));
+  card.append(q.def === tracked?.def ? h('small', 'quest-tracking', L.tracking) : button(L.track, () => log.track(q.def.id)));
   return card;
 }
 
@@ -351,8 +355,8 @@ function dailySection(log: QuestLog, tracked: ActiveQuest | null): HTMLElement |
   const box = h('section', 'daily-section');
   const streak = log.streak;
   box.append(
-    h('strong', 'app-section', 'Hằng ngày'),
-    h('p', 'app-note', `${streak > 0 ? `Chuỗi ${streak} ngày liền` : 'Chưa có chuỗi ngày'} · làm mới sau ${untilMidnight(Date.now())}`),
+    h('strong', 'app-section', L.daily),
+    h('p', 'app-note', `${streak > 0 ? L.streak(streak) : L.noStreak} · ${L.resetsIn(untilMidnight(Date.now()))}`),
   );
   for (const q of dailies) {
     if (!q.state.done) {
@@ -360,7 +364,7 @@ function dailySection(log: QuestLog, tracked: ActiveQuest | null): HTMLElement |
       continue;
     }
     const card = h('section', 'quest-card is-done');
-    card.append(h('strong', 'quest-title', q.def.title.vi), h('small', 'quest-tracking', q.def.xu > 0 ? `Xong hôm nay · đã nhận ${xu(q.def.xu)}` : 'Xong hôm nay'));
+    card.append(h('strong', 'quest-title', tx(q.def.title)), h('small', 'quest-tracking', q.def.xu > 0 ? L.doneTodayPaid(xu(q.def.xu)) : L.doneToday));
     box.append(card);
   }
   if (STREAK_STAMPS.length > 0) box.append(stampRow(STREAK_STAMPS, new Set(log.stamps), 'stamp-book is-small'));
@@ -375,17 +379,15 @@ const questsApp: AppFactory = (root, ctx) => {
     const scroll = root.scrollTop;
     root.replaceChildren();
     if (!log.known) {
-      root.append(h('p', 'app-note', ctx.online()
-        ? 'Nhiệm vụ cần lưu tiến độ, mà lần này bạn đang chơi không có tài khoản. Tải lại trang để thử lại.'
-        : 'Đang mất kết nối, chưa xem được nhiệm vụ.'));
+      root.append(h('p', 'app-note', ctx.online() ? L.questsNoAccount : L.questsOffline));
       return;
     }
     const tracked = log.tracked();
     const daily = dailySection(log, tracked);
     if (daily) root.append(daily);
     const active = log.active().filter((q) => !q.def.daily);
-    if (active.length > 0 && daily) root.append(h('strong', 'app-section', 'Nhiệm vụ'));
-    if (active.length === 0 && !daily) root.append(h('p', 'app-note', 'Xong hết nhiệm vụ rồi! Cứ đi dạo, sẽ có thêm.'));
+    if (active.length > 0 && daily) root.append(h('strong', 'app-section', L.quests));
+    if (active.length === 0 && !daily) root.append(h('p', 'app-note', L.questsAllDone));
     for (const q of active) root.append(questCard(q, log, tracked));
     const done = log.done();
     if (done.length > 0) {
@@ -395,9 +397,9 @@ const questsApp: AppFactory = (root, ctx) => {
       box.addEventListener('toggle', () => {
         doneOpen = box.open;
       });
-      box.append(h('summary', '', `Đã xong (${done.length})`));
+      box.append(h('summary', '', L.questsDone(done.length)));
       const ol = h('ol', 'app-list');
-      for (const d of done) ol.append(h('li', 'landmark is-seen', d.title.vi));
+      for (const d of done) ol.append(h('li', 'landmark is-seen', tx(d.title)));
       box.append(ol);
       root.append(box);
     }
@@ -412,7 +414,7 @@ const achievementsApp: AppFactory = (root, ctx) => {
   const draw = (): void => {
     root.replaceChildren();
     if (!log.known) {
-      root.append(h('p', 'app-note', ctx.online() ? 'Thành tích cần một tài khoản để lưu.' : 'Đang mất kết nối, chưa xem được thành tích.'));
+      root.append(h('p', 'app-note', ctx.online() ? L.achievementsNoAccount : L.achievementsOffline));
       return;
     }
     const ol = h('ol', 'app-list');
@@ -420,7 +422,7 @@ const achievementsApp: AppFactory = (root, ctx) => {
       const done = state?.done === true;
       const secret = def.hidden && !done;
       const li = h('li', done ? 'achievement is-done' : 'achievement');
-      li.append(h('strong', '', secret ? '???' : def.title.vi), h('span', '', secret ? 'Một thành tích bí mật.' : def.about.vi));
+      li.append(h('strong', '', secret ? '???' : tx(def.title)), h('span', '', secret ? L.achievementSecret : tx(def.about)));
       if (!done && def.count > 1) {
         const n = Math.min(state?.n ?? 0, def.count);
         const bar = h('span', 'meter');
@@ -428,7 +430,7 @@ const achievementsApp: AppFactory = (root, ctx) => {
         bar.setAttribute('aria-valuemin', '0');
         bar.setAttribute('aria-valuemax', String(def.count));
         bar.setAttribute('aria-valuenow', String(n));
-        bar.setAttribute('aria-label', def.title.vi);
+        bar.setAttribute('aria-label', tx(def.title));
         const fill = h('i', '');
         fill.style.width = `${Math.round((100 * n) / def.count)}%`;
         bar.append(fill);

@@ -1,20 +1,24 @@
-// The conversation sheet: who is talking, their line (with the English under it when there is one) and big
-// buttons for the answers (1-9 on a keyboard). The server has already picked the line for our archetype and the
-// answers on offer; a line without answers leaves only goodbye. In a group only the leader's buttons work, the
-// others watch the conversation move. Walking on is always allowed: going too far ends the conversation.
+// The conversation sheet: who is talking, their line and big buttons for the answers (1-9 on a keyboard). NPCs
+// speak Vietnamese: in English mode each line and answer has its English under it, in Vietnamese mode not. The
+// server has already picked the line for our archetype and the answers on offer; a line without answers leaves
+// only goodbye. In a group only the leader's buttons work, the others watch the conversation move. Walking on is
+// always allowed: going too far ends the conversation.
 // Text only goes in via textContent.
 import { el } from './hud';
 import type { TalkMode, Text } from '../net/protocol';
+import { lang, onLangChange, tx, type Bilingual } from './i18n';
+import { GOODBYE, L } from './i18n/dialogueSheet';
 
 export interface SheetView {
   name: string;
-  role: string;
+  /** what the NPC does, in both languages */
+  role: Bilingual;
   mode: TalkMode;
   lead: boolean;
   /** players sharing the conversation */
   size: number;
   say: Text;
-  choices: readonly Text[];
+  choices: readonly Bilingual[];
 }
 
 export interface SheetEvents {
@@ -25,8 +29,6 @@ export interface SheetEvents {
   /** a button was pressed: give the keyboard back to the game */
   done(): void;
 }
-
-const GOODBYE = 'Tạm biệt';
 
 export class DialogueSheet {
   private readonly root = el('talk');
@@ -39,11 +41,18 @@ export class DialogueSheet {
   private readonly choices = el('talk-choices');
   private buttons: HTMLButtonElement[] = [];
   private final = false;
+  /** what the sheet shows, to draw it again in another language */
+  private view: SheetView | null = null;
 
   constructor(private readonly on: SheetEvents) {
     el<HTMLButtonElement>('talk-close').addEventListener('click', () => {
       on.close();
       on.done();
+    });
+    // the line is always Vietnamese, whatever the page's language
+    this.say.lang = 'vi';
+    onLangChange(() => {
+      if (this.view && this.isOpen) this.draw(this.view);
     });
   }
 
@@ -52,17 +61,8 @@ export class DialogueSheet {
   }
 
   show(v: SheetView): void {
-    this.name.textContent = v.name;
-    this.role.textContent = v.role;
-    this.group.hidden = v.mode !== 'group';
-    this.group.textContent = v.size > 1 ? `Nhóm · ${v.size} người` : 'Nhóm';
-    this.say.textContent = v.say.vi;
-    this.gloss.textContent = v.say.en;
-    this.gloss.hidden = v.say.en === '';
-    this.final = v.choices.length === 0;
-    this.wait.hidden = v.lead || this.final;
-    this.buttons = this.final ? [this.button(0, { vi: GOODBYE, en: '' }, true)] : v.choices.map((c, i) => this.button(i, c, v.lead));
-    this.choices.replaceChildren(...this.buttons);
+    this.view = v;
+    this.draw(v);
     if (this.root.hidden) {
       this.root.hidden = false;
       document.body.classList.add('is-talking');
@@ -73,12 +73,29 @@ export class DialogueSheet {
     this.say.classList.add('is-new');
   }
 
+  /** Fill the sheet in the language of the moment. */
+  private draw(v: SheetView): void {
+    this.name.textContent = v.name;
+    this.role.textContent = tx(v.role);
+    this.group.hidden = v.mode !== 'group';
+    this.group.textContent = v.size > 1 ? L.groupOf(v.size) : L.group;
+    this.say.textContent = v.say.vi;
+    const gloss = lang() === 'en' ? v.say.en : '';
+    this.gloss.textContent = gloss;
+    this.gloss.hidden = gloss === '';
+    this.final = v.choices.length === 0;
+    this.wait.hidden = v.lead || this.final;
+    this.buttons = this.final ? [this.button(0, GOODBYE, true)] : v.choices.map((c, i) => this.button(i, c, v.lead));
+    this.choices.replaceChildren(...this.buttons);
+  }
+
   hide(): void {
     if (this.root.hidden) return;
     this.root.hidden = true;
     document.body.classList.remove('is-talking');
     this.choices.replaceChildren();
     this.buttons = [];
+    this.view = null;
   }
 
   /** While an answer is on its way, the buttons wait. */
@@ -96,7 +113,7 @@ export class DialogueSheet {
     return true;
   }
 
-  private button(i: number, t: Text, enabled: boolean): HTMLButtonElement {
+  private button(i: number, t: Bilingual, enabled: boolean): HTMLButtonElement {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = this.final ? 'talk-choice is-bye' : 'talk-choice';
@@ -106,9 +123,10 @@ export class DialogueSheet {
     key.setAttribute('aria-hidden', 'true');
     key.textContent = String(i + 1);
     const vi = document.createElement('span');
+    vi.lang = 'vi';
     vi.textContent = t.vi;
     b.append(key, vi);
-    if (t.en) {
+    if (t.en && lang() === 'en') {
       const en = document.createElement('small');
       en.lang = 'en';
       en.textContent = t.en;

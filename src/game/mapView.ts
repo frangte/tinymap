@@ -5,8 +5,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { fromBlender } from './coords';
 
 export interface MapStop {
-  name: string;
-  note: string;
+  /** the place it flies to (server/content/places.json), whose name it shows; null for the whole island */
+  place: string | null;
+  /** the year on its chip; null shows the place's note */
+  year: string | null;
   /** look-at point, Blender XYZ */
   t: [number, number, number];
   /** camera azimuth / elevation around the look-at point (degrees, Blender convention) and distance (m) */
@@ -16,18 +18,18 @@ export interface MapStop {
 }
 
 export const MAP_STOPS: readonly MapStop[] = [
-  { name: 'Toàn cảnh', note: 'Quận 1', t: [38, 10, 0], az: -112, el: 40, d: 270 },
-  { name: 'Chợ Bến Thành', note: '1914', t: [8, 4, 6], az: -100, el: 26, d: 72 },
-  { name: 'Nhà hát Thành phố', note: '1900', t: [104, -4, 6], az: 195, el: 18, d: 62 },
-  { name: 'Nhà thờ Đức Bà', note: '1880', t: [78, 76, 10], az: -105, el: 16, d: 82 },
-  { name: 'Bưu điện Thành phố', note: '1891', t: [98, 54, 6], az: 200, el: 20, d: 58 },
-  { name: 'Hồ Con Rùa', note: '1967', t: [44, 90, 6], az: -120, el: 38, d: 54 },
-  { name: 'Bitexco', note: '2010', t: [44, -62, 20], az: -130, el: 14, d: 100 },
-  { name: 'Bãi biển', note: 'quanh đảo', t: [70, -70, 1], az: -40, el: 12, d: 70 },
+  { place: null, year: null, t: [38, 10, 0], az: -112, el: 40, d: 270 },
+  { place: 'cho_ben_thanh', year: '1914', t: [8, 4, 6], az: -100, el: 26, d: 72 },
+  { place: 'nha_hat_thanh_pho', year: '1900', t: [104, -4, 6], az: 195, el: 18, d: 62 },
+  { place: 'nha_tho_duc_ba', year: '1880', t: [78, 76, 10], az: -105, el: 16, d: 82 },
+  { place: 'buu_dien_thanh_pho', year: '1891', t: [98, 54, 6], az: 200, el: 20, d: 58 },
+  { place: 'ho_con_rua', year: '1967', t: [44, 90, 6], az: -120, el: 38, d: 54 },
+  { place: 'bitexco', year: '2010', t: [44, -62, 20], az: -130, el: 14, d: 100 },
+  { place: 'bai_bien', year: null, t: [70, -70, 1], az: -40, el: 12, d: 70 },
 ];
 
 /** the pose behind the start menu: a lower three-quarter view from the south-west, the market in front */
-export const MENU_STOP: MapStop = { name: 'Sài Gòn Q1', note: 'Quận 1', t: [40, 12, 0], az: -118, el: 24, d: 250 };
+export const MENU_STOP: MapStop = { place: null, year: null, t: [40, 12, 0], az: -118, el: 24, d: 250 };
 
 const BOUND = new THREE.Box3().setFromPoints([fromBlender(-100, -120, -2), fromBlender(160, 150, 40)]);
 

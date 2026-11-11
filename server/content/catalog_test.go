@@ -73,9 +73,9 @@ func TestCatalogRejects(t *testing.T) {
 	const caps = `"capabilities": [{"id": "a.app", "about": "x"}, {"id": "a.uniform", "about": "x"}]`
 	archetype := func(fields string) string {
 		base := map[string]string{
-			"id": `"a"`, "tags": `["a"]`, "name": `{"vi": "A"}`, "pitch": `{"vi": "A"}`,
-			"badge":        `{"short": "A", "color": "#112233", "text": "#FFFFFF"}`,
-			"spawn":        `{"place": "cho_ben_thanh", "at": [0, 0], "face": [1, 1], "button": {"vi": "Về"}}`,
+			"id": `"a"`, "tags": `["a"]`, "name": `{"vi": "A", "en": "A"}`, "pitch": `{"vi": "A", "en": "A"}`,
+			"badge":        `{"short": {"vi": "A", "en": "A"}, "color": "#112233", "text": "#FFFFFF"}`,
+			"spawn":        `{"place": "cho_ben_thanh", "at": [0, 0], "face": [1, 1], "button": {"vi": "Về", "en": "Về"}}`,
 			"look":         `{"outfit": "thun", "hat": "none"}`,
 			"capabilities": `["a.app"]`,
 		}
@@ -93,21 +93,21 @@ func TestCatalogRejects(t *testing.T) {
 	file := func(archetypes, restricted string) []byte {
 		return []byte(`{` + caps + `, "archetypes": [` + archetypes + `], "restricted_looks": [` + restricted + `]}`)
 	}
-	okApps := []byte(`{"apps": [{"id": "profile", "name": {"vi": "Hồ sơ"}, "icon": "p"}]}`)
+	okApps := []byte(`{"apps": [{"id": "profile", "name": {"vi": "Hồ sơ", "en": "Hồ sơ"}, "icon": "p"}]}`)
 	cases := []struct {
 		name       string
 		archetypes []byte
 		apps       []byte
 		want       string
 	}{
-		{"unknown spawn place", file(archetype(`spawn={"place": "nowhere", "at": [0, 0], "face": [1, 1], "button": {"vi": "Về"}}`), ""), okApps, "spawn place"},
+		{"unknown spawn place", file(archetype(`spawn={"place": "nowhere", "at": [0, 0], "face": [1, 1], "button": {"vi": "Về", "en": "Về"}}`), ""), okApps, "spawn place"},
 		{"unknown capability", file(archetype(`capabilities=["a.nope"]`), ""), okApps, "unknown capability"},
-		{"bad colour", file(archetype(`badge={"short": "A", "color": "blue", "text": "#FFFFFF"}`), ""), okApps, "badge"},
+		{"bad colour", file(archetype(`badge={"short": {"vi": "A", "en": "A"}, "color": "blue", "text": "#FFFFFF"}`), ""), okApps, "badge"},
 		{"unknown outfit", file(archetype(`look={"outfit": "suit", "hat": "none"}`), ""), okApps, "starter"},
 		{"starter look it may not wear", file(archetype(`look={"outfit": "crab", "hat": "none"}`), `{"outfit": "crab", "requires": "a.uniform"}`), okApps, "starter look"},
 		{"restricting both parts at once", file(archetype(""), `{"outfit": "crab", "hat": "helmet", "requires": "a.uniform"}`), okApps, "exactly one"},
 		{"restricting the fallback", file(archetype(""), `{"outfit": "thun", "requires": "a.uniform"}`), okApps, "starter look"},
-		{"app needs an unknown capability", file(archetype(""), ""), []byte(`{"apps": [{"id": "x", "name": {"vi": "X"}, "icon": "x", "requires": ["a.nope"]}]}`), "unknown capability"},
+		{"app needs an unknown capability", file(archetype(""), ""), []byte(`{"apps": [{"id": "x", "name": {"vi": "X", "en": "X"}, "icon": "x", "requires": ["a.nope"]}]}`), "unknown capability"},
 		{"unknown field", []byte(`{` + caps + `, "archetypes": [` + archetype(`colour="red"`) + `]}`), okApps, "unknown field"},
 	}
 	for _, c := range cases {
@@ -163,19 +163,19 @@ func TestMotionRejects(t *testing.T) {
 			f.movement = []byte(`{"walk_speed": 7, "run_speed": 3, "jump_speed": 4, "gravity": 15, "tolerance": 1.25}`)
 		}, "movement.json"},
 		{"a vehicle at 110 m/s", func(f *files) {
-			f.vehicles = []byte(`{"vehicles": [{"id": "x", "name": {"vi": "X"}, "speed": 110, "seats": 1, "requires": "vehicle.motorbike.ride"}]}`)
+			f.vehicles = []byte(`{"vehicles": [{"id": "x", "name": {"vi": "X", "en": "X"}, "speed": 110, "seats": 1, "requires": "vehicle.motorbike.ride"}]}`)
 		}, "speed"},
 		{"a vehicle needing an unknown capability", func(f *files) {
-			f.vehicles = []byte(`{"vehicles": [{"id": "xe_so_110", "name": {"vi": "X"}, "speed": 11, "seats": 1, "requires": "nope.nope"}]}`)
+			f.vehicles = []byte(`{"vehicles": [{"id": "xe_so_110", "name": {"vi": "X", "en": "X"}, "speed": 11, "seats": 1, "requires": "nope.nope"}]}`)
 		}, "unknown capability"},
 		{"two emotes on one code", func(f *files) {
-			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 1, "name": {"vi": "A"}, "seconds": 1}, {"id": "b", "code": 1, "name": {"vi": "B"}, "seconds": 1}]}`)
+			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 1, "name": {"vi": "A", "en": "A"}, "seconds": 1}, {"id": "b", "code": 1, "name": {"vi": "B", "en": "B"}, "seconds": 1}]}`)
 		}, "code"},
 		{"an emote that lasts an hour", func(f *files) {
-			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 1, "name": {"vi": "A"}, "seconds": 3600}]}`)
+			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 1, "name": {"vi": "A", "en": "A"}, "seconds": 3600}]}`)
 		}, "seconds"},
 		{"an emote code past four bits", func(f *files) {
-			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 16, "name": {"vi": "A"}, "seconds": 1}]}`)
+			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 16, "name": {"vi": "A", "en": "A"}, "seconds": 1}]}`)
 		}, "code"},
 		{"a starter vehicle that does not exist", func(f *files) {
 			f.vehicles = []byte(`{"vehicles": []}`)

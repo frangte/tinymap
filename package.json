@@ -14,6 +14,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "i18n:check": "node scripts/i18n-check.mjs",
     "build:single": "tsc --noEmit && vite build --mode single && node scripts/inline.mjs"
   },
   "dependencies": {

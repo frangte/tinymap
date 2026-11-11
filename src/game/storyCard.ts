@@ -3,7 +3,8 @@
 // facing the camera meanwhile (play.ts setDressing), like in the dressing panel.
 import { el } from './hud';
 import type { Archetype } from './archetypes';
-import type { Story } from './stories';
+import { onLangChange, tx } from './i18n';
+import { storyFor } from './stories';
 
 export interface StoryHandlers {
   /** the player read it (button, Enter / Space on it, or Esc) */
@@ -18,20 +19,35 @@ export class StoryCard {
   private readonly todo = el<HTMLOListElement>('story-todo');
   private readonly tip = el('story-tip');
   private readonly go = el<HTMLButtonElement>('story-go');
+  /** the archetype on the card while it is open, to tell again in another language */
+  private shown: Archetype | null = null;
 
   constructor(private readonly on: StoryHandlers) {
     this.go.addEventListener('click', () => this.dismiss());
+    onLangChange(() => {
+      if (this.isOpen && this.shown) this.fill(this.shown);
+    });
   }
 
   get isOpen(): boolean {
     return !this.root.hidden;
   }
 
-  open(a: Archetype, story: Story): void {
-    this.badge.textContent = a.badge.short;
+  /** Show the archetype's story (stories.ts) in the current language. */
+  open(a: Archetype): void {
+    this.shown = a;
+    this.fill(a);
+    this.root.hidden = false;
+    document.body.classList.add('is-story');
+    this.go.focus({ preventScroll: true });
+  }
+
+  private fill(a: Archetype): void {
+    const story = storyFor(a.id);
+    this.badge.textContent = tx(a.badge.short);
     this.badge.style.background = a.badge.color;
     this.badge.style.color = a.badge.text;
-    this.title.textContent = a.name.vi;
+    this.title.textContent = tx(a.name);
     this.opening.textContent = story.opening;
     this.todo.replaceChildren(
       ...story.todo.map((t) => {
@@ -41,9 +57,6 @@ export class StoryCard {
       }),
     );
     this.tip.textContent = story.tip;
-    this.root.hidden = false;
-    document.body.classList.add('is-story');
-    this.go.focus({ preventScroll: true });
   }
 
   /** Close and tell the game to carry on. */

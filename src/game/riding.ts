@@ -10,6 +10,7 @@ import { vehicleKind } from './motion';
 import type { NetClient } from '../net/client';
 import type { Pose, VehicleInfo } from '../net/protocol';
 import type { NavGrid } from './nav';
+import { L } from './i18n/riding';
 
 /** how close to the bike the button offers to get on (m); the server allows 2.5 */
 const MOUNT_REACH = 2.2;
@@ -48,9 +49,9 @@ export class Riding {
   /** The label of the action button: get off, get on (next to our bike), or null for nothing to do. */
   label(): string | null {
     if (this.d.player.seated !== 0) return null; // the trip's own button (rides.ts)
-    if (this.d.player.riding) return 'Xuống xe';
-    if (this.pending !== 0) return 'Đang lên xe…';
-    return this.nearby() ? 'Lên xe' : null;
+    if (this.d.player.riding) return L.getOff;
+    if (this.pending !== 0) return L.gettingOn;
+    return this.nearby() ? L.getOn : null;
   }
 
   /** E / the action button. */
@@ -84,7 +85,7 @@ export class Riding {
   update(now: number): void {
     if (this.pending !== 0 && now - this.pendingAt > PENDING_FOR) {
       this.pending = 0;
-      this.d.notify('Không lên xe được, thử lại nhé.');
+      this.d.notify(L.mountFailed);
     }
     if (this.d.player.riding || this.pending !== 0 || !this.d.net.isOnline || now - this.resyncAt < RESYNC_EVERY) return;
     if (this.d.vehicles.riddenBy(this.self)) {
@@ -130,7 +131,7 @@ export class Riding {
 
   refused(): void {
     this.pending = 0;
-    this.d.notify('Không lên xe được: lại gần xe của bạn hơn nhé.');
+    this.d.notify(L.mountRefused);
   }
 
   /** The connection dropped: the server's vehicles go, and a local bike takes over (we stay on it if riding). */

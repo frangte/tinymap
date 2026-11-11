@@ -7,14 +7,14 @@ import type { EndReason, Interaction } from '../net/protocol';
 import type { Player } from './player';
 import type { Npc, Npcs } from './npcs';
 import { DialogueSheet } from './dialogueSheet';
+import { L } from './i18n/talk';
 
 /** why the server would not start a conversation, as the player reads it */
 const REFUSED: Record<string, (name: string) => string> = {
-  far: (n) => `Lại gần ${n} thêm chút nữa nha.`,
-  full: (n) => `Nhóm của ${n} đông quá, chờ chút nha.`,
-  mute: (n) => `${n} đang bận.`,
+  far: (n) => L.far(n),
+  full: (n) => L.full(n),
+  mute: (n) => L.busy(n),
 };
-const NOT_HEARD = 'Chưa nói chuyện được, thử lại nha.';
 
 export interface TalkDeps {
   net: NetClient;
@@ -61,7 +61,7 @@ export class Talk {
   label(): string | null {
     const n = this.near();
     if (!n) return null;
-    return this.greeting ? 'Đang chào…' : `Nói chuyện · ${n.def.name}`;
+    return this.greeting ? L.greeting : L.talkTo(n.def.name);
   }
 
   /** E / the action button next to an NPC. */
@@ -74,7 +74,7 @@ export class Talk {
       // a late yes (past the timeout) still opens the sheet when its line arrives: no false alarm then
       if (r.ok || (r.code === 'timeout' && this.isOpen)) return;
       const say = REFUSED[r.code];
-      this.d.notify(say ? say(n.def.name) : NOT_HEARD);
+      this.d.notify(say ? say(n.def.name) : L.notHeard);
     });
   }
 
@@ -92,7 +92,7 @@ export class Talk {
     this.current = i;
     this.answering = false;
     this.sheet.setBusy(false);
-    this.sheet.show({ name: n.def.name, role: n.def.role.vi, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices });
+    this.sheet.show({ name: n.def.name, role: n.def.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices });
   }
 
   /** The server ended a conversation. */
@@ -101,7 +101,7 @@ export class Talk {
     if (this.current?.sid !== sid) return;
     const n = this.d.npcs.get(this.current.n);
     this.drop();
-    if (reason === 'far' && n) this.d.notify(`Bạn đã đi xa ${n.def.name}.`);
+    if (reason === 'far' && n) this.d.notify(L.walkedAway(n.def.name));
   }
 
   /** A digit key while talking presses that answer; false leaves the key to the game (emotes). */
@@ -136,7 +136,7 @@ export class Talk {
       this.answering = false;
       this.sheet.setBusy(false);
       // a refused answer (the line moved on, or the conversation ended) leaves the sheet as the server last showed it
-      if (!r.ok && (r.code === 'timeout' || r.code === 'offline')) this.d.notify(NOT_HEARD);
+      if (!r.ok && (r.code === 'timeout' || r.code === 'offline')) this.d.notify(L.notHeard);
     });
   }
 

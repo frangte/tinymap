@@ -355,7 +355,7 @@ func TestPublicLinesAreHeardNearby(t *testing.T) {
 	h.interact(p, diNam, 1)
 	in := only(t, mustDrain(h, p), protocol.TypeInteraction)
 	heard := only(t, mustDrain(h, near), protocol.TypeChat)
-	if !heard.NPC || heard.ID != diNam.id || heard.Name != "Dì Năm" || heard.Text != in.Say.VI {
+	if !heard.NPC || heard.ID != diNam.id || heard.Name != "Dì Năm" || heard.Text != in.Say.VI || heard.EN == "" || heard.EN != in.Say.EN {
 		t.Fatalf("heard %+v, said %q", heard, in.Say.VI)
 	}
 	if fs := mustDrain(h, far); count(fs, protocol.TypeChat) != 0 {
@@ -414,7 +414,7 @@ func TestNPCsCallToPassersBy(t *testing.T) {
 		h.w.tick()
 	}
 	call := only(t, mustDrain(h, p), protocol.TypeChat)
-	if !call.NPC || call.ID != chuSau.id || call.Text != chuSau.spec.Barks[0].VI {
+	if !call.NPC || call.ID != chuSau.id || call.Text != chuSau.spec.Barks[0].VI || call.EN == "" || call.EN != chuSau.spec.Barks[0].EN {
 		t.Fatalf("call %+v", call)
 	}
 	// the next one waits its turn

@@ -29,6 +29,9 @@ const (
 // content can go out on the wire as it is.
 type Text = protocol.Text
 
+// bilingual: the text has both its Vietnamese and its English (the game shows the player's language).
+func bilingual(t Text) bool { return t.VI != "" && t.EN != "" }
+
 type Capability struct {
 	ID    string `json:"id"`
 	About string `json:"about"`
@@ -36,7 +39,8 @@ type Capability struct {
 
 // Badge is how an archetype shows next to a name: a short label on a colour.
 type Badge struct {
-	Short string `json:"short"`
+	// Short is the label, in Vietnamese and English
+	Short Text   `json:"short"`
 	Color string `json:"color"`
 	Text  string `json:"text"`
 }
@@ -218,7 +222,7 @@ func (c *Catalog) check() error {
 	}
 	seen := map[string]bool{}
 	for _, app := range c.Apps {
-		if !idPattern.MatchString(app.ID) || seen[app.ID] || app.Name.VI == "" || app.Icon == "" {
+		if !idPattern.MatchString(app.ID) || seen[app.ID] || app.Name.VI == "" || app.Name.EN == "" || app.Icon == "" {
 			return fmt.Errorf("apps.json: app %q: needs a unique lower_snake_case id, a Vietnamese name and an icon", app.ID)
 		}
 		for _, r := range app.Requires {
@@ -267,9 +271,9 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 		return errors.New("duplicate id")
 	case len(a.Tags) == 0:
 		return errors.New("needs at least one tag (quests are offered by tag)")
-	case a.Name.VI == "" || a.Pitch.VI == "" || a.Spawn.Button.VI == "":
-		return errors.New("needs a Vietnamese name, pitch and spawn button")
-	case a.Badge.Short == "" || !colorPattern.MatchString(a.Badge.Color) || !colorPattern.MatchString(a.Badge.Text):
+	case !bilingual(a.Name) || !bilingual(a.Pitch) || !bilingual(a.Spawn.Button):
+		return errors.New("needs a name, pitch and spawn button in Vietnamese and English")
+	case !bilingual(a.Badge.Short) || !colorPattern.MatchString(a.Badge.Color) || !colorPattern.MatchString(a.Badge.Text):
 		return errors.New("badge needs a short label and #rrggbb colours")
 	case !places[a.Spawn.Place]:
 		return fmt.Errorf("spawn place %q is not in places.json", a.Spawn.Place)

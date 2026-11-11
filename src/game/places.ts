@@ -2,15 +2,17 @@
 // toast the first time the player walks up to them in a visit. The list lives in server/content/places.json, which
 // the Go server embeds too (and whose tests keep it valid), so the game and the server agree on every place.
 import data from '../../server/content/places.json';
+import { lang, tx, type Bilingual } from './i18n';
 
 export type PlaceKind = 'landmark' | 'street' | 'area';
 
 export interface Place {
   /** stable id (quests refer to places by it) */
   id: string;
-  name: string;
-  /** small print under the name (year built, kind of street…) */
-  note: string;
+  /** Vietnamese and English (show it with placeTitle) */
+  name: Bilingual;
+  /** small print under the name (year built, kind of street…); show it with placeNote */
+  note: Bilingual;
   kind: PlaceKind;
   /** a point, or a polyline for streets and the coast */
   pts: ReadonlyArray<readonly [number, number]>;
@@ -25,6 +27,26 @@ export const PLACES: readonly Place[] = data.places.map((p): Place => {
   if (!kind || p.pts.some((pt) => pt.length !== 2)) throw new Error(`server/content/places.json: bad place "${p.id}"`);
   return { id: p.id, name: p.name, note: p.note, kind, pts: p.pts.map((pt) => [pt[0], pt[1]] as const), r: p.r };
 });
+
+/** The place's name in the player's language. */
+export function placeTitle(p: Pick<Place, 'name'>): string {
+  return tx(p.name);
+}
+
+/**
+ * The small print under the name. In English it starts with the Vietnamese name, the one on the street signs:
+ * "Chợ Bến Thành · built in 1914".
+ */
+export function placeNote(p: Pick<Place, 'name' | 'note'>): string {
+  const note = tx(p.note);
+  if (lang() === 'vi' || !p.name.en || p.name.en === p.name.vi) return note;
+  return note ? `${p.name.vi} · ${note}` : p.name.vi;
+}
+
+/** The place with this id; undefined for ids this build does not know. */
+export function placeById(id: string): Place | undefined {
+  return PLACES.find((p) => p.id === id);
+}
 
 const RANK: Record<PlaceKind, number> = { landmark: 0, street: 1, area: 2 };
 

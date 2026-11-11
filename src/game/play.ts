@@ -5,7 +5,7 @@ import type { NavGrid } from './nav';
 import { Player } from './player';
 import { FollowCamera, type Framing } from './followCamera';
 import { InputController, type LookDelta, type MoveIntent } from './input';
-import { placeAt, type Place } from './places';
+import { placeAt, placeNote, placeTitle, type Place } from './places';
 import { FOLIAGE } from './paint';
 import { damp, wrapAngle } from './coords';
 import type { Hud } from './hud';
@@ -180,7 +180,7 @@ export class PlayMode {
       // not while picking an archetype or dressing: the player has not walked anywhere yet
       if (p && p.kind === 'landmark' && !this.seen.has(p) && !this.dressing) {
         this.seen.add(p);
-        this.hud.toast(p);
+        this.hud.toast({ name: placeTitle(p), note: placeNote(p) });
         this.onLandmark(p);
       }
     }

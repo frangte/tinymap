@@ -5,6 +5,8 @@ import { el } from './hud';
 import { CHAT_MAX, type Channel, type ChatLine } from '../net/protocol';
 import { badge } from './badge';
 import { titleName } from './quests';
+import { lang, onLangChange } from './i18n';
+import { L } from './i18n/chatBox';
 
 export interface ChatHandlers {
   /** @returns false when the line could not be sent (offline) */
@@ -30,19 +32,22 @@ const NOTE_FOR = 2600;
 const COLOURS = 6;
 
 /** the channel button's label: who will read the line */
-const CH_LABEL: Record<Channel, string> = { global: 'Cả phố', nearby: 'Gần đây' };
-
-const NOTE = {
-  offline: 'Mất kết nối, chưa chat được…',
-  rate: 'Chậm lại chút…',
-  slow: 'Kênh Cả phố đang đông: vài giây mới gửi được một dòng.',
-  repeat: 'Dòng này vừa gửi rồi.',
-  new_player: 'Chơi thêm vài phút nữa mới chat Cả phố được. Kênh Gần đây vẫn mở.',
-  muted: 'Bạn đang bị tắt chat.',
-} as const;
+const CH_LABEL: Record<Channel, () => string> = { global: () => L.chGlobal, nearby: () => L.chNearby };
 
 /** why the server did not send our last line */
 export type ChatRefusal = 'slow' | 'repeat' | 'new_player' | 'muted';
+
+const REFUSED: Record<ChatRefusal, () => string> = {
+  slow: () => L.slow,
+  repeat: () => L.repeat,
+  new_player: () => L.newPlayer,
+  muted: () => L.muted,
+};
+
+/** What a line says in the player's language: an NPC's English in English mode, otherwise the line as sent. */
+export function spoken(l: ChatLine): string {
+  return lang() === 'en' && l.en ? l.en : l.text;
+}
 
 export class ChatBox {
   private readonly root = el('chat');
@@ -93,6 +98,7 @@ export class ChatBox {
       vv.addEventListener('scroll', fit);
     }
     this.setOnline(false);
+    onLangChange(() => this.relabel());
   }
 
   get isOpen(): boolean {
@@ -102,7 +108,7 @@ export class ChatBox {
   open(): void {
     if (this.isOpen) return;
     if (!this.online) {
-      this.flash(NOTE.offline);
+      this.flash(L.offline);
       return;
     }
     this.form.hidden = false;
@@ -133,16 +139,23 @@ export class ChatBox {
   /** Where the next line goes: everyone, or only the players around. */
   setChannel(ch: Channel): void {
     this.ch = ch;
-    this.chButton.textContent = CH_LABEL[ch];
     this.chButton.dataset.ch = ch;
-    this.chButton.setAttribute('aria-label', `Gửi tới: ${CH_LABEL[ch]}. Bấm để đổi`);
+    this.relabel();
   }
 
   setOnline(online: boolean): void {
     this.online = online;
     this.input.disabled = !online;
-    this.input.placeholder = online ? 'Nói gì đó…' : NOTE.offline;
+    this.relabel();
     if (!online) this.close(false);
+  }
+
+  /** The channel button and the field's placeholder, in the language of the moment. */
+  private relabel(): void {
+    const label = CH_LABEL[this.ch]();
+    this.chButton.textContent = label;
+    this.chButton.setAttribute('aria-label', L.channelAria(label));
+    this.input.placeholder = this.online ? L.placeholder : L.offline;
   }
 
   /** The recent chat from a welcome (oldest first). After a reconnect only lines newer than the log are added. */
@@ -163,7 +176,7 @@ export class ChatBox {
       li.dataset.player = String(l.id);
       name.tabIndex = 0;
       name.setAttribute('role', 'button');
-      name.setAttribute('aria-label', `${l.name}: tắt tiếng hoặc báo cáo`);
+      name.setAttribute('aria-label', L.personAria(l.name));
       name.addEventListener('click', () => this.personMenu(li, l));
       name.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -186,10 +199,19 @@ export class ChatBox {
       // only the players around heard it
       li.classList.add('is-near');
       const near = document.createElement('i');
-      near.textContent = 'gần';
+      near.textContent = L.near;
       li.append(' ', near);
     }
-    li.append(document.createTextNode(` ${l.text}`));
+    if (l.npc && l.en && lang() === 'en') {
+      // an NPC speaks Vietnamese; its English follows in small print
+      const said = document.createElement('span');
+      said.lang = 'vi';
+      said.textContent = l.text;
+      const gloss = document.createElement('span');
+      gloss.className = 'chat-en';
+      gloss.textContent = l.en;
+      li.append(' ', said, ' ', gloss);
+    } else li.append(document.createTextNode(` ${l.text}`));
     this.append(li);
   }
 
@@ -203,13 +225,13 @@ export class ChatBox {
 
   rateLimited(): void {
     if (this.isOpen && this.input.value === '') this.input.value = this.lastSent;
-    this.flash(NOTE.rate);
+    this.flash(L.rate);
   }
 
   /** The server did not send our last line: say why, and give a slowed-down line back to retype. */
   refused(code: ChatRefusal): void {
     if (code === 'slow' && this.isOpen && this.input.value === '') this.input.value = this.lastSent;
-    this.flash(NOTE[code]);
+    this.flash(REFUSED[code]());
   }
 
   /** Under a line: mute its player, report them, or close. A second tap on the name closes it. */
@@ -231,16 +253,16 @@ export class ChatBox {
       return b;
     };
     menu.append(
-      item(`Tắt tiếng ${l.name}`, () => {
+      item(L.mute(l.name), () => {
         this.on.mute(l.id, l.name);
         // their lines already shown go too
         this.log.querySelectorAll(`li[data-player="${l.id}"]`).forEach((x) => x.remove());
-        this.system(`Đã tắt tiếng ${l.name}. Bật lại trong app Trò chuyện.`);
+        this.system(L.mutedNote(l.name));
       }),
-      item('Báo cáo', () => {
-        if (!this.on.report(l.id)) this.flash(NOTE.offline);
+      item(L.report, () => {
+        if (!this.on.report(l.id)) this.flash(L.offline);
       }),
-      item('Thôi', () => undefined),
+      item(L.cancel, () => undefined),
     );
     li.append(menu);
     this.wake();
@@ -253,7 +275,7 @@ export class ChatBox {
       return;
     }
     if (!this.on.send(text, this.ch)) {
-      this.flash(NOTE.offline);
+      this.flash(L.offline);
       return;
     }
     this.lastSent = text;

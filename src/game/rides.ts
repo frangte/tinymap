@@ -3,7 +3,9 @@
 // puts the next step on the action button (get on, get off, drop off) and tells the quest tracker where to go.
 import * as THREE from 'three';
 import data from '../../server/content/ridehail.json';
-import { PLACES, distance, type Place } from './places';
+import { PLACES, distance, placeById, placeTitle, type Place } from './places';
+import { lang } from './i18n';
+import { L } from './i18n/rides';
 import type { Player } from './player';
 import type { NetClient } from '../net/client';
 import type { Ride, RideError, RideOffer, RideServerMsg } from '../net/rideProtocol';
@@ -32,19 +34,36 @@ export function fareTo(place: Place, x: number, z: number): number {
   return Math.round((f.base + f.per_metre * Math.max(0, distance(place, x, -z))) / f.round) * f.round;
 }
 
-/** 16.000 xu */
+/** 16.000 xu (16,000 xu in English) */
 export function xu(n: number): string {
-  return `${n.toLocaleString('vi-VN')} xu`;
+  return `${n.toLocaleString(lang() === 'en' ? 'en-US' : 'vi-VN')} xu`;
 }
 
+/** A place's name in the player's language, by id (the id itself for places this build does not know). */
 export function placeName(id: string): string {
-  return PLACES.find((p) => p.id === id)?.name ?? id;
+  const p = placeById(id);
+  return p ? placeTitle(p) : id;
 }
+
+/** A guide whose goal is written when it is read, so it follows a language switch. */
+function guideTo(title: string, goal: () => string, target: () => THREE.Vector3 | null): Guide {
+  return {
+    title,
+    get goal() {
+      return goal();
+    },
+    target,
+  };
+}
+
+/** the trip's next step on the action button */
+type Step = 'alight' | 'board' | 'drop_off';
 
 /** Where the quest tracker points instead of the quest while a trip goes on. */
 export interface Guide {
-  title: string;
-  goal: string;
+  readonly title: string;
+  /** a getter: read again after a language switch, it is in the new language */
+  readonly goal: string;
   /** where to go now (three.js, on the ground), null for nowhere */
   target(): THREE.Vector3 | null;
 }
@@ -61,39 +80,6 @@ export interface RidesDeps {
   /** open the phone on an app */
   openApp(id: string): void;
 }
-
-const ERRORS: Record<RideError, string> = {
-  no_account: 'Đặt xe cần tài khoản: tải lại trang để thử lại.',
-  busy: 'Bạn đang có một chuyến rồi.',
-  unknown_place: 'Không tìm thấy nơi này.',
-  no_bike: 'Tài xế phải đang ngồi trên xe của mình.',
-  too_far: 'Lại gần xe hơn chút nữa nhé.',
-  not_stopped: 'Đợi xe dừng hẳn đã.',
-  not_there: 'Chưa tới nơi: chở khách vào gần hơn.',
-  balance: 'Ví không đủ tiền.',
-  gone: 'Cuốc này không còn nữa.',
-  not_allowed: 'Chỉ tài xế Crab mới nhận cuốc được.',
-  tip: 'Tiền tip không hợp lệ.',
-  too_soon: 'Vừa đặt xong, đợi vài giây rồi đặt lại nhé.',
-  riding: 'Xuống xe của bạn trước đã.',
-  here: 'Bạn đang ở đó rồi.',
-  unknown: 'Có lỗi, thử lại nhé.',
-};
-
-/** how a trip ended, for each side (the passenger's line, the driver's line) */
-const ENDS: Record<string, [string, string]> = {
-  alighted: ['Bạn đã xuống xe giữa đường.', 'Khách đã xuống xe giữa đường.'],
-  cancelled_by_passenger: ['Đã huỷ chuyến, tiền đã hoàn lại.', 'Khách đã huỷ chuyến.'],
-  cancelled_by_driver: ['Tài xế đã huỷ cuốc.', 'Bạn đã huỷ cuốc.'],
-  no_driver: ['Chưa có tài xế nào nhận. Tiền đã hoàn lại, thử lại sau nhé.', ''],
-  pickup_timeout: ['Tài xế không tới kịp. Tiền đã hoàn lại.', 'Quá giờ chưa đón khách: cuốc đã huỷ.'],
-  passenger_left: ['', 'Khách đã rời phố.'],
-  driver_left: ['Tài xế đã rời phố. Tiền đã hoàn lại.', ''],
-  driver_got_off: ['Tài xế xuống xe giữa đường. Tiền đã hoàn lại.', 'Bạn xuống xe giữa đường: khách được hoàn tiền.'],
-  passenger_got_off: ['Bạn đã rời xe giữa đường.', 'Khách đã rời xe giữa đường.'],
-  hold_failed: ['Chưa đặt được xe, thử lại nhé.', ''],
-  trip_timeout: ['Chuyến đi quá lâu nên đã huỷ, tiền đã hoàn lại.', 'Chở khách quá lâu: cuốc đã huỷ, khách được hoàn tiền.'],
-};
 
 export class Rides {
   /** our balance in xu, null when unknown (a guest, offline) */
@@ -156,13 +142,13 @@ export class Rides {
       case 'ride_rated':
         this.rating = false;
         if (this.ride?.id === m.id) this.ride = null;
-        this.d.say('Cảm ơn bạn đã đánh giá tài xế!');
+        this.d.say(L.rated);
         break;
       case 'ride_error':
         if (RATING_ERRORS.has(m.code)) this.rating = false;
         // seated with no trip the server knows of (we lost track of it): back on our feet
         if (m.code === 'gone' && this.d.player.seated !== 0 && this.ride?.state !== 'on_trip') this.d.player.stand();
-        this.d.say(ERRORS[m.code]);
+        this.d.say(L.error(m.code));
         break;
     }
     this.changed();
@@ -189,7 +175,7 @@ export class Rides {
   // ---- commands (the answers come back through handle)
 
   book(dest: string): void {
-    if (!this.d.net.sendRide({ t: 'ride_request', dest })) this.d.say('Đang mất kết nối, chưa đặt xe được.');
+    if (!this.d.net.sendRide({ t: 'ride_request', dest })) this.d.say(L.offlineBook);
   }
 
   cancel(): void {
@@ -197,7 +183,7 @@ export class Rides {
   }
 
   setDuty(on: boolean): void {
-    if (!this.d.net.sendRide({ t: 'duty', on })) this.d.say('Đang mất kết nối.');
+    if (!this.d.net.sendRide({ t: 'duty', on })) this.d.say(L.offline);
   }
 
   accept(offer: string): void {
@@ -247,15 +233,27 @@ export class Rides {
 
   /** The trip's next step for the action button (E), null for none. */
   label(): string | null {
+    switch (this.step()) {
+      case 'alight':
+        return L.stepAlight;
+      case 'board':
+        return L.stepBoard;
+      case 'drop_off':
+        return L.stepDropOff;
+      default:
+        return null;
+    }
+  }
+
+  private step(): Step | null {
     // seated behind someone, the button always gets off (even if we lost track of the trip)
-    if (this.d.player.seated !== 0) return 'Xuống xe';
+    if (this.d.player.seated !== 0) return 'alight';
     const r = this.ride;
     if (!r) return null;
     if (r.role === 'passenger') {
-      if (r.state === 'on_trip' && this.d.player.seated !== 0) return 'Xuống xe';
-      if (r.state === 'accepted' && this.driverNear()) return 'Lên xe Crab';
+      if (r.state === 'accepted' && this.driverNear()) return 'board';
     } else if (r.state === 'on_trip' && this.d.player.riding && this.arrived()) {
-      return 'Trả khách';
+      return 'drop_off';
     }
     return null;
   }
@@ -268,18 +266,18 @@ export class Rides {
       const now = performance.now();
       if (now - this.warnedAt < CONFIRM_OFF_MS) return false;
       this.warnedAt = now;
-      this.d.say('Xuống xe giữa đường là huỷ cuốc, khách được hoàn tiền. Bấm lần nữa để xuống xe.');
+      this.d.say(L.confirmGetOff);
       return true;
     }
-    switch (this.label()) {
-      case 'Xuống xe':
+    switch (this.step()) {
+      case 'alight':
         this.d.net.sendRide({ t: 'ride_alight' });
         return true;
-      case 'Lên xe Crab':
+      case 'board':
         this.d.net.sendRide({ t: 'ride_board' });
         return true;
-      case 'Trả khách':
-        if (this.d.player.speed > data.stopped_speed) this.d.say('Dừng xe hẳn rồi trả khách.');
+      case 'drop_off':
+        if (this.d.player.speed > data.stopped_speed) this.d.say(L.stopFirst);
         else this.d.net.sendRide({ t: 'ride_complete' });
         return true;
       default:
@@ -293,24 +291,24 @@ export class Rides {
   guide(): Guide | null {
     const r = this.ride;
     if (!r || r.state === 'completed') return null;
-    const dest = PLACES.find((p) => p.id === r.dest);
+    const dest = placeById(r.dest);
     const toDest = (): THREE.Vector3 | null => (dest ? this.to.set(dest.pts[0][0], 0, -dest.pts[0][1]) : null);
     const toPerson = (id: number, fallback: readonly [number, number]): THREE.Vector3 =>
       this.d.other(id)?.position ?? this.to.set(fallback[0], 0, fallback[1]);
-    const name = dest?.name ?? r.dest;
+    const name = (): string => (dest ? placeTitle(dest) : r.dest);
     if (r.role === 'rider') {
-      if (r.state === 'accepted') return { title: 'Crab Driver', goal: `Đón ${r.passenger.name}`, target: () => toPerson(r.passenger.id, r.pickup) };
-      return { title: 'Crab Driver', goal: `Chở khách tới ${name}`, target: toDest };
+      if (r.state === 'accepted') return guideTo('Crab Driver', () => L.goalPickUp(r.passenger.name), () => toPerson(r.passenger.id, r.pickup));
+      return guideTo('Crab Driver', () => L.goalCarryTo(name()), toDest);
     }
     switch (r.state) {
       case 'requested':
-        return { title: 'Crab', goal: 'Đang tìm tài xế…', target: () => null };
+        return guideTo('Crab', () => L.goalFinding, () => null);
       case 'accepted': {
         const driver = r.driver;
-        return { title: 'Crab', goal: `${driver?.name ?? 'Tài xế'} đang tới đón bạn`, target: () => (driver ? toPerson(driver.id, r.pickup) : null) };
+        return guideTo('Crab', () => L.goalDriverComing(driver?.name ?? null), () => (driver ? toPerson(driver.id, r.pickup) : null));
       }
       default:
-        return { title: 'Crab', goal: `Đang tới ${name}`, target: toDest };
+        return guideTo('Crab', () => L.goalGoingTo(name()), toDest);
     }
   }
 
@@ -335,30 +333,30 @@ export class Rides {
       // the trip stays for the rating window
       this.ride = r;
       this.rating = false;
-      this.d.notify('Tới nơi', r.end === 'completed' ? `${name}. Đã trả ${xu(r.fare)}.` : `Xuống xe giữa đường, đã trả ${xu(r.fare)}.`);
-      if (r.end !== 'completed') this.d.say(ENDS.alighted[0]);
+      this.d.notify(L.arrivedTitle, r.end === 'completed' ? L.arrivedPaid(name, xu(r.fare)) : L.alightedPaid(xu(r.fare)));
+      if (r.end !== 'completed') this.d.say(L.end('alighted', true));
       this.d.openApp('crab');
       return;
     }
     this.ride = null;
     if (!passenger && r.end === 'completed') {
-      this.d.notify('Hoàn thành cuốc xe', `Chở ${r.passenger.name} tới ${name}. Nhận ${xu(r.paid)}.`);
+      this.d.notify(L.tripDoneTitle, L.tripDone(r.passenger.name, name, xu(r.paid)));
       return;
     }
-    const line = ENDS[r.end]?.[passenger ? 0 : 1] ?? (passenger ? 'Chuyến đi đã kết thúc.' : 'Cuốc xe đã kết thúc.');
-    if (line) this.d.say(r.paid > 0 && !passenger ? `${line} Nhận ${xu(r.paid)}.` : line);
+    const line = L.end(r.end, passenger);
+    if (line) this.d.say(r.paid > 0 && !passenger ? L.earned(line, xu(r.paid)) : line);
   }
 
   private announce(r: Ride, before: Ride | null): void {
     if (r.role === 'rider') {
-      if (r.state === 'accepted') this.d.say(`Đã nhận cuốc: tới đón ${r.passenger.name}.`);
-      else if (r.state === 'on_trip') this.d.say(`${r.passenger.name} đã lên xe. Chở tới ${placeName(r.dest)}, tới nơi thì dừng xe và bấm Trả khách.`);
+      if (r.state === 'accepted') this.d.say(L.acceptedRider(r.passenger.name));
+      else if (r.state === 'on_trip') this.d.say(L.boardedRider(r.passenger.name, placeName(r.dest)));
       return;
     }
-    if (r.state === 'requested' && before?.state === 'accepted') this.d.say('Tài xế đã huỷ, đang tìm tài xế khác…');
-    else if (r.state === 'requested') this.d.say(`Đã đặt xe tới ${placeName(r.dest)}, đang tìm tài xế…`);
-    else if (r.state === 'accepted' && r.driver) this.d.notify('Đã có tài xế', `${r.driver.name} đang tới đón bạn. Xe tới thì bấm Lên xe Crab.`);
-    else if (r.state === 'on_trip') this.d.say(`Lên xe rồi! Đang tới ${placeName(r.dest)}.`);
+    if (r.state === 'requested' && before?.state === 'accepted') this.d.say(L.driverCancelled);
+    else if (r.state === 'requested') this.d.say(L.requested(placeName(r.dest)));
+    else if (r.state === 'accepted' && r.driver) this.d.notify(L.driverFoundTitle, L.driverFound(r.driver.name));
+    else if (r.state === 'on_trip') this.d.say(L.onTrip(placeName(r.dest)));
   }
 
   /** The driver's bike is within reach of us, stopped. */
@@ -372,7 +370,7 @@ export class Rides {
 
   /** Our bike is within the destination's reach. */
   private arrived(): boolean {
-    const dest = PLACES.find((p) => p.id === this.ride?.dest);
+    const dest = this.ride ? placeById(this.ride.dest) : undefined;
     const p = this.d.player.position;
     return !!dest && distance(dest, p.x, -p.z) <= dest.r;
   }

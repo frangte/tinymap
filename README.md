@@ -11,7 +11,10 @@ npm install
 npm run dev          # http://localhost:5173
 npm run build        # type-check + production build into dist/
 npm run build:single # one HTML file in dist-single/saigon-noir.html (models/ still served next to it)
+npm run i18n:check   # fails on interface text typed outside the catalogs (src/game/i18n/)
 ```
+
+The game is in Vietnamese and English. The language comes from `?lang=vi|en`, then the player's last choice, then the browser's languages (English when it lists neither); the switch is on the start menu and in the tool buttons, and changes everything on screen at once. NPCs always speak Vietnamese: in English the English goes under each line.
 
 The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so the back button and shared links work. `?debug` exposes the app as `window.sgGame` (player, follow camera, map view, nav grid, `go(mode)`, `step(n)`); `?debug&manual` stops the frame loop so a test can step it.
 
@@ -54,7 +57,9 @@ src/game/
   places.ts             named landmarks and streets for the HUD
   hud.ts                DOM overlay helpers
   storyCard.ts          the arrival card: the archetype's story and first steps, once per visit
-  stories.ts            that text per archetype
+  stories.ts            that text per archetype (written in i18n/stories.ts)
+  langSwitch.ts         the language switch on the menu and in the tools
+  i18n/                 every interface text, Vietnamese and English (see "Adding text")
   coords.ts             Blender <-> three.js axes, small math helpers
 public/models/
   saigon_q1.glb         the diorama (export of sg.tinymap.blend)
@@ -70,6 +75,15 @@ docs/
   PROJECT.md            project brief: style, palette, Blender conventions, landmark sheet
   img/                  renders of each landmark from the current map
 ```
+
+## Adding text
+
+Interface text never goes straight into the code or `index.html`; `npm run i18n:check` fails if it does.
+
+- **In a module:** add a key to its catalog in `src/game/i18n/<module>.ts` (`const vi = {…}; const en: typeof vi = {…}`; tsc fails until the English is there), then read it as `L.key`, or `L.key(arg)` for text with values in it.
+- **In `index.html`:** give the element `data-i18n="key"` (its text), `data-i18n-title`, `data-i18n-aria` or `data-i18n-placeholder`, and add the key to `src/game/i18n/page.ts`.
+- **Game content** (quests, dialogue, places, apps, archetypes in `server/content/`) is a `{ "vi": …, "en": … }` pair: show it with `tx()`, place names with `placeTitle()` / `placeNote()`. `go test` fails on a text without its English.
+- **Text that stays on screen** redraws itself on `onLangChange()`; text built each time something opens needs nothing more.
 
 Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z) is three (x, z, -y). The nav files are in Blender XY with row 0 at the southern edge.
 

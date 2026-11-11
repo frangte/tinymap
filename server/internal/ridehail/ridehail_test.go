@@ -136,7 +136,7 @@ type fixture struct {
 	raw *sql.DB
 }
 
-var dest = content.Place{ID: "cho_ben_thanh", Name: "Chợ Bến Thành", Kind: content.Landmark, Pts: [][]float64{{100, 0}}, R: 10}
+var dest = content.Place{ID: "cho_ben_thanh", Name: content.Text{VI: "Chợ Bến Thành", EN: "Bến Thành Market"}, Kind: content.Landmark, Pts: [][]float64{{100, 0}}, R: 10}
 
 func config() ridehail.Config {
 	return ridehail.ConfigFrom(content.Ridehail{StartBalance: start, TopupTo: 50_000, Fare: content.Fare{Base: 10_000, PerMetre: 60, Round: 1000},

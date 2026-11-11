@@ -97,7 +97,8 @@ These are for shaping and testing the quest engine, not final content.
 
 ## Language
 
-- **The UI language is a per-player setting** (`vi` by default, `en` available), not tied to the archetype. A Vietnamese player may want to play a Traveler; a foreigner may want to be a Citizen.
+- **The UI language is a per-player setting** (`vi` and `en`), not tied to the archetype. A Vietnamese player may want to play a Traveler; a foreigner may want to be a Citizen. Built 2026-11-08 (D19): the language comes from `?lang=`, then the player's last choice (kept on the device), then the browser's languages, English when it lists neither, since the map is a first look at Saigon for people who do not know it. The switch is on the start menu and in the tool buttons.
+- **NPCs speak Vietnamese in both languages.** In English the English goes under each line and each answer (the Traveler learns the phrases Cô Ba teaches); in Vietnamese it is left out. Place names show in English with the Vietnamese name under them, the one on the street signs ("Bến Thành Market", "Chợ Bến Thành · built in 1914").
 - The archetype changes the *tone* of NPC lines, not their language. To a Traveler: "Mới tới Sài Gòn hả con?"; to a Citizen, neighbour talk. Citizen-facing lines are Vietnamese-first with slang, which covers the brief's "Vietnamese by default for Citizen interactions".
 
 ## Few players online
