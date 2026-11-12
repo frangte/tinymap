@@ -138,11 +138,47 @@ Khoa khoanh các chỗ: đường không liền mạch, cầu đáp xuống gi�
 
 Dựng lại map chính từ v8: 315 căn nhà, 1,04 triệu tam giác, GLB 3,0 MB (gzip 1,0 MB), đã thử nạp bằng three.js.
 
+## Game chạy trên map v8 (2026-11-12)
+
+- **Model và nav:** `index.html` và `app.ts` nạp `models/saigon_mini.glb` và nav `models/saigon_mini`. Nav nướng lại
+  bằng `scripts/blender/bake_nav.py` (profile `MINI`): lưới 1405 × 1308 ô 0,35 m, khoảng 117.000 m² đi được. Cả năm cây
+  cầu và đường lên hải đăng đều đi qua được, mọi chỗ đi được đều nối với chỗ xuất hiện.
+  - Mặt cầu và núi Nhỏ là "mặt che": bên dưới chúng không có sàn. Trước đây nav lấy mặt nước dưới cầu và mặt đất
+    dưới núi, nên không qua được sông và người chơi đi xuyên vào lòng núi.
+  - Vài khối được dựng lộn mặt (mặt cầu Ba Son, đường và lối đi trên núi). Lúc nướng, chúng được lật lại cho đúng.
+    Model không đổi.
+- **Nội dung** (`scripts/map/move_game_content_v8.py`, giữ nguyên id nên quest không phải sửa):
+  - 19 địa điểm, 5 NPC và 3 chỗ xuất hiện được dời sang map mới.
+  - "Bãi biển" giờ là cả mặt biển Vũng Tàu: Bãi Trước, đường Hạ Long quanh chân núi, rồi Bãi Sau. Đường chạy trên phần
+    cát khô.
+  - Bùng binh Quách Thị Trang có tầm 18 m, tính cả vòng xoay và vỉa hè.
+- **Server:**
+  - Server nhúng nav mới; test dùng tên file mới.
+  - Migration `0008_map_v8.sql` xoá chỗ đứng đã lưu của mọi nhân vật, vì toạ độ trên đảo cũ không còn nghĩa. Lần sau
+    vào, nhân vật xuất hiện ở nhà theo vai. Trình duyệt cũng bỏ chỗ đứng cũ (`sg.pose.v2`).
+- **Camera:**
+  - Map rộng gấp đôi nên bóng nắng đi theo chỗ đang nhìn: 160 m quanh người chơi, tới 340 m khi nhìn cả map.
+  - Các điểm dừng của bản đồ nhìn dọc con đường dẫn tới công trình: Lê Lợi tới Nhà hát, Đồng Khởi tới Nhà thờ, Phạm
+    Ngọc Thạch tới Hồ Con Rùa.
+- **Điện thoại:** bản đồ vẽ đất, sông, kênh và mọi con đường lấy từ layout (`src/game/phone/mapLand.json`).
+- **Đã thử** trong Chromium:
+  - nạp map và 8 điểm dừng;
+  - vào game, đi qua cầu đi bộ, cầu Ba Son, cầu Mống, cầu Thủ Thiêm 3, lên núi Nhỏ;
+  - `tsc`, `i18n:check`, và test Go của content, nav, world, quest, directions, protocol đều qua. Store, ws, web chưa
+    chạy được ở máy cloud vì thiếu module.
+
+![Toàn cảnh trong game](img/v8_game_overview.jpg)
+![Các điểm dừng của bản đồ](img/v8_game_stops.jpg)
+![Đi qua cầu đi bộ, cầu Ba Son, cầu Thủ Thiêm 3, lên núi Nhỏ](img/v8_game_walk.jpg)
+![Bản đồ trên điện thoại](img/v8_game_phone.jpg)
+
 ## Chưa làm
 
 - Model thật cho các cầu mới, tháp Thủ Thiêm, Bến Nhà Rồng, Khánh Hội: hiện là khối thô, làm sau khi duyệt bố cục,
   mỗi cái gửi bản nháp trước.
 - Bộ nhà (T9, T10): bố cục v8 đã chừa đúng chỗ cho các block, bộ nhà sẽ lấp vào.
+- Địa điểm mới cho Thủ Thiêm, Chợ Lớn, Vũng Tàu, núi Nhỏ. Hiện đứng ở đó HUD ghi "Quận 1". Lời giới thiệu ở menu
+  ("Sài Gòn Q1", "một hòn đảo…") cũng còn tả đảo cũ.
 
 ## Nguồn
 

@@ -22,7 +22,7 @@ const (
 	ArchMax = 32
 	// MaxMessageBytes caps one client frame; the largest legal one (a 140-character chat) is far below it.
 	MaxMessageBytes = 1024
-	// WorldHalf bounds |x| and |z| in three.js metres; the island spans roughly -120…130.
+	// WorldHalf bounds |x| and |z| in three.js metres; the island spans roughly -246…246.
 	WorldHalf = 400
 	MinY      = -20
 	MaxY      = 120

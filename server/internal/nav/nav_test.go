@@ -20,7 +20,7 @@ func grid(t *testing.T) *nav.Grid {
 func TestLoadsTheIslandMap(t *testing.T) {
 	g := grid(t)
 	m := g.Meta()
-	if m.NX != 640 || m.NY != 651 || m.Cell != 0.35 {
+	if m.NX != 1405 || m.NY != 1308 || m.Cell != 0.35 {
 		t.Fatalf("meta = %+v", m)
 	}
 	x, z := g.Spawn()

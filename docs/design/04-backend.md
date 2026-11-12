@@ -13,7 +13,7 @@ server/internal/
   ids/               ULIDs for stored ids
   world/             the loop: entities, interest grid, snapshots, mounts, seats  (from hub/hub.go)
   world/movement/    speed / walkability / height checks
-  nav/               loads saigon_q1_nav.png, the same file the client uses
+  nav/               loads saigon_mini_nav.png, the same file the client uses
   content/           loads YAML, cross-checks every id, fails fast with file:line
   identity/          accounts, tokens, characters
   archetype/  capability/  inventory/  achievement/

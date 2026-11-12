@@ -218,13 +218,14 @@ func (w *World) onRespawn(p *Peer, m *member, msg protocol.ClientMsg) {
 // homeOf is an arrival's home: its own, or the nav grid's spawn facing the market (three.js -z, Blender +Y).
 func (w *World) homeOf(a Arrival) protocol.Pose { return w.homeAt(a.Home) }
 
-// homeAt is a home given (an archetype's start), or without one the nav grid's spawn facing the market.
+// homeAt is a home given (an archetype's start), or without one the nav grid's spawn facing the market (west,
+// three.js -X; heading 0 is +Z).
 func (w *World) homeAt(home *protocol.Pose) protocol.Pose {
 	if home != nil {
 		return *home
 	}
 	x, z := w.grid.Spawn()
-	return protocol.Pose{X: x, Z: z, H: math.Pi}
+	return protocol.Pose{X: x, Z: z, H: -math.Pi / 2}
 }
 
 // startPose is where an arriving player stands: where they left off, unless that spot is no longer walkable

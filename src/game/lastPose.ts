@@ -1,7 +1,8 @@
 // Where the player stood when the page was last closed, in this browser, so the next visit starts there before
 // the server has answered. The server keeps its own copy (with the account) and has the last word: its welcome
 // moves the player if the two disagree.
-const KEY = 'sg.pose.v1';
+// v2: Sài Gòn mini (layout v8); a spot saved on the v4 island means nothing on it
+const KEY = 'sg.pose.v2';
 
 export interface SavedPose {
   x: number;

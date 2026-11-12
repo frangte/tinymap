@@ -36,7 +36,7 @@ type Grid struct {
 	walk  []bool
 }
 
-// maxCells bounds the grid the server accepts (the island is 640×651).
+// maxCells bounds the grid the server accepts (the island is 1405×1308).
 const maxCells = 4096 * 4096
 
 // Load reads the nav PNG (R·256+G = floor height in cm + 1000, B > 127 = walkable) and its metadata.

@@ -22,7 +22,7 @@
         "en": "First time in Saigon. Walk all of District 1, meet the locals, visit every landmark and become a true Saigonese."
       },
       "badge": { "short": { "vi": "Du khách", "en": "Traveler" }, "color": "#4E7CA6", "text": "#F3EBDD" },
-      "spawn": { "place": "bung_binh_quach_thi_trang", "at": [8, -19], "face": [8, 8], "button": { "vi": "Về bùng binh", "en": "Back to the roundabout" } },
+      "spawn": { "place": "bung_binh_quach_thi_trang", "at": [-27, 25], "face": [-51, 25], "button": { "vi": "Về bùng binh", "en": "Back to the roundabout" } },
       "look": { "outfit": "thun", "hat": "cap" },
       "capabilities": ["traveler.guide_app", "directions.ask"]
     },
@@ -35,7 +35,7 @@
         "en": "Born and raised in District 1. Morning coffee, the neighbours, the corners only locals know, and showing travellers the way."
       },
       "badge": { "short": { "vi": "Người SG", "en": "Citizen" }, "color": "#3E7F5F", "text": "#F3EBDD" },
-      "spawn": { "place": "day_nha_pho_le_lai", "at": [-30, -19], "face": [-30, 0], "button": { "vi": "Về nhà", "en": "Back home" } },
+      "spawn": { "place": "day_nha_pho_le_lai", "at": [-39, -10], "face": [-39, -21], "button": { "vi": "Về nhà", "en": "Back home" } },
       "look": { "outfit": "baba", "hat": "nonla" },
       "capabilities": ["citizen.community_app", "directions.give"]
     },
@@ -48,7 +48,7 @@
         "en": "Yellow jacket, helmet, knows every street. Coming soon: ride requests on the phone, and passengers all over town."
       },
       "badge": { "short": { "vi": "Crab", "en": "Crab" }, "color": "#D9A21B", "text": "#2B211C" },
-      "spawn": { "place": "duong_ham_nghi", "at": [36, -37], "face": [62, -50], "button": { "vi": "Về bãi xe", "en": "Back to the bike stand" } },
+      "spawn": { "place": "duong_ham_nghi", "at": [11, 18], "face": [35, 18], "button": { "vi": "Về bãi xe", "en": "Back to the bike stand" } },
       "look": { "outfit": "crab", "hat": "helmet" },
       "vehicle": "xe_so_110",
       "capabilities": ["driver.app", "uniform.crab", "vehicle.motorbike.ride", "ridehail.drive"]

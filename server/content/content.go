@@ -32,13 +32,13 @@ type Place struct {
 	Name Text      `json:"name"`
 	Note Text      `json:"note"`
 	Kind PlaceKind `json:"kind"`
-	// Pts is one point, or a polyline for streets and the coast
+	// Pts is one point, or a polyline for streets and the sea front
 	Pts [][]float64 `json:"pts"`
 	// R is the reach in metres from the point or the line
 	R float64 `json:"r"`
 }
 
-// coordLimit bounds Blender X and Y; the island spans about -85…130 m, the server's world bounds are ±400.
+// coordLimit bounds Blender X and Y; the island spans about -246…246 m, the server's world bounds are ±400.
 const coordLimit = 400
 
 var idPattern = regexp.MustCompile(`^[a-z0-9]+(_[a-z0-9]+)*$`)

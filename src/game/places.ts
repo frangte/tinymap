@@ -1,4 +1,4 @@
-// Named places on the v4 island (Blender XY, metres). The HUD shows where the player is; landmarks also pop a
+// Named places on the island, Sài Gòn mini (Blender XY, metres). The HUD shows where the player is; landmarks also pop a
 // toast the first time the player walks up to them in a visit. The list lives in server/content/places.json, which
 // the Go server embeds too (and whose tests keep it valid), so the game and the server agree on every place.
 import data from '../../server/content/places.json';

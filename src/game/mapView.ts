@@ -17,21 +17,23 @@ export interface MapStop {
   d: number;
 }
 
+// Sài Gòn mini (layout v8, scripts/map/saigon_mini_layout.json): most stops look down the street that ends on the
+// landmark (Lê Lợi on the Opera House, Đồng Khởi on the cathedral, Phạm Ngọc Thạch on Hồ Con Rùa)
 export const MAP_STOPS: readonly MapStop[] = [
-  { place: null, year: null, t: [38, 10, 0], az: -112, el: 40, d: 270 },
-  { place: 'cho_ben_thanh', year: '1914', t: [8, 4, 6], az: -100, el: 26, d: 72 },
-  { place: 'nha_hat_thanh_pho', year: '1900', t: [104, -4, 6], az: 195, el: 18, d: 62 },
-  { place: 'nha_tho_duc_ba', year: '1880', t: [78, 76, 10], az: -105, el: 16, d: 82 },
-  { place: 'buu_dien_thanh_pho', year: '1891', t: [98, 54, 6], az: 200, el: 20, d: 58 },
-  { place: 'ho_con_rua', year: '1967', t: [44, 90, 6], az: -120, el: 38, d: 54 },
-  { place: 'bitexco', year: '2010', t: [44, -62, 20], az: -130, el: 14, d: 100 },
-  { place: 'bai_bien', year: null, t: [70, -70, 1], az: -40, el: 12, d: 70 },
+  { place: null, year: null, t: [-9, -23, 0], az: -112, el: 40, d: 500 },
+  { place: 'cho_ben_thanh', year: '1914', t: [-48, 25, 5], az: -15, el: 22, d: 72 },
+  { place: 'nha_hat_thanh_pho', year: '1900', t: [-11, 144, 7], az: -90, el: 16, d: 72 },
+  { place: 'nha_tho_duc_ba', year: '1880', t: [-143, 127, 11], az: 0, el: 14, d: 86 },
+  { place: 'buu_dien_thanh_pho', year: '1891', t: [-79, 146, 6], az: -75, el: 20, d: 60 },
+  { place: 'ho_con_rua', year: '1967', t: [-111, 165, 3], az: -90, el: 30, d: 56 },
+  { place: 'bitexco', year: '2010', t: [12, 57, 22], az: -15, el: 12, d: 112 },
+  { place: 'bai_bien', year: null, t: [75, -152, 3], az: -112, el: 14, d: 125 },
 ];
 
-/** the pose behind the start menu: a lower three-quarter view from the south-west, the market in front */
-export const MENU_STOP: MapStop = { place: null, year: null, t: [40, 12, 0], az: -118, el: 24, d: 250 };
+/** the pose behind the start menu: a lower three-quarter view from the south-west over the city to the river */
+export const MENU_STOP: MapStop = { place: null, year: null, t: [-10, 15, 0], az: -118, el: 24, d: 330 };
 
-const BOUND = new THREE.Box3().setFromPoints([fromBlender(-100, -120, -2), fromBlender(160, 150, 40)]);
+const BOUND = new THREE.Box3().setFromPoints([fromBlender(-250, -235, -2), fromBlender(250, 230, 80)]);
 
 interface Flight {
   t0: number;
@@ -65,7 +67,7 @@ export class MapView {
     c.enableDamping = true;
     c.dampingFactor = 0.08;
     c.minDistance = 10;
-    c.maxDistance = 460;
+    c.maxDistance = 720;
     c.maxPolarAngle = 1.46;
     c.screenSpacePanning = false;
     c.zoomSpeed = 0.9;

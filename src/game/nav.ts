@@ -1,4 +1,4 @@
-// Walkable heightfield baked from the Blender diorama (public/models/saigon_q1_nav.*):
+// Walkable heightfield baked from the Blender diorama (public/models/saigon_mini_nav.*):
 // a 0.35 m grid over the island with the floor height per cell, a walkable flag, and the building top
 // of every non-walkable cell (used to keep the camera out of buildings).
 import { clearanceField } from './clearance';

@@ -5,7 +5,7 @@
 // The URL hash picks the mode (#ban-do, #choi; none = menu), so the back button and shared links work.
 // Around every mode: the sea, drifting clouds and gulls, swaying trees; in play, each area's own sound.
 import * as THREE from 'three';
-import { createRenderer, createScene, loadModel } from './world';
+import { aimSun, createRenderer, createScene, loadModel } from './world';
 import { paintWorld, FOLIAGE } from './paint';
 import { InkPass } from './ink';
 import { NavGrid } from './nav';
@@ -57,9 +57,13 @@ const ARCH_REFUSED: Record<ArchRefusal, () => string> = {
   arch_busy: () => L.archBusy,
   arch_wait: () => L.archWait,
 };
-const MODEL_BYTES = 2.01e6;
-/** distance from the island centre to the beach (m) */
-const COAST_R = 92;
+const MODEL_BYTES = 3.01e6;
+/** distance from the map's centre to the sea (m): the gulls fly round there, the clouds further out */
+const COAST_R = 235;
+/** the sun's shadow covers this far each way round what the camera looks at (m): round the player, and at most
+ * over the map (world.ts aimSun) */
+const SHADOW_NEAR = 160;
+const SHADOW_FAR = 340;
 const MAX_PIXEL_RATIO = 1.5;
 const HASH: Record<Mode, string> = { menu: '', map: 'ban-do', play: 'choi' };
 /** a welcome placing us further than this from where we stand moves us there (m); closer, we stay put */
@@ -86,7 +90,7 @@ function modeFromHash(): Mode {
 /** Asset URLs come from <div id="stage" data-model data-nav> so a static host can swap in a base64 model. */
 function assetUrls(stage: HTMLElement): { model: string; nav: string } {
   const d = stage.dataset;
-  return { model: d.model ?? 'models/saigon_q1_v5.glb', nav: d.nav ?? 'models/saigon_q1' };
+  return { model: d.model ?? 'models/saigon_mini.glb', nav: d.nav ?? 'models/saigon_mini' };
 }
 
 export async function startApp(): Promise<void> {
@@ -106,7 +110,7 @@ export async function startApp(): Promise<void> {
     e.preventDefault();
     hud.fail(() => L.contextLost);
   });
-  const scene = createScene();
+  const { scene, sun } = createScene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.25, 1500);
   const ink = new InkPass(camera);
   const tags = new NameTags(el('tags'));
@@ -245,6 +249,25 @@ export async function startApp(): Promise<void> {
   };
   window.addEventListener('hashchange', () => go(modeFromHash()));
 
+  // the sun's shadow map covers a square round what the camera looks at, re-baked when the view has moved on a
+  // good part of it or zoomed in or out a lot: tight round the player, wider over the map (the city never moves)
+  const shadowAt = new THREE.Vector3();
+  const shadowLook = new THREE.Vector3();
+  let shadowHalf = 0;
+  const followShadow = (): void => {
+    let half = SHADOW_NEAR;
+    if (flight.active) shadowLook.copy(flight.lookAt);
+    else if (mode === 'play' && play) shadowLook.copy(play.target);
+    else shadowLook.copy(map.controls.target);
+    if (flight.active || mode !== 'play') half = THREE.MathUtils.clamp(camera.position.distanceTo(shadowLook) * 0.8, SHADOW_NEAR, SHADOW_FAR);
+    shadowLook.y = 0;
+    if (shadowHalf > 0 && Math.abs(half - shadowHalf) < 0.25 * shadowHalf && shadowLook.distanceTo(shadowAt) < 0.35 * shadowHalf) return;
+    shadowHalf = half;
+    shadowAt.copy(shadowLook);
+    aimSun(sun, shadowAt, half);
+    renderer.shadowMap.needsUpdate = true;
+  };
+
   const tick = (dt: number, now: number, draw: boolean): void => {
     clock += dt;
     FOLIAGE.uTime.value = clock;
@@ -286,6 +309,7 @@ export async function startApp(): Promise<void> {
       camera.fov += (fov - camera.fov) * damp(4, dt);
       camera.updateProjectionMatrix();
     }
+    followShadow();
     if (draw) ink.render(renderer, scene, camera);
   };
 
@@ -869,7 +893,7 @@ export async function startApp(): Promise<void> {
   applyArchetype();
   p.onLandmark = (place) => ph.notify(L.visited(placeTitle(place)), placeNote(place));
 
-  const [icx, icy] = nav.meta.island_center ?? [36, 8];
+  const [icx, icy] = nav.meta.island_center ?? [0, 0];
   fromBlender(icx, icy, 0, islandCenter);
   sea = new Sea(ink, camera, nav.meta.sea_level ?? -0.45, islandCenter);
   scene.add(sea.mesh);

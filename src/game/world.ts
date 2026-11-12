@@ -35,26 +35,41 @@ function paperSky(): THREE.Texture {
   return tex;
 }
 
-/** Scene with the paper sky and the Blender LIGHT_TINT / SHADOW_TINT two-tone lighting. */
-export function createScene(): THREE.Scene {
+const SUN_DIR = new THREE.Vector3(-0.5506, 0.7708, -0.3204).normalize();
+
+/** Scene with the paper sky and the Blender LIGHT_TINT / SHADOW_TINT two-tone lighting; aim the sun with aimSun. */
+export function createScene(): { scene: THREE.Scene; sun: THREE.DirectionalLight } {
   const scene = new THREE.Scene();
   scene.background = paperSky();
   const LIGHT_TINT = new THREE.Color('#FFF2DC');
   const SHADOW_TINT = new THREE.Color('#717BA2');
   scene.add(new THREE.AmbientLight(SHADOW_TINT, Math.PI));
   const sun = new THREE.DirectionalLight(LIGHT_TINT.clone().sub(SHADOW_TINT), Math.PI);
-  const sunDir = new THREE.Vector3(-0.5506, 0.7708, -0.3204).normalize();
-  const center = fromBlender(38, 14, 0); // island centre
-  sun.position.copy(center).addScaledVector(sunDir, 260);
-  sun.target.position.copy(center);
   sun.castShadow = true;
   const res = Math.min(window.innerWidth, window.innerHeight) < 700 ? 2048 : 4096;
   sun.shadow.mapSize.set(res, res);
-  Object.assign(sun.shadow.camera, { left: -125, right: 125, top: 125, bottom: -125, near: 20, far: 560 });
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.06;
   scene.add(sun, sun.target);
-  return scene;
+  aimSun(sun, fromBlender(0, 0, 0), 160);
+  return { scene, sun };
+}
+
+/**
+ * Point the sun's shadow at a square `half` metres each way round `center` (three.js). The map is too big for one
+ * shadow map at street detail, so the app moves it with the view: tight round the player, the whole map from
+ * high up. Re-bake the shadow map after (renderer.shadowMap.needsUpdate).
+ */
+export function aimSun(sun: THREE.DirectionalLight, center: THREE.Vector3, half: number): void {
+  const dist = half + 300;
+  sun.target.position.copy(center);
+  sun.position.copy(center).addScaledVector(SUN_DIR, dist);
+  sun.target.updateMatrixWorld();
+  sun.updateMatrixWorld();
+  const cam = sun.shadow.camera;
+  Object.assign(cam, { left: -half, right: half, top: half, bottom: -half, near: 1, far: dist + 2 * half + 100 });
+  cam.updateProjectionMatrix();
+  // tuned at half 125 (far 560, 6 cm texels): keep the same bias in metres and one texel of normal offset
+  sun.shadow.bias = -0.0004 * (560 / cam.far);
+  sun.shadow.normalBias = Math.max(0.06, (2 * half) / sun.shadow.mapSize.x);
 }
 
 export type Progress = (loaded: number, total: number) => void;

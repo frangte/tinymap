@@ -72,15 +72,15 @@ export class PlayMode {
   }
 
   /**
-   * Back to the start: the archetype's spawn point facing its `face` point, or (without one) the square in front of
-   * the market's south gate, facing the market (Blender +Y = three -Z). A small random offset keeps players who
-   * arrive together from standing inside each other; spawn() snaps it to a walkable cell.
+   * Back to the start: the archetype's spawn point facing its `face` point, or (without one) the nav map's spawn, on
+   * the square in front of the market's main gate, facing the market (Blender -X = three -X). A small random offset
+   * keeps players who arrive together from standing inside each other; spawn() snaps it to a walkable cell.
    */
   spawnAtHome(): void {
     const jitter = (): number => (Math.random() - 0.5) * 2 * SPAWN_SPREAD;
     if (!this.home) {
       const [bx, by] = this.nav.meta.spawn;
-      this.player.spawn(bx + jitter(), -by + jitter(), Math.PI);
+      this.player.spawn(bx + jitter(), -by + jitter(), -Math.PI / 2);
       return;
     }
     const [bx, by] = this.home.at;

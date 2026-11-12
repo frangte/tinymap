@@ -2,7 +2,11 @@
 
 Run after changing the map (and re-exporting the GLB), then copy the maps to the server (npm run nav:sync):
 
+    blender models/saigon_mini.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_mini
     blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
+
+Sài Gòn mini (models/saigon_mini.blend, built by build_saigon_mini.py) is found by its SM_Houses collection and baked
+with its own grid, spawn and object rules (MINI below); the older maps keep theirs.
 
 Two kinds of map file:
 
@@ -17,7 +21,8 @@ Writes <out>_nav.png, <out>_roof.png and <out>_nav.json on a 0.35 m grid over th
 (Blender XY metres, row 0 = south edge; three.js x = X, z = -Y):
 
 - nav  (RGBA): R*256+G = floor height in cm + 1000, B = 255 where the player can walk.
-  The floor is the lowest upward face with 2 m of headroom (tree crowns ignored); a cell is walkable
+  The floor is the lowest upward face with 2 m of headroom (tree crowns ignored; on Sài Gòn mini nothing under a
+  bridge deck or the hill counts, see MINI['cover']); a cell is walkable
   if it is not water, above sea level, not under a building, has nothing at body height, and can be
   reached from the spawn without a step over 0.5 m.
 - roof (RGB): R*256+G = top of the building in cm on non-walkable cells (0 = open). The camera uses it
@@ -25,6 +30,7 @@ Writes <out>_nav.png, <out>_roof.png and <out>_nav.json on a 0.35 m grid over th
 """
 import json
 import math
+import os
 import struct
 import sys
 import time
@@ -53,6 +59,29 @@ NOT_OBSTACLE = {'LM_HoConRua_Water', 'CX_LamSon_Water'}
 # objects whose tops occlude the camera, and the subset that are solid buildings (no walking underneath)
 ROOF_PREFIX = ('BT_', 'LM_', 'SH_0', 'CX_Towers', 'CX_LamSon', 'LF_Roundabout')
 SOLID_PREFIX = ('BT_Halls', 'BT_SideGates', 'BT_SouthGate', 'LM_NhaThoDucBa', 'LM_BuuDien', 'LM_NhaHatLon', 'LM_Bitexco', 'CX_Towers', 'SH_0')
+
+# Sài Gòn mini (layout v8): a bigger island, objects named by build_saigon_mini.py and the part scripts
+MINI = dict(
+    bounds=(-246.0, -230.0, 246.0, 228.0),
+    spawn=(-25.0, 25.0),                     # on the square in front of Chợ Bến Thành (plan 226, 206)
+    island_center=(0.0, 0.0),
+    # ground and walkable surfaces: the island, streets, forecourts, the hill's stairs and terraces, water, the sea
+    not_obstacle_prefix=('IS_Ground', 'IS_nui_nho', 'IX_', 'LF_', 'PREVIEW_'),
+    not_obstacle={'LM_HoConRua_Water', 'CX_Lakes', 'SH_BuiVien_Lights'},
+    # camera occluders, and the buildings nobody walks under (houses are closed boxes: their walls keep the player out)
+    roof_prefix=('BT_', 'LM_', 'SH_'),
+    roof_skip={'SH_BuiVien_Lights', 'LM_Bridges', 'LM_CauBaSon', 'LM_HoConRua_Water'},
+    # covers: nothing under them can be the floor, only what is on or above their lowest face. The bridge decks
+    # (the player crosses them; nobody walks under a bridge in this 2.5D map) and the hill, an open shell over the
+    # flat ground. The water under a bridge never counts, and the hill's bushes (leaf materials) are ground, not
+    # tree crowns.
+    cover={'LM_Bridges', 'LM_CauBaSon', 'IS_nui_nho'},
+    # closed parts built inside out are turned round on these: the covers, and the streets, paths and stairs on them
+    # (the hill's road and paths are slabs that straddle its ground; their tops face down)
+    turn_prefix=('LM_Bridges', 'LM_CauBaSon', 'IS_nui_nho', 'IX_', 'LF_'),
+    solid_prefix=('BT_Halls', 'BT_SideGates', 'BT_SouthGate', 'LM_NhaThoDucBa', 'LM_BuuDien', 'LM_NhaHatLon', 'LM_Bitexco',
+                  'LM_DinhThongNhat', 'LM_NewBuildings', 'LM_Blockout', 'LM_HaiDang', 'LM_TuongChua', 'LM_MeLinh_Pier'),
+)
 
 # GLB imports
 GROUND = {'SD_grass', 'SD_grassDark', 'SD_sand', 'SD_earthDark', 'SD_rock', 'SD_rockDark', 'SD_asphalt', 'SD_curb', 'SD_roadLine'} | WATER
@@ -170,6 +199,64 @@ def sample_triangles(o, dg, cap=160):
             yield (A[sel, None, :] * w[None, :, None] + B[sel, None, :] * u[None, :, None] + C[sel, None, :] * v[None, :, None]).reshape(-1, 3), mat
 
 
+def inside_out(o, dg):
+    """For each polygon of `o` (evaluated): True where it belongs to a closed loose part built inside out (negative
+    volume). Open parts (a railing, a deck strip) have no inside: they are left as they are."""
+    me = o.evaluated_get(dg).to_mesh()
+    me.calc_loop_triangles()
+    V = np.empty(len(me.vertices) * 3)
+    me.vertices.foreach_get('co', V)
+    V = V.reshape(-1, 3)
+    nt = len(me.loop_triangles)
+    T = np.empty(nt * 3, np.int64)
+    me.loop_triangles.foreach_get('vertices', T)
+    T = T.reshape(-1, 3)
+    TP = np.empty(nt, np.int64)
+    me.loop_triangles.foreach_get('polygon_index', TP)
+    uses = {}
+    for pg in me.polygons:
+        for ek in pg.edge_keys:
+            uses[ek] = uses.get(ek, 0) + 1
+    npoly = len(me.polygons)
+    o.evaluated_get(dg).to_mesh_clear()
+    par = np.arange(len(V))
+
+    def root(x):
+        while par[x] != x:
+            par[x] = par[par[x]]
+            x = par[x]
+        return x
+    for a, b, c in T:
+        ra = root(a)
+        for v in (b, c):
+            rv = root(v)
+            if rv != ra:
+                par[rv] = ra
+    part = np.array([root(v) for v in range(len(V))])
+    vol = np.einsum('ij,ij->i', V[T[:, 0]], np.cross(V[T[:, 1]], V[T[:, 2]]))
+    pv = {}
+    for pt, v in zip(part[T[:, 0]], vol):
+        pv[pt] = pv.get(pt, 0.0) + v
+    open_parts = {part[a] for (a, _b), n in uses.items() if n != 2}
+    flip = np.zeros(npoly, bool)
+    flip[TP] = [pv[pt] < 0 and pt not in open_parts for pt in part[T[:, 0]]]
+    return flip
+
+
+def mini_source():
+    """Sài Gòn mini: the original objects, told apart by the names build_saigon_mini.py gives them"""
+    sc = bpy.data.scenes[SCENE]
+    vl = sc.view_layers[0]
+    objs = [o for c in COLLECTIONS for o in bpy.data.collections[c].all_objects if o.type == 'MESH']
+
+    def kind(o, mat):
+        n = o.name
+        obstacle = n not in MINI['not_obstacle'] and not n.startswith(MINI['not_obstacle_prefix'])
+        roof = n.startswith(MINI['roof_prefix']) and n not in MINI['roof_skip']
+        return obstacle, roof, n.startswith(MINI['solid_prefix'])
+    return sc, vl, objs, [], kind
+
+
 def original_source():
     """A file with the original objects: what to bake, and how each object counts (by name)."""
     sc = bpy.data.scenes[SCENE]
@@ -222,18 +309,32 @@ def box_mask(boxes, rule, nx, ny):
 
 
 def main():
+    global X0, Y0, X1, Y1, SPAWN, ISLAND_CENTER
     t0 = time.time()
+    cover = set()
     base = out_base()
     merged = SCENE not in bpy.data.scenes
-    sc, vl, objs, boxes, kind = merged_source() if merged else original_source()
+    mini = not merged and bpy.data.collections.get('SM_Houses') is not None
+    if mini:
+        X0, Y0, X1, Y1 = MINI['bounds']
+        SPAWN, ISLAND_CENTER = MINI['spawn'], MINI['island_center']
+        cover = MINI['cover']
+        log('Sài Gòn mini')
+    sc, vl, objs, boxes, kind = merged_source() if merged else (mini_source() if mini else original_source())
     dg = vl.depsgraph
     dg.update()
+    flips = {o.name: inside_out(o, dg) for o in objs if mini and o.name.startswith(MINI['turn_prefix'])}
+    for n, f in flips.items():
+        if f.any():
+            log(n, int(f.sum()), 'of', len(f), 'faces inside out, turned round')
     NX, NY = int((X1 - X0) / CS), int((Y1 - Y0) / CS)
 
     # 1. floor: multi-hit rays from above, skipping foliage
     H = np.full((NY, NX), np.nan, np.float32)
     G = np.full((NY, NX), np.nan, np.float32)  # the lowest upward face, headroom or not: the ground under a building
     WM = np.zeros((NY, NX), bool)
+    OVER = np.zeros((NY, NX), np.int32)  # what hangs over the floor (2 m up or more), for the log
+    over_ids = {}
     mats = {}
     down = Vector((0, 0, -1))
     for j in range(NY):
@@ -252,14 +353,19 @@ def main():
                     m = ob.material_slots[ob.data.polygons[idx].material_index].material.name if poly_ok else ''
                     mats[(ob.name, idx)] = m
                 z = loc.z - 0.002
-                if m in FOLIAGE:
-                    continue
+                if m in FOLIAGE and ob.name not in cover:
+                    continue                # tree crowns (the hill's bushes are painted on its ground: they count)
                 if loc.z < -1.0:
                     break
-                hits.append((loc.z, nrm.z, m))
-            for k in range(len(hits) - 1, -1, -1):
-                hz, nz, m = hits[k]
-                if nz <= 0.6 or hz < -0.9:
+                nz = -nrm.z if ob.name in flips and flips[ob.name][idx] else nrm.z
+                hits.append((loc.z, nz, m, ob.name))
+            # the lowest face of a cover: nothing under it can be the floor, nor water over it (where its own face
+            # there is too steep, the cell has no floor)
+            kc = max((k for k, h in enumerate(hits) if h[3] in cover), default=-1)
+            under = kc >= 0
+            for k in range(kc if under else len(hits) - 1, -1, -1):
+                hz, nz, m, name = hits[k]
+                if nz <= 0.6 or hz < -0.9 or (under and m in WATER):
                     continue
                 if np.isnan(G[j, i]):
                     G[j, i] = hz
@@ -267,6 +373,8 @@ def main():
                 if head >= 2.0:
                     H[j, i] = hz
                     WM[j, i] = m in WATER
+                    if k > 0:
+                        OVER[j, i] = over_ids.setdefault(hits[k - 1][3], len(over_ids) + 1)
                     break
         if j % 100 == 0:
             log('rays row', j, '/', NY, round(time.time() - t0), 's')
@@ -326,6 +434,9 @@ def main():
         # a GLB import can read a building's top as its floor (no 2 m of headroom inside): measure from the ground
         occ = drop_small((~reach) & (roof > np.nan_to_num(G, nan=-50.0) + 2.0), MIN_OCCLUDER)
     log('walkable', int(reach.sum()), 'occluders', int(occ.sum()))
+    names = {v: k for k, v in over_ids.items()}
+    under = np.bincount(OVER[reach], minlength=len(names) + 1)
+    log('walkable cells under something:', ', '.join('%s %d' % (names[k], under[k]) for k in np.argsort(-under) if k and under[k]))
 
     # 4. write
     hc = np.clip(np.nan_to_num(H, nan=-10.0) * 100 + 1000, 0, 65535).astype(np.uint16)
@@ -345,8 +456,8 @@ def main():
         json.dump({
             'x0': X0, 'y0': Y0, 'cell': CS, 'nx': NX, 'ny': NY, 'spawn': list(SPAWN),
             'sea_level': SEA_LEVEL, 'island_center': list(ISLAND_CENTER),
-            'nav': 'saigon_q1_nav.png: R*256+G = floor height cm + 1000, B=255 walkable',
-            'roof': 'saigon_q1_roof.png: R*256+G = building top cm (0 = open), camera occluder cells only',
+            'nav': os.path.basename(base) + '_nav.png: R*256+G = floor height cm + 1000, B=255 walkable',
+            'roof': os.path.basename(base) + '_roof.png: R*256+G = building top cm (0 = open), camera occluder cells only',
             'axes': 'row 0 = y0 (south); Blender XY metres; three.js x = X, z = -Y',
         }, f, indent=1)
     log('wrote', base + '_nav.png / _roof.png / _nav.json in', round(time.time() - t0), 's')

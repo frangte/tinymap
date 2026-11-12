@@ -1,0 +1,19 @@
+{
+ "x0": -246.0,
+ "y0": -230.0,
+ "cell": 0.35,
+ "nx": 1405,
+ "ny": 1308,
+ "spawn": [
+  -25.0,
+  25.0
+ ],
+ "sea_level": -0.45,
+ "island_center": [
+  0.0,
+  0.0
+ ],
+ "nav": "saigon_mini_nav.png: R*256+G = floor height cm + 1000, B=255 walkable",
+ "roof": "saigon_mini_roof.png: R*256+G = building top cm (0 = open), camera occluder cells only",
+ "axes": "row 0 = y0 (south); Blender XY metres; three.js x = X, z = -Y"
+}

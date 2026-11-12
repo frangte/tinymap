@@ -60,7 +60,7 @@ content/dialogue/*.json          what each NPC says: one graph per NPC, server o
                                  reference and node (reachable, no unknown archetype, emote or capability)
 content/quests.json              quests, achievements, titles and stamps (shared with the game); quests.go checks
                                  every reference, the quest engine checks each objective's params
-content/nav/                     a copy of the game's nav map (public/models/saigon_q1_nav.*), embedded
+content/nav/                     a copy of the game's nav map (public/models/saigon_mini_nav.*), embedded
 cmd/loadbots/                    load test: walking (and chatting) bots, with accounts or as guests; KB/s, welcome time, errors
 internal/capability/             a set of capability ids: what systems check instead of the archetype
 internal/web/router.go           gin routes, WebSocket upgrade, origin check, the account API, static files

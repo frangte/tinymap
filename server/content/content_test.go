@@ -26,7 +26,7 @@ func TestEmbeddedPlacesAreValid(t *testing.T) {
 		}
 	}
 	if coast := byID["bai_bien"]; len(coast.Pts) < 3 || coast.Kind != Area {
-		t.Errorf("bai_bien should be the coast polyline, got %+v", coast)
+		t.Errorf("bai_bien should be the sea front polyline, got %+v", coast)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestParsePlacesRejects(t *testing.T) {
 // TestNavMatchesTheGame: the server checks moves against its own copy of the nav map, so it must be the map the
 // game walks on. After re-baking the nav maps in Blender, run `npm run nav:sync`.
 func TestNavMatchesTheGame(t *testing.T) {
-	for name, embedded := range map[string][]byte{"saigon_q1_nav.png": navPNG, "saigon_q1_nav.json": navMeta} {
+	for name, embedded := range map[string][]byte{"saigon_mini_nav.png": navPNG, "saigon_mini_nav.json": navMeta} {
 		game, err := os.ReadFile(filepath.Join("..", "..", "public", "models", name))
 		if errors.Is(err, fs.ErrNotExist) {
 			t.Skipf("no game checkout next to the server (%v)", err)

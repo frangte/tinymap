@@ -55,6 +55,7 @@ src/game/
   followCamera.ts       third-person orbit camera with building avoidance
   input.ts              keyboard, mouse, touch joystick, pinch
   places.ts             named landmarks and streets for the HUD
+  phone/mapLand.json    the phone map's land and roads (written by scripts/map/move_game_content_v8.py)
   hud.ts                DOM overlay helpers
   storyCard.ts          the arrival card: the archetype's story and first steps, once per visit
   stories.ts            that text per archetype (written in i18n/stories.ts)
@@ -62,10 +63,11 @@ src/game/
   i18n/                 every interface text, Vietnamese and English (see "Adding text")
   coords.ts             Blender <-> three.js axes, small math helpers
 public/models/
-  saigon_q1_v5.glb      the diorama (export of models/temp.sg.tinymap.blend)
-  saigon_q1_nav.png     floor height + walkable flag, 0.35 m grid
-  saigon_q1_roof.png    building tops on non-walkable cells (camera collision)
-  saigon_q1_nav.json    grid origin, cell size, spawn point
+  saigon_mini.glb       the map, Sài Gòn mini (export of models/saigon_mini.blend)
+  saigon_mini_nav.png   floor height + walkable flag, 0.35 m grid
+  saigon_mini_roof.png  building tops on non-walkable cells (camera collision)
+  saigon_mini_nav.json  grid origin, cell size, spawn point
+  saigon_q1_*           the v4 island, no longer loaded
 scripts/
   inline.mjs            inlines the single-chunk build into one HTML file
   blender/export_glb.py exports the diorama GLB from the .blend
@@ -89,15 +91,22 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
 
 ## Changing the map
 
-1. Edit the map. The current island is `models/temp.sg.tinymap.blend` (the v4 island with Bùi Viện and Tôn Đức Thắng): the shipped GLB imported back into Blender (one scene, meshes merged by material). Both scripts run on it. `sg.tinymap.blend` keeps the original objects (scene `SaigonDiorama`) of an older layout. Frozen versions: `versions/sg.tinymap_v1.blend`, `_v2`, `_v3`.
-2. Export with `scripts/blender/export_glb.py`, shrink with the `gltf-transform` chain in its header to `export/saigon_q1.glb`, and copy that to `public/models/` under the name `index.html` loads (`#stage data-model`, now `saigon_q1_v5.glb`).
-3. Re-bake the nav maps (about 15 s) and copy them to the server, which checks every move against its own copy:
+1. Edit the map. The current one is Sài Gòn mini, `models/saigon_mini.blend`, built by
+   `scripts/blender/build_saigon_mini.py` from the layout `scripts/map/saigon_mini_layout.json` (made by
+   `scripts/map/relayout_v8.py`, checked by `scripts/map/check_layout.py`; see `docs/map-v8-design.md`). The v4 island
+   (`models/temp.sg.tinymap.blend`, `saigon_q1_*`) is kept but no longer loaded.
+2. Export: `npm run map:export` writes `export/saigon_mini.glb`; copy it to `public/models/saigon_mini.glb` (the name
+   `index.html` loads, `#stage data-model`).
+3. Re-bake the nav maps (about 3 minutes) and copy them to the server, which checks every move against its own copy:
    ```bash
-   blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
+   blender models/saigon_mini.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_mini
    npm run nav:sync
    ```
-   Ground (grass, sand, asphalt, kerbs, road lines, rock, water) is told apart by material; anything else at body height blocks. A building nobody should walk into (or under) needs a `NAV_Solid_` box in the file's `NAV` collection: `scripts/blender/nav_boxes.py` makes the current ones, and its header explains the `NAV_Block_` and `NAV_Open_` boxes for fixing single spots. The boxes are hidden from the export.
-4. New landmark or street names go in `src/game/places.ts` (Blender XY).
+   Objects are told apart by the names the build gives them (`MINI` in `bake_nav.py`): ground, buildings nobody
+   walks under, and covers (bridge decks, the hill) that nothing under them can be the floor of.
+4. Places, NPCs and spawns are in `server/content/` (Blender XY). After moving things in the layout, run
+   `python3 scripts/map/move_game_content_v8.py` (needs shapely): it puts them back on their streets and squares and
+   rewrites the phone map.
 
 ## Next
 

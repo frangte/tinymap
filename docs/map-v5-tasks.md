@@ -573,6 +573,9 @@ Xem `docs/map-v8-design.md`. Bố cục làm bằng `scripts/map/relayout_v8.py`
 `saigon_mini_layout.json`). Sau mỗi lần sửa layout chạy `python3 scripts/map/check_layout.py` (phải ra 0 lỗi) rồi mới
 dựng lại. Bản cũ: `versions/saigon_mini_v4.blend` (v7), `export/saigon_mini_v7.glb`.
 
+Game đã chuyển hẳn sang map này (model, nav, địa điểm, NPC, chỗ xuất hiện): xem phần "Game chạy trên map v8" trong
+`docs/map-v8-design.md`. Bản game cũ để ở `versions/backup_2026-11-12/`.
+
 ![Sơ đồ v8](img/v8_plan.jpg)
 
 ## Câu hỏi cho Khoa
