@@ -2,6 +2,8 @@
 
 Đọc file này trước khi làm tiếp. Code game xem README.md, quy ước code xem CLAUDE.md.
 
+> **Đang design lại map (2026-11-11):** map mới tên "Sài Gòn mini" (thành phố, sông Sài Gòn, cầu Ba Son, biển Vũng Tàu, Núi Nhỏ có tượng Chúa Kitô Vua). Design đã duyệt, blockout lần 1 (`models/saigon_mini.blend`) chờ duyệt: [map-v5.md](map-v5.md). Mọi yêu cầu đang mở: [requirements.md](requirements.md). File này vẫn mô tả đảo v4 đang chạy trong game.
+
 ![Toàn cảnh](img/00_overview.jpg)
 
 ## Dự án là gì
@@ -122,7 +124,7 @@ Cầu Ba Son và bờ Thủ Thiêm đã bỏ từ v3; muốn xem lại thì mở
    ```bash
    blender models/temp.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
    ```
-3. Thu nhỏ file bằng 5 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune`). Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/` với tên mà `index.html` nạp (`data-model` của `#stage`, hiện là `saigon_q1_v5.glb`).
+3. Thu nhỏ file bằng 6 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune → meshopt`). Bước `meshopt` nén hình học khoảng 5 lần; game giải nén bằng `MeshoptDecoder` (`src/game/world.ts`). Object `PREVIEW_*` (mặt biển xem trước của map mới) không được export, vì biển và nước sông do Three.js vẽ. Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/` với tên mà `index.html` nạp (`data-model` của `#stage`, hiện là `saigon_q1_v5.glb`).
 4. Bake lại bản đồ đi lại, mất khoảng 15 giây, rồi copy sang server (server kiểm tra mọi bước đi theo bản của nó). Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
    ```bash
    blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1

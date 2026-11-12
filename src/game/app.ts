@@ -86,7 +86,7 @@ function modeFromHash(): Mode {
 /** Asset URLs come from <div id="stage" data-model data-nav> so a static host can swap in a base64 model. */
 function assetUrls(stage: HTMLElement): { model: string; nav: string } {
   const d = stage.dataset;
-  return { model: d.model ?? 'models/saigon_q1.glb', nav: d.nav ?? 'models/saigon_q1' };
+  return { model: d.model ?? 'models/saigon_q1_v5.glb', nav: d.nav ?? 'models/saigon_q1' };
 }
 
 export async function startApp(): Promise<void> {

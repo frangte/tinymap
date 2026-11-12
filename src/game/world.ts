@@ -1,6 +1,7 @@
 // Renderer, paper sky, two-tone sun/ambient lighting and the diorama model loader.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { fromBlender } from './coords';
 
 export function createRenderer(container: HTMLElement): THREE.WebGLRenderer {
@@ -94,7 +95,8 @@ function base64ToBytes(b64: Uint8Array): ArrayBuffer {
 
 /**
  * Load the diorama GLB. A URL ending in `.txt` is read as base64 text
- * (for hosts that do not serve model/gltf-binary).
+ * (for hosts that do not serve model/gltf-binary). Geometry may be meshopt-compressed
+ * (EXT_meshopt_compression, the last step of the export pipeline in scripts/blender/export_glb.py).
  */
 export async function loadModel(url: string, totalHint: number, onProgress: Progress): Promise<THREE.Group> {
   const res = await fetch(url);
@@ -102,6 +104,6 @@ export async function loadModel(url: string, totalHint: number, onProgress: Prog
   const body = await readBody(res, totalHint, onProgress);
   // readBody always returns a view over its own, exactly sized ArrayBuffer
   const buffer = url.endsWith('.txt') ? base64ToBytes(body) : (body.buffer as ArrayBuffer);
-  const gltf = await new GLTFLoader().parseAsync(buffer, '');
+  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(buffer, '');
   return gltf.scene;
 }

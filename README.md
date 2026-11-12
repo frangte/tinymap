@@ -62,7 +62,7 @@ src/game/
   i18n/                 every interface text, Vietnamese and English (see "Adding text")
   coords.ts             Blender <-> three.js axes, small math helpers
 public/models/
-  saigon_q1.glb         the diorama (export of sg.tinymap.blend)
+  saigon_q1_v5.glb      the diorama (export of models/temp.sg.tinymap.blend)
   saigon_q1_nav.png     floor height + walkable flag, 0.35 m grid
   saigon_q1_roof.png    building tops on non-walkable cells (camera collision)
   saigon_q1_nav.json    grid origin, cell size, spawn point

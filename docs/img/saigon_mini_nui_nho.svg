@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="background:#E8ECE8" viewBox="0 -44 640 262" role="img" aria-label="Mặt cắt tây sang đông qua Núi Nhỏ: Bãi Trước, hải đăng, tượng Chúa Kitô Vua trên đỉnh, Bãi Sau">
+<path d="M 0,218 L 0,190 L 55,186 L 100,177 L 135,175 C 170,168 205,128 245,98 C 265,84 295,64 330,57 C 362,52 392,76 420,112 C 445,144 460,166 478,173 L 532,175 L 588,185 L 640,190 L 640,218 Z" fill="#4D7539" stroke="#2B211C" stroke-width="1.2" stroke-linejoin="round"/>
+<path d="M 196,140 C 225,112 262,84 300,66 C 318,60 340,56 356,62 C 380,72 398,92 410,108 C 380,96 350,80 320,82 C 280,88 240,112 196,140 Z" fill="#6E9B4C"/>
+<path d="M 302,64 L 318,58 L 348,56 L 364,64 L 344,70 L 320,68 Z" fill="#ABA69C" stroke="#2B211C" stroke-width="0.8"/>
+<path d="M 55,186 L 100,177 L 100,182 L 55,191 Z" fill="#CDB98F"/>
+<path d="M 532,175 L 588,185 L 588,190 L 532,180 Z" fill="#CDB98F"/>
+<rect x="102" y="174.5" width="30" height="3" fill="#6F6D69"/>
+<rect x="480" y="172" width="20" height="3" fill="#6F6D69"/>
+<rect x="502" y="140" width="12" height="33" fill="#EEE7D7" stroke="#2B211C" stroke-width="0.8"/>
+<rect x="516" y="148" width="12" height="25" fill="#93B4C8" stroke="#2B211C" stroke-width="0.8"/>
+<g stroke="#2B211C" stroke-width="0.4" fill="#5E9A96"><path d="M 18,184 Q 26,180 34,184 Q 26,188 18,184 Z"/><path d="M 600,190 Q 608,186 616,190 Q 608,194 600,190 Z"/></g>
+<rect x="0" y="180" width="640" height="38" fill="#3F8399" fill-opacity="0.88"/>
+<line x1="0" y1="180" x2="640" y2="180" stroke="#86CBC6" stroke-width="1.5"/>
+<path d="M 140,172 L 178,160 L 162,151 L 206,133 L 192,124 L 240,104 L 226,95 L 290,70 L 304,63" fill="none" stroke="#E6DCC8" stroke-width="2.2" stroke-dasharray="3 2" stroke-linejoin="round"/>
+<rect x="245" y="70" width="10" height="28" fill="#EEE7D7" stroke="#2B211C" stroke-width="0.9"/>
+<rect x="242" y="66" width="16" height="4" fill="#3B3330"/>
+<rect x="246" y="58" width="8" height="8" fill="#FFE6A8" stroke="#2B211C" stroke-width="0.7"/>
+<path d="M 244,58 L 256,58 L 250,51 Z" fill="#A9492F" stroke="#2B211C" stroke-width="0.7"/>
+<rect x="316" y="42" width="28" height="16" fill="#E6DCC8" stroke="#2B211C" stroke-width="0.9"/>
+<path d="M 325,42 L 335,42 L 333,5 L 327,5 Z" fill="#F2EFE8" stroke="#2B211C" stroke-width="0.9" stroke-linejoin="round"/>
+<rect x="318" y="6" width="24" height="4.5" rx="1.5" fill="#F2EFE8" stroke="#2B211C" stroke-width="0.9"/>
+<circle cx="330" cy="0" r="4.5" fill="#F2EFE8" stroke="#2B211C" stroke-width="0.9"/>
+<line x1="346" y1="57" x2="392" y2="57" stroke="#2B211C" stroke-width="0.7" stroke-dasharray="2 2"/>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="4" y="-30" font-size="10" font-weight="700">TÂY</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="606" y="-30" font-size="10" font-weight="700">ĐÔNG</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="44" y="160" font-size="12" font-weight="600">Bãi Trước</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="120" y="122" font-size="11">~200 bậc thang</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="186" y="50" font-size="11">Hải đăng</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="352" y="22" font-size="12" font-weight="600">Tượng Chúa Kitô Vua</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="352" y="36" font-size="10.5">tượng ~12 m trên bệ ~4 m, nhìn ra biển</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="396" y="61" font-size="11">Núi Nhỏ ~35 m</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="456" y="128" font-size="10.5">Thùy Vân, khách sạn mini</text>
+<text fill="#2B211C" font-family="Be Vietnam Pro, system-ui, sans-serif" x="548" y="166" font-size="12" font-weight="600">Bãi Sau</text>
+<text fill="#F4EBD3" font-family="Be Vietnam Pro, system-ui, sans-serif" x="8" y="204" font-size="10.5">Biển Vũng Tàu</text>
+<text fill="#F4EBD3" font-family="Be Vietnam Pro, system-ui, sans-serif" x="250" y="204" font-size="10.5">mực nước biển z −0.45 (sông và biển cùng shader)</text>
+<text fill="#F4EBD3" font-family="Be Vietnam Pro, system-ui, sans-serif" x="560" y="210" font-size="10.5">Biển</text>
+</svg>

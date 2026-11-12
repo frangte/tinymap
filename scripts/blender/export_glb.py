@@ -15,7 +15,14 @@ SaigonDiorama scene it takes every visible mesh of the active scene. Then shrink
     npx @gltf-transform/cli@4.1.1 join     /tmp/a.glb /tmp/b.glb
     npx @gltf-transform/cli@4.1.1 weld     /tmp/b.glb /tmp/c.glb
     npx @gltf-transform/cli@4.1.1 quantize /tmp/c.glb /tmp/d.glb --pattern POSITION
-    npx @gltf-transform/cli@4.1.1 prune    /tmp/d.glb export/saigon_q1.glb
+    npx @gltf-transform/cli@4.1.1 prune    /tmp/d.glb /tmp/e.glb
+    npx @gltf-transform/cli@4.1.1 meshopt  /tmp/e.glb export/saigon_q1.glb
+
+The last step compresses the geometry with EXT_meshopt_compression (about 5 times smaller: the Sài Gòn mini blockout
+goes from 19 MB to 3.7 MB); the game's loader decodes it (src/game/world.ts, MeshoptDecoder).
+
+Objects named PREVIEW_* (the sea plane that makes the .blend look right in Blender) are not exported: the game draws
+the sea and the river water itself (src/game/sea.ts).
 """
 import os
 import sys
@@ -24,6 +31,7 @@ import bpy
 
 SCENE = 'SaigonDiorama'
 COLLECTIONS = ('SD_World', 'SD_NoInk')
+SKIP_PREFIX = ('PREVIEW_', 'NAV_')   # Blender-only preview sea; walk-map boxes (nav_boxes.py)
 
 
 def lin2srgb(c):
@@ -56,11 +64,11 @@ def main():
     out = os.path.abspath(argv[0] if argv else bpy.path.abspath('//export/saigon_q1_raw.glb'))
     sc = bpy.data.scenes.get(SCENE)
     if sc:
-        objs = [o for c in COLLECTIONS for o in bpy.data.collections[c].all_objects if o.type == 'MESH']
+        objs = [o for c in COLLECTIONS for o in bpy.data.collections[c].all_objects if o.type == 'MESH' and not o.name.startswith(SKIP_PREFIX)]
     else:
         # a re-imported GLB: everything visible in the active scene, except the walk-map boxes (nav_boxes.py)
         sc = bpy.context.scene
-        objs = [o for o in sc.objects if o.type == 'MESH' and not o.hide_render and not o.hide_get() and not o.name.startswith('NAV_')]
+        objs = [o for o in sc.objects if o.type == 'MESH' and not o.hide_render and not o.hide_get() and not o.name.startswith(SKIP_PREFIX)]
     vl = sc.view_layers[0]
     for o in sc.objects:
         o.select_set(False, view_layer=vl)
