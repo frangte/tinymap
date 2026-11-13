@@ -172,11 +172,72 @@ Dựng lại map chính từ v8: 315 căn nhà, 1,04 triệu tam giác, GLB 3,0 
 ![Đi qua cầu đi bộ, cầu Ba Son, cầu Thủ Thiêm 3, lên núi Nhỏ](img/v8_game_walk.jpg)
 ![Bản đồ trên điện thoại](img/v8_game_phone.jpg)
 
+## Vòng soát toàn bản đồ (2026-11-12, sau khi chuyển game sang v8)
+
+Khoa: mặt đường, chỗ nhà giáp đường còn nhiều chỗ chưa hợp lý, chơi còn lỗi; soát cả bản đồ, mỗi vòng tìm chỗ chưa
+đẹp, so với cách người ta làm, sửa, chụp lại. Mỗi vòng có ảnh chụp trong game (góc người chơi và flycam) và một máy
+đi thử 600 lộ trình ngẫu nhiên bằng chính code di chuyển của game.
+
+**Khối nhà và mặt phố**
+- Nhà xây sát mép vỉa hè, kín block, 2–4 tầng, tầng trệt bán hàng. Trước đây có những dải đất trống giữa nhà và đường.
+- Nhà góc có mặt tiền ra cả hai đường.
+- Hẻm xuyên qua block, hai bên là nhà nhỏ.
+- Tường hông và tường sau lộ ra có cửa sổ, cục máy lạnh, cửa, chữ quảng cáo sơn trên tường; không còn mảng tường trơn.
+- Sân thượng có vườn, mái tôn hoặc dây phơi đồ.
+- Cà phê vỉa hè (ghế nhựa, bàn thấp, dù) trước khoảng 1/5 số nhà. Không đặt ở chỗ NPC đứng hay chỗ người chơi xuất
+  hiện, và không có cây đường mọc giữa quán.
+- Block nào không đặt được nhà thì bỏ. Trước đây nó thành một mảng gạch trơn, như dải bên sông ở Thủ Thiêm.
+
+**Mặt đường**
+- Đầu đường đâm vào hông đường khác thì cắt phẳng; đầu tròn trước đây lồi qua mép bên kia.
+- Vạch qua đường:
+  - Đặt ngay ngoài ngã tư, không nằm trong lòng giao lộ, hai nhánh không chồng lên nhau.
+  - Đèn giữa block chỉ có một vạch, ngay chỗ đèn.
+- Vạch giữa đường dừng trước ngã tư và trước vạch qua đường.
+- Vạch sơn không còn bị mặt nhựa che từng khúc: hiệu ứng nét vẽ tay trước đây làm nhấp nhô cả mặt đường lẫn vạch.
+- Đảo giao thông và dải phân cách hình nêm là bãi cỏ có cây, thay cho mảng gạch trơn.
+
+**Công trình mới thay khối thô**
+- UBND, Chung cư 42, Bến Bạch Đằng, Bến Nhà Rồng, chùa Bà Thiên Hậu, Bến xe Chợ Lớn, Công viên Sáng Tạo, Nhà thờ
+  Thủ Thiêm, bến buýt đường sông.
+- Bến xe: mỗi sân đỗ có mái che riêng trên một hàng cột.
+
+**Cây, hoa, nước**
+- Vườn hoa Thủ Thiêm làm theo đường hoa Nguyễn Huệ: bồn hoa xây cao 0,6 m, mỗi bồn một màu, lối đi lát gạch giữa và
+  cắt ngang các bồn. Trước đây là những cục hoa rời rạc; người chơi bước lên thì nhấp nhô và kẹt.
+- Bùng binh: luống hoa vòng cung nhiều màu sau một viền cây cắt xén, thay cho những cục hoa rời trông như kẹo.
+- Thêm cây đường: đường lớn mỗi 13 m, đường nhỏ mỗi 21 m.
+- Bãi biển có dải cát khô phía trên, cát ướt sát nước.
+
+**Chợ Lớn**
+- Đoạn phố đi bộ phía tây phố Bùi Viện, giữa hai dãy nhà người Hoa, trước đây là 40 m gạch trống.
+- Nay có dây lồng đèn đỏ giăng ngang như phố lồng đèn Lương Nhữ Học, treo vào mặt tiền, chỗ không có nhà thì có cột.
+
+**Lỗi khi chơi**
+- Cầu Thủ Thiêm 3, cầu đi bộ, cầu Mống có lan can liền. Trước đây giữa các cột lan can bị hở, người chơi bước khỏi mép
+  dốc cầu rồi không lên lại được.
+- Cầu Mống: đầu cầu có lối lát gạch nối vào vỉa hè, không đáp xuống bãi cỏ.
+- Camera: khi sau lưng người chơi là nhà, camera nâng lên nhìn qua mái thay vì dí sát vào lưng (`followCamera.ts`).
+- Kiểm tra nav:
+  - Mọi NPC, mọi điểm xuất hiện và các điểm thử đều tới được từ chỗ xuất hiện.
+  - 600 lộ trình ngẫu nhiên: 596 tới nơi.
+  - 4 lộ trình còn lại kẹt ở mép bậc trên lối núi Nhỏ và gờ bồn phun nước trước Dinh Thống Nhất, vì máy đi thử cứ ủi thẳng vào; người chơi tự lách được.
+
+![Phố lồng đèn Chợ Lớn](img/v8_r_lanterns.jpg)
+![Vườn hoa Thủ Thiêm](img/v8_r_flowers.jpg)
+![Bùng binh công xã Paris](img/v8_r_roundabout.jpg)
+![Vạch qua đường ngoài ngã tư](img/v8_r_crossing.jpg)
+![Cầu Thủ Thiêm 3 có lan can](img/v8_r_tt3.jpg)
+![Cầu Mống nối vào vỉa hè](img/v8_r_cau_mong.jpg)
+
+Map sau vòng này: 337 căn nhà, 1,26 triệu tam giác, GLB 3,7 MB (gzip 1,3 MB).
+
 ## Chưa làm
 
-- Model thật cho các cầu mới, tháp Thủ Thiêm, Bến Nhà Rồng, Khánh Hội: hiện là khối thô, làm sau khi duyệt bố cục,
-  mỗi cái gửi bản nháp trước.
-- Bộ nhà (T9, T10): bố cục v8 đã chừa đúng chỗ cho các block, bộ nhà sẽ lấp vào.
+- 9 công trình mới ở vòng soát (UBND, Chung cư 42, Bến Nhà Rồng…) được làm thẳng, chưa qua bản nháp: Khoa duyệt
+  từng cái, cái nào chưa ưng thì sửa hoặc trả về khối thô.
+- Model thật cho cầu Thủ Thiêm 3, cầu Ông Lãnh, cầu Mống (hiện là mặt cầu thô có lan can) và tháp Thủ Thiêm.
+- Văn phòng bến xe Chợ Lớn còn là khối trơn mái bằng; dãy nhà Bùi Viện (model cũ) có vài căn cao, hẹp, tường hông trơn.
 - Địa điểm mới cho Thủ Thiêm, Chợ Lớn, Vũng Tàu, núi Nhỏ. Hiện đứng ở đó HUD ghi "Quận 1". Lời giới thiệu ở menu
   ("Sài Gòn Q1", "một hòn đảo…") cũng còn tả đảo cũ.
 
@@ -191,3 +252,4 @@ Dựng lại map chính từ v8: 315 căn nhà, 1,04 triệu tam giác, GLB 3,0 
 - [Thủ Thiêm, bãi bồi trong khúc sông Sài Gòn (Wikipedia)](https://www.wikiwand.com/en/articles/Thu_Thiem_New_Urban_Area)
 - [Cầu đi bộ qua sông Sài Gòn hình lá dừa nước (SGGP)](https://www.sggp.org.vn/cau-di-bo-qua-song-sai-gon-hinh-la-dua-nuoc-post709248.html)
 - [Tứ giác vàng di sản Sài Gòn xưa (Doanh Nhân Plus)](https://doanhnhanplus.vn/tu-giac-vang-di-san-sai-gon-xua-482016.html)
+- [Phố lồng đèn Lương Nhữ Học, Chợ Lớn (Tuổi Trẻ)](https://tuoitre.vn/pho-long-den-khong-gian-trung-thu-ruc-ro-giua-long-cho-lon-chinh-thuc-khai-hoi-20250924181317253.htm)

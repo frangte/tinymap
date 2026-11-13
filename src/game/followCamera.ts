@@ -1,5 +1,6 @@
 // Third-person follow camera: orbits a pivot above the player's head (drag / wheel / pinch), drifts back
-// behind the player while walking forward, and pulls in instead of entering a building.
+// behind the player while walking forward, and cranes up over a building behind the player (pulling in only as far
+// as it still has to) instead of entering it.
 import * as THREE from 'three';
 import type { LookDelta } from './input';
 import type { NavGrid } from './nav';
@@ -12,6 +13,10 @@ const MIN_PITCH = 0.06;
 const MAX_PITCH = 1.3;
 /** keep this far in front of an occluding wall */
 const WALL_GAP = 0.55;
+/** with a building behind the player, look down from higher up until the camera has this much room (m) */
+const ROOM = 5;
+/** how much higher each try looks from (rad) */
+const LIFT_STEP = 0.12;
 
 /** Close framing of the whole body for the dressing panel. */
 export interface Framing {
@@ -35,6 +40,8 @@ export class FollowCamera {
   private readonly pivot = new THREE.Vector3();
   private readonly dir = new THREE.Vector3();
   private readonly probe = new THREE.Vector3();
+  /** extra pitch while a building behind the player is in the way (eased, on top of the user's pitch) */
+  private lift = 0;
 
   constructor(private readonly camera: THREE.PerspectiveCamera, private readonly nav: NavGrid) {}
 
@@ -76,21 +83,42 @@ export class FollowCamera {
     this.pivot.y += (target.y + (frame ? frame.height : PIVOT_H) - this.pivot.y) * damp(frame ? 5 : 9, dt);
 
     const want = frame ? frame.dist : this.goalDist;
-    const free = this.clearDistance(want);
+    // a wall behind the player: crane up over it rather than pull into the player's back
+    let goal = 0;
+    const room = Math.min(want, ROOM);
+    const level = frame ? want : this.clearDistance(want, this.pitch);
+    if (level < room) {
+      // the lowest pitch that gives the camera its room, else the one that gives it the most (if that helps at all)
+      let best = level + 1;
+      for (let p = this.pitch + LIFT_STEP; p <= MAX_PITCH + 1e-6; p += LIFT_STEP) {
+        const d = this.clearDistance(want, p);
+        if (d >= room) {
+          goal = p - this.pitch;
+          break;
+        }
+        if (d > best) {
+          best = d;
+          goal = p - this.pitch;
+        }
+      }
+    }
+    this.lift += (goal - this.lift) * damp(goal > this.lift ? 8 : 2, dt);
+    const free = this.clearDistance(want, this.pitch + this.lift);
     // pull in at once for a wall, glide in for the dressing framing, ease back out
     const inRate = frame && free >= want ? 5 : 30;
     this.dist += (free - this.dist) * damp(free < this.dist ? inRate : 3.5, dt);
     this.place();
   }
 
-  private setDir(): void {
-    const cp = Math.cos(this.pitch);
-    this.dir.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp);
+  private setDir(pitch = this.pitch + this.lift): void {
+    const p = Math.min(pitch, MAX_PITCH);
+    const cp = Math.cos(p);
+    this.dir.set(Math.sin(this.yaw) * cp, Math.sin(p), Math.cos(this.yaw) * cp);
   }
 
-  /** How far the camera can back away from the pivot before it would enter a building. */
-  private clearDistance(want: number): number {
-    this.setDir();
+  /** How far the camera can back away from the pivot, looking down at `pitch`, before it would enter a building. */
+  private clearDistance(want: number, pitch: number): number {
+    this.setDir(pitch);
     const step = 0.3;
     for (let t = 0.5; t <= want; t += step) {
       this.probe.copy(this.pivot).addScaledVector(this.dir, t);

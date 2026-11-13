@@ -36,7 +36,7 @@ import shapely.affinity  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box as sbox  # noqa: E402
 from shapely.geometry.polygon import orient  # noqa: E402
-from shapely.ops import unary_union  # noqa: E402
+from shapely.ops import nearest_points, unary_union  # noqa: E402
 import mapbox_earcut as earcut  # noqa: E402
 
 ARGV = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
@@ -362,8 +362,24 @@ for r in L['roads']:
     road_geo.append((line, r['w']))
 # round caps (layout v8 review): two roads meeting end to end at an angle (a ring road split into two names, Quốc lộ 51
 # into Hạ Long) close without a notch; the layout puts every road end on another road (scripts/map/check_layout.py)
-roads = unary_union([ln.buffer(w / 2, cap_style='round', join_style='round') for ln, w in road_geo])
-walk_outer = [ln.buffer(w / 2 + SIDEWALK, cap_style='round', join_style='round') for ln, w in road_geo]
+
+
+def _road_band(k, ln, w):
+    """road k's surface w wide: a round end where it ends on its own or meets another road end to end, a flat one
+    where it runs into the side of another road (review 2026-11-13: a round end there bulged past the far kerb)"""
+    body = ln.buffer(w / 2, cap_style='flat', join_style='round')
+    ends = []
+    for end in (ln.coords[0], ln.coords[-1]):
+        pt = Point(end)
+        t_junction = any(o.distance(pt) < 0.6 and min(Point(o.coords[0]).distance(pt), Point(o.coords[-1]).distance(pt)) > 1.0
+                         for j, (o, _) in enumerate(road_geo) if j != k)
+        if not t_junction:
+            ends.append(pt.buffer(w / 2, 24))
+    return unary_union([body] + ends)
+
+
+roads = unary_union([_road_band(k, ln, w) for k, (ln, w) in enumerate(road_geo)])
+walk_outer = [_road_band(k, ln, w + 2 * SIDEWALK) for k, (ln, w) in enumerate(road_geo)]
 for lp in L['loops']:
     x0, y0, x1, y1 = lp['rect']
     rr = sbox(*tb((x0, y1)), *tb((x1, y0))).buffer(0)
@@ -380,6 +396,70 @@ for ra in L['roundabouts']:
     walk_outer.append(c.buffer(ra['r'] + 5 + SIDEWALK, 32))
     rings_geo.append((ra, island))
 roads = roads.difference(unary_union([isl for _, isl in rings_geo]))
+
+
+def _tangent(ln, pt):
+    t = ln.project(pt)
+    q, o = ln.interpolate(min(ln.length, t + 0.6)), ln.interpolate(max(0.0, t - 0.6))
+    d = math.hypot(q.x - o.x, q.y - o.y) or 1.0
+    return (q.x - o.x) / d, (q.y - o.y) / d
+
+
+def junction_areas():
+    """where two roads cross or one runs into another (not where one road goes on under another name), with 2 m
+    round it, and the roundabouts: no lane marks there, crossings outside it (review r5: dashes ran across the
+    junctions, zebra stripes of two arms piled up on each other)"""
+    bands = [ln.buffer(w / 2, cap_style='flat') for ln, w in road_geo]
+    tree = shapely.STRtree(bands)
+    out = []
+    for i, (ln, w) in enumerate(road_geo):
+        for j in tree.query(bands[i], predicate='intersects'):
+            if j <= i:
+                continue
+            x = bands[i].intersection(bands[int(j)])
+            if x.is_empty or x.area < 1.0:
+                continue
+            c = x.centroid
+            (ax, ay), (bx, by) = _tangent(ln, c), _tangent(road_geo[int(j)][0], c)
+            if abs(ax * bx + ay * by) > math.cos(math.radians(25)):
+                continue
+            out.append(x.buffer(2.0))
+    out += [c_.buffer(ra['r'] + 7, 32) for ra, c_ in ((ra, Point(tb(ra['c']))) for ra in L['roundabouts'])]
+    return unary_union(out or [Polygon()])
+
+
+JUNCTIONS = junction_areas()
+
+
+def zebra_spots():
+    """a zebra crossing on each arm of the signalled crossings, just outside the junction, never on another one:
+    (centre, unit along the road, half its width, outline)"""
+    out = []
+    for (sx, sy) in (tb(p_) for p_ in L['signals']):
+        for ln, w in road_geo:
+            if w < 8 or ln.distance(Point(sx, sy)) > 1.5:
+                continue
+            t0 = ln.project(Point(sx, sy))
+            # a signal away from any junction is a mid-block crossing: one zebra, at the lights
+            mid = JUNCTIONS.distance(Point(sx, sy)) > 6.0
+            for sgn in ((1,) if mid else (-1, 1)):
+                for off in (np.arange(0.0, 6.01, 0.5) if mid else np.arange(4.0, 18.01, 0.5)):
+                    t = t0 + sgn * off
+                    if t < 1.5 or t > ln.length - 1.5:
+                        break
+                    p = ln.interpolate(t)
+                    dx, dy = _tangent(ln, p)
+                    hw = w / 2 - 0.7
+                    rect = Polygon([(p.x + dx * a * 1.6 - dy * c * hw, p.y + dy * a * 1.6 + dx * c * hw)
+                                    for a, c in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+                    if rect.intersects(JUNCTIONS) or any(rect.distance(z[4]) < 1.0 for z in out):
+                        continue
+                    out.append((p, dx, dy, hw, rect))
+                    break
+    return out
+
+
+ZEBRAS = zebra_spots()
 walk_lines = [(LineString(path_pts(w['path'], 0.8)), w) for w in L['walks']]
 walks = unary_union([ln.buffer(w['w'] / 2, cap_style='flat') for ln, w in walk_lines])
 plazas = unary_union([rect_poly(r) for r in L.get('plazas', [])] or [Polygon()])
@@ -426,9 +506,292 @@ def lot_list():
 
 
 LOTS = lot_list()
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# city blocks (review 2026-11-13): every piece of land the streets close in, that is not a park, a square, a
+# landmark's forecourt, a beach, the hill or a river bank, is a block of houses of its district. Rows of tube houses
+# stand on the sidewalk line and face only the streets, walks and squares in front of them; a corner house turns
+# each street corner with a shop front on both streets; long rows are cut by hẻm (alleys) through the block, lined
+# with smaller houses; side and back walls that show get windows, AC units and now and then a painted sign. What is
+# left inside a block is a yard with a tree, never a blank fill slab. The layout's lots only say which kind of house
+# a block gets where they lie.
+# ---------------------------------------------------------------------------------------------------------------
+PROM = unary_union([LineString(path_pts(p['path'], 0.8)).buffer(p['w'] / 2, cap_style='flat') for p in L['promenades']] or [Polygon()])
+SIDEWALKS = unary_union(walk_outer)
+FRONT_SURFACE = SIDEWALKS.difference(roads).union(walks).union(plazas).union(PROM)
+STREET_CUT = SIDEWALKS.union(walks).union(plazas).union(PROM).union(lm_keepout).union(river)
+OPEN_LAND = unary_union([rect_poly(pk['rect']) for pk in L['parks']]
+                        + [shapely.affinity.scale(Point(tb(lk['ellipse'][:2])).buffer(1.0, 24), lk['ellipse'][2] + 3, lk['ellipse'][3] + 3)
+                           for lk in L.get('lakes', [])]
+                        + [Point(tb((x, y))).buffer(r + 2, 24) for x, y, r in L.get('flats', [])])
+TOWERS = unary_union([rect_poly(t[:4]).buffer(5.0) for t in L.get('towers', [])] or [Polygon()])
+NO_HOUSES = unary_union([STREET_CUT, OPEN_LAND, TOWERS, beach_all.buffer(3.0), river.buffer(7.0),
+                         unary_union([f.buffer(7.0) for f in lm_foot.values()] or [Polygon()]),
+                         unary_union([o.buffer(4.0) for _, o in mountains] or [Polygon()]),
+                         unary_union([ln.buffer(b_['w'] / 2 + 6) for ln, b_ in bridge_lines] or [Polygon()])])
+_FRONT_P = FRONT_SURFACE.buffer(0.25)
+shapely.prepare(_FRONT_P)
+# per kind: house width range, the depth of a row, storeys, and the spacing of hẻm along a long row
+HOUSE = {'np': (4.0, 5.4, 14.0), 'hem': (3.6, 4.4, 10.0), 'bar': (4.0, 5.0, 10.0), 'cl': (4.4, 4.8, 12.0),
+         'ks': (6.4, 8.4, 12.0), 'vt': (6.0, 8.5, 11.0), 'tt': (12.0, 18.0, 15.0)}
+HEM_EVERY = {'np': (22.0, 30.0), 'hem': (14.0, 20.0), 'cl': (24.0, 32.0)}
+HEM_W = 2.8
+CORNER_KINDS = {'np', 'hem'}
+GAPS = {'ks': (0.2, 2.0, 2.0), 'vt': (0.45, 2.0, 4.0), 'tt': (1.0, 8.0, 14.0)}   # chance of a gap after a house, its width
+DISTRICT = {'TRUNG': 'np', 'NHÀ PHỐ': 'hem', 'CHỢ LỚN': 'cl', 'THỦ THIÊM': 'tt', 'KHÁNH HỘI': 'np', 'VŨNG TÀU': 'vt'}
+AREA_PTS = [(tb((a[1], a[2])), next((k for n_, k in DISTRICT.items() if a[0].startswith(n_)), 'np')) for a in L.get('areas', [])]
+
+
+def district_kind(x, y):
+    return min(AREA_PTS, key=lambda a: math.hypot(a[0][0] - x, a[0][1] - y))[1] if AREA_PTS else 'np'
+
+
+def _front(x, y):
+    return shapely.contains_xy(_FRONT_P, x, y)
+
+
+def _ray_depth(p, x, y, nx, ny):
+    """distance from (x, y) on p's outline along the inward normal to the far side of p, and the point there"""
+    ray = LineString([(x + nx * 0.05, y + ny * 0.05), (x + nx * 160, y + ny * 160)])
+    hit = ray.intersection(p.boundary)
+    pts = [hit] if hit.geom_type == 'Point' else [q for q in getattr(hit, 'geoms', []) if q.geom_type == 'Point']
+    ds = sorted(math.hypot(q.x - x, q.y - y) for q in pts if math.hypot(q.x - x, q.y - y) > 0.3)
+    if not ds:
+        return 0.0, None
+    return ds[0], (x + nx * ds[0], y + ny * ds[0])
+
+
+def _quad(ax, ay, ux, uy, nx, ny, t0, t1, d0, d1):
+    return Polygon([(ax + ux * t0 + nx * d0, ay + uy * t0 + ny * d0), (ax + ux * t1 + nx * d0, ay + uy * t1 + ny * d0),
+                    (ax + ux * t1 + nx * d1, ay + uy * t1 + ny * d1), (ax + ux * t0 + nx * d1, ay + uy * t0 + ny * d1)])
+
+
+def _row(rng, kind, s0, s1):
+    """widths (and gaps, as negative numbers) filling a stretch of a row exactly"""
+    wmin, wmax, _ = HOUSE[kind]
+    span = s1 - s0
+    if span < wmin * 0.8:
+        return []
+    gap = GAPS.get(kind)
+    out = []
+    while True:
+        out.append(rng.uniform(wmin, wmax))
+        if gap and rng.random() < gap[0]:
+            out.append(-rng.uniform(gap[1], gap[2]))
+        if sum(abs(v) for v in out) >= span:
+            break
+    while out and out[-1] < 0:
+        out.pop()
+    tot = sum(abs(v) for v in out)
+    if tot > span * 1.12 and len(out) > 1:
+        out.pop()
+        while out and out[-1] < 0:
+            out.pop()
+        tot = sum(abs(v) for v in out)
+    k = span / tot
+    return [v * k for v in out]
+
+
+def _plan_block(p, kind, rng, plan):
+    wmin, wmax, D0 = HOUSE[kind]
+    coords = list(p.exterior.coords)[:-1]
+    E = []
+    for i in range(len(coords)):
+        (ax, ay), (bx, by) = coords[i], coords[(i + 1) % len(coords)]
+        ln = math.hypot(bx - ax, by - ay)
+        if ln < 0.05:
+            continue
+        ux, uy = (bx - ax) / ln, (by - ay) / ln
+        nx, ny = -uy, ux                                   # inward: the outline runs anticlockwise
+        e = dict(a=(ax, ay), u=(ux, uy), n=(nx, ny), len=ln, front=False, D=0.0, cs=False, ce=False)
+        if ln >= 3.0:
+            hits, depths, far_front = 0, [], 0
+            for f in (0.2, 0.5, 0.8):
+                px, py = ax + ux * ln * f, ay + uy * ln * f
+                hits += _front(px - nx * 1.2, py - ny * 1.2)
+                d, q = _ray_depth(p, px, py, nx, ny)
+                depths.append(d)
+                if q is not None and _front(q[0] + nx * 1.2, q[1] + ny * 1.2):
+                    far_front += 1
+            e['front'] = hits >= 2
+            avail = min(depths)
+            if e['front']:
+                if far_front >= 2:
+                    D = min(D0, avail / 2)                 # back to back with the row on the other street
+                else:
+                    D = min(D0 * 1.15, avail)
+                    if avail - D < 4.0:
+                        D = avail                          # no yard thinner than 4 m behind a row
+                e['D'] = D if D >= 4.5 else 0.0
+                e['front'] = e['D'] > 0
+        E.append(e)
+    m = len(E)
+    if not any(e['front'] for e in E):
+        return
+    for i in range(m):                                     # corners: a left turn of 60..120 degrees between two rows
+        A, B = E[i - 1], E[i]
+        cross = A['u'][0] * B['u'][1] - A['u'][1] * B['u'][0]
+        dot = A['u'][0] * B['u'][0] + A['u'][1] * B['u'][1]
+        if kind in CORNER_KINDS and A['front'] and B['front'] and cross > 0 and abs(dot) < 0.5 \
+                and B['len'] > A['D'] + wmin and A['len'] > B['D'] + wmin:
+            B['cs'] = True
+            A['ce'] = True
+    # hẻm: across the longest row, through the whole block
+    alleys = []
+    if kind in HEM_EVERY:
+        rows = sorted((e for e in E if e['front']), key=lambda e: -e['len'])
+        e = rows[0]
+        j = E.index(e)
+        if e['len'] >= 1.4 * HEM_EVERY[kind][0]:
+            (ax, ay), (ux, uy), (nx, ny) = e['a'], e['u'], e['n']
+            t = (E[j - 1]['D'] if e['cs'] else 0) + rng.uniform(9.0, 13.0)
+            t1 = e['len'] - (E[(j + 1) % m]['D'] if e['ce'] else 0) - 8.0
+            while t < t1:
+                x, y = ax + ux * t, ay + uy * t
+                strip = LineString([(x - nx * 2.0, y - ny * 2.0), (x + nx * 160, y + ny * 160)]).buffer(HEM_W / 2, cap_style='flat')
+                parts = [q for q in polys(strip.intersection(p)) if q.distance(Point(x, y)) < 0.5]
+                if parts and parts[0].area > HEM_W * 2 * e['D']:
+                    alleys.append(dict(poly=parts[0], a=(x, y), u=(nx, ny)))
+                t += rng.uniform(*HEM_EVERY[kind])
+    alley_all = unary_union([al['poly'] for al in alleys]) if alleys else Polygon()
+    plan['alleys'] += [al['poly'] for al in alleys]
+    placed, mine = [], []
+
+    def put(foot, h):
+        if foot.intersection(p).area < 0.85 * foot.area or foot.intersection(alley_all).area > 0.03 * foot.area:
+            return False
+        if any(foot.intersection(q).area > 0.08 * foot.area for q in placed):
+            return False
+        placed.append(foot)
+        h['foot'] = foot
+        plan['houses'].append(h)
+        mine.append(h)
+        return True
+    for i, e in enumerate(E):
+        if not e['front']:
+            continue
+        (ax, ay), (ux, uy), (nx, ny) = e['a'], e['u'], e['n']
+        D, ln = e['D'], e['len']
+        A, C = E[i - 1], E[(i + 1) % m]
+        ang = math.atan2(uy, ux)
+        t0, t1 = 0.0, ln
+        if e['cs']:                                        # the corner house: narrow on this street, deep along row A
+            w = min(A['D'], rng.uniform(5.5, 7.5))
+            if put(_quad(ax, ay, ux, uy, nx, ny, 0, w, 0, D), dict(kind=kind, role='corner', cx=ax + ux * w / 2, cy=ay + uy * w / 2,
+                                                                   ang=ang, w=w, D=D, side_len=D)):
+                t0 = w
+        if e['ce']:
+            t1 = ln - C['D']
+        band = _quad(ax, ay, ux, uy, nx, ny, t0, t1, 0, D)
+        cuts = []
+        for al in alleys:
+            q = al['poly'].intersection(band)
+            if q.area > 0.5:
+                ts = [(c[0] - ax) * ux + (c[1] - ay) * uy for c in polys(q)[0].exterior.coords]
+                cuts.append((min(ts) - 0.1, max(ts) + 0.1))
+        free, s = [], t0
+        for c0, c1 in sorted(cuts):
+            if c0 > s:
+                free.append((s, c0))
+            s = max(s, c1)
+        if t1 > s:
+            free.append((s, t1))
+        for s0, s1 in free:
+            t = s0
+            for w in _row(rng, kind, s0, s1):
+                if w > 0:
+                    put(_quad(ax, ay, ux, uy, nx, ny, t, t + w, 0, D),
+                        dict(kind=kind, role='row', cx=ax + ux * (t + w / 2), cy=ay + uy * (t + w / 2), ang=ang, w=w, D=D))
+                t += abs(w)
+    # houses along the hẻm, facing it, behind the rows of the streets
+    for al in alleys:
+        (x, y), (ux, uy) = al['a'], al['u']
+        length = _ray_depth(p, x, y, ux, uy)[0]
+        for sgn in (1, -1):
+            nx, ny = -uy * sgn, ux * sgn                   # away from the alley
+            ox, oy = x + nx * HEM_W / 2, y + ny * HEM_W / 2
+            depth = 8.0
+            t = 0.0
+            hk = 'hem'
+            for w in _row(rng, hk, 0.0, length):
+                if w > 0:
+                    cx, cy = ox + ux * (t + w / 2), oy + uy * (t + w / 2)
+                    ang = math.atan2(-nx, ny)              # the house's depth (local +y) runs away from the alley
+                    lx, ly = math.cos(ang), math.sin(ang)
+                    foot = Polygon([(cx - lx * w / 2, cy - ly * w / 2), (cx + lx * w / 2, cy + ly * w / 2),
+                                    (cx + lx * w / 2 + nx * depth, cy + ly * w / 2 + ny * depth),
+                                    (cx - lx * w / 2 + nx * depth, cy - ly * w / 2 + ny * depth)])
+                    put(foot, dict(kind=hk, role='hem', cx=cx, cy=cy, ang=ang, w=w, D=depth))
+                t += abs(w)
+    # which side and back walls show: nothing of this block stands against them
+    allfoot = unary_union(placed) if placed else Polygon()
+    for h in mine:
+        others = unary_union([q for q in placed if q is not h['foot']] or [Polygon()])
+        c, s_ = math.cos(h['ang']), math.sin(h['ang'])
+        X = lambda lx, ly: (h['cx'] + c * lx - s_ * ly, h['cy'] + s_ * lx + c * ly)  # noqa: E731
+        hw, D = h['w'] / 2, h['D']
+
+        def shows(x0, y0, x1, y1):
+            strip = Polygon([X(x0, y0), X(x1, y0), X(x1, y1), X(x0, y1)])
+            return strip.intersection(others).area < 0.4 * strip.area
+        h['sides'] = [sd for sd, (x0, x1) in ((-1, (-hw - 0.7, -hw - 0.1)), (1, (hw + 0.1, hw + 0.7))) if shows(x0, 0.8, x1, D - 0.8)]
+        if h['role'] == 'corner':
+            h['sides'] = [sd for sd in h['sides'] if sd != -1]    # the left side is the second shop front
+        h['back'] = shows(-hw + 0.3, D + 0.1, hw - 0.3, D + 0.7)
+    rest = p.difference(allfoot.buffer(0.3)).difference(alley_all.buffer(0.2))
+    plan['yards'] += [q for q in polys(rest) if q.area > 15 and not q.buffer(-1.0).is_empty]
+
+
+def plan_blocks():
+    """every house of the map: the free land between the streets, cut into blocks, each planned by its kind"""
+    rng = random.Random(2026)
+    plan = dict(houses=[], alleys=[], yards=[], blocks=[])
+    free = land.buffer(-1.0).intersection(inland).difference(NO_HOUSES)
+    lots = [(rect_poly(r), k) for r, k in LOTS]
+    for p in polys(free):
+        if p.area < 250 or p.buffer(-4.0).is_empty:
+            continue
+        p = orient(p.simplify(0.5), 1.0)
+        if not p.is_valid or p.is_empty or p.geom_type != 'Polygon':
+            continue
+        over = sorted(((p.intersection(lp).area, k) for lp, k in lots), reverse=True)
+        dk = district_kind(*p.centroid.coords[0])
+        kind = over[0][1] if over and over[0][0] > 0.15 * min(p.area, 400) else dk
+        if dk == 'tt':
+            kind = 'tt'                                    # Thủ Thiêm is all new buildings
+        n_h, n_y = len(plan['houses']), len(plan['yards'])
+        _plan_block(p, kind, rng, plan)
+        if len(plan['houses']) > n_h:
+            plan['blocks'].append(p)
+        else:                                              # nothing fits (review r5: a bare paved strip by the river)
+            del plan['yards'][n_y:]
+    return plan
+
+
+PLAN = plan_blocks()
+# traffic islands: pieces of pavement the roads close in on every side (two roads meeting at a sharp angle) get a lawn
+# and a tree instead of a bare paved triangle
+_r_edge = roads.buffer(0.4)
+# medians: where the sidewalks of two roads meeting at a sharp angle overlap in a long wedge, a lawn with trees
+_bands = [b_.difference(roads) for b_ in walk_outer[:len(road_geo)]]
+MEDIANS = []
+for _i in range(len(_bands)):
+    for _j in range(_i + 1, len(_bands)):
+        if not _bands[_i].intersects(_bands[_j]):
+            continue
+        for _q in polys(_bands[_i].intersection(_bands[_j]).difference(walks).difference(plazas).difference(PROM)):
+            if _q.area > 30 and _q.buffer(-1.0).area > 6:
+                MEDIANS.append(_q.buffer(-1.0))
+ISLANDS = [q for q in polys(SIDEWALKS.difference(roads).difference(walks).difference(plazas).difference(PROM))
+           if 20 < q.area < 600 and not q.interiors and q.exterior.intersection(_r_edge).length > 0.85 * q.exterior.length
+           and q.buffer(-1.2).area > 4]
+HOUSE_FOOT = unary_union([h['foot'] for h in PLAN['houses']] or [Polygon()])
+ALLEYS = unary_union(PLAN['alleys'] or [Polygon()])
+
 # where the ground stays level: streets, pavements, lots, landmarks, shores, river banks, beaches, mountain feet
 FLAT = unary_union([roads.buffer(3.5), unary_union(walk_outer), walks, plazas, lm_keepout,
-                    unary_union([rect_poly(r) for r, _ in LOTS]).buffer(2.0), coast.exterior.buffer(6.0), river.buffer(6.0),
+                    unary_union(PLAN['blocks'] or [Polygon()]).buffer(2.0), coast.exterior.buffer(6.0), river.buffer(6.0),
                     beach_all.buffer(3.0), unary_union([o.buffer(2.0) for _, o in mountains]),
                     unary_union([ln.buffer(b['w'] / 2 + 4) for ln, b in bridge_lines]),
                     # lakes and flower fields sit on level ground, and so do the 'flats' circles (forecourts)
@@ -507,7 +870,9 @@ def build_terrain(coll):
         pts = shapely.points(bxy)
         sgn = shapely.distance(coast.exterior, pts) * np.where(shapely.contains_xy(coast, bxy[:, 0], bxy[:, 1]), 1.0, -1.0)
         half = b['width'] / 2
-        bz = np.where(sgn >= 0, -0.6 + 0.62 * np.clip(sgn / half, 0, 1), -0.6 + 0.26 * np.maximum(sgn, -half))
+        # wet sand at the waterline, dry 2 m up the beach (review 2026-11-13: half the sand was under the sea)
+        bz = np.where(sgn >= 0, -0.6 + 0.47 * np.clip(sgn / 2.5, 0, 1) + 0.15 * np.clip(sgn / half, 0, 1),
+                      -0.6 + 0.26 * np.maximum(sgn, -half))
         g.mesh([(x, y, zz) for (x, y), zz in zip(bxy, bz)], ccw(bxy, btris), 'sand')
     g.build()
 
@@ -618,10 +983,24 @@ def build_streets(coll):
     shapely.prepare(road_top)
     walkway = unary_union(walk_outer).union(walks).union(plazas)
     walkway = walkway.union(unary_union([f.buffer(3.0) for f in lm_foot.values()]))
+    walkway = walkway.union(unary_union(PLAN['blocks'] or [Polygon()])).union(ALLEYS)   # house blocks stand on a kerb, hẻm paved
+    # a bridge that lands short of the pavement gets a paved path on to it (review r5: Cầu Mống ended on the grass)
+    shapely.prepare(walkway)
+    for ln, br in bridge_lines:
+        for end in (ln.coords[0], ln.coords[-1]):
+            pt = Point(end)
+            gap = walkway.distance(pt)
+            if 0.3 < gap < 15 and land.contains(pt):
+                near = nearest_points(walkway, pt)[0]
+                walkway = walkway.union(LineString([pt, near]).buffer(min(br['w'], 4.0) / 2, cap_style='round'))
     walkway = walkway.difference(roads).intersection(on_land).difference(beach_all)
     r = Builder('IX_Roads', coll)
     r.slab(road_top, -0.1, ROAD_Z, 'asphalt', 'curb')
     r.slab(walkway, -0.1, WALK_Z, 'paving', 'curb')
+    for q in ISLANDS:
+        r.slab(q.buffer(-1.0), WALK_Z - 0.02, WALK_Z + 0.08, 'grassDark', 'curb')
+    for q in MEDIANS:
+        r.slab(q, WALK_Z - 0.02, WALK_Z + 0.08, 'grassDark', 'curb')
     # islands of the roundabouts
     for ra, isl in rings_geo:
         if not ra.get('model'):
@@ -638,6 +1017,8 @@ def build_streets(coll):
     r.build()
     # lane marks
     m = Builder('IX_RoadMarks', coll)
+    no_dash = JUNCTIONS.union(unary_union([z[4].buffer(0.6) for z in ZEBRAS] or [Polygon()]))
+    shapely.prepare(no_dash)
     for ln, w in road_geo:
         if w < 9:
             continue
@@ -645,10 +1026,17 @@ def build_streets(coll):
         for i in range(n):
             a = ln.interpolate(i * 4 + 0.5)
             b = ln.interpolate(i * 4 + 2.5)
-            if not road_top.contains(a) or not road_top.contains(b) or bridge_cut.contains(a):
+            if not road_top.contains(a) or not road_top.contains(b) or bridge_cut.contains(a) or no_dash.intersects(LineString([a, b])):
                 continue
             seg = LineString([a, b]).buffer(0.09, cap_style='flat')
-            m.slab(seg, None, ROAD_Z + 0.005, 'roadLine')
+            m.slab(seg, None, ROAD_Z + 0.05, 'roadLine')
+    # zebra crossings on each arm of the signalled crossings (ZEBRAS). Paint 5 cm thick: the GLB stores positions in
+    # 14 bits over the whole map (3 cm steps), and thinner marks sank into the asphalt (review r11)
+    for p, dx, dy, hw, _rect in ZEBRAS:
+        k = -hw
+        while k <= hw:
+            m.oriented_box(p.x - dy * k, p.y + dx * k, ROAD_Z, 2.8, 0.45, 0.05, math.atan2(dy, dx), 'roadLine')
+            k += 0.9
     m.build()
 
 
@@ -693,6 +1081,17 @@ def build_bridges(coll):
                 # railing posts only where the deck is over the water or up on its ramp, not across a junction
                 if i % 3 == 0 and (over[i] or br.get('walk')):
                     b.box(e[0] - 0.08, e[1] - 0.08, e[2], e[0] + 0.08, e[1] + 0.08, e[2] + 1.1, 'bridgeWhite')
+            # and a parapet between them (review r5: the player walked off the side of Thủ Thiêm 3's ramp between posts)
+            if (over[i] and over[i + 1]) or br.get('walk'):
+                for e0, e1, f0, f1 in ((a, bb, d, c), (d, c, a, bb)):
+                    ux, uy = f0[0] - e0[0], f0[1] - e0[1]
+                    ul = math.hypot(ux, uy) or 1.0
+                    ux, uy = ux / ul * 0.16, uy / ul * 0.16
+                    i0, i1 = (e0[0] + ux, e0[1] + uy, e0[2]), (e1[0] + ux, e1[1] + uy, e1[2])
+                    up = lambda v: (v[0], v[1], v[2] + 0.75)  # noqa: E731
+                    b.face([e0, e1, up(e1), up(e0)], 'bridgeWhite')
+                    b.face([i1, i0, up(i0), up(i1)], 'bridgeWhite')
+                    b.face([up(e0), up(e1), up(i1), up(i0)], 'bridgeWhite')
         if 'pylon' in br:
             px, py = tb(br['pylon'])
             prev = None
@@ -753,90 +1152,294 @@ def tum(g, w, D, Ht, wall):
     g.box('archDark', -0.45, D - 3.63, Ht + 0.1, 0.45, D - 3.58, Ht + 2.1, ch=0)
 
 
-def build_house(ns, g, rng, kind, w, D):
-    """one house in its local frame (facade at y = 0 facing -Y, depth +Y), with the production map's builders"""
+def upper_facade(ns, g, rng, w, floors):
+    """the floors above the shop of a tube house, as house_plain draws them: floor bands, a balcony with plants on
+    every other floor, shuttered windows between, and the shop sign"""
     T = ns['T']
+    hw = w / 2
+    GF, F = 3.4, 3.0
+    for i in range(floors):
+        z0 = GF + i * F
+        g.box('creamLight', -hw - 0.05, -0.18, z0, hw + 0.05, 0.0, z0 + 0.2, ch=0)
+        if i % 2 == 0:
+            g.box('creamLight', -hw + 0.15, -0.95, z0, hw - 0.15, 0.0, z0 + 0.16, ch=0)
+            nb = max(2, int((w - 0.5) / 0.45))             # balusters as thin boxes: a tenth of the triangles of rods
+            for k in range(nb + 1):
+                x = -hw + 0.25 + k * (w - 0.5) / nb
+                g.box('metal', x - 0.025, -0.93, z0 + 0.16, x + 0.025, -0.88, z0 + 1.02, ch=0)
+            g.box('metal', -hw + 0.15, -0.95, z0 + 1.02, hw - 0.15, -0.85, z0 + 1.1, ch=0)
+            g.box('wood', -0.85, -0.08, z0 + 0.16, 0.85, 0.0, z0 + 2.3, ch=0)
+            for k in range(2):
+                g.ico(rng.choice(['leaf', 'flowerPink', 'leafLight']), 0.32, T(-hw + 0.6 + k * (w - 1.2), -0.6, z0 + 0.55), sub=0, jit=0.1)
+        else:
+            for cx in (-w / 4, w / 4):
+                g.box('creamLight', cx - 0.6, -0.12, z0 + 0.7, cx + 0.6, 0.0, z0 + 2.2, ch=0)
+                g.box('glassTeal', cx - 0.45, -0.14, z0 + 0.85, cx + 0.45, -0.1, z0 + 2.05, ch=0)
+                g.box('wallTeal', cx - 0.62 - 0.42, -0.08, z0 + 0.85, cx - 0.62, 0.0, z0 + 2.05, ch=0)
+                g.box('wallTeal', cx + 0.62, -0.08, z0 + 0.85, cx + 0.62 + 0.42, 0.0, z0 + 2.05, ch=0)
+    sc = rng.choice([('signRed', 'signGold'), ('clothBlue', 'white'), ('signGold', 'signRed'), ('wallTeal', 'white')])
+    g.box(sc[0], -hw + 0.45, -0.28, GF - 0.52, hw - 0.45, -0.02, GF - 0.08, ch=0)
+    g.text(rng.choice(SHOP_SIGNS), 0.27, sc[1], T(0, -0.3, GF - 0.3) @ ns['FACE_S'], extrude=0.025, max_w=w - 1.2)
+
+
+def tube_house(ns, g, rng, w, D, floors, paint):
+    """a tube house with a flat roof: the shop, the floors above (upper_facade), a parapet and a water tank"""
+    T = ns['T']
+    GF, F = 3.4, 3.0
+    Ht = GF + F * floors
+    hw = w / 2
+    g.box(paint, -hw, 1.4, 0, hw, D, GF, ch=0)
+    ns['shop_front'](g, w, GF, rng, wall=paint)
+    g.box(paint, -hw, 0, GF, hw, D, Ht, ch=0)
+    upper_facade(ns, g, rng, w, floors)
+    g.box(paint, -hw, -0.05, Ht, hw, 0.3, Ht + 0.7, ch=0)
+    g.box('creamLight', -hw - 0.05, -0.15, Ht + 0.7, hw + 0.05, 0.4, Ht + 0.85, ch=0)
+    g.box(rng.choice(['concrete', 'concrete', 'pavingDark', 'stone']), -hw, 0.3, Ht, hw, D, Ht + 0.06, ch=0)
+    g.cyl('white', 0.5, 1.2, 10, T(-hw + 1.0, D * 0.6, Ht + 0.06))
+    roof_life(g, rng, w, D, Ht + 0.06)
+    return Ht + 0.85
+
+
+def roof_life(g, rng, w, D, z):
+    """what a Saigon roof carries: potted plants, a tin awning over half of it, laundry"""
+    T = Matrix.Translation
+    hw = w / 2
+    r = rng.random()
+    if r < 0.3:                                            # a roof garden
+        for k in range(rng.randint(3, 6)):
+            g.ico(rng.choice(['leaf', 'leafLight', 'leafDark', 'flowerPink']), rng.uniform(0.3, 0.55),
+                  T((rng.uniform(-hw + 0.6, hw - 0.6), rng.uniform(1.2, D - 0.8), z + 0.3)), sub=0, jit=0.15)
+    elif r < 0.5:                                          # a tin awning on posts over the back half
+        y0 = D * rng.uniform(0.45, 0.6)
+        for x in (-hw + 0.3, hw - 0.3):
+            for y in (y0 + 0.2, D - 0.3):
+                g.box('metal', x - 0.05, y - 0.05, z, x + 0.05, y + 0.05, z + 2.3, ch=0)
+        g.box('tinBlue', -hw + 0.1, y0, z + 2.3, hw - 0.1, D - 0.1, z + 2.42, ch=0)
+    elif r < 0.65:                                         # laundry
+        g.rod('metal', (-hw + 0.4, D * 0.5, z + 1.6), (hw - 0.4, D * 0.5, z + 1.6), 0.02, 4)
+        x = -hw + 0.6
+        while x < hw - 0.8:
+            g.box(rng.choice(['clothRed', 'clothBlue', 'clothYellow', 'white']), x, D * 0.5 - 0.05, z + 0.95, x + 0.5, D * 0.5 + 0.05, z + 1.58, ch=0)
+            x += 0.75
+
+
+def corner_house(ns, g, rng, w, D, floors, paint):
+    """a corner shophouse: a shop front and balconies on the front (-Y) and on the left side (-X), round the corner"""
+    T, Rm = ns['T'], ns['Rm']
+    GF, F = 3.4, 3.0
+    Ht = GF + F * floors
+    hw = w / 2
+    side = T(-hw, D / 2, 0) @ Rm(0, 0, -math.pi / 2)       # the left wall as a facade: local y=0 on it, facing -X
+    g.box(paint, -hw + 1.4, 1.4, 0, hw, D, GF, ch=0)
+    ns['shop_front'](g, w, GF, rng, wall=paint)
+    g.push(side)
+    ns['shop_front'](g, D, GF, rng, wall=paint)
+    g.pop()
+    g.box(paint, -hw, 0, GF, hw, D, Ht, ch=0)
+    upper_facade(ns, g, rng, w, floors)
+    g.push(side)
+    upper_facade(ns, g, rng, D, floors)
+    g.pop()
+    for M_, ww in ((None, w), (side, D)):                   # parapets on both street faces, the flat roof
+        if M_ is not None:
+            g.push(M_)
+        g.box(paint, -ww / 2, -0.05, Ht, ww / 2, 0.3, Ht + 0.7, ch=0)
+        g.box('creamLight', -ww / 2 - 0.05, -0.15, Ht + 0.7, ww / 2 + 0.05, 0.4, Ht + 0.85, ch=0)
+        if M_ is not None:
+            g.pop()
+    g.box('concrete', -hw + 0.3, 0.3, Ht, hw, D, Ht + 0.06, ch=0)
+    g.cyl('white', 0.5, 1.2, 10, T(hw - 1.0, D * 0.6, Ht + 0.06))
+    return Ht + 0.85
+
+
+def wall_details(ns, g, rng, w, D, floors, sides, back):
+    """what shows on the bare walls of a tube house: windows and AC units on each floor of a side wall that faces a
+    hẻm or open ground, a side door, now and then a painted sign; windows, AC units and laundry on a back wall"""
+    T, Rm = ns['T'], ns['Rm']
+    GF, F = 3.4, 3.0
+    Ht = GF + F * floors
+    hw = w / 2
+    for s in sides:
+        x = s * hw
+
+        def bx(mat, y0, z0, y1, z1, d, ch=0.0):
+            x0, x1 = sorted((x, x + s * d))
+            g.box(mat, x0, y0, z0, x1, y1, z1, ch=ch)
+        ys = [D * 0.62] if D < 8 else [D * 0.42, D * 0.78]
+        for i in range(floors):
+            z0 = GF + i * F
+            for y in ys:
+                if rng.random() < 0.85:
+                    bx('creamLight', y - 0.55, z0 + 0.7, y + 0.55, z0 + 2.0, 0.08)
+                    bx('glassTeal', y - 0.42, z0 + 0.82, y + 0.42, z0 + 1.88, 0.11)
+            if rng.random() < 0.55:
+                y = rng.uniform(1.4, D - 1.4)
+                bx('acWhite', y - 0.4, z0 + 0.3, y + 0.4, z0 + 0.85, 0.42, 0.03)
+        bx('wood', D * 0.55 - 0.45, 0.0, D * 0.55 + 0.45, 2.2, 0.06)
+        bx('creamLight', D * 0.25 - 0.5, 1.0, D * 0.25 + 0.5, 2.0, 0.07)
+        bx('glassTeal', D * 0.25 - 0.38, 1.1, D * 0.25 + 0.38, 1.9, 0.1)
+        if Ht > 6.0 and rng.random() < 0.35:
+            y0, y1 = 1.0, min(D - 1.5, 6.5)
+            z0, z1 = GF + 0.4, min(Ht - 0.6, GF + 2.8)
+            if y1 - y0 > 2.6 and z1 - z0 > 1.3:
+                bg, fg = rng.choice(SIGN_COLOURS)
+                bx(bg, y0, z0, y1, z1, 0.07)
+                g.text(rng.choice(WALL_ADS), 0.55, fg, T(x + s * 0.09, (y0 + y1) / 2, (z0 + z1) / 2) @ Rm(math.pi / 2, 0, s * math.pi / 2),
+                       extrude=0.03, max_w=(y1 - y0) - 0.5)
+    if back:
+        for i in range(floors + 1):
+            z0 = GF + (i - 1) * F if i else 0.0
+            for cx in ([-w / 4, w / 4] if w > 4.6 else [0.0]):
+                g.box('creamLight', cx - 0.5, D, z0 + 0.8, cx + 0.5, D + 0.08, z0 + 2.0, ch=0)
+                g.box('glassTeal', cx - 0.38, D + 0.02, z0 + 0.92, cx + 0.38, D + 0.11, z0 + 1.88, ch=0)
+            if i and rng.random() < 0.5:
+                cx = rng.uniform(-hw + 0.6, hw - 0.6)
+                g.box('acWhite', cx - 0.4, D, z0 + 0.25, cx + 0.4, D + 0.42, z0 + 0.8, ch=0.03)
+            if i and rng.random() < 0.3:                     # laundry on a pole
+                g.rod('metal', (-hw + 0.3, D + 0.55, z0 + 2.3), (hw - 0.3, D + 0.55, z0 + 2.3), 0.02, 4)
+                x = -hw + 0.5
+                while x < hw - 0.8:
+                    g.box(rng.choice(['clothRed', 'clothBlue', 'clothYellow', 'white']), x, D + 0.5, z0 + 1.6, x + 0.45, D + 0.6, z0 + 2.28, ch=0)
+                    x += 0.7
+
+
+def sidewalk_cafe(g, rng, w):
+    """cà phê vỉa hè in front of a shop: a low table and plastic stools on the pavement, a parasol now and then"""
+    cx = rng.uniform(-w / 2 + 1.0, w / 2 - 1.0)
+    cy = -1.35
+    col = rng.choice(['plasticBlue', 'plasticRed'])
+    g.box(col, cx - 0.32, cy - 0.32, 0, cx + 0.32, cy + 0.32, 0.42, ch=0)
+    for k in range(rng.choice([2, 3, 4])):
+        a = k * math.pi / 2 + rng.uniform(-0.3, 0.3)
+        x, y = cx + math.cos(a) * 0.65, cy + math.sin(a) * 0.65
+        g.box(rng.choice(['plasticBlue', 'plasticRed', 'plasticRed']), x - 0.15, y - 0.15, 0, x + 0.15, y + 0.15, 0.28, ch=0)
+    if rng.random() < 0.35:
+        g.cyl('white', 0.03, 2.1, 5, Matrix.Translation((cx, cy, 0)))
+        g.cone(rng.choice(['signRed', 'clothYellow', 'clothBlue', 'wallTeal']), 1.1, 0.45, 8, Matrix.Translation((cx, cy, 1.85)))
+    return cx, cy
+
+
+SHOP_SIGNS = ['PHỞ', 'CƠM TẤM', 'BÁNH MÌ', 'THUỐC BẮC', 'VẢI SỢI', 'CÀ PHÊ', 'HỦ TIẾU', 'TẠP HOÁ']
+WALL_ADS = ['CÀ PHÊ', 'PHỞ', 'BÁNH MÌ', 'TẠP HOÁ', 'SỬA XE', 'HỦ TIẾU', 'NƯỚC MÍA', 'CƠM TẤM']
+SIGN_COLOURS = [('signRed', 'signGold'), ('clothBlue', 'white'), ('wallTeal', 'white'), ('signGold', 'brownText'), ('poGreen', 'white')]
+
+
+VT_WALLS = ['wallCream', 'creamLight', 'wallSky', 'wallMint', 'wallPink', 'wallOchre']
+
+
+def build_house(ns, g, rng, kind, w, D, role='row'):
+    """one house in its local frame (facade at y = 0 facing -Y, depth +Y); returns its storeys above the shop and
+    its wall colour, or None for a model with its own walls all round"""
     if kind == 'ks':
         ns['modern_block'](g, w, D, rng.choice([3, 4, 4, 5, 6]), rng, palette=rng.choice(KS_PALETTES))
-        return
-    if kind == 'np' and w >= 5.2 and rng.random() < 0.22:
+        return None
+    if kind == 'tt':
+        ns['modern_block'](g, w, D, rng.choice([4, 5, 6, 7, 8]), rng, palette=rng.choice(KS_PALETTES))
+        return None
+    if kind == 'np' and role == 'row' and w >= 5.2 and rng.random() < 0.18:
         ns['modern_block'](g, w, D, rng.choice([2, 3, 4]), rng)
-        return
+        return None
     if kind == 'bar' and 'house_bv' in ns:
         ns['house_bv'](ns, g, w, D, rng, floors=rng.choice([1, 2, 2, 3]), paint=rng.choice(ns.get('BV_PAINT', NP_WALLS)),
                        roof='flat', sign=rng.choice(ns.get('BV_SIGNS', ['BAR'])))
-        return
+        return None
     if kind == 'cl':
         ns['house_plain'](g, w, D, rng, floors=1, paint=rng.choice(CL_WALLS), roof='tile')
         for x in (-w / 4, w / 4):
-            ns['lantern'](g, T(x, -1.1, 2.7))
-        return
+            ns['lantern'](g, ns['T'](x, -1.1, 2.7))
+        return 1, None
+    if kind == 'vt':                                       # Vũng Tàu: villas and guest houses, half of them tiled
+        floors = rng.choice([1, 1, 2, 2, 3])
+        wall = rng.choice(VT_WALLS)
+        if rng.random() < 0.5:
+            ns['house_plain'](g, w, D, rng, floors=floors, paint=wall, roof='tile')
+            return floors, wall
+        tube_house(ns, g, rng, w, D, floors, wall)
+        return floors, wall
     floors = rng.choice([1, 2, 2, 3, 3, 4]) if kind == 'np' else rng.choice([1, 1, 2])
     wall = rng.choice(NP_WALLS if kind == 'np' else HEM_WALLS)
-    top = ns['house_plain'](g, w, D, rng, floors=floors, paint=wall, roof='flat')
-    if rng.random() < (0.6 if kind == 'np' else 0.35):
+    if role == 'corner':
+        floors = max(floors, 2)
+        top = corner_house(ns, g, rng, w, D, floors, wall)
+    else:
+        top = tube_house(ns, g, rng, w, D, floors, wall)
+    if rng.random() < (0.55 if kind == 'np' else 0.3):
         tum(g, w, D, top - 0.85, wall)
+    return floors, wall
+
+
+def keep_clear_points():
+    """where the game puts people (NPC posts, archetype spawns, server/content): nothing small gets built there"""
+    base = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'server', 'content')
+    pts = []
+    for f, key in (('npcs.json', 'npcs'), ('archetypes.json', 'archetypes')):
+        try:
+            for e in json.load(open(os.path.join(base, f), encoding='utf-8')).get(key, []):
+                at = e.get('at') or (e.get('spawn') or {}).get('at')
+                if at:
+                    pts.append((float(at[0]), float(at[1])))
+        except OSError:
+            pass
+    return pts
+
+
+CAFES = []   # where build_houses put a sidewalk café: no street tree goes there
+# the Bùi Viện model (MINI_SCRIPTS 'bui_vien') stands on the west half of its walking street from X -131.8 on: the
+# lantern strings of the Chợ Lớn end stop short of it (it has its own lights)
+BUI_VIEN_WEST = -134.0
 
 
 def build_houses(coll):
     ns = load_builders()
+    clear = keep_clear_points()
     T, Rm = ns['T'], ns['Rm']
     rng = random.Random(2026)
-    cut = roads.union(walks).union(lm_keepout).union(river).union(plazas)
     geos = {}
-    back = Builder('SH_Backs', coll)
     count = 0
-    for rect, kind in LOTS:
-        wmin, wmax, D0 = FRONT[kind]
+    for h in PLAN['houses']:
+        kind = h['kind']
         g = geos.setdefault(kind, ns['Geo'](len(geos) + 1))
-        poly = rect_poly(rect).difference(cut).intersection(land.buffer(-1.0)).intersection(inland)
-        for p in polys(poly):
-            if p.area < 20:
-                continue
-            p = orient(p.simplify(0.3), 1.0)
-            minx, miny, maxx, maxy = p.bounds
-            D = min(D0, 0.5 * min(maxx - minx, maxy - miny))
-            if D < 4.5:
-                D = min(D0, min(maxx - minx, maxy - miny))
-            if D < 3.0:
-                continue
-            placed = []
-            coords = list(p.exterior.coords)
-            for (ax, ay), (bx, by) in zip(coords, coords[1:]):
-                el = math.hypot(bx - ax, by - ay)
-                if el < 3.4:
-                    continue
-                ux, uy = (bx - ax) / el, (by - ay) / el
-                nx, ny = -uy, ux
-                t = 0.0
-                while t < el - 3.0:
-                    w = min(rng.uniform(wmin, wmax), el - t)
-                    if w < 3.0:
-                        break
-                    if kind == 'ks' and rng.random() < 0.2:
-                        t += w + 2.0       # a gap between hotels: an alley to the beach
-                        continue
-                    sx, sy = ax + ux * t, ay + uy * t
-                    foot = Polygon([(sx, sy), (sx + ux * w, sy + uy * w), (sx + ux * w + nx * D, sy + uy * w + ny * D), (sx + nx * D, sy + ny * D)])
-                    if foot.intersection(p).area > 0.8 * foot.area and all(foot.intersection(q).area < 0.12 * foot.area for q in placed):
-                        placed.append(foot)
-                        depth = len(g.st)
-                        g.push(T(sx + ux * w / 2, sy + uy * w / 2, WALK_Z) @ Rm(0, 0, math.atan2(uy, ux)))
-                        try:
-                            build_house(ns, g, rng, kind, w, D)
-                            count += 1
-                        except Exception as e:
-                            log('house failed:', kind, type(e).__name__, e)
-                        del g.st[depth:]
-                    t += w
-            rest = p.difference(unary_union(placed).buffer(0.4)) if placed else p
-            for q in polys(rest.buffer(-1.0)):
-                if q.area > 30:
-                    back.slab(q, WALK_Z, WALK_Z + rng.choice([2, 3]) * 3.1, 'concrete', rng.choice(['wallBeige', 'cream', 'wallGrey']))
+        depth = len(g.st)
+        g.push(T(h['cx'], h['cy'], WALK_Z) @ Rm(0, 0, h['ang']))
+        try:
+            got = build_house(ns, g, rng, kind, h['w'], h['D'], h['role'])
+            if got is not None and kind in ('np', 'hem', 'vt') and h['role'] in ('row', 'corner') and h['w'] > 3.8 and rng.random() < 0.22:
+                fx = h['cx'] + math.sin(h['ang']) * 1.35
+                fy = h['cy'] - math.cos(h['ang']) * 1.35
+                if all(math.hypot(fx - px, fy - py) > h['w'] / 2 + 3 for px, py in clear):
+                    lx, ly = sidewalk_cafe(g, rng, h['w'])
+                    ca, sa = math.cos(h['ang']), math.sin(h['ang'])
+                    CAFES.append((h['cx'] + ca * lx - sa * ly, h['cy'] + sa * lx + ca * ly))
+            if got is not None:
+                floors = got[0]
+                sides = h['sides'] if kind != 'cl' else []
+                wall_details(ns, g, rng, h['w'], h['D'], floors, sides, h['back'] and kind != 'cl')
+            count += 1
+        except Exception as e:
+            log('house failed:', kind, type(e).__name__, e)
+        del g.st[depth:]
     for kind, g in geos.items():
         ns['make_obj'](g, 'SH_' + kind, coll, sub=0, angle=30, recenter=True)
-    back.build()
-    log('houses', count)
+    # the yards inside the blocks: a lawn with a tree or two
+    yard = Builder('SH_Yards', coll)
+    tg = ns['Geo'](11)
+    for q in PLAN['yards']:
+        lawn = q.buffer(-0.2)
+        if lawn.is_empty:
+            continue
+        yard.slab(lawn, WALK_Z - 0.02, WALK_Z + 0.05, 'grassDark', 'curb')
+        inner = q.buffer(-1.6)
+        minx, miny, maxx, maxy = q.bounds
+        for _ in range(max(1, int(q.area / 45))):
+            for _try in range(12):
+                x, y = rng.uniform(minx, maxx), rng.uniform(miny, maxy)
+                if shapely.contains_xy(inner, x, y):
+                    street_tree(tg, ns, x, y, WALK_Z + 0.05, rng)
+                    break
+    yard.build()
+    ns['make_obj'](tg, 'CX_YardTrees', coll, sub=0, angle=30, recenter=True)
+    log('houses', count, 'corners', sum(1 for h in PLAN['houses'] if h['role'] == 'corner'), 'hẻm', len(PLAN['alleys']),
+        'yards', len(PLAN['yards']))
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -896,19 +1499,322 @@ def face_matrix(ns, cx, cy, d, face):
     return ns['T'](cx + fx * d / 2, cy + fy * d / 2, WALK_Z) @ ns['Rm'](0, 0, yaw)
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# the new landmarks as low-poly models (review 2026-11-13), in place of the blockout boxes. Each builds in the local
+# frame of face_matrix: facade at y = 0 facing -Y, x across the facade (w wide), y into the building (d deep).
+# ---------------------------------------------------------------------------------------------------------------
+def _gable(g, wall, roof, x0, x1, y0, y1, zw, zr, ov=0.5, t=0.22, ends=True):
+    """walls and a pitched roof with its ridge along y (eaves on the x sides)"""
+    xm = (x0 + x1) / 2
+    if wall:
+        g.box(wall, x0, y0, 0, x1, y1, zw, ch=0)
+    if ends and wall:
+        for y in (y0, y1 - 0.25):
+            g.extrude(wall, [(x0, zw), (x1, zw), (xm, zr)], y, y + 0.25)
+    s = (zr - zw) / max(0.1, xm - x0)
+    for xe in (x0 - ov, x1 + ov):
+        ze = zw - ov * s
+        g.extrude(roof, [(xe, ze), (xm, zr), (xm, zr + t), (xe, ze + t)], y0 - ov, y1 + ov)
+
+
+def _windows(g, xs, z0, z1, y, frame='opWhite', glass='glassDark', wd=1.1):
+    for x in xs:
+        g.box(frame, x - wd / 2 - 0.12, y - 0.1, z0 - 0.12, x + wd / 2 + 0.12, y, z1 + 0.12, ch=0)
+        g.box(glass, x - wd / 2, y - 0.14, z0, x + wd / 2, y - 0.08, z1, ch=0)
+
+
+def lm_ubnd(ns, g, rng, w, d):
+    """UBND (Hôtel de Ville, 1909): cream walls and white trim, end pavilions and a central pavilion with a clock
+    tower, slate roofs, an arcade on the ground floor"""
+    T, Rm = ns['T'], ns['Rm']
+    hw = w / 2
+    W, TR, RF = 'cream', 'opWhite', 'slate'
+    g.box('stone', -hw - 0.4, -1.4, 0, hw + 0.4, d + 0.3, 0.5, ch=0)
+    g.box(W, -hw + 4.2, 1.0, 0.5, hw - 4.2, d - 1.0, 9.0, ch=0)
+    g.hip(RF, -hw + 4.0, 0.8, hw - 4.0, d - 0.8, 9.0, 2.6)
+    for sx in (-1, 1):
+        x0, x1 = sorted((sx * hw, sx * (hw - 4.4)))
+        g.box(W, x0, 0.0, 0.5, x1, d, 10.0, ch=0)
+        g.box(TR, x0 - 0.15, -0.15, 9.6, x1 + 0.15, d + 0.15, 10.1, ch=0)
+        g.hip(RF, x0 + 0.1, 0.1, x1 - 0.1, d - 0.1, 10.1, 3.4)
+        xc = (x0 + x1) / 2
+        _windows(g, (xc - 1.0, xc + 1.0), 1.6, 3.8, 0.0, wd=0.8)
+        _windows(g, (xc - 1.0, xc + 1.0), 5.6, 8.2, 0.0, wd=0.8)
+    g.box(TR, -hw + 4.2, 0.85, 4.6, hw - 4.2, 1.05, 4.95, ch=0)
+    g.box(TR, -hw + 4.2, 0.85, 8.7, hw - 4.2, 1.1, 9.0, ch=0)
+    x = -hw + 5.4
+    while x < hw - 5.2:
+        if abs(x) > 4.2:
+            g.arch('archDark', x, 1.3, 0.5, 2.5, 0.88, 1.0, 6)
+            _windows(g, (x,), 5.5, 7.9, 1.0, wd=0.9)
+        x += 2.0
+    g.box(W, -3.8, -0.8, 0.5, 3.8, 6.0, 11.2, ch=0)        # central pavilion
+    g.box(TR, -4.0, -1.0, 10.8, 4.0, 6.2, 11.2, ch=0)
+    g.box(TR, -4.0, -1.9, 4.6, 4.0, -0.8, 4.95, ch=0)      # balcony over the door
+    for x in (-3.3, -1.1, 1.1, 3.3):
+        g.cyl(TR, 0.26, 3.8, 8, T(x, -1.5, 4.95))
+    g.box(TR, -4.0, -1.9, 8.75, 4.0, -0.8, 9.1, ch=0)
+    g.arch('archDark', 0, 2.4, 0.5, 3.0, -0.9, -0.78, 8)
+    _windows(g, (-1.6, 1.6), 5.6, 8.2, -0.8, wd=1.0)
+    g.box(W, -2.1, 0.6, 11.2, 2.1, 4.8, 16.2, ch=0)        # clock tower
+    g.box(TR, -2.3, 0.4, 15.8, 2.3, 5.0, 16.3, ch=0)
+    g.cyl('clockWhite', 1.05, 0.14, 18, T(0, 0.6, 13.8) @ Rm(math.pi / 2, 0, 0))
+    g.box('archDark', -0.06, 0.4, 13.8, 0.06, 0.45, 14.6, ch=0)
+    g.box('archDark', -0.06, 0.4, 13.74, 0.55, 0.45, 13.86, ch=0)
+    g.pyramid(RF, 0, 2.7, 16.3, 2.4, 2.4, 3.6)
+    g.rod('gold', (0, 2.7, 19.7), (0, 2.7, 22.4), 0.07, 6)
+    g.box('signRed', 0.05, 2.65, 21.2, 1.6, 2.75, 22.2, ch=0)   # the flag
+    g.box('gold', -0.15, 2.6, 22.0, 0.15, 2.8, 22.3, ch=0)
+    g.text('UBND THÀNH PHỐ', 0.42, 'gold', T(0, -0.86, 10.0) @ ns['FACE_S'], extrude=0.03, max_w=7.0)
+
+
+def lm_chung_cu_42(ns, g, rng, w, d):
+    """Chung cư 42 Nguyễn Huệ (1960s): an old nine-storey block whose flats are cafés and shops, each balcony its
+    own colour and sign, laundry and AC units between, a stair tower at one end"""
+    T = ns['T']
+    hw = w / 2
+    F, GF, n = 3.1, 4.0, 8
+    H = GF + F * n
+    g.box('wallGrey', -hw, 1.4, 0, hw - 3.0, d, H, ch=0)
+    g.box('concrete', hw - 3.0, 0.0, 0, hw, d, H + 2.0, ch=0)            # stair tower
+    for k in range(int(H / 2.2)):
+        g.box('glassDark', hw - 2.2, -0.05, 1.2 + k * 2.2, hw - 0.8, 0.0, 2.2 + k * 2.2, ch=0)
+    xs = [-hw + 0.3 + i * (w - 3.3) / 5 for i in range(6)]
+    for i in range(5):                                                  # ground floor shops
+        x0, x1 = xs[i], xs[i + 1]
+        g.box('shopDark', x0 + 0.2, 1.3, 0.15, x1 - 0.2, 1.4, GF - 0.6, ch=0)
+        bg, fg = rng.choice(SIGN_COLOURS)
+        g.box(bg, x0 + 0.1, -0.1, GF - 0.9, x1 - 0.1, 0.1, GF - 0.2, ch=0)
+        g.text(rng.choice(['CÀ PHÊ', 'TRÀ SỮA', 'SÁCH', 'THỜI TRANG', 'BÁNH']), 0.3, fg, T((x0 + x1) / 2, -0.12, GF - 0.55) @ ns['FACE_S'],
+               extrude=0.02, max_w=(x1 - x0) - 0.6)
+    g.box('concrete', -hw, 0.0, GF - 0.2, hw - 3.0, 1.4, GF, ch=0)
+    cafe = ['signRed', 'poYellow', 'wallTeal', 'wallPink', 'wallMint', 'clothBlue', 'wallOchre', 'creamLight', 'signGold']
+    for f in range(n):
+        z0 = GF + f * F
+        g.box('stone', -hw, -1.3, z0 - 0.15, hw - 3.0, 1.4, z0, ch=0)      # balcony slab
+        for i in range(5):
+            x0, x1 = xs[i], xs[i + 1]
+            col = rng.choice(cafe)
+            g.box(col, x0 + 0.08, 1.3, z0, x1 - 0.08, 1.4, z0 + F - 0.15, ch=0)
+            g.box('glassDark', x0 + 0.6, 1.25, z0 + 0.3, x1 - 0.6, 1.32, z0 + 2.3, ch=0)
+            g.box('creamLight', x0, -1.3, z0, x0 + 0.12, 1.4, z0 + F - 0.15, ch=0)
+            if rng.random() < 0.55:
+                bg, fg = rng.choice(SIGN_COLOURS)
+                g.box(bg, x0 + 0.3, -1.38, z0 + 0.95, x1 - 0.3, -1.28, z0 + 1.55, ch=0)
+            else:
+                g.box('wallGrey', x0 + 0.1, -1.36, z0, x1 - 0.1, -1.28, z0 + 1.0, ch=0)
+            if rng.random() < 0.6:
+                g.ico(rng.choice(['leaf', 'leafLight', 'flowerPink']), 0.35, T(x0 + 0.6, -1.0, z0 + 1.3), sub=0, jit=0.1)
+            if rng.random() < 0.4:
+                g.box('acWhite', x1 - 1.1, -0.2, z0 + 2.0, x1 - 0.3, 0.2, z0 + 2.6, ch=0)
+    for f in range(n + 1):                                   # the back and the west end: windows, AC units, laundry
+        z0 = GF + (f - 1) * F if f else 0.6
+        x = -hw + 1.0
+        while x < hw - 3.6:
+            g.box('creamLight', x, d, z0 + 0.7, x + 1.3, d + 0.08, z0 + 2.1, ch=0)
+            g.box('glassDark', x + 0.15, d + 0.02, z0 + 0.85, x + 1.15, d + 0.11, z0 + 1.95, ch=0)
+            if f and rng.random() < 0.3:
+                g.box('acWhite', x + 1.5, d, z0 + 0.4, x + 2.3, d + 0.42, z0 + 0.95, ch=0)
+            if f and rng.random() < 0.2:
+                g.box(rng.choice(['clothRed', 'clothBlue', 'white']), x, d + 0.3, z0 + 1.7, x + 1.3, d + 0.4, z0 + 2.3, ch=0)
+            x += 2.6
+        for y in (2.5, 6.0, 9.5):
+            g.box('creamLight', -hw - 0.08, y, z0 + 0.7, -hw, y + 1.3, z0 + 2.1, ch=0)
+            g.box('glassDark', -hw - 0.11, y + 0.15, z0 + 0.85, -hw - 0.02, y + 1.15, z0 + 1.95, ch=0)
+    g.box('creamLight', -hw - 0.1, -1.4, H - 0.1, hw - 3.0, d + 0.1, H + 0.6, ch=0)
+    g.text('42', 0.9, 'signRed', T(hw - 1.5, -0.08, H + 0.9) @ ns['FACE_S'], extrude=0.05)
+    for k in range(3):
+        g.cyl('white', 0.6, 1.3, 10, T(-hw + 3 + k * 5, d * 0.6, H + 0.6))
+
+
+def lm_ben_bach_dang(ns, g, rng, w, d):
+    """Bến Bạch Đằng: a long tiled pavilion on slender posts along the riverside, benches under it"""
+    T = ns['T']
+    hw = w / 2
+    g.box('pavingDark', -hw, 0, 0, hw, d, 0.12, ch=0)
+    y = 1.2
+    while y < d - 0.8:
+        for x in (-hw + 0.8, hw - 0.8):
+            g.cyl('wood', 0.16, 3.2, 8, T(x, y, 0.12))
+        g.box('wood', -hw + 1.4, y + 0.6, 0.12, -hw + 3.0, y + 1.0, 0.55, ch=0)
+        y += 3.6
+    _gable(g, None, 'roofRed', -hw + 0.6, hw - 0.6, 0.8, d - 0.8, 3.3, 5.0, ov=0.6)
+    g.box('wood', -hw + 0.6, 0.6, 3.2, hw - 0.6, d - 0.6, 3.35, ch=0)
+    g.text('BẾN BẠCH ĐẰNG', 0.45, 'signGold', T(0, 0.4, 3.8) @ ns['FACE_S'], extrude=0.03, max_w=w - 1.4)
+
+
+def lm_ben_nha_rong(ns, g, rng, w, d):
+    """Bến Nhà Rồng (1863): a two-storey colonial house, red tiled roof with two dragons and the moon on the ridge,
+    a small front tower"""
+    T = ns['T']
+    hw = w / 2
+    W, TR = 'creamLight', 'opWhite'
+    g.box('stone', -hw - 0.3, -0.6, 0, hw + 0.3, d * 0.7 + 0.3, 0.5, ch=0)
+    D = d * 0.7
+    g.box(W, -hw, 0.6, 0.5, hw, D, 8.0, ch=0)
+    g.box(TR, -hw - 0.15, 0.45, 4.1, hw + 0.15, D + 0.15, 4.4, ch=0)
+    g.box(TR, -hw - 0.2, 0.4, 7.8, hw + 0.2, D + 0.2, 8.1, ch=0)
+    x = -hw + 1.4
+    while x < hw - 1.0:
+        if abs(x) > 2.4:
+            g.arch('archDark', x, 1.0, 0.5, 2.4, 0.5, 0.6, 6)
+            _windows(g, (x,), 5.0, 7.0, 0.6, wd=0.8)
+        x += 2.2
+    g.box(W, -2.2, -0.4, 0.5, 2.2, 3.0, 10.0, ch=0)        # front tower
+    g.arch('archDark', 0, 1.6, 0.5, 2.6, -0.5, -0.38, 8)
+    _windows(g, (0,), 5.2, 7.4, -0.4, wd=1.0)
+    g.pyramid('roofRed', 0, 1.3, 10.0, 2.6, 2.3, 2.4)
+    g.box(TR, -2.4, -0.6, 9.7, 2.4, 3.2, 10.0, ch=0)
+    g.hip('roofRed', -hw - 0.5, 0.1, hw + 0.5, D + 0.5, 8.1, 3.2)
+    zr = 8.1 + 3.2
+    ry = (0.1 + D + 0.5) / 2
+    for sx in (-1, 1):                                     # the two dragons, facing the moon in the middle
+        x0 = sx * 1.0
+        for k in range(5):
+            xx = x0 + sx * k * 0.55
+            g.box('poGreen', xx - 0.3, ry - 0.2, zr + 0.1 + 0.25 * math.sin(k * 1.4), xx + 0.3, ry + 0.2, zr + 0.55 + 0.25 * math.sin(k * 1.4), ch=0)
+        g.box('gold', x0 - 0.25, ry - 0.25, zr + 0.4, x0 + 0.25, ry + 0.25, zr + 0.95, ch=0)
+    g.ico('gold', 0.42, T(0, ry, zr + 0.6), sub=1)
+    g.rod('metal', (hw - 1.0, -0.2, 0.5), (hw - 1.0, -0.2, 13.0), 0.06, 6)
+    g.box('signRed', hw - 0.95, -0.25, 11.6, hw + 0.9, -0.15, 12.8, ch=0)
+    g.box('gold', hw - 0.2, -0.27, 12.0, hw + 0.1, -0.13, 12.3, ch=0)
+
+
+def lm_chua_ba(ns, g, rng, w, d):
+    """Chùa Bà Thiên Hậu (Chợ Lớn, 1760): a low Cantonese temple, front hall and main hall around a small courtyard,
+    green glazed roofs with figures on the ridges, red doors, lanterns and incense coils"""
+    T = ns['T']
+    hw = w / 2
+    g.box('stone', -hw, 0, 0, hw, d, 0.35, ch=0)
+    def hall(y0, y1, zw, zr):
+        g.box('wallOchre', -hw + 0.5, y0, 0.35, hw - 0.5, y1, zw, ch=0)
+        g.push(T(0, 0, 0) @ ns['Rm'](0, 0, math.pi / 2))
+        _gable(g, None, 'poGreen', y0 - 0.2, y1 + 0.2, -hw + 0.5, hw - 0.5, zw, zr, ov=0.7, t=0.25)
+        g.pop()
+        g.box('roofRedDark', -hw + 0.2, (y0 + y1) / 2 - 0.25, zr, hw - 0.2, (y0 + y1) / 2 + 0.25, zr + 0.5, ch=0)
+        for sx in (-1, 1):                                 # the ridge ends curl up
+            g.box('roofRedDark', sx * (hw - 0.2) - 0.35, (y0 + y1) / 2 - 0.25, zr + 0.4, sx * (hw - 0.2) + 0.35, (y0 + y1) / 2 + 0.25, zr + 1.2, ch=0)
+        for k in range(5):                                 # figures on the ridge
+            x = -hw + 2.5 + k * (w - 5) / 4
+            g.box(rng.choice(['gold', 'wallTeal', 'signRed', 'clothYellow']), x - 0.22, (y0 + y1) / 2 - 0.15, zr + 0.5, x + 0.22, (y0 + y1) / 2 + 0.15, zr + 1.05, ch=0)
+    hall(1.2, 6.2, 4.4, 6.4)
+    hall(9.6, d - 0.4, 5.2, 7.6)
+    g.box('stone', -hw + 0.5, 6.2, 0.35, -hw + 1.5, 9.6, 3.0, ch=0)
+    g.box('stone', hw - 1.5, 6.2, 0.35, hw - 0.5, 9.6, 3.0, ch=0)
+    g.cyl('brick', 0.7, 1.0, 10, T(0, 7.9, 0.35))            # incense burner in the courtyard
+    g.cyl('gold', 0.5, 0.3, 10, T(0, 7.9, 1.35))
+    for x in (-3.4, 0.0, 3.4):                                # three red doors, gold signboard
+        g.box('signRed', x - 0.9, 1.1, 0.35, x + 0.9, 1.2, 3.1, ch=0)
+    g.box('archDark', -2.2, 1.0, 3.3, 2.2, 1.1, 4.1, ch=0)
+    g.text('THIÊN HẬU', 0.42, 'gold', T(0, 0.98, 3.7) @ ns['FACE_S'], extrude=0.03, max_w=4.0)
+    for x in (-hw + 1.4, -1.8, 1.8, hw - 1.4):
+        g.cyl('signRed', 0.12, 3.6, 8, T(x, 0.6, 0.35))
+    for x in (-5.0, -2.0, 2.0, 5.0):
+        ns['lantern'](g, T(x, 0.3, 3.6))
+    for k in range(3):                                        # incense coils hanging in the courtyard
+        g.cone('wallOchre', 0.5, 0.9, 8, T(-2.2 + k * 2.2, 7.9, 2.8))
+
+
+def lm_ben_xe(ns, g, rng, w, d):
+    """Bến xe Chợ Lớn: a ticket office at one end, the platforms each under its own pitched tin canopy on a row of
+    steel posts (review r9: one flat lid over all of them read as a warehouse), bus bays painted on the apron"""
+    T, Rm = ns['T'], ns['Rm']
+    hw = w / 2
+    g.box('pavingDark', -hw, 0, 0, hw, d, 0.1, ch=0)
+    g.box('wallCream', -hw, 3.0, 0.1, -hw + 8.0, d, 7.0, ch=0)        # office
+    g.box('creamLight', -hw - 0.15, 2.85, 6.8, -hw + 8.15, d + 0.15, 7.3, ch=0)
+    for z in (1.0, 4.2):
+        _windows(g, (-hw + 2.0, -hw + 4.0, -hw + 6.0), z, z + 1.7, 3.0, frame='creamLight', glass='glassBlue', wd=1.2)
+    g.box('clothBlue', -hw + 0.4, 2.8, 2.9, -hw + 7.6, 3.0, 3.8, ch=0)
+    g.text('BẾN XE CHỢ LỚN', 0.38, 'white', T(-hw + 4.0, 2.78, 3.35) @ ns['FACE_S'], extrude=0.02, max_w=6.8)
+    x0 = -hw + 9.0
+    for k in range(4):                                         # platforms under the canopy
+        y = 3.0 + k * (d - 4.0) / 4
+        g.box('paving', x0, y, 0.1, hw - 0.5, y + 1.2, 0.3, ch=0)
+        for x in (x0 + 0.5, (x0 + hw) / 2, hw - 1.0):
+            g.cyl('metal', 0.12, 4.4, 8, T(x, y + 0.6, 0.3))
+        # the canopy, its ridge along the platform (the builder's ridge runs along y: turned a quarter round)
+        g.push(Rm(0, 0, math.pi / 2))
+        _gable(g, None, 'tinBlue', y - 1.0, y + 2.2, -(hw + 0.3), -(x0 - 0.3), 4.55, 5.35, ov=0.2, t=0.12, ends=False)
+        g.pop()
+        g.box('tinWhite', x0 - 0.5, y + 0.5, 4.45, hw + 0.5, y + 0.7, 4.75, ch=0)
+        g.box('wood', x0 + 2.0, y + 0.3, 0.3, x0 + 4.0, y + 0.9, 0.75, ch=0)
+        bx = x0 + 1.0
+        while bx < hw - 3.0:                                   # bus bays
+            g.box('roadLine', bx, y + 1.4, 0.1, bx + 0.15, y + 1.4 + (d - 4.0) / 4 - 1.6, 0.115, ch=0)
+            bx += 4.5
+
+
+def lm_sang_tao(ns, g, rng, w, d):
+    """the stage of Công viên Sáng tạo: a white roof slab on four columns over a raised platform, a teal back wall"""
+    T = ns['T']
+    hw = w / 2
+    g.box('stone', -hw, 0, 0, hw, d, 0.9, ch=0)
+    for x in (-hw + 0.5, hw - 0.5):
+        for y in (0.6, d - 0.6):
+            g.cyl('white', 0.2, 4.2, 8, T(x, y, 0.9))
+    g.box('white', -hw - 0.6, -0.6, 5.1, hw + 0.6, d + 0.6, 5.5, ch=0)
+    g.box('wallTeal', -hw + 0.3, d - 0.5, 0.9, hw - 0.3, d - 0.2, 4.6, ch=0)
+    g.text('SÁNG TẠO', 0.6, 'white', T(0, d - 0.55, 3.4) @ ns['FACE_S'], extrude=0.03, max_w=w - 2)
+    for k in range(3):
+        g.box('signGold', -hw + 1.0, -1.2 - k * 0.45, 0, hw - 1.0, -0.75 - k * 0.45, 0.9 - k * 0.3, ch=0)
+
+
+def lm_nha_tho_tt(ns, g, rng, w, d):
+    """Nhà thờ Thủ Thiêm (1859): a small white church, red tiled nave, a bell tower over the door with a cross"""
+    T = ns['T']
+    hw = w / 2
+    g.box('stone', -hw, 0, 0, hw, d, 0.3, ch=0)
+    _gable(g, 'opWhite', 'roofRed', -hw + 0.5, hw - 0.5, 3.0, d - 0.3, 6.5, 9.5, ov=0.5)
+    for y in (6.0, 9.5, 13.0):
+        for x in (-hw + 0.45, hw - 0.45):
+            g.arch('glassBlue', 0, 0.9, 2.6, 4.2, -0.06, 0.06, 6, T(x, y, 0) @ ns['Rm'](0, 0, math.pi / 2))
+    g.box('opWhite', -2.2, 0.4, 0.3, 2.2, 3.4, 12.0, ch=0)
+    g.arch('wood', 0, 1.6, 0.3, 2.2, 0.28, 0.4, 8)
+    g.cyl('glassBlue', 0.7, 0.1, 12, T(0, 0.38, 6.2) @ ns['Rm'](math.pi / 2, 0, 0))
+    g.box('archDark', -0.8, 0.35, 9.4, 0.8, 0.45, 11.0, ch=0)
+    g.pyramid('roofRed', 0, 1.9, 12.0, 2.4, 1.7, 3.0)
+    g.box('gold', -0.07, 1.85, 15.0, 0.07, 1.95, 16.8, ch=0)
+    g.box('gold', -0.5, 1.85, 16.0, 0.5, 1.95, 16.15, ch=0)
+
+
+def lm_ben_buyt_song(ns, g, rng, w, d):
+    """the river bus stop: a shelter on the bank, a ramp down to the pontoon"""
+    T = ns['T']
+    hw = w / 2
+    g.box('wood', -hw, 0, 0, hw, d, 0.15, ch=0)
+    for x in (-hw + 0.3, hw - 0.3):
+        for y in (0.4, d / 2, d - 0.4):
+            g.cyl('metal', 0.08, 2.6, 6, T(x, y, 0.15))
+    g.box('tinBlue', -hw - 0.3, -0.3, 2.75, hw + 0.3, d + 0.3, 2.95, ch=0)
+    g.box('wood', -hw + 0.4, 1.0, 0.15, -hw + 1.0, d - 1.0, 0.6, ch=0)
+    g.box('clothBlue', -1.6, -0.35, 2.3, 1.6, -0.25, 2.75, ch=0)
+    g.text('BUÝT SÔNG', 0.3, 'white', T(0, -0.37, 2.52) @ ns['FACE_S'], extrude=0.02, max_w=3.0)
+
+
+LM_OPEN = {'ben_bach_dang', 'ben_xe', 'cong_vien_sang_tao', 'ben_buyt_song'}     # open structures: walk under them
+LM_MODELS = {'ubnd': lm_ubnd, 'chung_cu_42': lm_chung_cu_42, 'ben_bach_dang': lm_ben_bach_dang, 'ben_nha_rong': lm_ben_nha_rong,
+             'cho_lon': lm_chua_ba, 'ben_xe': lm_ben_xe, 'cong_vien_sang_tao': lm_sang_tao, 'nha_tho_thu_thiem': lm_nha_tho_tt,
+             'ben_buyt_song': lm_ben_buyt_song}
+
+
 def build_new_landmarks(coll):
     ns = load_builders()
     rng = random.Random(42)
     gm = ns['Geo'](42)
+    gp = ns['Geo'](43)
     b = Builder('LM_Blockout', coll)
     for lm in L['landmarks']:
         if lm.get('models'):
             continue
-        if lm['id'] == 'chung_cu_42':
+        if lm['id'] in LM_MODELS and 'size' in lm and 'at' in lm:
             cx, cy = tb(lm['at'])
-            gm.push(face_matrix(ns, cx, cy, lm['size'][1], lm['face']))
-            ns['modern_block'](gm, lm['size'][0], lm['size'][1], 8, rng, palette=('cream', 'glassTeal', 'creamLight'))
-            gm.pop()
+            face = lm.get('face', 'S')
+            w, d = (lm['size'][1], lm['size'][0]) if face in ('E', 'W') else lm['size']
+            g_ = gp if lm['id'] in LM_OPEN else gm
+            g_.push(face_matrix(ns, cx, cy, d, face))
+            LM_MODELS[lm['id']](ns, g_, rng, w, d)
+            g_.pop()
             continue
         if 'size' in lm and 'at' in lm and lm['id'] not in MODELLED_LANDMARKS:
             cx, cy = tb(lm['at'])
@@ -964,6 +1870,7 @@ def build_new_landmarks(coll):
         gm.pop()
     b.build()
     ns['make_obj'](gm, 'LM_NewBuildings', coll, sub=0, angle=30, recenter=True)
+    ns['make_obj'](gp, 'LM_Pavilions', coll, sub=0, angle=30, recenter=True)
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -996,7 +1903,8 @@ def forest_tree(g, ns, x, y, z, rng, s=1.0):
 def placeable():
     blocked = lm_keepout.union(river.buffer(2)).union(unary_union([ln.buffer(b_['w'] / 2 + 2) for ln, b_ in bridge_lines]))
     land_in = land.buffer(-1)
-    houses = unary_union([rect_poly(r) for r, _ in LOTS])
+    houses = HOUSE_FOOT.buffer(0.5).union(ALLEYS)
+    blocked = blocked.union(unary_union([Point(c).buffer(1.7) for c in CAFES] or [Polygon()]))
     for g_ in (blocked, land_in, roads, houses):
         shapely.prepare(g_)
     return lambda x, y, lots_ok=False: (shapely.contains_xy(land_in, x, y) and not shapely.contains_xy(blocked, x, y)
@@ -1025,32 +1933,53 @@ def build_nature(coll):
     g = ns['Geo'](7)
     ok = placeable()
     placed = 0
-    for ln, w in road_geo:                    # street trees on the main streets
-        if w < 10:
+    for ln, w in road_geo:                    # street trees: every 13 m on the main streets, 21 m on the smaller ones
+        if w < 7:
             continue
-        for x, y, dx, dy in road_points(ln, 13.0, 5.0):
+        for x, y, dx, dy in road_points(ln, 13.0 if w >= 10 else 21.0, 5.0):
             for sgn in (1, -1):
                 X, Y = x - dy * sgn * (w / 2 + 1.6), y + dx * sgn * (w / 2 + 1.6)
                 if ok(X, Y, lots_ok=True):
                     street_tree(g, ns, X, Y, WALK_Z, rng)
                     placed += 1
     flowers = Builder('CX_Flowers', coll)
-    for pk in L['parks']:                     # flower fields: low rows of green with a yellow top (sunflowers)
-        if pk.get('kind') != 'flowers':
+    for pk in L['parks']:                     # flower gardens (as the Tết flower street on Nguyễn Huệ): raised planters
+        if pk.get('kind') != 'flowers':       # of one colour each, on paving, with walks between and across them
             continue
         poly = rect_poly(pk['rect']).intersection(land.buffer(-0.5)).difference(roads)
         minx, miny, maxx, maxy = poly.bounds
         along_y = (maxy - miny) > (maxx - minx)
-        flowers.slab(poly.buffer(-0.2), -0.1, GROUND_Z + 0.05, 'earth')
-        k = 0.0
+        flowers.slab(poly.buffer(-0.2), -0.1, GROUND_Z + 0.08, 'paving')
         span = (maxx - minx) if along_y else (maxy - miny)
-        while k + 0.6 < span:
-            if along_y:
-                row = sbox(minx + k + 0.25, miny + 0.6, minx + k + 0.8, maxy - 0.6).intersection(poly)
-            else:
-                row = sbox(minx + 0.6, miny + k + 0.25, maxx - 0.6, miny + k + 0.8).intersection(poly)
-            flowers.slab(row, GROUND_Z, GROUND_Z + 0.55, 'flowerYellow', 'leaf')
-            k += 1.15
+        length = (maxy - miny) if along_y else (maxx - minx)
+        BED, WALK = 1.7, 1.4
+        n = max(1, int((span - WALK) // (BED + WALK)))
+        k0 = (span - n * BED - (n - 1) * WALK) / 2
+        m = max(1, int(round((length - 2 * WALK) / 7.5)))
+        seg = (length - 2 * WALK - (m - 1) * WALK) / m
+        for a in range(n):
+            col = ['flowerRed', 'flowerYellow', 'flowerPink', 'flowerYellow'][a % 4]
+            for c in range(m):
+                k1 = k0 + a * (BED + WALK)
+                t1 = WALK + c * (seg + WALK)
+                if along_y:
+                    bed = sbox(minx + k1, miny + t1, minx + k1 + BED, miny + t1 + seg)
+                else:
+                    bed = sbox(minx + t1, miny + k1, minx + t1 + seg, miny + k1 + BED)
+                if not poly.buffer(-0.3).contains(bed):
+                    continue
+                # a planter 0.6 m high (more than a step: the flowers are not walked on), earth inside, flowers on it
+                flowers.slab(bed, GROUND_Z, GROUND_Z + 0.6, 'curb')
+                flowers.slab(bed.buffer(-0.14, join_style=2), GROUND_Z + 0.3, GROUND_Z + 0.7, col, side='leaf')
+                bx0, by0, bx1, by1 = bed.bounds
+                yy = by0 + 0.4
+                while yy < by1 - 0.3:
+                    xx = bx0 + 0.4 + (0.27 if int((yy - by0) / 0.55) % 2 else 0.0)
+                    while xx < bx1 - 0.3:
+                        g.ico(col if rng.random() < 0.8 else 'leafLight', 0.2, T(xx + rng.uniform(-0.05, 0.05), yy + rng.uniform(-0.05, 0.05), GROUND_Z + 0.74),
+                              sub=0, jit=0.12, sc=(1, 1, 0.6))
+                        xx += 0.55
+                    yy += 0.55
     flowers.build()
     for pk in L['parks']:                     # parks: tamarind trees, a few tall ones
         if pk.get('kind') == 'flowers':
@@ -1065,6 +1994,22 @@ def build_nature(coll):
                 else:
                     street_tree(g, ns, x, y, ground_z(x, y), rng)
                 placed += 1
+    for q in ISLANDS:                         # traffic islands: a tree in the lawn
+        c = q.buffer(-1.0).representative_point()
+        street_tree(g, ns, c.x, c.y, WALK_Z + 0.08, rng)
+        placed += 1
+    for q in MEDIANS:                         # medians: a tree every 12 m along the lawn
+        inner = q.buffer(-0.8)
+        if inner.is_empty:
+            continue
+        minx, miny, maxx, maxy = inner.bounds
+        for _ in range(max(1, int(q.area / 60))):
+            for _try in range(10):
+                x, y = rng.uniform(minx, maxx), rng.uniform(miny, maxy)
+                if shapely.contains_xy(inner, x, y):
+                    street_tree(g, ns, x, y, WALK_Z + 0.08, rng)
+                    placed += 1
+                    break
     for b, band in beach_polys:               # palms along the top of the beaches
         line = LineString(path_pts(b['path'], 0.8))
         for x, y, dx, dy in road_points(line, 8.5, 3.0):
@@ -1123,26 +2068,29 @@ def build_props(coll):
                 ns['globe_lamp'](g, T(X, Y, WALK_Z))
                 lamps += 1
         # no parked scooters (layout v7): vehicles and people are NPCs in the game, added by code
-    # zebra crossings on each arm of the signalled crossings
-    for (sx, sy) in sig:
-        for ln, w in road_geo:
-            if w < 8 or ln.distance(Point(sx, sy)) > 1.5:
-                continue
-            t0 = ln.project(Point(sx, sy))
-            for sgn in (-1, 1):
-                t = t0 + sgn * 10.0
-                if t < 0 or t > ln.length:
+    # Chợ Lớn's walking street: a string of red lanterns along each side, a step out from the shop fronts, as on Lương
+    # Nhữ Học, the lantern street (review r5: 40 m of empty paving between the market rows). Not across the street:
+    # strung across, they hung in the camera's way (review r11). Posts carry the wire; the middle stays open.
+    shapely.prepare(walks)
+    for ln, wk in walk_lines:
+        for side in (-1, 1):
+            off = side * (wk['w'] / 2 - 1.3)
+            prev = None
+            for k, (x, y, dx, dy) in enumerate(road_points(ln, 1.7, 0.8)):
+                X, Y = x - dy * off, y + dx * off
+                if district_kind(x, y) != 'cl' or not shapely.contains_xy(walks, x, y) or x > BUI_VIEN_WEST:
+                    prev = None
                     continue
-                p = ln.interpolate(t)
-                q = ln.interpolate(min(ln.length, t + 0.5))
-                o = ln.interpolate(max(0.0, t - 0.5))
-                dx, dy = q.x - o.x, q.y - o.y
-                dl = math.hypot(dx, dy) or 1.0
-                dx, dy = dx / dl, dy / dl
-                k = -(w / 2 - 0.7)
-                while k <= w / 2 - 0.7:
-                    b.oriented_box(p.x - dy * k, p.y + dx * k, ROAD_Z, 2.8, 0.45, 0.012, math.atan2(dy, dx), 'roadLine')
-                    k += 0.9
+                zw = WALK_Z + 3.3
+                if prev is None or k % 5 == 0:
+                    g.cyl('archDark', 0.05, zw - WALK_Z + 0.15, 6, T(X, Y, WALK_Z))
+                if prev is not None:
+                    g.rod('ink', (prev[0], prev[1], zw), (X, Y, zw), 0.012, 3)
+                    mx, my = (prev[0] + X) / 2, (prev[1] + Y) / 2
+                    g.rod('ink', (mx, my, zw), (mx, my, zw - 0.3), 0.008, 3)
+                    g.ico('signRed' if rng.random() < 0.8 else 'signGold', 0.2, T(mx, my, zw - 0.55), sub=0, jit=0.0, sc=(1, 1, 1.3))
+                    g.cyl('signGold', 0.09, 0.08, 6, T(mx, my, zw - 0.33))
+                prev = (X, Y)
     # roundabout gardens, as on the production map: a clipped topiary, sago palms, a ring of flowers
     for ra in L['roundabouts']:
         if ra.get('model'):
@@ -1154,11 +2102,17 @@ def build_props(coll):
             for k in range(4):
                 a = k * math.pi / 2 + math.pi / 4
                 ns['cycad'](g, T(X + math.cos(a) * ra['r'] * 0.6, Y + math.sin(a) * ra['r'] * 0.6, z), rng)
-        n = int(2 * math.pi * (ra['r'] - 1.0) / 1.1)
-        for k in range(n):
-            a = 2 * math.pi * k / n
-            g.ico(rng.choice(['flowerRed', 'flowerPink', 'flowerYellow', 'flowerRed']), 0.3,
-                  T(X + math.cos(a) * (ra['r'] - 0.8), Y + math.sin(a) * (ra['r'] - 0.8), z + 0.15), sub=1, jit=0.1)
+        # the ring of flowers: a low bed round the rim in arcs of colour behind a clipped edge of box (review r5:
+        # single clumps read as scattered sweets)
+        disc = lambda rr: Point(X, Y).buffer(rr, 48)  # noqa: E731
+        b.slab(disc(ra['r'] - 1.15).difference(disc(ra['r'] - 1.45)), z - 0.1, z + 0.34, 'leafDark')
+        bed = disc(ra['r'] - 0.35).difference(disc(ra['r'] - 1.15))
+        arcs = max(6, int(ra['r']))
+        for k in range(arcs):
+            a0, a1 = 2 * math.pi * k / arcs, 2 * math.pi * (k + 1) / arcs
+            wedge = Polygon([(X, Y)] + [(X + math.cos(a0 + (a1 - a0) * f / 6) * (ra['r'] + 2), Y + math.sin(a0 + (a1 - a0) * f / 6) * (ra['r'] + 2))
+                                        for f in range(7)])
+            b.slab(bed.intersection(wedge), z - 0.1, z + 0.24, ['flowerRed', 'flowerYellow', 'flowerPink', 'flowerRed', 'white'][k % 5], 'leaf')
     # traffic lights
     for x, y in L['signals']:
         X, Y = tb((x + 6.5, y - 6.5))
@@ -1321,7 +2275,8 @@ def main():
         log('art pass shader skipped:', e)
     ns['art_pass_geometry']()
     for o in WORLD.all_objects:   # flat ground pieces and the steel bridge stay straight
-        if o.name.startswith(('CX_Lawn', 'CX_Lakes', 'LM_Bridges', 'LM_CauBaSon', 'IX_NuiNho')) and o.modifiers.get('SD_HandWobble'):
+        # (and the streets: the wobble lifted the asphalt over its zebra stripes and lane marks, review r10)
+        if o.name.startswith(('CX_Lawn', 'CX_Lakes', 'LM_Bridges', 'LM_CauBaSon', 'IX_NuiNho', 'IX_Roads', 'IX_RoadMarks')) and o.modifiers.get('SD_HandWobble'):
             o.modifiers.remove(o.modifiers['SD_HandWobble'])
     ns['setup_ink'](SCENE, WORLD, ENV)
     make_cameras()
