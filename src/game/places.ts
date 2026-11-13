@@ -4,7 +4,8 @@
 import data from '../../server/content/places.json';
 import { lang, tx, type Bilingual } from './i18n';
 
-export type PlaceKind = 'landmark' | 'street' | 'area';
+/** district: a whole part of the map (Quận 1, Thủ Thiêm…), named where no other place is */
+export type PlaceKind = 'landmark' | 'street' | 'area' | 'district';
 
 export interface Place {
   /** stable id (quests refer to places by it) */
@@ -20,7 +21,7 @@ export interface Place {
   r: number;
 }
 
-const KINDS: readonly PlaceKind[] = ['landmark', 'street', 'area'];
+const KINDS: readonly PlaceKind[] = ['landmark', 'street', 'area', 'district'];
 
 export const PLACES: readonly Place[] = data.places.map((p): Place => {
   const kind = KINDS.find((k) => k === p.kind);
@@ -48,7 +49,7 @@ export function placeById(id: string): Place | undefined {
   return PLACES.find((p) => p.id === id);
 }
 
-const RANK: Record<PlaceKind, number> = { landmark: 0, street: 1, area: 2 };
+const RANK: Record<PlaceKind, number> = { landmark: 0, street: 1, area: 2, district: 3 };
 
 function segDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
   const vx = bx - ax;
@@ -67,7 +68,7 @@ export function distance(p: Place, x: number, y: number): number {
   return d;
 }
 
-/** The place the Blender point (x, y) is in: landmarks first, then streets, then areas; null if none. */
+/** The place the Blender point (x, y) is in: landmarks first, then streets, then areas, then districts; null if none. */
 export function placeAt(x: number, y: number, current: Place | null): Place | null {
   let best: Place | null = null;
   let bestScore = Infinity;

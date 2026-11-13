@@ -6,8 +6,8 @@ import { catalog, onLangChange } from './index';
 
 const vi = {
   // start menu
-  menuEyebrow: 'Quận 1 · bản thu nhỏ',
-  menuLede: 'Một hòn đảo vẽ tay giữa biển: từ chợ Bến Thành đi Lê Lợi tới Nhà hát, lên Nhà thờ Đức Bà, Bưu điện, Hồ Con Rùa, ra Bitexco bên bờ nước.',
+  menuEyebrow: 'Sài Gòn · bản thu nhỏ',
+  menuLede: 'Sài Gòn vẽ tay, thu nhỏ giữa biển: từ chợ Bến Thành đi Lê Lợi tới Nhà hát, lên Nhà thờ Đức Bà, qua cầu sang Thủ Thiêm, xuống phố lồng đèn Chợ Lớn, bến cảng Khánh Hội, rồi ra biển Vũng Tàu.',
   modePlay: 'Vào game',
   modePlayNote: 'Đi bộ tự do từ cổng chợ Bến Thành',
   modeMap: 'Xem bản đồ',
@@ -23,7 +23,7 @@ const vi = {
   toMap: 'Bản đồ',
   toMapTitle: 'Xem toàn bộ bản đồ',
   toPlay: 'Vào game',
-  toPlayTitle: 'Đi bộ trong Quận 1',
+  toPlayTitle: 'Đi bộ khắp Sài Gòn',
   /** the switch names the other language, in that language, so anyone can find it */
   otherLanguage: 'English',
   otherLanguageTitle: 'Switch to English',
@@ -84,8 +84,8 @@ const vi = {
 };
 
 const en: typeof vi = {
-  menuEyebrow: 'District 1 · in miniature',
-  menuLede: 'A hand-drawn island in the sea: from Bến Thành Market along Lê Lợi to the Opera House, up to Notre-Dame Cathedral, the Post Office and Turtle Lake, and out to Bitexco by the water.',
+  menuEyebrow: 'Saigon · in miniature',
+  menuLede: 'A hand-drawn Saigon in miniature, set in the sea: from Bến Thành Market along Lê Lợi to the Opera House, up to Notre-Dame Cathedral, across the river to Thủ Thiêm, down to the lantern street of Chợ Lớn and the old port of Khánh Hội, and out to the beaches of Vũng Tàu.',
   modePlay: 'Play',
   modePlayNote: 'Walk around freely from Bến Thành Market',
   modeMap: 'View the map',
@@ -100,7 +100,7 @@ const en: typeof vi = {
   toMap: 'Map',
   toMapTitle: 'See the whole map',
   toPlay: 'Play',
-  toPlayTitle: 'Walk around District 1',
+  toPlayTitle: 'Walk around Saigon',
   otherLanguage: 'Tiếng Việt',
   otherLanguageTitle: 'Chuyển sang tiếng Việt',
   takeRide: 'Take the ride',

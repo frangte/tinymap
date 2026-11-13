@@ -20,7 +20,7 @@ const vi = {
       'Ghé Nhà thờ Đức Bà, Bưu điện và Nhà hát; ăn vặt bên Hồ Con Rùa.',
       'Hỏi đường một người Sài Gòn đang chơi, rồi làm bài kiểm tra cuối để thành Người Sài Gòn chính hiệu.',
     ],
-    tip: 'Nhiệm vụ tự bắt đầu và hiện ở góc trên trái. Điện thoại có Cẩm nang các công trình của Quận 1.',
+    tip: 'Nhiệm vụ tự bắt đầu và hiện ở góc trên trái. Điện thoại có Cẩm nang các công trình khắp Sài Gòn.',
   },
   citizen: {
     opening: 'Nhà bạn ở dãy nhà phố Lê Lai. Sáng nào cũng cà phê quán Chú Tư, hàng xóm ai cũng quen, góc phố nào cũng thuộc.',
@@ -43,7 +43,7 @@ const vi = {
 } satisfies Record<string, Story>;
 
 const fallbackVi: Story = {
-  opening: 'Bạn đang ở Quận 1, Sài Gòn, trên một hòn đảo vẽ tay.',
+  opening: 'Bạn đang ở Sài Gòn, một thành phố vẽ tay giữa biển: Quận 1, Thủ Thiêm, Chợ Lớn, Khánh Hội và biển Vũng Tàu.',
   todo: ['Đi bộ khắp phố: mỗi công trình bạn tới sẽ tự giới thiệu.', 'Bắt chuyện với người quanh bạn.'],
   tip: 'Nhiệm vụ hiện ở góc trên trái; điện thoại ở góc dưới phải.',
 };
@@ -58,7 +58,7 @@ const en: typeof vi = {
       'Visit Notre-Dame Cathedral, the Post Office and the Opera House; grab a snack by Turtle Lake.',
       'Ask a Saigonese player the way, then take the final test to become a True Saigonese.',
     ],
-    tip: 'Quests start on their own and show in the top left corner. Your phone has a Guidebook to the landmarks of District 1.',
+    tip: 'Quests start on their own and show in the top left corner. Your phone has a Guidebook to the landmarks all over Saigon.',
   },
   citizen: {
     opening: 'You live in the shophouses on Lê Lai. Coffee at Chú Tư’s every morning; you know every neighbour and every street corner.',
@@ -81,7 +81,7 @@ const en: typeof vi = {
 };
 
 const fallbackEn: Story = {
-  opening: 'You are in District 1, Saigon, on a hand-drawn island.',
+  opening: 'You are in Saigon, a hand-drawn city in the sea: District 1, Thủ Thiêm, Chợ Lớn, Khánh Hội and the beaches of Vũng Tàu.',
   todo: ['Walk the streets: every landmark you reach introduces itself.', 'Strike up a chat with the people around you.'],
   tip: 'Quests show in the top left; your phone is in the bottom right.',
 };

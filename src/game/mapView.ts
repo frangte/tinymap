@@ -18,7 +18,8 @@ export interface MapStop {
 }
 
 // Sài Gòn mini (layout v8, scripts/map/saigon_mini_layout.json): most stops look down the street that ends on the
-// landmark (Lê Lợi on the Opera House, Đồng Khởi on the cathedral, Phạm Ngọc Thạch on Hồ Con Rùa)
+// landmark (Lê Lợi on the Opera House, Đồng Khởi on the cathedral, Phạm Ngọc Thạch on Hồ Con Rùa); one stop in each
+// district across the water
 export const MAP_STOPS: readonly MapStop[] = [
   { place: null, year: null, t: [-9, -23, 0], az: -112, el: 40, d: 500 },
   { place: 'cho_ben_thanh', year: '1914', t: [-48, 25, 5], az: -15, el: 22, d: 72 },
@@ -27,6 +28,12 @@ export const MAP_STOPS: readonly MapStop[] = [
   { place: 'buu_dien_thanh_pho', year: '1891', t: [-79, 146, 6], az: -75, el: 20, d: 60 },
   { place: 'ho_con_rua', year: '1967', t: [-111, 165, 3], az: -90, el: 30, d: 56 },
   { place: 'bitexco', year: '2010', t: [12, 57, 22], az: -15, el: 12, d: 112 },
+  { place: 'chung_cu_42_nguyen_hue', year: null, t: [12, 100, 12], az: -60, el: 16, d: 74 },
+  // across the river and the canal: Thủ Thiêm, Chợ Lớn, Khánh Hội, then Vũng Tàu's hill and beaches
+  { place: 'nha_tho_thu_thiem', year: '1859', t: [148, -10, 5], az: -165, el: 24, d: 64 },
+  { place: 'pho_long_den', year: null, t: [-150, -39, 3], az: 172, el: 36, d: 46 },
+  { place: 'ben_nha_rong', year: '1863', t: [58, -34, 5], az: 60, el: 20, d: 72 },
+  { place: 'hai_dang_vung_tau', year: '1910', t: [158, -165, 14], az: -40, el: 22, d: 125 },
   { place: 'bai_bien', year: null, t: [75, -152, 3], az: -112, el: 14, d: 125 },
 ];
 

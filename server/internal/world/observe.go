@@ -53,7 +53,7 @@ type whereabouts struct {
 	emoteAt time.Time
 }
 
-var placeRank = map[content.PlaceKind]int{content.Landmark: 0, content.Street: 1, content.Area: 2}
+var placeRank = map[content.PlaceKind]int{content.Landmark: 0, content.Street: 1, content.Area: 2, content.District: 3}
 
 func shapesOf(places []content.Place) []placeShape {
 	out := make([]placeShape, 0, len(places))
@@ -68,7 +68,7 @@ func shapesOf(places []content.Place) []placeShape {
 }
 
 // placeAt is the place a point is in, the same way the game labels it (src/game/places.ts placeAt): landmarks
-// before streets before areas, then the nearest relative to its reach.
+// before streets before areas before districts, then the nearest relative to its reach.
 func (w *World) placeAt(x, z float64, current *placeShape) *placeShape {
 	var best *placeShape
 	bestScore := math.Inf(1)

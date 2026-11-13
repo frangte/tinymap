@@ -5,12 +5,12 @@ const vi = {
   /** the title over the home screen */
   home: 'Điện thoại',
   /** what a screen reader says for the phone's map */
-  mapLabel: 'Bản đồ Quận 1',
+  mapLabel: 'Bản đồ Sài Gòn',
 };
 
 const en: typeof vi = {
   home: 'Phone',
-  mapLabel: 'Map of District 1',
+  mapLabel: 'Map of Saigon',
 };
 
 export const L = catalog({ vi, en });

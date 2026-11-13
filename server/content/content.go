@@ -22,6 +22,9 @@ const (
 	Landmark PlaceKind = "landmark"
 	Street   PlaceKind = "street"
 	Area     PlaceKind = "area"
+	// District names a whole part of the map (Quận 1, Thủ Thiêm, Chợ Lớn…): what the HUD says between the other
+	// places, and never in the way of one (it ranks after areas)
+	District PlaceKind = "district"
 )
 
 // Place is a named spot on the island, in Blender XY metres (three.js x = X, z = -Y).
@@ -79,7 +82,7 @@ func checkPlace(p Place, seen map[string]bool) error {
 		return errors.New("no name in Vietnamese and English")
 	case (p.Note.VI == "") != (p.Note.EN == ""):
 		return errors.New("note needs both Vietnamese and English")
-	case p.Kind != Landmark && p.Kind != Street && p.Kind != Area:
+	case p.Kind != Landmark && p.Kind != Street && p.Kind != Area && p.Kind != District:
 		return fmt.Errorf("unknown kind %q", p.Kind)
 	case len(p.Pts) == 0:
 		return errors.New("no points")

@@ -232,14 +232,60 @@ Khoa: mặt đường, chỗ nhà giáp đường còn nhiều chỗ chưa hợp
 
 Map sau vòng này: 337 căn nhà, 1,26 triệu tam giác, GLB 3,7 MB (gzip 1,3 MB).
 
+## Địa điểm và HUD theo map v8 (2026-11-13)
+
+Trước đây chỉ có 19 địa điểm, hầu hết ở Quận 1. Ra ngoài Quận 1 (hay đứng giữa hai địa điểm), HUD vẫn ghi "Quận 1".
+
+- **Loại địa điểm mới `district`:** mỗi khu là một vùng: Quận 1 (thêm dải bờ kênh Bến Nghé), Chợ Lớn, Thủ Thiêm,
+  Khánh Hội, Vũng Tàu. Vùng khu xếp sau công trình, đường và khu nhỏ (công viên, bãi biển).
+  - Vì vậy không chiếm chỗ của địa điểm nào sẵn có. Bãi biển và Công viên 23/9 vẫn đủ phạm vi cho nhiệm vụ.
+  - Server (`content.go`, `world/observe.go`) và game (`places.ts`) xếp hạng giống nhau.
+  - Gần như mọi chỗ đi được trên map đều có tên; chỉ còn hai mẩu nhỏ ở mép đảo.
+- **11 công trình mới** (14 lúc đầu, bớt 3 cái bị xoá khi duyệt, xem mục dưới):
+  - Quận 1: Chung cư 42, Dinh Độc Lập, Bến Bạch Đằng, cầu Ba Son, cầu đi bộ lá dừa nước.
+  - Chợ Lớn: bến xe Chợ Lớn.
+  - Thủ Thiêm: nhà thờ, bến buýt đường sông.
+  - Khánh Hội: Bến Nhà Rồng.
+  - Vũng Tàu: hải đăng, tượng Chúa Kitô Vua.
+  - Công trình nào cũng có thẻ giới thiệu khi tới lần đầu, có trong Cẩm nang, trong danh sách điểm đến của Crab và
+    trong mục hỏi đường.
+- **Khu nhỏ và đường mới:**
+  - Công viên 30/4, Tao Đàn, vườn hoa Thủ Thiêm, núi Nhỏ.
+  - Phố đi bộ Bùi Viện, phố lồng đèn.
+  - Cầu Mống, cầu Ông Lãnh, cầu Thủ Thiêm 3.
+- **Bản đồ:** thêm điểm dừng Chung cư 42 (trên phố đi bộ Nguyễn Huệ), nhà thờ Thủ Thiêm (qua vườn hoa), phố lồng đèn
+  Chợ Lớn, Bến Nhà Rồng, hải đăng Vũng Tàu.
+- **Chữ:**
+  - Menu và tiêu đề: "Sài Gòn mini". Lời giới thiệu tả cả map mới.
+  - HUD: "Sài Gòn mini · đang ở"; chỗ không tên ghi "Sài Gòn · TP. Hồ Chí Minh".
+  - "Người đang ở Sài Gòn", bản đồ điện thoại, Cẩm nang và câu dẫn chọn vai cũng đổi theo.
+  - Câu chuyện của du khách và tài xế vẫn bắt đầu ở Quận 1, như cũ.
+
+## Duyệt 9 công trình mới (2026-11-13)
+
+Khoa duyệt trên trang ảnh trước/sau (artifact "Duyệt công trình v8").
+
+- **Giữ:** Bến Bạch Đằng, bến buýt đường sông, nhà thờ Thủ Thiêm, bến xe Chợ Lớn.
+- **Xoá:** UBND Thành phố, chùa Bà Thiên Hậu, sân khấu Công viên Sáng tạo. Model lẫn địa điểm đều bỏ.
+  - Lô UBND thành nhà phố.
+  - Chỗ chùa Bà để lại quảng trường Chợ Lớn ở cuối phố lồng đèn.
+  - Chỗ sân khấu thành sân lát gạch của Thủ Thiêm.
+- **Dời Chung cư 42** về phía bắc phố đi bộ Nguyễn Huệ, gần đầu bờ sông (số 42 ở dãy số chẵn). Mặt có ban công quay
+  thẳng ra phố, sát mép phố; tầng trệt là quán.
+- **Dời Bến Nhà Rồng** ra mũi đất Khánh Hội, chỗ kênh Bến Nghé gặp sông Sài Gòn, mặt tiền nhìn ra nước. Sân trước nối
+  với chân cầu Mống.
+  - Đường Nguyễn Tất Thành không vòng qua mũi đất nữa, mà chạy thẳng vào Bến Vân Đồn phía sau bến.
+  - `check_layout.py` báo 0 lỗi.
+- **Kiểm tra:**
+  - Mọi NPC, mọi chỗ xuất hiện và các điểm thử đều tới được.
+  - 400 lộ trình ngẫu nhiên: 399 tới nơi.
+  - Test Go của content, world, quest, directions, nav đều qua.
+- Map: 353 căn nhà, GLB 3,76 MB (gzip 1,35 MB). Bản đồ điện thoại (`mapLand.json`) dựng lại theo đường mới.
+
 ## Chưa làm
 
-- 9 công trình mới ở vòng soát (UBND, Chung cư 42, Bến Nhà Rồng…) được làm thẳng, chưa qua bản nháp: Khoa duyệt
-  từng cái, cái nào chưa ưng thì sửa hoặc trả về khối thô.
 - Model thật cho cầu Thủ Thiêm 3, cầu Ông Lãnh, cầu Mống (hiện là mặt cầu thô có lan can) và tháp Thủ Thiêm.
 - Văn phòng bến xe Chợ Lớn còn là khối trơn mái bằng; dãy nhà Bùi Viện (model cũ) có vài căn cao, hẹp, tường hông trơn.
-- Địa điểm mới cho Thủ Thiêm, Chợ Lớn, Vũng Tàu, núi Nhỏ. Hiện đứng ở đó HUD ghi "Quận 1". Lời giới thiệu ở menu
-  ("Sài Gòn Q1", "một hòn đảo…") cũng còn tả đảo cũ.
 
 ## Nguồn
 

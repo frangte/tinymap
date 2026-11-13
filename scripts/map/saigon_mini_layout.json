@@ -169,12 +169,12 @@
   },
   {
    "name": "Nguyễn Tất Thành",
-   "path": "M 430.0,304.8 L 411.0,305.2 L 391.0,303.7 L 372.1,300.3 L 355.2,295.3 L 339.9,288.5 L 326.4,280.0 L 315.3,270.2 L 308.8,262.2",
+   "path": "M 430.0,304.8 L 411.0,305.2 L 391.0,303.7 L 372.1,300.3 L 355.2,295.3 L 339.9,288.5 L 277.3,281.1",
    "w": 10
   },
   {
    "name": "Bến Vân Đồn",
-   "path": "M 308.8,262.2 L 305.9,258.6 L 277.3,281.1 L 214.0,326.4 L 219.9,330.3 L 220.9,331.2",
+   "path": "M 277.3,281.1 L 214.0,326.4 L 219.9,330.3 L 220.9,331.2",
    "w": 10
   },
   {
@@ -686,16 +686,16 @@
    152
   ],
   [
-   300,
-   264,
-   316,
-   278
-  ],
-  [
    50,
    263,
    82,
    281
+  ],
+  [
+   289,
+   244,
+   325,
+   262
   ]
  ],
  "towers": [
@@ -1068,28 +1068,6 @@
    "face": "S"
   },
   {
-   "n": 7,
-   "id": "ubnd",
-   "name": "UBND Thành phố",
-   "status": "new",
-   "at": [
-    180,
-    140
-   ],
-   "size": [
-    18,
-    26
-   ],
-   "face": "E",
-   "mark": [
-    180,
-    140
-   ],
-   "color": "creamLight",
-   "roof": "poYellow",
-   "h": 16
-  },
-  {
    "n": 4,
    "id": "nha_tho_duc_ba",
    "name": "Nhà thờ Đức Bà",
@@ -1131,17 +1109,17 @@
    "name": "Chung cư 42 Nguyễn Huệ",
    "status": "new",
    "at": [
-    218,
-    156
+    263,
+    126
    ],
    "size": [
     26,
     12
    ],
-   "face": "N",
+   "face": "S",
    "mark": [
-    218,
-    157
+    263,
+    126
    ],
    "color": "cream",
    "roof": "concrete",
@@ -1243,17 +1221,17 @@
    "name": "Bến Nhà Rồng",
    "status": "new",
    "at": [
-    307,
-    290
+    309,
+    265
    ],
    "size": [
-    16,
-    22
+    20,
+    16
    ],
    "face": "N",
    "mark": [
-    307,
-    290
+    309,
+    265
    ],
    "color": "creamLight",
    "roof": "roofRed",
@@ -1282,28 +1260,6 @@
    "h": 14,
    "model": "scripts/blender/mini/dinh_thong_nhat.py",
    "drive": 33
-  },
-  {
-   "n": 17,
-   "id": "cho_lon",
-   "name": "Phố Chợ Lớn, Chùa Bà Thiên Hậu",
-   "status": "new",
-   "at": [
-    66,
-    252
-   ],
-   "size": [
-    16,
-    16
-   ],
-   "face": "S",
-   "mark": [
-    66,
-    252
-   ],
-   "color": "poYellow",
-   "roof": "roofRed",
-   "h": 8
   },
   {
    "n": 18,
@@ -1466,28 +1422,6 @@
     372,
     140
    ]
-  },
-  {
-   "n": 32,
-   "id": "cong_vien_sang_tao",
-   "name": "Công viên Sáng tạo (sân khấu, gian hàng)",
-   "status": "new",
-   "at": [
-    380,
-    86
-   ],
-   "size": [
-    12,
-    8
-   ],
-   "face": "W",
-   "mark": [
-    366,
-    86
-   ],
-   "color": "creamLight",
-   "roof": "tinBlue",
-   "h": 5
   },
   {
    "n": 33,

@@ -28,6 +28,12 @@ func TestEmbeddedPlacesAreValid(t *testing.T) {
 	if coast := byID["bai_bien"]; len(coast.Pts) < 3 || coast.Kind != Area {
 		t.Errorf("bai_bien should be the sea front polyline, got %+v", coast)
 	}
+	// every part of the map has a name for the HUD to fall back on
+	for _, id := range []string{"quan_1", "cho_lon", "thu_thiem", "khanh_hoi", "vung_tau"} {
+		if p, ok := byID[id]; !ok || p.Kind != District {
+			t.Errorf("district %q is missing or not a district: %+v", id, p)
+		}
+	}
 }
 
 func TestParsePlacesRejects(t *testing.T) {
