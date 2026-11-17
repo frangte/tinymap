@@ -100,6 +100,7 @@ type App struct {
 // Catalog is all the game data, every reference between the files checked.
 type Catalog struct {
 	Places       []Place
+	Map          Map
 	Capabilities []Capability
 	Archetypes   []Archetype
 	Restricted   []RestrictedLook
@@ -127,13 +128,13 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions []byte
+	places, island, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
 
 func embedded() files {
-	return files{places: placesJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
+	return files{places: placesJSON, island: mapJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
 		emotes: emotesJSON, npcs: npcsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
 		dialogues: dialogueFiles()}
 }
@@ -145,6 +146,9 @@ func load(f files) (*Catalog, error) {
 	c := &Catalog{byID: map[string]Archetype{}}
 	var err error
 	if c.Places, err = parsePlaces(f.places); err != nil {
+		return nil, err
+	}
+	if err := parseMap(f.island, c); err != nil {
 		return nil, err
 	}
 	var a struct {
@@ -279,6 +283,8 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 		return fmt.Errorf("spawn place %q is not in places.json", a.Spawn.Place)
 	case !point(a.Spawn.At) || !point(a.Spawn.Face):
 		return fmt.Errorf("spawn at and face must be [x, y] within ±%d m", coordLimit)
+	case !c.Map.Inside(a.Spawn.At[0], a.Spawn.At[1]):
+		return errors.New("spawn is outside the island's bounds (map.json)")
 	case !protocol.OutfitKnown(a.Look.Outfit) || !protocol.HatKnown(a.Look.Hat):
 		return errors.New("unknown starter outfit or hat")
 	case a.Vehicle != "" && c.vehicleByID[a.Vehicle].ID == "":

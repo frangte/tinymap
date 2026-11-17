@@ -8,7 +8,7 @@ The client keeps its current shape (`src/game/app.ts` wires modules together, th
 | State | `src/game/state/`: tiny subscribable stores (self, quests, inventory, notices). No framework, to keep the bundle small. |
 | Entities | Generalize `RemotePlayers` (`src/game/remotePlayers.ts`) into `Entities` (players, NPCs, vehicles), with the same smoothing (`RENDER_DELAY` 230 ms) and per-kind avatar builders. NPCs reuse `Pedestrian`. The motorbike is a new primitive-built model (see [Crab Bike assets](#crab-bike-assets)). |
 | Animation | The snapshot `s` flags drive procedural poses: jump, emotes (wave, bow, photo, exercise), sitting, riding. Same style as `src/game/character.ts`, behind an `Avatar` interface so GLB models could replace it later (D8). |
-| Movement | Add jump to `src/game/player.ts` (vertical velocity over the nav floor). Mounting switches to a vehicle speed profile. On a `correct` message, ease the player back over ~150 ms instead of snapping. |
+| Movement | Add jump to `src/game/player.ts`. Mounting switches to a vehicle speed profile. On a `correct` message, ease the player back over ~150 ms instead of snapping. Since D21 (2026-11-17) the player is a capsule colliding with the map itself (`src/game/collider.ts`), no nav grid. |
 | Interaction | Built in phase 3 as `src/game/talk.ts` (NPCs) next to `src/game/riding.ts` (the bike): the action button (E) offers what is at hand: getting off on the bike; on foot, the nearest NPC in reach ("Nói chuyện · Cô Ba") before the bike. The client check is for UX only; the server checks again. Seats come later. |
 | Phone | A DOM phone that slides up. The app grid comes from the server's list (`welcome`). Each app is a lazy-loaded module behind `PhoneApp { mount(root, ctx); unmount(); onNotify?(n) }`. Unknown app ids are hidden, so the server can roll out apps ahead of the client. The phone replaces the round action menu (`src/game/actionMenu.ts`). |
 | Dialogue | `src/game/dialogueSheet.ts`: a sheet in the bottom-left corner (the chat steps aside), a bottom sheet left of the action buttons on phones, so the NPC stays in view. The NPC's line with its English under it in English mode, big answer buttons (keys 1–9), × or Esc to leave. The server has already picked the archetype-specific lines; in a group the members see the leader's answers greyed out. NPCs are drawn by `src/game/npcs.ts` from `server/content/npcs.json` (offline too), each a `RemotePlayer`, with name tags that show their role. |
@@ -26,7 +26,7 @@ From `CLAUDE.md`:
 - Everything added to the scene goes through `InkPass.track()`.
 - Materials come from `paintMaterial()`; moving meshes (avatars, NPCs, the motorbike) pass `{ local: true }`.
 - Moving things use a blob shadow, because the sun shadow map is baked once.
-- Movement and the camera only read the nav grid; never raycast the city meshes per frame.
+- Movement and the camera go through `CityCollider` (`src/game/collider.ts`, one BVH of the map built at load); never raycast the scene's meshes per frame (D21 replaced the nav grid).
 - Positions use `fromBlender()`.
 
 ## Crab Bike assets

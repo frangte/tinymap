@@ -4,8 +4,9 @@
 //	go run ./cmd/loadbots -url ws://localhost:8787/ws -n 300 -seconds 60 -accounts -chat 1
 //
 // Each bot joins (as a guest, or with -accounts on a guest account of its own, so quests, pose saves and wallets
-// run too), then walks the nav grid the way a player would (3.1 m/s, ten reports a second, never through a wall),
-// so the server should refuse none of its moves. With -chat it says a line now and then (mostly nearby). The
+// run too), then walks about the island the way a player would (3.1 m/s, ten reports a second, turning back at the
+// edge of the map), so the server should refuse none of its moves. It does not see walls: the server does not
+// either (it checks speeds), the game does. With -chat it says a line now and then (mostly nearby). The
 // server's MAX_PLAYERS must leave room, and -accounts needs GUEST_BURST on the server (one address takes them all).
 package main
 
@@ -48,6 +49,8 @@ type options struct {
 	stop        time.Time
 	// archs are the archetypes the bots take turns at, with accounts (archetypes.json)
 	archs []string
+	// island is where the bots stay (content map.json)
+	island content.Map
 }
 
 func main() {
@@ -58,17 +61,12 @@ func main() {
 	accounts := flag.Bool("accounts", false, "take a guest account each (POST /api/auth/guest; the server needs GUEST_BURST)")
 	chat := flag.Float64("chat", 0, "chat lines per bot per minute (0: none)")
 	flag.Parse()
-	grid, err := content.Nav()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 	catalog, err := content.Load()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	opt := options{url: *url, origin: *origin, accounts: *accounts, chat: *chat, stop: time.Now().Add(time.Duration(*seconds) * time.Second)}
+	opt := options{url: *url, origin: *origin, accounts: *accounts, chat: *chat, stop: time.Now().Add(time.Duration(*seconds) * time.Second), island: catalog.Map}
 	for _, a := range catalog.Archetypes {
 		opt.archs = append(opt.archs, a.ID)
 	}
@@ -80,7 +78,7 @@ func main() {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			if err := run(opt, grid, bots[i], uint64(i)); err != nil {
+			if err := run(opt, bots[i], uint64(i)); err != nil {
 				failed.Add(1)
 				fmt.Fprintf(os.Stderr, "bot %d: %v\n", i, err)
 			}

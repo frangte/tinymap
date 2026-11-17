@@ -25,7 +25,7 @@ if HERE not in sys.path:
 import kit  # noqa: E402
 
 REG = (-62.5, -7.5, -43.5, -4.5)               # x0, x1, y0, y1 (v4 Blender XY): both rows, the street and the gate
-SKIP = ('NAV_', 'IS_', 'IX_', 'CX_LamSon')     # navigation solids, ground, roads
+SKIP = ('NAV_', 'IS_', 'IX_', 'CX_LamSon')     # old nav-bake boxes, ground, roads
 VAN = (-24.2, -22.6, -19.2, -19.8, 2.2)        # the white van parked in the north lane
 
 

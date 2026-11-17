@@ -1,11 +1,6 @@
 package content
 
 import (
-	"bytes"
-	"errors"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -66,22 +61,34 @@ func TestParsePlacesRejects(t *testing.T) {
 	}
 }
 
-// TestNavMatchesTheGame: the server checks moves against its own copy of the nav map, so it must be the map the
-// game walks on. After re-baking the nav maps in Blender, run `npm run nav:sync`.
-func TestNavMatchesTheGame(t *testing.T) {
-	for name, embedded := range map[string][]byte{"saigon_mini_nav.png": navPNG, "saigon_mini_nav.json": navMeta} {
-		game, err := os.ReadFile(filepath.Join("..", "..", "public", "models", name))
-		if errors.Is(err, fs.ErrNotExist) {
-			t.Skipf("no game checkout next to the server (%v)", err)
-		}
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(game, embedded) {
-			t.Errorf("server/content/nav/%s differs from public/models/%s: run `npm run nav:sync`", name, name)
-		}
-	}
-	if _, err := Nav(); err != nil {
+// map.json: the island's frame, with the spawn and the middle inside it, and a sane sea.
+func TestMapIsChecked(t *testing.T) {
+	c, err := Load()
+	if err != nil {
 		t.Fatal(err)
+	}
+	if x, z := c.Map.ThreeSpawn(); x != c.Map.Spawn[0] || z != -c.Map.Spawn[1] {
+		t.Fatalf("spawn in three.js terms = (%v, %v), map %v", x, z, c.Map.Spawn)
+	}
+	ok := `"spawn":[0,0],"sea_level":-0.45,"island_center":[0,0],"bounds":[-10,-10,10,10]`
+	if err := parseMap([]byte("{"+ok+"}"), &Catalog{}); err != nil {
+		t.Fatalf("a good map: %v", err)
+	}
+	cases := []struct{ name, json, want string }{
+		{"bounds the wrong way", `{"spawn":[0,0],"sea_level":0,"island_center":[0,0],"bounds":[10,-10,-10,10]}`, "bounds"},
+		{"bounds off the map", `{"spawn":[0,0],"sea_level":0,"island_center":[0,0],"bounds":[-900,-10,10,10]}`, "bounds"},
+		{"spawn outside", `{"spawn":[50,0],"sea_level":0,"island_center":[0,0],"bounds":[-10,-10,10,10]}`, "spawn"},
+		{"a 3d spawn", `{"spawn":[0,0,0],"sea_level":0,"island_center":[0,0],"bounds":[-10,-10,10,10]}`, "spawn"},
+		{"the middle outside", `{"spawn":[0,0],"sea_level":0,"island_center":[0,50],"bounds":[-10,-10,10,10]}`, "island_center"},
+		{"a sea in the sky", `{"spawn":[0,0],"sea_level":45,"island_center":[0,0],"bounds":[-10,-10,10,10]}`, "sea_level"},
+		{"an unknown field", `{` + ok + `,"nav":"saigon_mini_nav.png"}`, "unknown field"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := parseMap([]byte(c.json), &Catalog{})
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("err = %v, want it to mention %q", err, c.want)
+			}
+		})
 	}
 }

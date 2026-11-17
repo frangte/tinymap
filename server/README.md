@@ -1,13 +1,12 @@
 # Sài Gòn Q1 server
 
-Go server for multiplayer: [gin](https://github.com/gin-gonic/gin) for HTTP, [gorilla/websocket](https://github.com/gorilla/websocket) for the socket, SQLite ([modernc.org/sqlite](https://gitlab.com/cznic/sqlite), pure Go) for what lasts between visits. One shared world, capped at 150 players. Everyone hears who is on the island and the chat; positions go to the players nearby. The server checks every move against the game's own nav map. Each browser gets a guest account the first time, so the server knows the same player next time, and where they stood.
+Go server for multiplayer: [gin](https://github.com/gin-gonic/gin) for HTTP, [gorilla/websocket](https://github.com/gorilla/websocket) for the socket, SQLite ([modernc.org/sqlite](https://gitlab.com/cznic/sqlite), pure Go) for what lasts between visits. One shared world, capped at 150 players. Everyone hears who is on the island and the chat; positions go to the players nearby. The server checks how fast every move is; walls and floors are the game's (it collides with the map itself). Each browser gets a guest account the first time, so the server knows the same player next time, and where they stood.
 
 The design this grows into (archetypes, quests, NPCs, the phone) is in [../docs/design/](../docs/design/README.md).
 
 ```bash
 npm run server          # from the repo root: go run ./cmd/server on :8787
 npm run server:test     # go vet + go test -race
-npm run nav:sync        # after re-baking the nav maps: copy them into content/nav/ (a test fails until you do)
 cd server && go run ./cmd/loadbots -n 150 -seconds 30   # walking bots against a running server: KB/s each
 cd server && go run ./cmd/loadbots -n 300 -seconds 120 -accounts -chat 1   # with accounts and chat (server: GUEST_BURST=400 MAX_PLAYERS=320)
 ```
@@ -60,13 +59,13 @@ content/dialogue/*.json          what each NPC says: one graph per NPC, server o
                                  reference and node (reachable, no unknown archetype, emote or capability)
 content/quests.json              quests, achievements, titles and stamps (shared with the game); quests.go checks
                                  every reference, the quest engine checks each objective's params
-content/nav/                     a copy of the game's nav map (public/models/saigon_mini_nav.*), embedded
+content/map.json                 the island as a whole (shared with the game): spawn, sea level, bounds
 cmd/loadbots/                    load test: walking (and chatting) bots, with accounts or as guests; KB/s, welcome time, errors
 internal/capability/             a set of capability ids: what systems check instead of the archetype
 internal/web/router.go           gin routes, WebSocket upgrade, origin check, the account API, static files
 internal/ws/conn.go              per-connection read/write loops, the hello and its account, ping/pong, rate limits
 internal/world/world.go          the world, owned by one goroutine (no locks, no I/O): joins, messages, chat
-internal/world/move.go           checks every reported move; corrections; respawn; where a player starts
+internal/world/move.go           checks how fast every reported move is; corrections; respawn; where a player starts
 internal/world/view.go           who sees whom (the interest grid) and the snapshots, 12 Hz
 internal/world/vehicle.go        vehicles: parking, mounting, getting off; seat 1 (a passenger carried with the rider)
 internal/world/host.go           the module hook: modules in the world loop, seats, view pins, jobs off the loop
@@ -87,7 +86,6 @@ internal/gameday/                the game's calendar: days run midnight to midni
 internal/quest/objective/        the objective types, one file each (the extension point for new kinds of quests)
 internal/quest/service.go        runs quests for the characters playing, on worker goroutines; stores each event's
                                  changes in one transaction, then tells the world
-internal/nav/nav.go              the nav grid: walkable cells, floor heights, line checks
 internal/identity/identity.go    guest accounts, tokens and characters
 internal/store/store.go          SQLite: one connection, migrations (migrations/*.sql), backups (on a read-only connection of their own), the queries
 internal/ids/ids.go              ULIDs for stored ids
@@ -206,12 +204,7 @@ The co-op quest (`internal/directions`, D18) is a world module like ride-hailing
 
 ### Movement checks
 
-The game moves its own player and reports where it got to; the server keeps the last position it accepted (`internal/world/move.go`). A move is refused, and answered with `correct`, when:
-
-- it goes further than the top speed (running 6.8 m/s from `content/movement.json`, or the vehicle's from `content/vehicles.json`) × 1.25 allows, averaged over one second: unused movement saves up for a second, so reports bunched up by the network pass;
-- it ends off the walkable cells of the nav map, or the line from the last position crosses more than 0.2 m of blocked cells (a wall);
-- its height is more than 0.6 m below or 1.5 m above the floor nearby (a jump reaches about 0.7 m), or it has been over 0.3 m above the floor for more than 2.5 s (a jump lasts 0.6 s, longer on a slow device whose game runs behind the clock): then it is also put back on the ground;
-- the floor along the way changes by more than 1.2 m between neighbouring cells (a ledge; a jump climbs about 1.15 m).
+The game moves its own player through the map's own shapes (`src/game/collider.ts`) and reports where it got to; the server keeps the last position it accepted (`internal/world/move.go`). It knows nothing of walls, floors or heights and takes the game's word for them (D21 in `docs/design/README.md`). A move is refused, and answered with `correct`, when it goes further than the top speed (running 6.8 m/s from `content/movement.json`, or the vehicle's from `content/vehicles.json`) × 1.25 allows, averaged over one second: unused movement saves up for a second, so reports bunched up by the network pass. A teleport is such a move, except the respawn, which may only land within 4 m of home. Every position must also be on the map (`protocol.WorldHalf`, checked as messages are read). A home, a spot beside a bike and an NPC have no height on the server: the game stands them on the floor there.
 
 Every 50th refused move of a player is logged. Where a character stands is saved every 30 s and when it leaves.
 

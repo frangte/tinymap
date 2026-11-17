@@ -30,13 +30,10 @@ func TestCastLoads(t *testing.T) {
 	}
 }
 
-// Every NPC stands on open ground of the island the game ships, inside the place it belongs to.
+// Every NPC stands on the island, inside the place it belongs to. Whether a body fits on its spot is the game's to
+// see (src/game/collider.ts): the server knows nothing of the map's shapes.
 func TestNPCsStandOnTheIsland(t *testing.T) {
 	c, err := Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	grid, err := Nav()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,9 +42,8 @@ func TestNPCsStandOnTheIsland(t *testing.T) {
 		places[p.ID] = p
 	}
 	for _, n := range c.NPCs {
-		x, z, _ := n.ThreePose()
-		if !grid.Fits(x, z, 0.3) {
-			t.Errorf("%s stands at %v, where a body does not fit on the nav grid", n.ID, n.At)
+		if !c.Map.Inside(n.At[0], n.At[1]) {
+			t.Errorf("%s stands at %v, outside the island's bounds", n.ID, n.At)
 		}
 		p := places[n.Place]
 		if d := distToPlace(p, n.At[0], n.At[1]); d > p.R {

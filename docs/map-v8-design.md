@@ -140,7 +140,7 @@ Dựng lại map chính từ v8: 315 căn nhà, 1,04 triệu tam giác, GLB 3,0 
 
 ## Game chạy trên map v8 (2026-11-12)
 
-- **Model và nav:** `index.html` và `app.ts` nạp `models/saigon_mini.glb` và nav `models/saigon_mini`. Nav nướng lại
+- **Model và nav** (lịch sử: từ 2026-11-17 không còn nav, game va chạm thẳng với model, server chỉ kiểm tra tốc độ, D21 trong `design/README.md`): `index.html` và `app.ts` nạp `models/saigon_mini.glb` và nav `models/saigon_mini`. Nav nướng lại
   bằng `scripts/blender/bake_nav.py` (profile `MINI`): lưới 1405 × 1308 ô 0,35 m, khoảng 117.000 m² đi được. Cả năm cây
   cầu và đường lên hải đăng đều đi qua được, mọi chỗ đi được đều nối với chỗ xuất hiện.
   - Mặt cầu và núi Nhỏ là "mặt che": bên dưới chúng không có sàn. Trước đây nav lấy mặt nước dưới cầu và mặt đất

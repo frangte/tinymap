@@ -8,7 +8,8 @@ import * as THREE from 'three';
 import { aimSun, createRenderer, createScene, loadModel } from './world';
 import { paintWorld, FOLIAGE } from './paint';
 import { InkPass } from './ink';
-import { NavGrid } from './nav';
+import { CityCollider } from './collider';
+import { MAP } from './mapInfo';
 import { PlayMode } from './play';
 import { CameraFlight, MAP_STOPS, MENU_STOP, MapView } from './mapView';
 import { Hud, el, type Mode } from './hud';
@@ -87,10 +88,9 @@ function modeFromHash(): Mode {
   return 'menu';
 }
 
-/** Asset URLs come from <div id="stage" data-model data-nav> so a static host can swap in a base64 model. */
-function assetUrls(stage: HTMLElement): { model: string; nav: string } {
-  const d = stage.dataset;
-  return { model: d.model ?? 'models/saigon_mini.glb', nav: d.nav ?? 'models/saigon_mini' };
+/** The map's URL comes from <div id="stage" data-model> so a static host can swap in a base64 model. */
+function modelUrl(stage: HTMLElement): string {
+  return stage.dataset.model ?? 'models/saigon_mini.glb';
 }
 
 export async function startApp(): Promise<void> {
@@ -291,7 +291,7 @@ export async function startApp(): Promise<void> {
       }
       if (now - poseSavedAt > POSE_SAVE_EVERY) {
         poseSavedAt = now;
-        savePose(pp.x, pp.z, pl.heading);
+        savePose(pp, pl.heading);
       }
     }
     sea?.update(clock, camera);
@@ -340,11 +340,12 @@ export async function startApp(): Promise<void> {
   if (!manual) requestAnimationFrame(frame);
 
   // ---- load the map while the menu shows its progress bar
-  const urls = assetUrls(hud.stage);
   let world: THREE.Group;
-  let nav: NavGrid;
+  let collider: CityCollider;
   try {
-    [world, nav] = await Promise.all([loadModel(urls.model, MODEL_BYTES, (l, t) => hud.progress(l, t)), NavGrid.load(urls.nav)]);
+    world = await loadModel(modelUrl(hud.stage), MODEL_BYTES, (l, t) => hud.progress(l, t));
+    // what bodies bump into: the map itself, read before paintWorld() swaps its materials
+    collider = CityCollider.fromWorld(world, MAP.seaLevel);
   } catch (err) {
     console.error(err);
     const why = err instanceof Error ? err.message : String(err);
@@ -357,7 +358,7 @@ export async function startApp(): Promise<void> {
   ink.track(world);
   renderer.shadowMap.needsUpdate = true;
 
-  const p = new PlayMode(nav, camera, hud, renderer.domElement);
+  const p = new PlayMode(collider, camera, hud, renderer.domElement);
   play = p;
   p.player.avatar.setLook(profile.look);
   tags.setSelfName(profile.name);
@@ -380,13 +381,13 @@ export async function startApp(): Promise<void> {
   /** the phone apps the server sent; null until it has (offline, an older server): then the archetype decides */
   let serverApps: string[] | null = null;
   applyArchetype();
-  // back where we left off, if this browser remembers and the spot is still walkable (the server may move us)
+  // back where we left off, if this browser remembers and the body still fits there (the server may move us)
   const lastSpot = profile.archetype ? loadPose() : null;
-  if (lastSpot && nav.isWalkable(lastSpot.x, lastSpot.z)) p.player.spawn(lastSpot.x, lastSpot.z, lastSpot.h);
+  if (lastSpot && p.player.fitsNear(lastSpot.x, lastSpot.z, lastSpot.y)) p.player.spawn(lastSpot.x, lastSpot.z, lastSpot.h, lastSpot.y);
   else p.spawnAtHome();
   scene.add(p.player.avatar.root);
   ink.track(p.player.avatar.root);
-  window.addEventListener('pagehide', () => savePose(p.player.position.x, p.player.position.z, p.player.heading));
+  window.addEventListener('pagehide', () => savePose(p.player.position, p.player.heading));
 
   // ---- dressing: live preview on the player, saved on "Vào phố", reverted on "Huỷ"
   const closeDress = (): void => {
@@ -585,7 +586,8 @@ export async function startApp(): Promise<void> {
   };
 
   // ---- multiplayer: everyone else on the island, and our own pose streamed out (tick)
-  const others = new RemotePlayers(scene, ink, (x, z) => nav.smoothFloor(x, z, 0));
+  const floorAt = (x: number, z: number, nearY: number): number => collider.floorNear(x, z, nearY);
+  const others = new RemotePlayers(scene, ink, floorAt);
   remotes = others;
   // ---- quests: the server's word on them, shown by the tracker, the phone and toasts
   const log = new QuestLog();
@@ -623,7 +625,7 @@ export async function startApp(): Promise<void> {
     if (toast && mode === 'play') hud.toast(toast);
   };
   // ---- NPCs: drawn at their spots from the start; online the server's take their place
-  const cast = new Npcs(scene, ink, (x, z) => nav.smoothFloor(x, z, 0));
+  const cast = new Npcs(scene, ink, floorAt);
   npcs = cast;
   let netStatus: NetStatus = 'connecting';
   const showOnline = (): void => hud.setOnline(netStatus, others.count + 1);
@@ -746,13 +748,13 @@ export async function startApp(): Promise<void> {
   net = netClient;
 
   // ---- vehicles: parked bikes, and bikes under their riders; the action pad and E get on and off
-  const bikes = new Vehicles(scene, ink);
+  const bikes = new Vehicles(scene, ink, floorAt);
   vehicles = bikes;
   const riding: Riding = new Riding({
     player: p.player,
     vehicles: bikes,
     net: netClient,
-    nav,
+    collider,
     starter: () => archetypeById(profile.archetype)?.vehicle ?? '',
     notify: (text) => chatBox.system(text),
   });
@@ -893,9 +895,9 @@ export async function startApp(): Promise<void> {
   applyArchetype();
   p.onLandmark = (place) => ph.notify(L.visited(placeTitle(place)), placeNote(place));
 
-  const [icx, icy] = nav.meta.island_center ?? [0, 0];
+  const [icx, icy] = MAP.islandCenter;
   fromBlender(icx, icy, 0, islandCenter);
-  sea = new Sea(ink, camera, nav.meta.sea_level ?? -0.45, islandCenter);
+  sea = new Sea(ink, camera, MAP.seaLevel, islandCenter);
   scene.add(sea.mesh);
   life = new Life(islandCenter, COAST_R);
   scene.add(life.root);
@@ -912,16 +914,21 @@ export async function startApp(): Promise<void> {
   hud.modePlayButton.addEventListener('click', () => request('play'));
   hud.toMapButton.addEventListener('click', () => request('map'));
   hud.toPlayButton.addEventListener('click', () => request('play'));
-  hud.respawnButton.addEventListener('click', () => {
-    // the one jump the server allows: home, and the bike comes along
+  /** the one jump the server allows: home, and the bike comes along */
+  const respawn = (): void => {
     riding.leave();
     p.spawnAtHome();
     p.follow.snapBehind(p.player.position, p.player.heading);
     const pp = p.player.position;
     netClient.sendRespawn(pp.x, pp.y, pp.z, p.player.heading);
     riding.bringBike();
+  };
+  hud.respawnButton.addEventListener('click', () => {
+    respawn();
     renderer.domElement.focus({ preventScroll: true });
   });
+  // fallen out of the world, or into water with no shore near: home, like the button
+  p.player.onLost = respawn;
   // sound starts with the first click (browsers block audio until then)
   hud.soundButton.setAttribute('aria-pressed', String(ambient.enabled));
   window.addEventListener('pointerdown', () => {
@@ -1001,7 +1008,20 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, nav, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    let colliderView: THREE.Object3D | null = null;
+    /** draw what bodies collide with over the map (again to hide it) */
+    const showCollider = (on = !colliderView): void => {
+      if (on && !colliderView) {
+        colliderView = collider.debugMesh();
+        scene.add(colliderView);
+        ink.track(colliderView);
+      } else if (!on && colliderView) {
+        ink.untrack(colliderView);
+        scene.remove(colliderView);
+        colliderView = null;
+      }
+    };
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

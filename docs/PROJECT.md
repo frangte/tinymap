@@ -18,7 +18,7 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
   - Phố Bùi Viện trên đường Lê Lai: nhà ống hai bên phố (`SH_BuiVien_N/S`), biển hiệu quán bar, đèn dây, lồng đèn, cờ, bàn ghế nhựa, xe máy đậu (`SH_BuiVien_Life/Lights`), cổng "PHỐ ĐI BỘ BÙI VIỆN" ở đầu bùng binh. Dãy nam nông 4.6 m vì lối đi bộ ven biển chạy ngay sau lưng (y −37…−41); dãy bắc ngắn lại ở đầu tây cũng vì lối đi đó.
   - Đường Tôn Đức Thắng: Hàm Nghi không còn cụt ở Bitexco mà vòng sang nối vào Đồng Khởi (`IX_Roads_TonDucThang`), cắt qua đầu nam phố Nguyễn Huệ; đoạn cụt cũ của Đồng Khởi (y −60…−52) bỏ.
   - Bỏ hai đèn 4 bóng (một đứng giữa cổng nam chợ, một đứng trên mặt đường ở cửa đông bùng binh), bỏ các vạch qua đường vẽ chồng trên vòng xuyến, thêm một vạch sạch trên nhánh Lê Lai (`IX_RoadMarks_LeLaiZebra`).
-  - Nav bake lại ngày 2026-11-07: hai dãy nhà là hộp `NAV_Solid_BuiVien_*` (đi tới quầy bar thì dừng, vỉa hè dưới ban công và biển hiệu vẫn đi được); chỗ đèn và bồn cây đã bỏ trên Tôn Đức Thắng, ở cửa đông bùng binh và chỗ hai tượng người cũ (sau Chú Tư, cạnh Chị Hạnh) đi qua được.
+  - (Lịch sử: từ 2026-11-17 không còn nav, va chạm lấy thẳng từ model, xem Pipeline.) Nav bake lại ngày 2026-11-07: hai dãy nhà là hộp `NAV_Solid_BuiVien_*` (đi tới quầy bar thì dừng, vỉa hè dưới ban công và biển hiệu vẫn đi được); chỗ đèn và bồn cây đã bỏ trên Tôn Đức Thắng, ở cửa đông bùng binh và chỗ hai tượng người cũ (sau Chú Tư, cạnh Chị Hạnh) đi qua được.
 - **Để dành, chưa làm:**
   - UBND: ô trống lát gạch ở đầu bắc phố đi bộ Nguyễn Huệ (x 48…72, y 12…31), sát đường Lê Thánh Tôn, giống vị trí thật.
 - **Tiếp theo:** NPC và quest.
@@ -119,21 +119,17 @@ Cầu Ba Son và bờ Thủ Thiêm đã bỏ từ v3; muốn xem lại thì mở
 
 ## Pipeline: từ Blender ra game
 
-1. Sửa map. Đảo hiện tại là `models/temp.sg.tinymap.blend` (đảo v4 thêm Bùi Viện và Tôn Đức Thắng): muốn sửa bằng script trên file gộp này thì xem `scripts/blender/edit_v4_buivien.py` (xoá theo cụm lưới liền nhau, cắt mặt đất theo đa giác, dựng thêm object mới bằng bộ `Geo` nạp từ Text của `sg.tinymap.blend`); file đó là file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` và `bake_nav.py` đều chạy được trên file này. `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
+1. Sửa map. Đảo hiện tại là `models/temp.sg.tinymap.blend` (đảo v4 thêm Bùi Viện và Tôn Đức Thắng): muốn sửa bằng script trên file gộp này thì xem `scripts/blender/edit_v4_buivien.py` (xoá theo cụm lưới liền nhau, cắt mặt đất theo đa giác, dựng thêm object mới bằng bộ `Geo` nạp từ Text của `sg.tinymap.blend`); file đó là file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` chạy được trên file này. `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
 2. Export GLB, file `.blend` không bị đổi:
    ```bash
    blender models/temp.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
    ```
 3. Thu nhỏ file bằng 6 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune → meshopt`). Bước `meshopt` nén hình học khoảng 5 lần; game giải nén bằng `MeshoptDecoder` (`src/game/world.ts`). Object `PREVIEW_*` (mặt biển xem trước của map mới) không được export, vì biển và nước sông do Three.js vẽ. Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/` với tên mà `index.html` nạp (`data-model` của `#stage`, hiện là `saigon_q1_v5.glb`).
-4. Bake lại bản đồ đi lại, mất khoảng 15 giây, rồi copy sang server (server kiểm tra mọi bước đi theo bản của nó). Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
-   ```bash
-   blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
-   npm run nav:sync
-   ```
-   - Mặt đất nhận theo vật liệu (cỏ, cát, nhựa đường, bó vỉa, vạch đường, đá, nước); mọi thứ khác cao ngang người là vật cản.
-   - Nhà không ai được đi vào (hay đi bên dưới): thêm một hộp `NAV_Solid_<tên>` vào collection `NAV` của file (hộp đứng, chỉ tính khung nhìn từ trên xuống; trong hộp, ô nào có gì cao hơn sàn 2 m là bị chặn). Hộp hiện có do `scripts/blender/nav_boxes.py` tạo; đầu file đó giải thích thêm hộp `NAV_Block_` (chặn hẳn) và `NAV_Open_` (bỏ vật cản). Các hộp không bị export.
-   - Người chơi bước lên được bậc 0.5 m và bước xuống được 1.1 m (`src/game/player.ts`), nên nhảy lên ghế hay mép bồn cây thì vẫn xuống được.
-   - File gốc cũ (`sg.tinymap.blend`, scene `SaigonDiorama`) vẫn bake theo tên object như trước: `ROOF_PREFIX`, `SOLID_PREFIX`.
+4. Va chạm không cần bake: game dựng nó từ chính file GLB lúc tải (`src/game/collider.ts`, khoảng nửa giây). Thứ gì có trong model thì chặn người (tường, bó vỉa, thân cây, lan can, tán cây thấp hơn đầu), trừ quầng đèn và lồng đèn treo (`PASS_THROUGH`); nước chỉ chặn chỗ sâu hơn 0.25 m (biển ở mực `sea_level` trong `server/content/map.json`, hồ và đài phun nước theo vật liệu nước). Người chơi là một hình con nhộng (bán kính 0.26 m, cao 1.65 m), bước lên được bậc 0.5 m, cao hơn thì nhảy lên; rơi khỏi gờ thì rơi thật.
+   - Muốn chặn chỗ nào: dựng tường thật trong model. Muốn cho đi qua: bỏ vật đó ra khỏi model hoặc dùng vật liệu trong `PASS_THROUGH`. Không còn hộp `NAV_*` (hộp cũ trong file .blend vẫn không bị export, để đó cũng được).
+   - Núi Nhỏ là vỏ rỗng úp trên mặt đảo, mép vỏ hở so với mặt đất: game tự dựng vách chỉ để va chạm từ mép hở xuống đất (và dưới đầu cầu trên bờ, bệ Bitexco), nên không ai đi lọt vào gầm. Đóng kín vỏ núi trong Blender thì vách đó tự hết.
+   - Xem va chạm trong game: mở `?debug`, gọi `sgGame.showCollider()` (lưới hồng là thứ chặn người, mảng cam là vách tự dựng).
+   - Server không biết tường hay sàn, chỉ kiểm tra tốc độ (D21 trong `docs/design/README.md`).
 5. Thêm tên địa điểm mới vào `src/game/places.ts`, toạ độ Blender XY.
 
 ![Trong game](img/12_gameplay.jpg)

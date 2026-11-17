@@ -96,7 +96,7 @@ sequenceDiagram
   participant Q as Quest engine (character worker)
   participant DB as SQLite
   C->>W: state {x,y,z,h,s} at 10 Hz
-  W->>W: check speed, walkability, height on the nav grid
+  W->>W: check speed (walls and floors are the game's, D21)
   W->>B: PlaceEntered(char, nha_tho_duc_ba) after a 2 s stay
   B->>Q: route to this character's worker
   Q->>Q: any active objective listening to place.entered?

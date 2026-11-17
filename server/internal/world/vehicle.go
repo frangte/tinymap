@@ -57,9 +57,9 @@ func (w *World) addVehicle(owner *member, spec VehicleSpec) *vehicle {
 
 // parkBeside puts the vehicle at the right hand of someone standing at p, facing the same way.
 func (w *World) parkBeside(v *vehicle, p protocol.Pose) {
-	// three.js heading h faces (sin h, cos h) on (x, z); the right hand is (-cos h, sin h)
-	spot := protocol.Pose{X: p.X - math.Cos(p.H)*parkOffset, Z: p.Z + math.Sin(p.H)*parkOffset, H: p.H}
-	v.pose = w.settle(spot, vehicleRadius)
+	// three.js heading h faces (sin h, cos h) on (x, z); the right hand is (-cos h, sin h). The game stands it
+	// on the floor there (src/game/vehicles.ts): the server knows nothing of the map's shapes.
+	v.pose = protocol.Pose{X: p.X - math.Cos(p.H)*parkOffset, Y: p.Y, Z: p.Z + math.Sin(p.H)*parkOffset, H: p.H}
 }
 
 func (w *World) removeVehicle(v *vehicle) {
@@ -146,8 +146,9 @@ func (w *World) putDown(p *member, correct bool) {
 	if v.rider != nil {
 		at = v.rider.pose
 	}
-	// three.js heading h faces (sin h, cos h); the left hand is (cos h, -sin h)
-	spot := w.settle(protocol.Pose{X: at.X + math.Cos(at.H)*parkOffset, Z: at.Z - math.Sin(at.H)*parkOffset, H: at.H}, bodyRadius)
+	// three.js heading h faces (sin h, cos h); the left hand is (cos h, -sin h). The game puts the body on the
+	// nearest spot there where it fits.
+	spot := protocol.Pose{X: at.X + math.Cos(at.H)*parkOffset, Y: at.Y, Z: at.Z - math.Sin(at.H)*parkOffset, H: at.H}
 	p.flags = 0
 	w.place(p.peer, p, spot)
 	if correct {

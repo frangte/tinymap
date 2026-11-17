@@ -10,7 +10,7 @@ Thứ tự ưu tiên: **R1 làm trước**, vì đổi map thì gameplay đổi 
 - **Model mới phải được duyệt design trước khi vẽ Blender thật** (bản vẽ, phác thảo, render nháp).
 - **Giữ vibe màu hiện tại:** chỉ dùng bảng `PAL` (docs/PROJECT.md). Màu mới phải được duyệt.
 - **Nhà phải đúng kiểu Sài Gòn**, có tìm hiểu, không vẽ đại (map hiện tại nhìn giống Hà Nội: nhà 2 tầng mái ngói đỏ).
-- Code theo CLAUDE.md: Blender là nguồn của map, nav bake từ Blender, server kiểm tra mọi bước đi theo nav.
+- Code theo CLAUDE.md: Blender là nguồn của map; va chạm lấy thẳng từ file GLB (không bake nav nữa, D21 từ 2026-11-17), server chỉ kiểm tra tốc độ.
 
 ## R1. Design lại map: "Sài Gòn mini" (ưu tiên 1, đang làm)
 
@@ -26,7 +26,9 @@ Bản đề xuất: [map-v5.md](map-v5.md). Design được duyệt 2026-11-11; 
 - Sau khi duyệt: dựng khối thô (blockout) trong một file version mới, render cho Khoa duyệt lần hai, rồi mới làm chi tiết.
 - Khi map mới vào game: đổi tên hiển thị "Sài Gòn Q1" thành "Sài Gòn mini" (index.html, `src/game/i18n/`, docs), sửa `places.json`, chỗ đứng NPC (`npcs.json`), quest dùng địa điểm, điểm xuất phát, khung lưới nav; quyết định D10 (giữ đảo ~200 m) đổi thành quyết định mới trong `docs/design/README.md`.
 
-## R2. Vượt vật cản, không bao giờ bị kẹt (chờ, làm trên map mới)
+## R2. Vượt vật cản, không bao giờ bị kẹt (xong 2026-11-17, cách khác với đề xuất bên dưới)
+
+**Trạng thái:** bỏ hẳn nav (D21). Người chơi là hình con nhộng va chạm thẳng với model (`src/game/collider.ts`): bước lên được bậc 0.5 m, nhảy lên vật thấp hơn ~1.2 m, rơi khỏi gờ thì rơi thật, chỉ nước sâu hơn 0.25 m và mép map mới chặn. Không còn túi kẹt hay tường vô hình do bake. Thử bằng trình duyệt headless: 110 điểm xuất phát rải khắp đảo, đi ngẫu nhiên tổng hơn 80 phút, không lần nào kẹt trong vật, lọt tường hay rơi xuống nước sâu. Phần dưới là hướng cũ, giữ lại để tham khảo.
 
 Yêu cầu: nhảy qua được vật thấp (chậu cây, bồn hoa, ghế). Hiện nhân vật xuất hiện trong bùng binh Quách Thị Trang thì không ra được.
 
@@ -40,7 +42,9 @@ Cách làm đề xuất (chỉ đổi bake và thêm một lệnh kiểm tra, kh
 2. Vật thấp (cao hơn sàn quanh nó dưới ~1 m: bồn hoa, chậu cây, ghế, mép hồ) thành bậc nhảy lên được: ô có sàn bằng đỉnh của vật. Đi bộ vẫn vòng qua (cao hơn 0.5 m không bước lên được), nhảy thì đáp lên rồi bước xuống bên kia. Thân cây, cột đèn, tượng vẫn chặn; chỗ không muốn cho trèo thì đặt hộp `NAV_Block_`.
 3. Thêm `npm run nav:check`: báo lỗi nếu còn túi kẹt. Chạy sau mỗi lần bake.
 
-## R3. Đi lên cao: cầu thang Hồ Con Rùa, cầu, cầu thang nhà (chờ, làm trên map mới)
+## R3. Đi lên cao: cầu thang Hồ Con Rùa, cầu, cầu thang nhà (xong 2026-11-17, cách khác với đề xuất bên dưới)
+
+**Trạng thái:** làm ở client theo model, đúng như Khoa nghĩ (D21): mặt cầu, cầu thang, sân thượng, vòng đi bộ trên cao đi được nếu model có bậc ≤ 0.5 m; nhiều tầng chồng nhau không cần gì thêm vì va chạm là hình 3D thật. Server không kiểm tra độ cao nữa. Giới hạn còn lại: không đi dưới gầm đầu cầu trên bờ và gầm Núi Nhỏ (game tự dựng vách ở mép hở). Phần dưới là hướng cũ.
 
 Khoa nghĩ phần này nên làm ở client theo model. Đã tìm hiểu:
 - Mỗi ô nav chỉ có một mặt sàn; bake chọn mặt thấp nhất còn 2 m trống phía trên, nên vòng đi bộ trên cao, mặt cầu, sân thượng đều bị bỏ qua. Cầu thang Hồ Con Rùa (sàn 0.5 → 2 m quanh (43, 85)) hiện là một túi không vào được.

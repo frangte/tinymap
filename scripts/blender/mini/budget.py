@@ -4,7 +4,7 @@
         --python scripts/blender/mini/budget.py [-- --strict]
 
 Counts the triangles of everything export_glb.py exports (collections SD_World and SD_NoInk, modifiers applied,
-PREVIEW_* and NAV_* left out), sorted into the budget categories. With --strict it exits with status 1 when a
+PREVIEW_* and the old nav bake's NAV_* boxes left out), sorted into the budget categories. With --strict it exits with status 1 when a
 category or the total is over budget, so it can gate an export. The .blend is not modified.
 """
 import sys

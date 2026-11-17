@@ -16,7 +16,7 @@ npm run i18n:check   # fails on interface text typed outside the catalogs (src/g
 
 The game is in Vietnamese and English. The language comes from `?lang=vi|en`, then the player's last choice, then the browser's languages (English when it lists neither); the switch is on the start menu and in the tool buttons, and changes everything on screen at once. NPCs always speak Vietnamese: in English the English goes under each line.
 
-The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so the back button and shared links work. `?debug` exposes the app as `window.sgGame` (player, follow camera, map view, nav grid, `go(mode)`, `step(n)`); `?debug&manual` stops the frame loop so a test can step it.
+The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so the back button and shared links work. `?debug` exposes the app as `window.sgGame` (player, follow camera, map view, the collider and `showCollider()` to draw it, `go(mode)`, `step(n)`); `?debug&manual` stops the frame loop so a test can step it.
 
 ## Controls
 
@@ -49,10 +49,12 @@ src/game/
   world.ts              renderer, paper sky, sun/ambient lighting, GLB loader (plain or base64 .txt)
   paint.ts              toon paint material (Blender SD_Paint parameters) + foliage wind and see-through
   ink.ts                normal/depth pass, colour pass and the ink composite
-  nav.ts                walkable heightfield: floor height, walkable flag, building tops
-  player.ts             movement: acceleration, turning, wall sliding, kerbs and ramps
+  collider.ts           what bodies bump into: the map's own triangles in one BVH (three-mesh-bvh), capsule
+                        push-out, floors, water depth, the hill's skirts, the camera's sight lines
+  mapInfo.ts            server/content/map.json: spawn, sea level, island bounds
+  player.ts             movement: acceleration, turning, a capsule sliding along walls, steps, slopes, falls
   character.ts          low-poly pedestrian (nón lá) with procedural idle / walk / run
-  followCamera.ts       third-person orbit camera with building avoidance
+  followCamera.ts       third-person orbit camera that keeps out of walls (poles and crowns do not count)
   input.ts              keyboard, mouse, touch joystick, pinch
   places.ts             named landmarks and streets for the HUD
   phone/mapLand.json    the phone map's land and roads (written by scripts/map/move_game_content_v8.py)
@@ -63,16 +65,11 @@ src/game/
   i18n/                 every interface text, Vietnamese and English (see "Adding text")
   coords.ts             Blender <-> three.js axes, small math helpers
 public/models/
-  saigon_mini.glb       the map, Sài Gòn mini (export of models/saigon_mini.blend)
-  saigon_mini_nav.png   floor height + walkable flag, 0.35 m grid
-  saigon_mini_roof.png  building tops on non-walkable cells (camera collision)
-  saigon_mini_nav.json  grid origin, cell size, spawn point
-  saigon_q1_*           the v4 island, no longer loaded
+  saigon_mini.glb       the map, Sài Gòn mini (export of models/saigon_mini.blend); also what bodies collide with
+  saigon_q1_v5.glb      the v4 island, no longer loaded
 scripts/
   inline.mjs            inlines the single-chunk build into one HTML file
   blender/export_glb.py exports the diorama GLB from the .blend
-  blender/bake_nav.py   bakes the three nav files from the .blend
-  blender/nav_boxes.py  the walk-map boxes (NAV collection: buildings nobody walks into) in the .blend
 docs/
   PROJECT.md            project brief: style, palette, Blender conventions, landmark sheet
   img/                  renders of each landmark from the current map
@@ -87,7 +84,7 @@ Interface text never goes straight into the code or `index.html`; `npm run i18n:
 - **Game content** (quests, dialogue, places, apps, archetypes in `server/content/`) is a `{ "vi": …, "en": … }` pair: show it with `tx()`, place names with `placeTitle()` / `placeNote()`. `go test` fails on a text without its English.
 - **Text that stays on screen** redraws itself on `onLangChange()`; text built each time something opens needs nothing more.
 
-Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z) is three (x, z, -y). The nav files are in Blender XY with row 0 at the southern edge.
+Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z) is three (x, z, -y). Places, NPC spots and `server/content/map.json` are in Blender XY.
 
 ## Changing the map
 
@@ -96,15 +93,14 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
    `scripts/map/relayout_v8.py`, checked by `scripts/map/check_layout.py`; see `docs/map-v8-design.md`). The v4 island
    (`models/temp.sg.tinymap.blend`, `saigon_q1_*`) is kept but no longer loaded.
 2. Export: `npm run map:export` writes `export/saigon_mini.glb`; copy it to `public/models/saigon_mini.glb` (the name
-   `index.html` loads, `#stage data-model`).
-3. Re-bake the nav maps (about 3 minutes) and copy them to the server, which checks every move against its own copy:
-   ```bash
-   blender models/saigon_mini.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_mini
-   npm run nav:sync
-   ```
-   Objects are told apart by the names the build gives them (`MINI` in `bake_nav.py`): ground, buildings nobody
-   walks under, and covers (bridge decks, the hill) that nothing under them can be the floor of.
-4. Places, NPCs and spawns are in `server/content/` (Blender XY). After moving things in the layout, run
+   `index.html` loads, `#stage data-model`). That is all collision needs: the game builds it from the GLB as it
+   loads (`src/game/collider.ts`, about half a second). Whatever is in the model stops a body (walls, kerbs,
+   trunks, railings; tree crowns too, below head height), except the lamp glows and lanterns; water stops it where
+   it is deeper than 0.25 m. Open in `?debug` and call `sgGame.showCollider()` to see it (orange: the skirts under
+   the hill's open rim and the bridge ends over the bank). To let players through something, leave it out of the
+   model or give it a pass-through material (`PASS_THROUGH` in `collider.ts`); to stop them, model a wall.
+   The spawn, sea level and island bounds are in `server/content/map.json`.
+3. Places, NPCs and spawns are in `server/content/` (Blender XY). After moving things in the layout, run
    `python3 scripts/map/move_game_content_v8.py` (needs shapely): it puts them back on their streets and squares and
    rewrites the phone map.
 

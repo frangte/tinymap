@@ -7,7 +7,6 @@
     "dev": "vite",
     "server": "cd server && go run ./cmd/server",
     "server:test": "cd server && go vet ./... && go test -race ./...",
-    "nav:sync": "cp public/models/saigon_mini_nav.png public/models/saigon_mini_nav.json server/content/nav/",
     "deploy": "scripts/deploy.sh",
     "deploy:check": "scripts/deploy.sh check",
     "deploy:rollback": "scripts/deploy.sh rollback",
@@ -20,7 +19,8 @@
   },
   "dependencies": {
     "lil-gui": "0.19.2",
-    "three": "0.160.0"
+    "three": "0.160.0",
+    "three-mesh-bvh": "0.9.18"
   },
   "devDependencies": {
     "@types/three": "0.160.0",

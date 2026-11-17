@@ -31,7 +31,7 @@ import bpy
 
 SCENE = 'SaigonDiorama'
 COLLECTIONS = ('SD_World', 'SD_NoInk')
-SKIP_PREFIX = ('PREVIEW_', 'NAV_')   # Blender-only preview sea; walk-map boxes (nav_boxes.py)
+SKIP_PREFIX = ('PREVIEW_', 'NAV_')   # Blender-only preview sea; boxes left from the old nav bake (no longer used)
 
 
 def lin2srgb(c):
@@ -66,7 +66,7 @@ def main():
     if sc:
         objs = [o for c in COLLECTIONS for o in bpy.data.collections[c].all_objects if o.type == 'MESH' and not o.name.startswith(SKIP_PREFIX)]
     else:
-        # a re-imported GLB: everything visible in the active scene, except the walk-map boxes (nav_boxes.py)
+        # a re-imported GLB: everything visible in the active scene, except boxes left from the old nav bake
         sc = bpy.context.scene
         objs = [o for o in sc.objects if o.type == 'MESH' and not o.hide_render and not o.hide_get() and not o.name.startswith(SKIP_PREFIX)]
     vl = sc.view_layers[0]

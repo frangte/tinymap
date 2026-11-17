@@ -5,7 +5,7 @@
 //
 // Do not use Blender's File > Export > glTF for the game: it writes float normals and positions, one primitive per
 // material per object and the Blender-only preview sea (about 65 MB for Sài Gòn mini). This script runs
-// scripts/blender/export_glb.py (no normals, colours only, PREVIEW_* and NAV_* left out) and then the gltf-transform
+// scripts/blender/export_glb.py (no normals, colours only, PREVIEW_* and the old nav bake's NAV_* boxes left out) and then the gltf-transform
 // chain: flatten, join (one mesh per material), weld, quantize positions, prune and meshopt compression (~4 MB).
 // --budget also prints the triangle budget (scripts/blender/mini/budget.py).
 //

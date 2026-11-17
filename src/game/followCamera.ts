@@ -1,9 +1,11 @@
 // Third-person follow camera: orbits a pivot above the player's head (drag / wheel / pinch), drifts back
 // behind the player while walking forward, and cranes up over a building behind the player (pulling in only as far
-// as it still has to) instead of entering it.
+// as it still has to) instead of entering it. Walls are the map's own shapes (collider.ts); tree crowns do not
+// count (paint.ts fades the ones in the way), and neither does a pole or a trunk, which only one of three side by
+// side sight lines runs into.
 import * as THREE from 'three';
 import type { LookDelta } from './input';
-import type { NavGrid } from './nav';
+import type { CityCollider } from './collider';
 import { clamp, damp, wrapAngle } from './coords';
 
 const PIVOT_H = 1.45;
@@ -17,6 +19,11 @@ const WALL_GAP = 0.55;
 const ROOM = 5;
 /** how much higher each try looks from (rad) */
 const LIFT_STEP = 0.12;
+/** the sight line from the pivot is also tried this far to either side (m): what blocks one of the three only is
+ *  thin (a lamp post, a trunk), and the camera does not jump in for it */
+const SIDE_SIGHT = 0.45;
+/** the camera stays this far over the floor below it (m) */
+const ABOVE_FLOOR = 0.5;
 
 /** Close framing of the whole body for the dressing panel. */
 export interface Framing {
@@ -40,10 +47,11 @@ export class FollowCamera {
   private readonly pivot = new THREE.Vector3();
   private readonly dir = new THREE.Vector3();
   private readonly probe = new THREE.Vector3();
+  private readonly side = new THREE.Vector3();
   /** extra pitch while a building behind the player is in the way (eased, on top of the user's pitch) */
   private lift = 0;
 
-  constructor(private readonly camera: THREE.PerspectiveCamera, private readonly nav: NavGrid) {}
+  constructor(private readonly camera: THREE.PerspectiveCamera, private readonly collider: CityCollider) {}
 
   /** Jump straight behind a player at `target` facing `heading`. */
   snapBehind(target: THREE.Vector3, heading: number): void {
@@ -119,23 +127,25 @@ export class FollowCamera {
   /** How far the camera can back away from the pivot, looking down at `pitch`, before it would enter a building. */
   private clearDistance(want: number, pitch: number): number {
     this.setDir(pitch);
-    const step = 0.3;
-    for (let t = 0.5; t <= want; t += step) {
-      this.probe.copy(this.pivot).addScaledVector(this.dir, t);
-      const roof = this.nav.roofAt(this.probe.x, this.probe.z);
-      if (roof > 0 && this.probe.y < roof + 0.3) return Math.max(0.8, t - WALL_GAP);
-    }
-    return want;
+    const col = this.collider;
+    const mid = col.sightDistance(this.pivot, this.dir, want);
+    if (mid >= want) return want;
+    // the horizontal at right angles to the sight line
+    this.side.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const left = col.sightDistance(this.probe.copy(this.pivot).addScaledVector(this.side, SIDE_SIGHT), this.dir, want);
+    const right = col.sightDistance(this.probe.copy(this.pivot).addScaledVector(this.side, -SIDE_SIGHT), this.dir, want);
+    // the middle one of the three: a wall blocks two or three of them, a pole one
+    const d = Math.max(Math.min(mid, left), Math.min(Math.max(mid, left), right));
+    return d >= want ? want : Math.max(0.8, d - WALL_GAP);
   }
 
   private place(): void {
     this.setDir();
     this.camera.position.copy(this.pivot).addScaledVector(this.dir, this.dist);
-    // stay above the ground behind the player (ramps, the bridge)
-    const floor = this.nav.floorAt(this.camera.position.x, this.camera.position.z);
-    if (Number.isFinite(floor) && this.nav.isWalkable(this.camera.position.x, this.camera.position.z)) {
-      this.camera.position.y = Math.max(this.camera.position.y, floor + 0.5);
-    }
+    // stay above the ground behind the player (slopes, the hill, a bridge)
+    const cam = this.camera.position;
+    const floor = this.collider.floorBelow(cam.x, Math.max(this.pivot.y, cam.y), cam.z, Math.max(this.pivot.y, cam.y) - cam.y + ABOVE_FLOOR + 3);
+    if (Number.isFinite(floor)) cam.y = Math.max(cam.y, floor + ABOVE_FLOOR);
     this.camera.lookAt(this.pivot);
   }
 

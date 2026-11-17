@@ -17,18 +17,18 @@ For gameplay, multiplayer and backend work (archetypes, quests, NPCs, phone, cha
 - `npm run build:single` — one HTML file at `dist-single/saigon-noir.html` (serve `models/` next to it)
 - `blender models/temp.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb` — export the GLB (then the gltf-transform chain in that file's header)
 - `node scripts/map/layout_svg.mjs` and `/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python scripts/blender/build_saigon_mini.py -- models/saigon_mini.blend --render renders/blockout` — redraw the Sài Gòn mini plan and rebuild its blockout from `scripts/map/saigon_mini_layout.json` (needs `.blender-site/`, see docs/map-v5.md)
-- `blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1` — re-bake the nav maps after a map change, then `npm run nav:sync` (the server checks moves against its own embedded copy; `go test` fails until they match). The map file is the shipped GLB imported back (meshes merged by material), so the bake tells ground from obstacles by material, and buildings nobody walks into are `NAV_Solid_` boxes in its `NAV` collection (`scripts/blender/nav_boxes.py`; see docs/PROJECT.md, Pipeline)
 
 No test runner and no linter. Verify changes with `npm run typecheck` and `npm run i18n:check`, then play in the browser (in both languages: `?lang=vi`, `?lang=en`).
 
 ## Conventions
 
-- Blender is the source of truth for the map. Never edit `public/models/*` by hand: re-export the GLB and re-bake the nav maps.
-- Axes: Blender (x, y, z-up) = three (x, z, -y). Use `fromBlender()` from `src/game/coords.ts`. Places and the nav metadata are in Blender XY.
+- Blender is the source of truth for the map. Never edit `public/models/*` by hand: re-export the GLB. What players bump into is the GLB itself (no bake): what is in the model stops them, what is not lets them through.
+- Axes: Blender (x, y, z-up) = three (x, z, -y). Use `fromBlender()` from `src/game/coords.ts`. Places and `server/content/map.json` (spawn, sea level, island bounds) are in Blender XY.
 - All world materials come from `paintMaterial()` (`src/game/paint.ts`), keyed by the Blender material name without `SD_`. Moving meshes pass `{ local: true }` so the paint noise doesn't swim.
 - Every mesh added to the scene must be registered with `InkPass.track()`, otherwise the normal pass draws it with its colour material.
 - The sun shadow map is baked once (`shadowMap.autoUpdate = false`); moving things use a blob shadow.
-- Movement and the camera only read the nav grid; never raycast the city meshes per frame.
+- Movement, the camera and every floor lookup go through `CityCollider` (`src/game/collider.ts`): the map's triangles in one three-mesh-bvh BVH, built once at load, a capsule body for the player. Never raycast the scene's meshes (`THREE.Raycaster` over the city) per frame; ask the collider. Water stops a body only where it is deeper than `WADE`; the hill's open rim and bridge ends over dry ground get collision-only skirts. `?debug` has `sgGame.showCollider()`.
+- The server checks speeds only (`server/internal/world/move.go`), not walls or heights: the game keeps its player out of walls, and the server takes its word (decision D21 in docs/design/README.md).
 - The game is in Vietnamese and English. Interface text lives in the catalogs in `src/game/i18n/` (`en: typeof vi`), `index.html` text in `i18n/page.ts` via `data-i18n` keys, and content text in `server/content/` as `{vi, en}` pairs shown with `tx()`. Views that keep text on screen redraw on `onLangChange()`. README.md, "Adding text".
 
 ## Overrides for the ECC rules in `.claude/rules/ecc/`

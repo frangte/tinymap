@@ -1,13 +1,14 @@
-// Player movement on the nav grid: camera-relative walking / running with acceleration, smooth turning,
-// sliding along walls at any angle, and following the floor height over kerbs, plazas and the bridge. Also
-// jumping (a jump can land on something up to its height plus a step higher), emotes, riding a motorbike, and
-// going back to where the server says when it refuses a move.
+// Player movement: camera-relative walking / running with acceleration and smooth turning, a capsule body that
+// collides with the map's own shapes (collider.ts): it slides along walls at any angle, steps up kerbs and stairs,
+// follows the floor down slopes and falls off what is higher than a step. Also jumping, emotes, riding a motorbike,
+// and going back to where the server says when it refuses a move.
 //
-// The server checks every move against the same nav grid and the same speeds (server/content/movement.json and
-// vehicles.json), so what this allows, it allows.
+// Water deeper than collider.ts WADE and the edge of the map are the only things that stop a body without a shape
+// of their own: a step that would end there goes along the shore instead. The server checks speeds only
+// (server/content/movement.json and vehicles.json), so the game keeps to them.
 import * as THREE from 'three';
 import type { MoveIntent } from './input';
-import type { NavGrid } from './nav';
+import { CONTACT_CEILING, CONTACT_FLOOR, FALL_LIMIT, type Body, type CityCollider } from './collider';
 import { clamp, damp, smoothstep, wrapAngle } from './coords';
 import { idlePose, Pedestrian, type AvatarPose } from './character';
 import { emoteByCode, MOVEMENT } from './motion';
@@ -20,12 +21,11 @@ export interface PlayerTuning {
   accel: number;
   /** how fast the body turns toward the move direction (1/s) */
   turnRate: number;
-  /** body radius on the nav grid (m) */
+  /** the body's capsule: radius and full height (m) */
   radius: number;
-  /** highest floor change one stride can climb (m): kerbs yes, walls no */
+  height: number;
+  /** highest step a stride climbs (m): kerbs, stairs, a bench yes; walls no (jump onto those) */
   maxStep: number;
-  /** deepest floor change one stride can step down (m): off a bench, a planter or a fountain rim */
-  maxDrop: number;
   jumpSpeed: number;
   gravity: number;
 }
@@ -36,11 +36,8 @@ export const DEFAULT_TUNING: PlayerTuning = {
   accel: 9,
   turnRate: 12,
   radius: 0.26,
-  // the nav bake's MAX_STEP (scripts/blender/bake_nav.py): every walkable cell is reachable without a jump
+  height: 1.65,
   maxStep: 0.5,
-  // whatever a jump climbs onto, a step must come down from, or the player is stuck up there; under the
-  // server's MaxClimb (1.2, server/internal/world/move.go), which it checks between two reported positions
-  maxDrop: 1.1,
   jumpSpeed: MOVEMENT.jumpSpeed,
   gravity: MOVEMENT.gravity,
 };
@@ -55,47 +52,67 @@ export interface RideTuning {
   brake: number;
   /** fastest turn (rad/s), reached once rolling; slower on the spot */
   turnRate: number;
-  /** footprint on the nav grid (m) */
+  /** the bike and its rider as one capsule (m) */
   radius: number;
+  height: number;
+  /** highest kerb it rolls up (m) */
+  maxStep: number;
 }
 
 /** run (Shift, or the joystick pushed all the way) on a vehicle goes this much faster than riding along */
 const RIDE_BOOST = 1.5;
 
 export function rideTuning(topSpeed: number): RideTuning {
-  return { topSpeed, cruise: 1 / RIDE_BOOST, accel: 7.2, brake: 12, turnRate: 2.3, radius: 0.42 };
+  return { topSpeed, cruise: 1 / RIDE_BOOST, accel: 7.2, brake: 12, turnRate: 2.3, radius: 0.42, height: 1.55, maxStep: 0.4 };
 }
 
-/** headings off the wish direction a blocked step tries last (rad), the open side first; never 90°: a wall stays a wall */
+/** a stride is cut into steps this long at most (m), well under a body's radius, so nothing is walked through */
+const SUBSTEP = 0.1;
+/** on the ground the floor is followed down this far in a step (m): stairs and kerbs; further down is a fall */
+const SNAP_DOWN = 0.5;
+/** the floor ahead is looked for this far past the body's edge (m), to step up before bumping into the step */
+const STEP_AHEAD = 0.06;
+/** a body stands on the floor under its middle or under four points round it this far out (share of its radius):
+ *  at the edge of a quay or a step it stays up there until most of it is past the edge */
+const FOOT_RING = 0.7;
+/** a floor change bigger than this in one step eases the drawn avatar over it rather than jumping (m) */
+const EASE_STEP = 0.05;
+/** headings off the wish direction a step that would end in deep water or off the map tries (rad), the closest
+ *  first; never 90°, so a shore that faces the move head-on stops it */
 const SLIDE = [0.35, 0.7, 1.05, 1.4];
-const SUBSTEP = 0.12;
-/** a slide keeps going round the same side for this long after the last blocked step (s) */
-const SIDE_KEEP = 0.35;
-/** looking for the way round an obstacle: up to this far to either side (m), in steps of ROUND_STEP, with room to
- *  go on ROUND_AHEAD beyond it; none within reach means a wall */
-const ROUND_REACH = 1.2;
-const ROUND_STEP = 0.15;
-const ROUND_AHEAD = 0.5;
-/** a slide shorter than this share of the step is head-on: go round on the open side instead, at ROUND_PACE */
-const HEAD_ON = 0.4;
-const ROUND_PACE = 0.8;
-/** a slide leading this far toward the other side than the open one runs into a corner (cosine) */
-const WRONG_WAY = 0.2;
-/** how far a slide may also step off the obstacle's surface to stay clear of it (m) */
-const PUSH_OUT = [0, 0.02, 0.05];
+/** falling never gets faster than this (m/s): keeps a long fall's steps short */
+const MAX_FALL = 30;
+/** this far below the map's lowest point the player has fallen out of the world (m) */
+const OUT_OF_WORLD = 30;
+/** landing in deep water puts the player on the nearest dry spot this close (m); further, back home */
+const RESCUE_REACH = 6;
+/** falling but held up this long (wedged in a crevice between rocks) counts as standing there (s) */
+const STUCK_AIR = 0.25;
+/** spawn() looks this far round the spot asked for a place the body fits (m) */
+const SPAWN_SEARCH = 8;
 /** on foot, moving less than this share of the velocity is being stopped (a wall): the velocity drops to it */
 const STOPPED = 0.1;
 /** on a vehicle, less than this share of the way wanted is a crash: the bike stops as short as it did */
 const RIDE_STOPPED = 0.5;
 /** a correction closer than this eases the avatar back; further, it jumps (m) */
 const EASE_LIMIT = 6;
+/** a corrected pose stands on the floor there when one is within this of its height (m) */
+const CORRECT_FLOOR = 1;
+/** a corrected pose in a wall goes to the nearest spot within this where the body fits (m) */
+const CORRECT_SEARCH = 2;
 /** getting off: the rider steps this far to the left of the bike (m) */
 const DISMOUNT_SIDE = 0.85;
 /** a joystick nudge this small does not cancel an emote */
 const EMOTE_KEEP = 0.15;
 
+/** The higher of two heights, either of which may be NaN (none). */
+function higher(a: number, b: number): number {
+  return Number.isFinite(b) && !(b <= a) ? b : a;
+}
+
 export class Player {
   readonly avatar = new Pedestrian();
+  /** where the body stands: the bottom of its capsule */
   readonly position = new THREE.Vector3();
   heading = 0;
   /** measured ground speed (m/s), drives the animation */
@@ -108,33 +125,34 @@ export class Player {
   lean = 0;
   /** the vehicle we sit on behind its rider (a Crab Bike trip), 0 on our own feet or bike */
   seated = 0;
+  /** fallen out of the world or into water with no shore near: the app sends the player home */
+  onLost: () => void = () => {};
   private readonly vel = new THREE.Vector3();
   private readonly wish = new THREE.Vector3();
-  /** where the avatar is drawn relative to `position`, easing to zero after a correction */
+  /** where the avatar is drawn relative to `position`, easing to zero after a correction or a step */
   private readonly offset = new THREE.Vector3();
   private readonly scratch = new THREE.Vector3();
-  private floor = 0;
-  /** the blended floor under the player, for the shadow */
+  /** where a step would take the body, before it is taken */
+  private readonly cand = new THREE.Vector3();
+  private readonly body: Body;
+  /** the floor under the player, for the shadow of a jump */
   private ground = 0;
   private vy = 0;
   private airborne = false;
+  /** set by a step over a ledge: the body falls once the step is taken */
+  private leaving = false;
+  /** how long the body has been falling without coming down (s) */
+  private heldFor = 0;
   private emoteCode = 0;
   /** seconds the emote plays; 0 loops until the player moves */
   private emoteSeconds = 0;
   /** signed forward speed on a vehicle (m/s) */
   private rideSpeed = 0;
   private yawRate = 0;
-  /** the floor heights the next step may reach, from reach() */
-  private lo = 0;
-  private hi = 0;
-  /** going round an obstacle: +1 left of the move, -1 right, 0 a wall; kept SIDE_KEEP s (slideFor) so a slide
-   *  does not flip sides at every step */
-  private slideSide = 0;
-  private slideFor = 0;
-  private readonly away = { x: 0, z: 0 };
 
-  constructor(private readonly nav: NavGrid, private readonly tuning: PlayerTuning = DEFAULT_TUNING) {
+  constructor(private readonly collider: CityCollider, private readonly tuning: PlayerTuning = DEFAULT_TUNING) {
     this.avatar.root.name = 'Player';
+    this.body = { radius: tuning.radius, height: tuning.height };
   }
 
   /** State flags for the server: in the air, riding, the emote playing. */
@@ -148,17 +166,23 @@ export class Player {
     return this.airborne;
   }
 
-  /** Place the player at three.js (x, z), or the nearest spot that fits, facing `heading` (0 = +Z). */
-  spawn(x: number, z: number, heading: number): void {
-    const fit = this.nav.nearestStanding(x, z, this.tuning.radius);
-    if (fit) [x, z] = fit;
-    this.floor = this.nav.floorAt(x, z);
-    if (!Number.isFinite(this.floor)) this.floor = 0;
-    this.position.set(x, this.floor, z);
+  /**
+   * Place the player at three.js (x, z), or the nearest spot round it where the body fits, on the floor nearest the
+   * height `nearY` (the ground for 0, not a roof or a bridge over it), facing `heading` (0 = +Z).
+   */
+  spawn(x: number, z: number, heading: number, nearY = 0): void {
+    if (this.collider.nearestStanding(x, z, this.body, nearY, SPAWN_SEARCH, this.cand)) this.position.copy(this.cand);
+    else this.position.set(x, nearY, z);
     this.heading = heading;
     this.settle();
+    this.ground = this.position.y;
     this.offset.set(0, 0, 0);
     this.syncAvatar();
+  }
+
+  /** Whether the body fits on dry ground within a step of (x, z), on the floor near the height `y` (none: false). */
+  fitsNear(x: number, z: number, y: number | undefined): boolean {
+    return y !== undefined && this.collider.nearestStanding(x, z, this.body, y, 1, this.cand);
   }
 
   /** Jump, if standing on the ground on foot. */
@@ -186,10 +210,11 @@ export class Player {
     this.pose.emote = '';
   }
 
-  /** Get on a vehicle parked at (x, z) facing `heading`: the rider hops over onto it. */
-  mount(id: number, tuning: RideTuning, x: number, z: number, heading: number): void {
+  /** Get on a vehicle parked at (x, y, z) facing `heading`: the rider hops over onto it. */
+  mount(id: number, tuning: RideTuning, x: number, y: number, z: number, heading: number): void {
     this.stopEmote();
-    this.moveTo(x, this.nav.floorAt(x, z), z, true);
+    const floor = this.collider.floorNear(x, z, y);
+    this.moveTo(x, Number.isFinite(floor) ? floor : y, z, true);
     this.heading = heading;
     this.riding = { id, tuning };
     this.pose.ride = true;
@@ -201,11 +226,11 @@ export class Player {
     const p = this.position;
     const parked: [number, number, number, number] = [p.x, p.y, p.z, this.heading];
     const h = this.heading;
-    const fit = this.nav.nearestStanding(p.x + Math.cos(h) * DISMOUNT_SIDE, p.z - Math.sin(h) * DISMOUNT_SIDE, this.tuning.radius, 3);
-    const [x, z] = fit ?? [p.x, p.z];
+    const fit = this.collider.nearestStanding(p.x + Math.cos(h) * DISMOUNT_SIDE, p.z - Math.sin(h) * DISMOUNT_SIDE, this.body, p.y, 3, this.cand, p);
     this.riding = null;
     this.pose.ride = false;
-    this.moveTo(x, this.nav.floorAt(x, z), z, true);
+    if (fit) this.moveTo(this.cand.x, this.cand.y, this.cand.z, true);
+    else this.moveTo(p.x, p.y, p.z, true);
     return parked;
   }
 
@@ -231,18 +256,29 @@ export class Player {
   carry(at: THREE.Vector3, heading: number, lean: number, speed: number): void {
     this.offset.set(0, 0, 0);
     this.position.copy(at);
-    this.floor = this.ground = at.y;
+    this.ground = at.y;
     this.heading = heading;
     this.lean = lean;
     this.speed = speed;
     this.syncAvatar();
   }
 
-  /** The server refused a move: go back to its pose, easing the avatar there unless it is far. */
+  /**
+   * The server says where we are (a refused move, a welcome, getting off someone's bike): go there, easing the
+   * avatar over unless it is far. The server knows nothing of the map's shapes, so its pose may lack the height
+   * (a home, a spot beside a bike) or be in a wall: the body stands on the floor there, or on the nearest spot it fits.
+   */
   correct(x: number, y: number, z: number): void {
     // the server never corrects a seated passenger's moves (it ignores them): this is it putting us down
     this.stand();
-    this.moveTo(x, y, z, Math.hypot(x - this.position.x, z - this.position.z) < EASE_LIMIT);
+    const col = this.collider;
+    const body = this.riding ? this.riding.tuning : this.body;
+    const floor = col.floorNear(x, z, y);
+    let ty = Number.isFinite(floor) && Math.abs(floor - y) < CORRECT_FLOOR ? floor : y;
+    if (!col.fits(x, ty, z, body) && col.nearestStanding(x, z, body, ty, CORRECT_SEARCH, this.cand, this.position)) {
+      ({ x, y: ty, z } = this.cand);
+    }
+    this.moveTo(x, ty, z, Math.hypot(x - this.position.x, z - this.position.z) < EASE_LIMIT);
   }
 
   /**
@@ -257,7 +293,6 @@ export class Player {
     }
     const mag = Math.min(1, this.wish.length());
     if (mag > 1e-3) this.wish.multiplyScalar(1 / this.wish.length());
-    this.slideFor -= dt;
     if (this.riding) this.ride(dt, mag, move.run, this.riding.tuning);
     else this.walk(dt, mag, move.run);
     this.fall(dt);
@@ -286,9 +321,9 @@ export class Player {
       this.heading = wrapAngle(this.heading + wrapAngle(goal - this.heading) * damp(t.turnRate, dt));
     }
 
-    const moved = this.travel(this.vel.x * dt, this.vel.z * dt, t.radius);
+    const moved = this.travel(this.vel.x * dt, this.vel.z * dt, this.body, t.maxStep);
     const measured = dt > 0 ? moved / dt : 0;
-    // stopped by a wall: drop the velocity to what actually happened; sliding round a trunk keeps the pace
+    // stopped by a wall: drop the velocity to what actually happened; sliding along one keeps the pace
     const vlen = Math.hypot(this.vel.x, this.vel.z);
     if (vlen > 1e-3 && measured < vlen * STOPPED) this.vel.multiplyScalar(Math.max(0, measured) / vlen);
     this.speed += (measured - this.speed) * damp(14, dt);
@@ -310,7 +345,7 @@ export class Player {
     const rate = (goalSpeed > this.rideSpeed ? t.accel : t.brake) * dt;
     this.rideSpeed += clamp(goalSpeed - this.rideSpeed, -rate, rate);
     const want = this.rideSpeed * dt;
-    const moved = this.travel(Math.sin(this.heading) * want, Math.cos(this.heading) * want, t.radius);
+    const moved = this.travel(Math.sin(this.heading) * want, Math.cos(this.heading) * want, t, t.maxStep);
     // into a wall: the bike stops as short as it did; a glancing slide keeps its speed
     if (want > 1e-4 && moved < want * RIDE_STOPPED) this.rideSpeed = dt > 0 ? moved / dt : 0;
     this.speed += ((dt > 0 ? moved / dt : 0) - this.speed) * damp(14, dt);
@@ -319,176 +354,186 @@ export class Player {
     this.lean += (lean - this.lean) * damp(6, dt);
   }
 
-  /** Gravity in a jump; on the ground, ease up and down kerbs. */
-  private fall(dt: number): void {
-    const p = this.position;
-    const ground = this.nav.smoothFloor(p.x, p.z, this.floor);
-    this.ground = ground;
-    if (this.airborne) {
-      this.vy -= this.tuning.gravity * dt;
-      p.y += this.vy * dt;
-      if (p.y <= ground) {
-        // coming down, or rising into something it jumped onto
-        p.y = ground;
-        if (this.vy <= 0) {
-          this.airborne = false;
-          this.vy = 0;
-        }
-      }
-      return;
-    }
-    p.y += (ground - p.y) * damp(ground > p.y ? 22 : 16, dt);
-  }
-
-  /** The floor heights a step may reach (into lo, hi): a drop down, a step up, up to a step above the feet in a jump. */
-  private reach(): void {
-    const step = this.tuning.maxStep;
-    this.lo = this.floor - this.tuning.maxDrop;
-    this.hi = (this.airborne ? Math.max(this.floor, this.position.y) : this.floor) + step;
-  }
-
-  /** Move by (dx, dz) in small substeps, sliding along obstacles. Returns the distance covered. */
-  private travel(dx: number, dz: number, bodyRadius: number): number {
+  /** Move by (dx, dz) in short steps through the map. Returns the distance covered on the ground plane. */
+  private travel(dx: number, dz: number, body: Body, maxStep: number): number {
     const len = Math.hypot(dx, dz);
     if (len < 1e-6) return 0;
     const n = Math.ceil(len / SUBSTEP);
     const sx = dx / n;
     const sz = dz / n;
-    const step = len / n;
-    // if the body already overlaps a wall (a respawn, a teleport), only the centre has to stay walkable
-    const p = this.position;
-    this.reach();
-    const radius = this.nav.canStandBetween(p.x, p.z, bodyRadius, this.lo, this.hi) ? bodyRadius : 0;
     let covered = 0;
     for (let i = 0; i < n; i++) {
-      const d = this.tryStep(sx, sz, step, radius);
-      if (d === 0) break;
+      const d = this.stride(sx, sz, body, maxStep);
+      if (d <= 0) break;
       covered += d;
     }
     return covered;
   }
 
-  private tryStep(sx: number, sz: number, step: number, radius: number): number {
-    const p = this.position;
-    this.reach();
-    if (this.nav.canStandBetween(p.x + sx, p.z + sz, radius, this.lo, this.hi)) {
-      this.commit(p.x + sx, p.z + sz);
-      return step;
-    }
-    const wx = sx / step;
-    const wz = sz / step;
-    if (this.slideFor <= 0) this.slideSide = this.wayRound(wx, wz, radius);
-    this.slideFor = SIDE_KEEP;
-    const slid = this.slideAlong(sx, sz, step, wx, wz, radius);
-    return slid > 0 ? slid : this.fan(sx, sz, step, radius);
-  }
-
-  /**
-   * Slide along the obstacle in the way: the clearance gradient is its surface normal, the step keeps the part along
-   * the surface. Head-on, or where the surface leads into a corner, go round on the open side (slideSide), or stop at
-   * a wall. Returns the distance moved.
-   */
-  private slideAlong(sx: number, sz: number, step: number, wx: number, wz: number, radius: number): number {
-    const p = this.position;
-    const n = this.away;
-    if (!this.nav.awayFromObstacle(p.x + sx, p.z + sz, n)) return 0;
-    const into = Math.min(0, sx * n.x + sz * n.z);
-    let tx = sx - into * n.x;
-    let tz = sz - into * n.z;
-    const tl = Math.hypot(tx, tz);
-    // left of the move
-    const lx = -wz;
-    const lz = wx;
-    const toLeft = tl > 1e-9 ? (tx * lx + tz * lz) / tl : 0;
-    if (tl < HEAD_ON * step || (this.slideSide !== 0 && toLeft * this.slideSide < -WRONG_WAY)) {
-      if (this.slideSide === 0) return 0;
-      // the surface's tangent, turned toward the open side
-      let ux = -n.z;
-      let uz = n.x;
-      if ((ux * lx + uz * lz) * this.slideSide < 0) {
-        ux = -ux;
-        uz = -uz;
-      }
-      tx = ux * ROUND_PACE * step;
-      tz = uz * ROUND_PACE * step;
-    }
-    for (const push of PUSH_OUT) {
-      const x = p.x + tx + n.x * push;
-      const z = p.z + tz + n.z * push;
-      if (this.nav.canStandBetween(x, z, radius, this.lo, this.hi)) {
-        const moved = Math.hypot(x - p.x, z - p.z);
-        this.commit(x, z);
-        return Math.min(step, moved);
-      }
-    }
-    return 0;
-  }
-
-  /** Corners and steps: a fan of headings off the wish, the open side first. Returns the distance moved. */
-  private fan(sx: number, sz: number, step: number, radius: number): number {
-    const p = this.position;
+  /** One step, or where it would end in deep water or off the map, the nearest heading along the shore. */
+  private stride(sx: number, sz: number, body: Body, maxStep: number): number {
+    const moved = this.tryStep(sx, sz, body, maxStep);
+    if (moved >= 0) return moved;
     const a0 = Math.atan2(sx, sz);
-    const side = this.slideSide || 1;
+    const len = Math.hypot(sx, sz);
     for (const off of SLIDE) {
-      const k = Math.cos(off);
-      for (let t = 0; t < 2; t++) {
-        const a = a0 + off * (t === 0 ? side : -side);
-        const x = p.x + Math.sin(a) * step * k;
-        const z = p.z + Math.cos(a) * step * k;
-        if (this.nav.canStandBetween(x, z, radius, this.lo, this.hi)) {
-          this.commit(x, z);
-          return step * k;
-        }
+      const k = len * Math.cos(off);
+      for (let side = 1; side >= -1; side -= 2) {
+        const a = a0 + off * side;
+        const m = this.tryStep(Math.sin(a) * k, Math.cos(a) * k, body, maxStep);
+        if (m >= 0) return m;
       }
     }
     return 0;
   }
 
   /**
-   * Which way round the obstacle ahead of a move along (wx, wz): +1 to the left, -1 to the right, where the body
-   * fits beside it within ROUND_REACH and can go on; 0 when neither side opens (a wall). The side found last is
-   * tried first.
+   * Take a step of (sx, sz) if it can be taken: onto the floor (up a step, down a kerb), pushed out of walls, or
+   * over a ledge onto dry ground below (the body then falls). Returns the distance moved on the ground plane, or -1
+   * where the step would end in deep water or over the edge of the map.
    */
-  private wayRound(wx: number, wz: number, radius: number): number {
+  private tryStep(sx: number, sz: number, body: Body, maxStep: number): number {
     const p = this.position;
-    const lx = -wz;
-    const lz = wx;
-    const first = this.slideSide || 1;
-    for (let k = ROUND_STEP; k <= ROUND_REACH + 1e-6; k += ROUND_STEP) {
-      for (let t = 0; t < 2; t++) {
-        const sg = t === 0 ? first : -first;
-        const qx = p.x + lx * sg * k;
-        const qz = p.z + lz * sg * k;
-        if (this.nav.clearance(qx, qz) < radius) continue;
-        if (this.nav.clearance(qx + wx * ROUND_AHEAD, qz + wz * ROUND_AHEAD) < radius) continue;
-        if (this.sideOpen(lx * sg, lz * sg, k, radius)) return sg;
+    const col = this.collider;
+    const c = this.cand.set(p.x + sx, p.y, p.z + sz);
+    this.leaving = false;
+    let floor = NaN;
+    if (!this.airborne) {
+      floor = this.footing(c.x, c.z, p.y + maxStep + 0.01, maxStep + 0.01 + SNAP_DOWN, body.radius, sx, sz);
+      if (Number.isFinite(floor)) c.y = floor;
+      // else over a ledge: the body falls, onto dry ground somewhere below (checked once pushed out of walls)
+      else this.leaving = true;
+    }
+    // a second pass for what the first left in a corner (pushed out of one triangle into another)
+    if (col.collide(c, body) !== 0) col.collide(c, body);
+    // never with the body's middle over deep water or the edge of the map, even standing on a railing there: it
+    // would come down there
+    if (this.overTheEdge(c, body)) return -1;
+    // pressed down under something lower than the body: no room there
+    if (Number.isFinite(floor) && c.y < floor - 0.05) return 0;
+    const moved = Math.hypot(c.x - p.x, c.z - p.z);
+    const dy = c.y - p.y;
+    if (!this.airborne && Math.abs(dy) > EASE_STEP) this.offset.y -= dy;
+    p.copy(c);
+    if (this.leaving) {
+      this.leaving = false;
+      this.airborne = true;
+      this.vy = 0;
+    }
+    return moved;
+  }
+
+  /**
+   * The highest floor flat enough to stand on, under the body standing at (x, z): under its middle, under four points
+   * round it (FOOT_RING), and, moving along (dx, dz), just past its front edge (so it steps up a kerb before bumping
+   * into it). Looked for from `from` down `reach` metres; NaN where there is none (a ledge).
+   */
+  private footing(x: number, z: number, from: number, reach: number, radius: number, dx: number, dz: number, flat = true): number {
+    const col = this.collider;
+    const k = radius * FOOT_RING;
+    let best = col.floorBelow(x, from, z, reach, flat);
+    best = higher(best, col.floorBelow(x + k, from, z, reach, flat));
+    best = higher(best, col.floorBelow(x - k, from, z, reach, flat));
+    best = higher(best, col.floorBelow(x, from, z + k, reach, flat));
+    best = higher(best, col.floorBelow(x, from, z - k, reach, flat));
+    const len = Math.hypot(dx, dz);
+    if (len > 1e-6) {
+      const a = (radius + STEP_AHEAD) / len;
+      best = higher(best, col.floorBelow(x + dx * a, from, z + dz * a, reach, flat));
+    }
+    return best;
+  }
+
+  /** Whether a body at `c` would come down in deep water or off the edge of the map: what is under its middle. */
+  private overTheEdge(c: THREE.Vector3, body: Body): boolean {
+    const below = this.collider.floorBelow(c.x, c.y + body.radius, c.z, FALL_LIMIT);
+    return !Number.isFinite(below) || this.collider.isDeep(c.x, c.z, below);
+  }
+
+  /** Gravity in a jump or a fall, landing on whatever is below; on the ground, notice a floor that went away. */
+  private fall(dt: number): void {
+    const p = this.position;
+    const col = this.collider;
+    const body = this.riding ? this.riding.tuning : this.body;
+    if (!this.airborne) {
+      // standing still where the floor went away (a correction to mid-air): fall. Any surface holds a body that
+      // stands still, a steep one too (wedged between rocks); walking off it is a fall (tryStep).
+      if (!Number.isFinite(this.footing(p.x, p.z, p.y + 0.05, SNAP_DOWN + 0.05, body.radius, 0, 0, false))) {
+        this.airborne = true;
+        this.vy = 0;
+      } else {
+        this.ground = p.y;
+        return;
       }
     }
-    return 0;
-  }
-
-  /** Whether the body can shuffle `dist` metres along (dx, dz) without running into anything. */
-  private sideOpen(dx: number, dz: number, dist: number, radius: number): boolean {
-    const p = this.position;
-    for (let t = 0.1; t < dist; t += 0.1) {
-      if (this.nav.clearance(p.x + dx * t, p.z + dz * t) < radius * 0.8) return false;
+    this.vy = Math.max(-MAX_FALL, this.vy - this.tuning.gravity * dt);
+    const dy = this.vy * dt;
+    const fromY = p.y;
+    const n = Math.max(1, Math.ceil(Math.abs(dy) / (body.radius * 0.5)));
+    for (let i = 0; i < n && this.airborne; i++) {
+      const c = this.cand.copy(p);
+      c.y += dy / n;
+      const hit = col.collide(c, body);
+      // pushed sideways off an edge: never out over deep water or the edge of the map
+      if ((c.x !== p.x || c.z !== p.z) && this.overTheEdge(c, body)) {
+        c.x = p.x;
+        c.z = p.z;
+      }
+      p.copy(c);
+      if ((hit & CONTACT_FLOOR) !== 0 && this.vy <= 0) this.land();
+      else if ((hit & CONTACT_CEILING) !== 0 && this.vy > 0) this.vy = 0;
     }
-    return true;
+    // falling but held where it is (wedged in a crevice, its sides too steep to stand on): it stands there, so it
+    // can jump out, and in water too deep, it is helped out
+    this.heldFor = this.airborne && dy < 0 && fromY - p.y < 0.002 ? this.heldFor + dt : 0;
+    if (this.heldFor > STUCK_AIR) {
+      this.heldFor = 0;
+      this.land();
+    }
+    if (this.airborne && this.vy <= 0) {
+      // touching down on a floor, or on an edge under part of the body (a touch is not an overlap, so collide()
+      // does not report it, and an edge pushes the body sideways rather than up)
+      const f = this.footing(p.x, p.z, p.y + 0.05, 0.08, body.radius, 0, 0);
+      if (Number.isFinite(f)) {
+        p.y = Math.max(p.y, f);
+        this.land();
+      }
+    }
+    if (this.airborne) {
+      const g = col.floorBelow(p.x, p.y + 0.05, p.z, FALL_LIMIT);
+      this.ground = Number.isFinite(g) ? g : p.y;
+      if (p.y < col.bottom - OUT_OF_WORLD) this.onLost();
+    } else {
+      this.ground = p.y;
+    }
   }
 
-  private commit(x: number, z: number): void {
-    this.position.x = x;
-    this.position.z = z;
-    this.floor = this.nav.floorAt(x, z);
+  /** On the ground again; in water too deep to stand in, out onto the nearest dry spot. */
+  private land(): void {
+    this.airborne = false;
+    this.vy = 0;
+    this.heldFor = 0;
+    const p = this.position;
+    if (!this.collider.isDeep(p.x, p.z, p.y)) return;
+    const body = this.riding ? this.riding.tuning : this.body;
+    // the nearest dry spot in sight, on a floor near the water's surface (not the bottom); wedged between rocks,
+    // where nothing is in sight, the nearest one at all
+    const col = this.collider;
+    const surface = p.y + col.waterDepth(p.x, p.z, p.y);
+    if (col.nearestStanding(p.x, p.z, body, surface, RESCUE_REACH, this.scratch, p) || col.nearestStanding(p.x, p.z, body, surface, RESCUE_REACH, this.scratch)) {
+      this.moveTo(this.scratch.x, this.scratch.y, this.scratch.z, true);
+    } else {
+      this.onLost();
+    }
   }
 
   /** Put the player somewhere else at once; `ease` keeps the avatar where it was and lets it catch up. */
   private moveTo(x: number, y: number, z: number, ease: boolean): void {
-    if (ease) this.offset.add(this.position).sub(this.scratch.set(x, Number.isFinite(y) ? y : this.position.y, z));
+    const ny = Number.isFinite(y) ? y : this.position.y;
+    if (ease) this.offset.add(this.position).sub(this.scratch.set(x, ny, z));
     else this.offset.set(0, 0, 0);
-    this.floor = this.nav.floorAt(x, z);
-    if (!Number.isFinite(this.floor)) this.floor = this.position.y;
-    this.position.set(x, Number.isFinite(y) ? y : this.floor, z);
+    this.position.set(x, ny, z);
+    this.ground = ny;
     this.settle();
   }
 
