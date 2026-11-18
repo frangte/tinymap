@@ -297,7 +297,9 @@ def paths():
 
 def run():
     inside = lambda x, y: X0 < x < X1 and Y0 < y < Y1   # noqa: E731
-    gone = {n: kit.drop_loose_parts(n, inside) for n in ('SH_np', 'SH_Yards', 'CX_YardTrees')}
+    # the houses the plan put in the north-east corner run on past the fence line to the road (x -83.2): all of them go
+    ne_corner = lambda x, y: X1 <= x < -83.0 and 44.0 < y < Y1 + 1.0   # noqa: E731
+    gone = {n: kit.drop_loose_parts(n, lambda x, y: inside(x, y) or ne_corner(x, y)) for n in ('SH_np', 'SH_Yards', 'CX_YardTrees')}
     kit.remove_objects(['LM_DinhGrounds', 'LM_DinhTanks', 'LF_DinhGrounds'])
     coll = kit.collection('SM_Landmarks')
     g = kit.Mesh(40)
