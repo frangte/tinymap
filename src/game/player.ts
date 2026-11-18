@@ -75,6 +75,13 @@ const STEP_AHEAD = 0.06;
 /** a body stands on the floor under its middle or under four points round it this far out (share of its radius):
  *  at the edge of a quay or a step it stays up there until most of it is past the edge */
 const FOOT_RING = 0.7;
+/** stepOnto() takes a floor this much higher or more as a step (m); lower, the push off the edge lifts the body */
+const STEP_MIN = 0.01;
+/** overTheEdge() looks this far round the body's middle when the ray under it finds deep water (m): wider than a
+ *  seam between two floor pieces, narrower than anything a body could stand on */
+const SEAM_PROBE = 0.08;
+/** a step that leaves the body pushed down more than this under something over its head is refused (m) */
+const PRESSED = 0.005;
 /** a floor change bigger than this in one step eases the drawn avatar over it rather than jumping (m) */
 const EASE_STEP = 0.05;
 /** headings off the wish direction a step that would end in deep water or off the map tries (rad), the closest
@@ -134,6 +141,10 @@ export class Player {
   private readonly scratch = new THREE.Vector3();
   /** where a step would take the body, before it is taken */
   private readonly cand = new THREE.Vector3();
+  /** where a step would take the body up onto a kerb it bumped into (tryStep) */
+  private readonly upCand = new THREE.Vector3();
+  /** the sideways push in the last pushOut() */
+  private readonly push = new THREE.Vector3();
   private readonly body: Body;
   /** the floor under the player, for the shadow of a jump */
   private ground = 0;
@@ -394,7 +405,6 @@ export class Player {
    */
   private tryStep(sx: number, sz: number, body: Body, maxStep: number): number {
     const p = this.position;
-    const col = this.collider;
     const c = this.cand.set(p.x + sx, p.y, p.z + sz);
     this.leaving = false;
     let floor = NaN;
@@ -404,13 +414,31 @@ export class Player {
       // else over a ledge: the body falls, onto dry ground somewhere below (checked once pushed out of walls)
       else this.leaving = true;
     }
-    // a second pass for what the first left in a corner (pushed out of one triangle into another)
-    if (col.collide(c, body) !== 0) col.collide(c, body);
+    const wantX = c.x;
+    const wantZ = c.z;
+    this.pushOut(c, body);
+    // bumped into a kerb or a platform's edge at a slant: the probes ahead (footing) look along the move and miss
+    // it, the more so the shorter the step (a 120 Hz screen). Up onto it, as when walking at it straight on
+    if (Number.isFinite(floor)) {
+      const up = this.stepOnto(c, floor, body.radius, maxStep);
+      if (Number.isFinite(up)) {
+        const u = this.upCand.set(wantX, up, wantZ);
+        this.pushOut(u, body);
+        // only with room up there (no branch over the head, not out over the water): else the step as it was, along
+        // what it bumped into
+        if (up - u.y <= PRESSED && !this.overTheEdge(u, body)) {
+          c.copy(u);
+          floor = up;
+        }
+      }
+    }
     // never with the body's middle over deep water or the edge of the map, even standing on a railing there: it
     // would come down there
     if (this.overTheEdge(c, body)) return -1;
-    // pressed down under something lower than the body: no room there
-    if (Number.isFinite(floor) && c.y < floor - 0.05) return 0;
+    // pressed down under something lower than the body (a bridge's end over the bank): no room there. Even a little
+    // each step would let it creep in under and wedge; but where it is pressed as much already (put there by a
+    // correction), a step that frees it is fine
+    if (Number.isFinite(floor) && floor - c.y > PRESSED && floor - c.y >= this.pressedHere(body, maxStep) - 1e-4) return 0;
     const moved = Math.hypot(c.x - p.x, c.z - p.z);
     const dy = c.y - p.y;
     if (!this.airborne && Math.abs(dy) > EASE_STEP) this.offset.y -= dy;
@@ -444,10 +472,60 @@ export class Player {
     return best;
   }
 
-  /** Whether a body at `c` would come down in deep water or off the edge of the map: what is under its middle. */
+  /**
+   * Push a body at `c` out of what it overlaps, twice (the first pass can push it from one triangle into another in a
+   * corner). Leaves the total sideways push in `this.push`.
+   */
+  private pushOut(c: THREE.Vector3, body: Body): void {
+    const col = this.collider;
+    this.push.set(0, 0, 0);
+    if (col.collide(c, body) === 0) return;
+    this.push.add(col.sidePush);
+    if (col.collide(c, body) !== 0) this.push.add(col.sidePush);
+  }
+
+  /**
+   * How far down whatever is over the body pushes it where it stands now, measured from the floor there as a step
+   * is (m): 0 with room over its head.
+   */
+  private pressedHere(body: Body, maxStep: number): number {
+    const p = this.position;
+    const floor = this.footing(p.x, p.z, p.y + maxStep + 0.01, maxStep + 0.01 + SNAP_DOWN, body.radius, 0, 0);
+    if (!Number.isFinite(floor)) return 0;
+    const q = this.scratch.set(p.x, floor, p.z);
+    if (this.collider.collide(q, body) !== 0) this.collider.collide(q, body);
+    return Math.max(0, floor - q.y);
+  }
+
+  /**
+   * The top of a step the body at `c` (on `floor`) was just pushed back from (pushOut): the floor just past its
+   * edge the other way from the push, if it is higher than `floor` by no more than a step. NaN for none: a wall, a
+   * post or a fence has no floor there within a step's height.
+   */
+  private stepOnto(c: THREE.Vector3, floor: number, radius: number, maxStep: number): number {
+    const len = Math.hypot(this.push.x, this.push.z);
+    if (len < 1e-6) return NaN;
+    const k = -(radius + STEP_AHEAD) / len;
+    const top = this.collider.floorBelow(c.x + this.push.x * k, floor + maxStep + 0.01, c.z + this.push.z * k, maxStep, true);
+    return top > floor + STEP_MIN ? top : NaN;
+  }
+
+  /**
+   * Whether a body at `c` would come down in deep water or off the edge of the map: what is under its middle. A ray
+   * that slips through a seam in the floor down to the seabed is not water: a few round it decide.
+   */
   private overTheEdge(c: THREE.Vector3, body: Body): boolean {
-    const below = this.collider.floorBelow(c.x, c.y + body.radius, c.z, FALL_LIMIT);
-    return !Number.isFinite(below) || this.collider.isDeep(c.x, c.z, below);
+    const col = this.collider;
+    const from = c.y + body.radius;
+    const below = col.floorBelow(c.x, from, c.z, FALL_LIMIT);
+    if (Number.isFinite(below) && !col.isDeep(c.x, c.z, below)) return false;
+    for (let i = 0; i < 4; i++) {
+      const x = c.x + SEAM_PROBE * (i === 0 ? 1 : i === 1 ? -1 : 0);
+      const z = c.z + SEAM_PROBE * (i === 2 ? 1 : i === 3 ? -1 : 0);
+      const f = col.floorBelow(x, from, z, FALL_LIMIT);
+      if (Number.isFinite(f) && !col.isDeep(x, z, f)) return false;
+    }
+    return true;
   }
 
   /** Gravity in a jump or a fall, landing on whatever is below; on the ground, notice a floor that went away. */

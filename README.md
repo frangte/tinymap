@@ -97,7 +97,7 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
    loads (`src/game/collider.ts`, about half a second). Whatever is in the model stops a body (walls, kerbs,
    trunks, railings; tree crowns too, below head height), except the lamp glows and lanterns; water stops it where
    it is deeper than 0.25 m. Open in `?debug` and call `sgGame.showCollider()` to see it (orange: the skirts under
-   the hill's open rim and the bridge ends over the bank). To let players through something, leave it out of the
+   the hill's open rim; bridges and other built things get none, the space under them is open). To let players through something, leave it out of the
    model or give it a pass-through material (`PASS_THROUGH` in `collider.ts`); to stop them, model a wall.
    The spawn, sea level and island bounds are in `server/content/map.json`.
 3. Places, NPCs and spawns are in `server/content/` (Blender XY). After moving things in the layout, run

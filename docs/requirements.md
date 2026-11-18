@@ -30,6 +30,8 @@ Bản đề xuất: [map-v5.md](map-v5.md). Design được duyệt 2026-11-11; 
 
 **Trạng thái:** bỏ hẳn nav (D21). Người chơi là hình con nhộng va chạm thẳng với model (`src/game/collider.ts`): bước lên được bậc 0.5 m, nhảy lên vật thấp hơn ~1.2 m, rơi khỏi gờ thì rơi thật, chỉ nước sâu hơn 0.25 m và mép map mới chặn. Không còn túi kẹt hay tường vô hình do bake. Thử bằng trình duyệt headless: 110 điểm xuất phát rải khắp đảo, đi ngẫu nhiên tổng hơn 80 phút, không lần nào kẹt trong vật, lọt tường hay rơi xuống nước sâu. Phần dưới là hướng cũ, giữ lại để tham khảo.
 
+**Sửa thêm 2026-11-18** (Khoa báo không đi vào được Bến xe Chợ Lớn): đi chéo vào bó vỉa hay bệ chờ xe thì nhân vật trượt dọc mép thay vì bước lên, nặng nhất ở màn 120 Hz (đi chéo 45° qua bậc bị kẹt 22% số lần, chéo 65° bị 83%). Giờ nhân vật dò bậc theo hướng bị đẩy lại, nên lên được từ mọi hướng: trên 500 mép bậc rải khắp map, chéo tới 65° không lần nào kẹt ở 60, 120 và 144 khung hình/giây. Bỏ thêm tường vô hình dưới đầu cầu (Thủ Thiêm 3, cầu đi bộ, cầu Ông Lãnh) và quanh bệ Bitexco; thay vào đó gầm nào thấp hơn người thì chính mặt cầu chặn, không chui vào rồi kẹt được.
+
 Yêu cầu: nhảy qua được vật thấp (chậu cây, bồn hoa, ghế). Hiện nhân vật xuất hiện trong bùng binh Quách Thị Trang thì không ra được.
 
 Đã tìm hiểu (2026-11-11, trên `saigon_q1_nav.png` hiện tại):

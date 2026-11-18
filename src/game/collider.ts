@@ -2,10 +2,10 @@
 // (three-mesh-bvh), built from the map GLB once it has loaded. What you see is what stops you: walls, kerbs,
 // trunks, railings, steps and slopes are their own shapes, with nothing baked or placed by hand in between. Water
 // is kept apart: it stops a body only where it is deeper than WADE, and so does the sea, drawn flat at
-// MAP.seaLevel. One shape is added for collision only: where the ground or a road ends in mid-air over dry floor
-// (the rim of the hill, an open shell over the flat island; a bridge's end over the bank; the Bitexco podium), a
-// wall under that edge down to the floor keeps bodies from walking in under it (skirts()). Closing those shells in
-// Blender makes the walls go away by themselves.
+// MAP.seaLevel. One shape is added for collision only: where the land ends in mid-air over dry floor (the rim of
+// the hill, an open shell over the flat island), a wall under that edge down to the floor keeps bodies from walking
+// in under it (skirts()). Closing the shell in Blender makes the walls go away by themselves. Built things (a
+// bridge deck, the Bitexco podium) get none: the space under them is open, as it looks.
 //
 // The player (player.ts) moves a capsule through it, the follow camera (followCamera.ts) keeps out of walls with
 // it, and everything that needs a floor (spawning, parking a bike, NPCs, the shadow under someone jumping) asks
@@ -37,11 +37,13 @@ const WATER = new Set(['water', 'waterDeep', 'foam']);
 const FOLIAGE = new Set(['leaf', 'leafLight', 'leafDark']);
 /** per-vertex flags */
 const FLAG_FOLIAGE = 1;
-/** the ground, what grows on it, and roads, paths and stairs: an open edge of these over dry floor gets a skirt */
-const GROUND = new Set([
-  'grass', 'grassDark', 'rock', 'rockDark', 'earth', 'earthDark', 'sand', 'leaf', 'leafLight', 'leafDark',
-  'asphalt', 'curb', 'roadLine', 'paving', 'pavingDark', 'stone', 'concrete', 'concreteLight', 'bridgeWhite',
-]);
+/** the land itself and what grows on it: an open edge of these over dry floor gets a skirt */
+const TERRAIN = new Set(['grass', 'grassDark', 'rock', 'rockDark', 'earth', 'earthDark', 'sand', 'leaf', 'leafLight', 'leafDark']);
+/** the land and the roads, paths and stairs on it, welded together to find the open edges (a path up the hill is
+ *  not an edge of the hill) */
+const GROUND = new Set([...TERRAIN, 'asphalt', 'curb', 'roadLine', 'paving', 'pavingDark', 'stone', 'concrete', 'concreteLight', 'bridgeWhite']);
+/** per-vertex flag of the ground soup: a terrain material */
+const FLAG_TERRAIN = 1;
 /** an open edge of the ground this high or more over dry floor gets a skirt (m): a body could get in under it */
 const SKIRT_GAP = 1.0;
 /** a skirt reaches this far into the floor under it (m), so nothing slips under its foot */
@@ -121,7 +123,8 @@ export type FloorAt = (x: number, z: number, nearY: number) => number;
 
 /**
  * The edges of the ground soup that only one triangle uses, once the triangles of all its materials are welded
- * together (a seam between grass and rock is not an edge): pairs of vertex indices.
+ * together (a seam between grass and rock is not an edge): triples of two vertex indices and that triangle's first
+ * index (into the soup's index).
  */
 function openEdges(ground: Soup): Int32Array {
   const pos = ground.position;
@@ -140,6 +143,7 @@ function openEdges(ground: Soup): Int32Array {
     }
     weld[i] = w;
   }
+  // per edge: the triangle that uses it, -1 once a second one does
   const uses = new Map<number, number>();
   const ix = ground.index;
   for (let t = 0; t < ix.length; t += 3) {
@@ -148,11 +152,11 @@ function openEdges(ground: Soup): Int32Array {
       const b = weld[ix[t + ((e + 1) % 3)]];
       if (a === b) continue;
       const k = a < b ? a * n + b : b * n + a;
-      uses.set(k, (uses.get(k) ?? 0) + 1);
+      uses.set(k, uses.has(k) ? -1 : t);
     }
   }
   const out: number[] = [];
-  for (const [k, c] of uses) if (c === 1) out.push(Math.floor(k / n), k % n);
+  for (const [k, t] of uses) if (t >= 0) out.push(Math.floor(k / n), k % n, t);
   return Int32Array.from(out);
 }
 
@@ -192,6 +196,12 @@ export class CityCollider {
   private skirt: MeshBVH | null = null;
   /** how many skirt triangles there are (the ?debug view) */
   skirtTriangles = 0;
+  /**
+   * The sideways part of the last collide()'s push (y unused). It points away from what the body bumped into, a
+   * wall or the edge of a kerb, so the player can look for a step on the other side (player.ts). Standing on a
+   * slope adds nothing: the player stands a body on the highest floor round it, clear of the slope.
+   */
+  readonly sidePush = new THREE.Vector3();
 
   private constructor(
     private readonly bvh: MeshBVH,
@@ -223,23 +233,25 @@ export class CityCollider {
     const wet = gather(world, (k) => WATER.has(k), () => 0);
     const { bvh, geometry } = bvhOf(solid);
     const collider = new CityCollider(bvh, geometry, solid.flags, wet ? bvhOf(wet).bvh : null, seaLevel);
-    const ground = gather(world, (k) => GROUND.has(k), () => 0);
+    const ground = gather(world, (k) => GROUND.has(k), (k) => (TERRAIN.has(k) ? FLAG_TERRAIN : 0));
     if (ground) collider.skirts(ground);
     return collider;
   }
 
   /**
-   * A wall under every open edge of the ground (and of roads, paths, stairs) that hangs SKIRT_GAP or more over dry
-   * floor, down into that floor: the rim of the hollow hill, the end of a bridge over the bank. Over water (a quay,
-   * a bridge deck over the river) the water stops a body already. The triangles of all those materials are welded
-   * together first, so a seam between grass and a path is not an edge.
+   * A wall under every open edge of the land (TERRAIN) that hangs SKIRT_GAP or more over dry floor, down into that
+   * floor: the rim of the hollow hill. Over water the water stops a body already. The land is welded to the roads,
+   * paths and stairs on it first, so the side of a path up the hill is not an edge; a road's or a deck's own open
+   * edges get no skirt (the space under a bridge's end on the bank, under the Bitexco podium's rim, is open).
    */
   private skirts(ground: Soup): void {
     const edges = openEdges(ground);
     const p = ground.position;
     const out: number[] = [];
     const floorUnder = (x: number, y: number, z: number): number => this.floorBelow(x, y - 0.02, z, FALL_LIMIT);
-    for (let e = 0; e < edges.length; e += 2) {
+    for (let e = 0; e < edges.length; e += 3) {
+      // only the land itself: a deck, a podium or a kerb has open space under it, as it looks
+      if ((ground.flags[ground.index[edges[e + 2]]] & FLAG_TERRAIN) === 0) continue;
       const a = edges[e] * 3;
       const b = edges[e + 1] * 3;
       const mx = (p[a] + p[b]) / 2;
@@ -402,6 +414,8 @@ export class CityCollider {
       this.seg.start.addScaledVector(dir, depth);
       this.seg.end.addScaledVector(dir, depth);
       this.contacts |= dir.y > FLOOR_NY ? CONTACT_FLOOR : dir.y < -FLOOR_NY ? CONTACT_CEILING : CONTACT_WALL;
+      this.sidePush.x += dir.x * depth;
+      this.sidePush.z += dir.z * depth;
       return false;
     },
   };
@@ -416,6 +430,7 @@ export class CityCollider {
     const sy = this.seg.start.y;
     const sz = this.seg.start.z;
     this.contacts = 0;
+    this.sidePush.set(0, 0, 0);
     this.bvh.shapecast(this.pushOut);
     this.skirt?.shapecast(this.pushOut);
     feet.x += this.seg.start.x - sx;

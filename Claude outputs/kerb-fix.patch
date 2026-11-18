@@ -1,0 +1,265 @@
+--- a/src/game/collider.ts	2026-11-17 19:19:13.163269022 +0000
++++ b/src/game/collider.ts	2026-11-17 19:16:59.319879979 +0000
+@@ -2,10 +2,10 @@
+ // (three-mesh-bvh), built from the map GLB once it has loaded. What you see is what stops you: walls, kerbs,
+ // trunks, railings, steps and slopes are their own shapes, with nothing baked or placed by hand in between. Water
+ // is kept apart: it stops a body only where it is deeper than WADE, and so does the sea, drawn flat at
+-// MAP.seaLevel. One shape is added for collision only: where the ground or a road ends in mid-air over dry floor
+-// (the rim of the hill, an open shell over the flat island; a bridge's end over the bank; the Bitexco podium), a
+-// wall under that edge down to the floor keeps bodies from walking in under it (skirts()). Closing those shells in
+-// Blender makes the walls go away by themselves.
++// MAP.seaLevel. One shape is added for collision only: where the land ends in mid-air over dry floor (the rim of
++// the hill, an open shell over the flat island), a wall under that edge down to the floor keeps bodies from walking
++// in under it (skirts()). Closing the shell in Blender makes the walls go away by themselves. Built things (a
++// bridge deck, the Bitexco podium) get none: the space under them is open, as it looks.
+ //
+ // The player (player.ts) moves a capsule through it, the follow camera (followCamera.ts) keeps out of walls with
+ // it, and everything that needs a floor (spawning, parking a bike, NPCs, the shadow under someone jumping) asks
+@@ -37,11 +37,13 @@
+ const FOLIAGE = new Set(['leaf', 'leafLight', 'leafDark']);
+ /** per-vertex flags */
+ const FLAG_FOLIAGE = 1;
+-/** the ground, what grows on it, and roads, paths and stairs: an open edge of these over dry floor gets a skirt */
+-const GROUND = new Set([
+-  'grass', 'grassDark', 'rock', 'rockDark', 'earth', 'earthDark', 'sand', 'leaf', 'leafLight', 'leafDark',
+-  'asphalt', 'curb', 'roadLine', 'paving', 'pavingDark', 'stone', 'concrete', 'concreteLight', 'bridgeWhite',
+-]);
++/** the land itself and what grows on it: an open edge of these over dry floor gets a skirt */
++const TERRAIN = new Set(['grass', 'grassDark', 'rock', 'rockDark', 'earth', 'earthDark', 'sand', 'leaf', 'leafLight', 'leafDark']);
++/** the land and the roads, paths and stairs on it, welded together to find the open edges (a path up the hill is
++ *  not an edge of the hill) */
++const GROUND = new Set([...TERRAIN, 'asphalt', 'curb', 'roadLine', 'paving', 'pavingDark', 'stone', 'concrete', 'concreteLight', 'bridgeWhite']);
++/** per-vertex flag of the ground soup: a terrain material */
++const FLAG_TERRAIN = 1;
+ /** an open edge of the ground this high or more over dry floor gets a skirt (m): a body could get in under it */
+ const SKIRT_GAP = 1.0;
+ /** a skirt reaches this far into the floor under it (m), so nothing slips under its foot */
+@@ -121,7 +123,8 @@
+ 
+ /**
+  * The edges of the ground soup that only one triangle uses, once the triangles of all its materials are welded
+- * together (a seam between grass and rock is not an edge): pairs of vertex indices.
++ * together (a seam between grass and rock is not an edge): triples of two vertex indices and that triangle's first
++ * index (into the soup's index).
+  */
+ function openEdges(ground: Soup): Int32Array {
+   const pos = ground.position;
+@@ -140,6 +143,7 @@
+     }
+     weld[i] = w;
+   }
++  // per edge: the triangle that uses it, -1 once a second one does
+   const uses = new Map<number, number>();
+   const ix = ground.index;
+   for (let t = 0; t < ix.length; t += 3) {
+@@ -148,11 +152,11 @@
+       const b = weld[ix[t + ((e + 1) % 3)]];
+       if (a === b) continue;
+       const k = a < b ? a * n + b : b * n + a;
+-      uses.set(k, (uses.get(k) ?? 0) + 1);
++      uses.set(k, uses.has(k) ? -1 : t);
+     }
+   }
+   const out: number[] = [];
+-  for (const [k, c] of uses) if (c === 1) out.push(Math.floor(k / n), k % n);
++  for (const [k, t] of uses) if (t >= 0) out.push(Math.floor(k / n), k % n, t);
+   return Int32Array.from(out);
+ }
+ 
+@@ -192,6 +196,12 @@
+   private skirt: MeshBVH | null = null;
+   /** how many skirt triangles there are (the ?debug view) */
+   skirtTriangles = 0;
++  /**
++   * The sideways part of the last collide()'s push (y unused). It points away from what the body bumped into, a
++   * wall or the edge of a kerb, so the player can look for a step on the other side (player.ts). Standing on a
++   * slope adds nothing: the player stands a body on the highest floor round it, clear of the slope.
++   */
++  readonly sidePush = new THREE.Vector3();
+ 
+   private constructor(
+     private readonly bvh: MeshBVH,
+@@ -223,23 +233,25 @@
+     const wet = gather(world, (k) => WATER.has(k), () => 0);
+     const { bvh, geometry } = bvhOf(solid);
+     const collider = new CityCollider(bvh, geometry, solid.flags, wet ? bvhOf(wet).bvh : null, seaLevel);
+-    const ground = gather(world, (k) => GROUND.has(k), () => 0);
++    const ground = gather(world, (k) => GROUND.has(k), (k) => (TERRAIN.has(k) ? FLAG_TERRAIN : 0));
+     if (ground) collider.skirts(ground);
+     return collider;
+   }
+ 
+   /**
+-   * A wall under every open edge of the ground (and of roads, paths, stairs) that hangs SKIRT_GAP or more over dry
+-   * floor, down into that floor: the rim of the hollow hill, the end of a bridge over the bank. Over water (a quay,
+-   * a bridge deck over the river) the water stops a body already. The triangles of all those materials are welded
+-   * together first, so a seam between grass and a path is not an edge.
++   * A wall under every open edge of the land (TERRAIN) that hangs SKIRT_GAP or more over dry floor, down into that
++   * floor: the rim of the hollow hill. Over water the water stops a body already. The land is welded to the roads,
++   * paths and stairs on it first, so the side of a path up the hill is not an edge; a road's or a deck's own open
++   * edges get no skirt (the space under a bridge's end on the bank, under the Bitexco podium's rim, is open).
+    */
+   private skirts(ground: Soup): void {
+     const edges = openEdges(ground);
+     const p = ground.position;
+     const out: number[] = [];
+     const floorUnder = (x: number, y: number, z: number): number => this.floorBelow(x, y - 0.02, z, FALL_LIMIT);
+-    for (let e = 0; e < edges.length; e += 2) {
++    for (let e = 0; e < edges.length; e += 3) {
++      // only the land itself: a deck, a podium or a kerb has open space under it, as it looks
++      if ((ground.flags[ground.index[edges[e + 2]]] & FLAG_TERRAIN) === 0) continue;
+       const a = edges[e] * 3;
+       const b = edges[e + 1] * 3;
+       const mx = (p[a] + p[b]) / 2;
+@@ -402,6 +414,8 @@
+       this.seg.start.addScaledVector(dir, depth);
+       this.seg.end.addScaledVector(dir, depth);
+       this.contacts |= dir.y > FLOOR_NY ? CONTACT_FLOOR : dir.y < -FLOOR_NY ? CONTACT_CEILING : CONTACT_WALL;
++      this.sidePush.x += dir.x * depth;
++      this.sidePush.z += dir.z * depth;
+       return false;
+     },
+   };
+@@ -416,6 +430,7 @@
+     const sy = this.seg.start.y;
+     const sz = this.seg.start.z;
+     this.contacts = 0;
++    this.sidePush.set(0, 0, 0);
+     this.bvh.shapecast(this.pushOut);
+     this.skirt?.shapecast(this.pushOut);
+     feet.x += this.seg.start.x - sx;
+--- a/src/game/player.ts	2026-11-17 19:19:13.164639867 +0000
++++ b/src/game/player.ts	2026-11-17 19:16:59.323048800 +0000
+@@ -75,6 +75,13 @@
+ /** a body stands on the floor under its middle or under four points round it this far out (share of its radius):
+  *  at the edge of a quay or a step it stays up there until most of it is past the edge */
+ const FOOT_RING = 0.7;
++/** stepOnto() takes a floor this much higher or more as a step (m); lower, the push off the edge lifts the body */
++const STEP_MIN = 0.01;
++/** overTheEdge() looks this far round the body's middle when the ray under it finds deep water (m): wider than a
++ *  seam between two floor pieces, narrower than anything a body could stand on */
++const SEAM_PROBE = 0.08;
++/** a step that leaves the body pushed down more than this under something over its head is refused (m) */
++const PRESSED = 0.005;
+ /** a floor change bigger than this in one step eases the drawn avatar over it rather than jumping (m) */
+ const EASE_STEP = 0.05;
+ /** headings off the wish direction a step that would end in deep water or off the map tries (rad), the closest
+@@ -134,6 +141,10 @@
+   private readonly scratch = new THREE.Vector3();
+   /** where a step would take the body, before it is taken */
+   private readonly cand = new THREE.Vector3();
++  /** where a step would take the body up onto a kerb it bumped into (tryStep) */
++  private readonly upCand = new THREE.Vector3();
++  /** the sideways push in the last pushOut() */
++  private readonly push = new THREE.Vector3();
+   private readonly body: Body;
+   /** the floor under the player, for the shadow of a jump */
+   private ground = 0;
+@@ -394,7 +405,6 @@
+    */
+   private tryStep(sx: number, sz: number, body: Body, maxStep: number): number {
+     const p = this.position;
+-    const col = this.collider;
+     const c = this.cand.set(p.x + sx, p.y, p.z + sz);
+     this.leaving = false;
+     let floor = NaN;
+@@ -404,13 +414,31 @@
+       // else over a ledge: the body falls, onto dry ground somewhere below (checked once pushed out of walls)
+       else this.leaving = true;
+     }
+-    // a second pass for what the first left in a corner (pushed out of one triangle into another)
+-    if (col.collide(c, body) !== 0) col.collide(c, body);
++    const wantX = c.x;
++    const wantZ = c.z;
++    this.pushOut(c, body);
++    // bumped into a kerb or a platform's edge at a slant: the probes ahead (footing) look along the move and miss
++    // it, the more so the shorter the step (a 120 Hz screen). Up onto it, as when walking at it straight on
++    if (Number.isFinite(floor)) {
++      const up = this.stepOnto(c, floor, body.radius, maxStep);
++      if (Number.isFinite(up)) {
++        const u = this.upCand.set(wantX, up, wantZ);
++        this.pushOut(u, body);
++        // only with room up there (no branch over the head, not out over the water): else the step as it was, along
++        // what it bumped into
++        if (up - u.y <= PRESSED && !this.overTheEdge(u, body)) {
++          c.copy(u);
++          floor = up;
++        }
++      }
++    }
+     // never with the body's middle over deep water or the edge of the map, even standing on a railing there: it
+     // would come down there
+     if (this.overTheEdge(c, body)) return -1;
+-    // pressed down under something lower than the body: no room there
+-    if (Number.isFinite(floor) && c.y < floor - 0.05) return 0;
++    // pressed down under something lower than the body (a bridge's end over the bank): no room there. Even a little
++    // each step would let it creep in under and wedge; but where it is pressed as much already (put there by a
++    // correction), a step that frees it is fine
++    if (Number.isFinite(floor) && floor - c.y > PRESSED && floor - c.y >= this.pressedHere(body, maxStep) - 1e-4) return 0;
+     const moved = Math.hypot(c.x - p.x, c.z - p.z);
+     const dy = c.y - p.y;
+     if (!this.airborne && Math.abs(dy) > EASE_STEP) this.offset.y -= dy;
+@@ -444,10 +472,60 @@
+     return best;
+   }
+ 
+-  /** Whether a body at `c` would come down in deep water or off the edge of the map: what is under its middle. */
++  /**
++   * Push a body at `c` out of what it overlaps, twice (the first pass can push it from one triangle into another in a
++   * corner). Leaves the total sideways push in `this.push`.
++   */
++  private pushOut(c: THREE.Vector3, body: Body): void {
++    const col = this.collider;
++    this.push.set(0, 0, 0);
++    if (col.collide(c, body) === 0) return;
++    this.push.add(col.sidePush);
++    if (col.collide(c, body) !== 0) this.push.add(col.sidePush);
++  }
++
++  /**
++   * How far down whatever is over the body pushes it where it stands now, measured from the floor there as a step
++   * is (m): 0 with room over its head.
++   */
++  private pressedHere(body: Body, maxStep: number): number {
++    const p = this.position;
++    const floor = this.footing(p.x, p.z, p.y + maxStep + 0.01, maxStep + 0.01 + SNAP_DOWN, body.radius, 0, 0);
++    if (!Number.isFinite(floor)) return 0;
++    const q = this.scratch.set(p.x, floor, p.z);
++    if (this.collider.collide(q, body) !== 0) this.collider.collide(q, body);
++    return Math.max(0, floor - q.y);
++  }
++
++  /**
++   * The top of a step the body at `c` (on `floor`) was just pushed back from (pushOut): the floor just past its
++   * edge the other way from the push, if it is higher than `floor` by no more than a step. NaN for none: a wall, a
++   * post or a fence has no floor there within a step's height.
++   */
++  private stepOnto(c: THREE.Vector3, floor: number, radius: number, maxStep: number): number {
++    const len = Math.hypot(this.push.x, this.push.z);
++    if (len < 1e-6) return NaN;
++    const k = -(radius + STEP_AHEAD) / len;
++    const top = this.collider.floorBelow(c.x + this.push.x * k, floor + maxStep + 0.01, c.z + this.push.z * k, maxStep, true);
++    return top > floor + STEP_MIN ? top : NaN;
++  }
++
++  /**
++   * Whether a body at `c` would come down in deep water or off the edge of the map: what is under its middle. A ray
++   * that slips through a seam in the floor down to the seabed is not water: a few round it decide.
++   */
+   private overTheEdge(c: THREE.Vector3, body: Body): boolean {
+-    const below = this.collider.floorBelow(c.x, c.y + body.radius, c.z, FALL_LIMIT);
+-    return !Number.isFinite(below) || this.collider.isDeep(c.x, c.z, below);
++    const col = this.collider;
++    const from = c.y + body.radius;
++    const below = col.floorBelow(c.x, from, c.z, FALL_LIMIT);
++    if (Number.isFinite(below) && !col.isDeep(c.x, c.z, below)) return false;
++    for (let i = 0; i < 4; i++) {
++      const x = c.x + SEAM_PROBE * (i === 0 ? 1 : i === 1 ? -1 : 0);
++      const z = c.z + SEAM_PROBE * (i === 2 ? 1 : i === 3 ? -1 : 0);
++      const f = col.floorBelow(x, from, z, FALL_LIMIT);
++      if (Number.isFinite(f) && !col.isDeep(x, z, f)) return false;
++    }
++    return true;
+   }
+ 
+   /** Gravity in a jump or a fall, landing on whatever is below; on the ground, notice a floor that went away. */
