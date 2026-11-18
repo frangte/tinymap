@@ -92,6 +92,10 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
    `scripts/blender/build_saigon_mini.py` from the layout `scripts/map/saigon_mini_layout.json` (made by
    `scripts/map/relayout_v8.py`, checked by `scripts/map/check_layout.py`; see `docs/map-v8-design.md`). The v4 island
    (`models/temp.sg.tinymap.blend`, `saigon_q1_*`) is kept but no longer loaded.
+   Trees are scattered before the landmarks and houses round them were modelled: after rebuilding or adding a
+   building, run `blender models/saigon_mini.blend --background --python scripts/blender/mini/clean_trees.py`
+   (`-- --dry-run` to only list them) to remove the trees that grow through buildings, monuments, stairs or the hill
+   road, stand inside or under a building, in a lake, float, or have a wall through a crown.
 2. Export: `npm run map:export` writes `export/saigon_mini.glb`; copy it to `public/models/saigon_mini.glb` (the name
    `index.html` loads, `#stage data-model`). That is all collision needs: the game builds it from the GLB as it
    loads (`src/game/collider.ts`, about half a second). Whatever is in the model stops a body (walls, kerbs,

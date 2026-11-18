@@ -16,6 +16,7 @@ For gameplay, multiplayer and backend work (archetypes, quests, NPCs, phone, cha
 - `npm run build` — type-check + production build into `dist/`
 - `npm run build:single` — one HTML file at `dist-single/saigon-noir.html` (serve `models/` next to it)
 - `blender models/temp.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb` — export the GLB (then the gltf-transform chain in that file's header)
+- `blender models/saigon_mini.blend --background --python scripts/blender/mini/clean_trees.py -- [--dry-run]` — remove the trees that grow through buildings, landmarks, stairs or roads (run after rebuilding the map or adding a building, before `npm run map:export`)
 - `node scripts/map/layout_svg.mjs` and `/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python scripts/blender/build_saigon_mini.py -- models/saigon_mini.blend --render renders/blockout` — redraw the Sài Gòn mini plan and rebuild its blockout from `scripts/map/saigon_mini_layout.json` (needs `.blender-site/`, see docs/map-v5.md)
 
 No test runner and no linter. Verify changes with `npm run typecheck` and `npm run i18n:check`, then play in the browser (in both languages: `?lang=vi`, `?lang=en`).
