@@ -32,7 +32,7 @@ export const MAP_STOPS: readonly MapStop[] = [
   // across the river and the canal: Thủ Thiêm, Chợ Lớn, Khánh Hội, then Vũng Tàu's hill and beaches
   { place: 'nha_tho_thu_thiem', year: '1859', t: [148, -10, 5], az: -165, el: 24, d: 64 },
   { place: 'pho_long_den', year: null, t: [-150, -39, 3], az: 172, el: 36, d: 46 },
-  { place: 'ben_nha_rong', year: '1863', t: [58, -34, 5], az: 60, el: 20, d: 72 },
+  { place: 'ben_nha_rong', year: '1863', t: [60, -33, 5], az: 55, el: 20, d: 72 },
   { place: 'hai_dang_vung_tau', year: '1910', t: [158, -165, 14], az: -40, el: 22, d: 125 },
   { place: 'bai_bien', year: null, t: [75, -152, 3], az: -112, el: 14, d: 125 },
 ];

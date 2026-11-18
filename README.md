@@ -41,6 +41,7 @@ src/game/
   mapView.ts            map mode: orbit controls, landmark stops, menu idle orbit, camera flights
   play.ts               play mode: input -> player -> follow camera -> place labels
   sea.ts                toon sea: depth-based shallows, shore foam, wave streaks, horizon haze
+  water.ts              toon pond water for every `water` mesh (Hồ Con Rùa, fountains): depth tint, ripples, glints
   life.ts               drifting clouds and circling gulls
   sound/                area sound made with WebAudio (no audio files), mute toggle
     ambient.ts          per-area mixer: each area place fades its soundscape in and out by distance
@@ -96,6 +97,10 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
    building, run `blender models/saigon_mini.blend --background --python scripts/blender/mini/clean_trees.py`
    (`-- --dry-run` to only list them) to remove the trees that grow through buildings, monuments, stairs or the hill
    road, stand inside or under a building, in a lake, float, or have a wall through a crown.
+   The detailed landmarks are part scripts in `scripts/blender/mini/` that the build runs (`MINI_SCRIPTS`) and that
+   also run alone on the open file, e.g. `blender models/saigon_mini.blend --background --python
+   scripts/blender/mini/ho_con_rua.py -- --save` (v9: `ho_con_rua.py`, `dinh_grounds.py`, `ben_nha_rong.py`; see
+   `docs/landmarks-v9-design.md`).
 2. Export: `npm run map:export` writes `export/saigon_mini.glb`; copy it to `public/models/saigon_mini.glb` (the name
    `index.html` loads, `#stage data-model`). That is all collision needs: the game builds it from the GLB as it
    loads (`src/game/collider.ts`, about half a second). Whatever is in the model stops a body (walls, kerbs,

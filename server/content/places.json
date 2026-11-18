@@ -18,7 +18,7 @@
     {"id": "ben_xe_cho_lon", "name": {"vi": "Bến xe Chợ Lớn", "en": "Chợ Lớn Bus Station"}, "note": {"vi": "bến xe buýt", "en": "bus terminal"}, "kind": "landmark", "pts": [[-185, -66]], "r": 17},
     {"id": "nha_tho_thu_thiem", "name": {"vi": "Nhà thờ Thủ Thiêm", "en": "Thủ Thiêm Church"}, "note": {"vi": "xây năm 1859", "en": "built in 1859"}, "kind": "landmark", "pts": [[154, -10]], "r": 14},
     {"id": "ben_buyt_song", "name": {"vi": "Bến buýt đường sông", "en": "River bus stop"}, "note": {"vi": "buýt sông Sài Gòn", "en": "the Saigon river bus"}, "kind": "landmark", "pts": [[82, 41]], "r": 10},
-    {"id": "ben_nha_rong", "name": {"vi": "Bến Nhà Rồng", "en": "Nhà Rồng Wharf"}, "note": {"vi": "xây năm 1863", "en": "built in 1863"}, "kind": "landmark", "pts": [[58, -34]], "r": 16},
+    {"id": "ben_nha_rong", "name": {"vi": "Bến Nhà Rồng", "en": "Nhà Rồng Wharf"}, "note": {"vi": "xây năm 1863", "en": "built in 1863"}, "kind": "landmark", "pts": [[60, -33]], "r": 18},
     {"id": "hai_dang_vung_tau", "name": {"vi": "Hải đăng Vũng Tàu", "en": "Vũng Tàu Lighthouse"}, "note": {"vi": "xây năm 1910", "en": "built in 1910"}, "kind": "landmark", "pts": [[159, -151]], "r": 12},
     {"id": "tuong_chua_kito_vua", "name": {"vi": "Tượng Chúa Kitô Vua", "en": "Christ the King statue"}, "note": {"vi": "hoàn thành năm 1993", "en": "completed in 1993"}, "kind": "landmark", "pts": [[163, -186]], "r": 12},
     {"id": "pho_di_bo_nguyen_hue", "name": {"vi": "Phố đi bộ Nguyễn Huệ", "en": "Nguyễn Huệ Walking Street"}, "note": {"vi": "từ UBND ra sông", "en": "from City Hall to the river"}, "kind": "street", "pts": [[-62.0, 91.0], [35.0, 91.0]], "r": 8.5},

@@ -104,6 +104,16 @@ Khoa yêu cầu sau khi duyệt cầu Ba Son:
 
 Đã rà map (ảnh `docs/img/v5r_*.jpg`), đo GLB (1.39 triệu tam giác, 19 MB qua pipeline hiện tại, 3.7 MB khi nén meshopt) và chia thành T0–T14 trong [map-v5-tasks.md](map-v5-tasks.md). Mỗi task ghi hiện trạng, tư liệu thật, design đề xuất, cách dựng và điều kiện xong. Chờ Khoa duyệt thứ tự và 5 câu hỏi cuối file đó.
 
+## R9. Vẽ lại chi tiết Hồ Con Rùa, Bến Nhà Rồng, Dinh Độc Lập (2026-11-18, đã dựng, chờ Khoa xem)
+
+- Hồ Con Rùa: cầu thang lên chưa đúng, các lối chưa nối với nhau, hồ chưa có nước (nước làm bằng three.js).
+- Bến Nhà Rồng: còn thô, chi tiết hơn, quay đúng hướng ra sông, cảnh xung quanh giống ngoài đời.
+- Dinh Độc Lập: khuôn viên rối, có nhà dân; làm lại cho đúng, có hàng rào, cổng chính bị xe tăng húc đổ, cổng nhỏ bên
+  cạnh để người chơi đi vào.
+
+Design, sơ đồ, ảnh tham khảo và kết quả: [landmarks-v9-design.md](landmarks-v9-design.md). Khoa duyệt design và chốt:
+hai xe tăng (390, 843), tường Nhà Rồng hồng cam, shader nước cho mọi hồ. Đã dựng cả ba, map xuất lại, thử vật lý xong.
+
 ## Thứ tự đề xuất
 
 R1 (duyệt design → blockout → duyệt → chi tiết, gồm R4, R5) → R2 và R3 khi bake map mới → R6 → R7 (design viết song song, game 1 và 4 cần R6).

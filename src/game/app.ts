@@ -15,6 +15,7 @@ import { CameraFlight, MAP_STOPS, MENU_STOP, MapView } from './mapView';
 import { Hud, el, type Mode } from './hud';
 import { damp, fromBlender } from './coords';
 import { Sea } from './sea';
+import { Ponds } from './water';
 import { Life } from './life';
 import { Ambient, type Ear } from './sound/ambient';
 import { DressPanel } from './dressPanel';
@@ -182,6 +183,7 @@ export async function startApp(): Promise<void> {
   /** what the player's archetype grants (apps, uniforms) */
   let caps = grants(profile.archetype);
   let sea: Sea | null = null;
+  let ponds: Ponds | null = null;
   let life: Life | null = null;
   const ambient = new Ambient();
   /** where the player hears from (Blender XY) */
@@ -295,6 +297,7 @@ export async function startApp(): Promise<void> {
       }
     }
     sea?.update(clock, camera);
+    ponds?.update(clock, camera);
     life?.update(clock, dt);
     // each area sounds of itself (only the beach for now), heard where the player is; quiet over the map
     if (play && mode === 'play') {
@@ -356,6 +359,7 @@ export async function startApp(): Promise<void> {
   paintWorld(world);
   scene.add(world);
   ink.track(world);
+  ponds = new Ponds(world, ink, camera);
   renderer.shadowMap.needsUpdate = true;
 
   const p = new PlayMode(collider, camera, hud, renderer.domElement);

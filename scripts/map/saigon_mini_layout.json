@@ -1221,21 +1221,22 @@
    "name": "Bến Nhà Rồng",
    "status": "new",
    "at": [
-    309,
-    265
+    311.3,
+    263.7
    ],
    "size": [
-    20,
-    16
+    22,
+    11
    ],
    "face": "N",
    "mark": [
-    309,
-    265
+    311.3,
+    263.7
    ],
-   "color": "creamLight",
+   "color": "wallSalmon",
    "roof": "roofRed",
-   "h": 9
+   "h": 9,
+   "model": "scripts/blender/mini/ben_nha_rong.py"
   },
   {
    "n": 16,
@@ -1247,7 +1248,7 @@
     205
    ],
    "size": [
-    40,
+    36,
     22
    ],
    "face": "N",

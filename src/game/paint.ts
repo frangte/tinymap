@@ -162,6 +162,7 @@ export function paintWorld(root: THREE.Object3D): PaintStats {
     }
     o.material = mat;
     o.userData.foliage = FOLIAGE_KEYS.has(key);
+    o.userData.paintKey = key;
     const water = key.startsWith('water') || key === 'foam';
     o.castShadow = !water;
     o.receiveShadow = true;

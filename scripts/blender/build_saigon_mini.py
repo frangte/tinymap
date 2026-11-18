@@ -55,10 +55,11 @@ SIDEWALK = 3.0
 
 # Parts redrawn as real models (docs/map-v5-tasks.md): scripts/blender/mini/<name>.py, each with a run() that removes
 # its own objects and builds them again, so it also runs alone on an open file. They run after the blockout, in order.
-MINI_SCRIPTS = ['cau_ba_son', 'nui_nho', 'hai_dang', 'tuong_chua', 'dinh_thong_nhat', 'bui_vien', 'no_figures']
+MINI_SCRIPTS = ['cau_ba_son', 'nui_nho', 'hai_dang', 'tuong_chua', 'dinh_thong_nhat', 'dinh_grounds', 'ho_con_rua',
+                'ben_nha_rong', 'bui_vien', 'no_figures']
 MODELLED_BRIDGES = {'cau_ba_son'}                  # built by a MINI_SCRIPTS entry instead of build_bridges
 MODELLED_MOUNTAINS = {'nui_nho'}                   # terrain, forest, boulders and stairs by a MINI_SCRIPTS entry
-MODELLED_LANDMARKS = {'tuong_chua', 'hai_dang', 'dinh_doc_lap', 'bui_vien'}   # no blockout volume: a MINI_SCRIPTS entry builds it
+MODELLED_LANDMARKS = {'tuong_chua', 'hai_dang', 'dinh_doc_lap', 'bui_vien', 'ben_nha_rong'}   # no blockout volume: a MINI_SCRIPTS entry builds it
 
 # docs/PROJECT.md palette, the 15b_frontage additions (wallCream, wallMint, wallSky) and the traffic-light keys (map-v5)
 PAL = {
@@ -1643,43 +1644,6 @@ def lm_ben_bach_dang(ns, g, rng, w, d):
     g.text('BẾN BẠCH ĐẰNG', 0.45, 'signGold', T(0, 0.4, 3.8) @ ns['FACE_S'], extrude=0.03, max_w=w - 1.4)
 
 
-def lm_ben_nha_rong(ns, g, rng, w, d):
-    """Bến Nhà Rồng (1863): a two-storey colonial house, red tiled roof with two dragons and the moon on the ridge,
-    a small front tower"""
-    T = ns['T']
-    hw = w / 2
-    W, TR = 'creamLight', 'opWhite'
-    g.box('stone', -hw - 0.3, -0.6, 0, hw + 0.3, d * 0.7 + 0.3, 0.5, ch=0)
-    D = d * 0.7
-    g.box(W, -hw, 0.6, 0.5, hw, D, 8.0, ch=0)
-    g.box(TR, -hw - 0.15, 0.45, 4.1, hw + 0.15, D + 0.15, 4.4, ch=0)
-    g.box(TR, -hw - 0.2, 0.4, 7.8, hw + 0.2, D + 0.2, 8.1, ch=0)
-    x = -hw + 1.4
-    while x < hw - 1.0:
-        if abs(x) > 2.4:
-            g.arch('archDark', x, 1.0, 0.5, 2.4, 0.5, 0.6, 6)
-            _windows(g, (x,), 5.0, 7.0, 0.6, wd=0.8)
-        x += 2.2
-    g.box(W, -2.2, -0.4, 0.5, 2.2, 3.0, 10.0, ch=0)        # front tower
-    g.arch('archDark', 0, 1.6, 0.5, 2.6, -0.5, -0.38, 8)
-    _windows(g, (0,), 5.2, 7.4, -0.4, wd=1.0)
-    g.pyramid('roofRed', 0, 1.3, 10.0, 2.6, 2.3, 2.4)
-    g.box(TR, -2.4, -0.6, 9.7, 2.4, 3.2, 10.0, ch=0)
-    g.hip('roofRed', -hw - 0.5, 0.1, hw + 0.5, D + 0.5, 8.1, 3.2)
-    zr = 8.1 + 3.2
-    ry = (0.1 + D + 0.5) / 2
-    for sx in (-1, 1):                                     # the two dragons, facing the moon in the middle
-        x0 = sx * 1.0
-        for k in range(5):
-            xx = x0 + sx * k * 0.55
-            g.box('poGreen', xx - 0.3, ry - 0.2, zr + 0.1 + 0.25 * math.sin(k * 1.4), xx + 0.3, ry + 0.2, zr + 0.55 + 0.25 * math.sin(k * 1.4), ch=0)
-        g.box('gold', x0 - 0.25, ry - 0.25, zr + 0.4, x0 + 0.25, ry + 0.25, zr + 0.95, ch=0)
-    g.ico('gold', 0.42, T(0, ry, zr + 0.6), sub=1)
-    g.rod('metal', (hw - 1.0, -0.2, 0.5), (hw - 1.0, -0.2, 13.0), 0.06, 6)
-    g.box('signRed', hw - 0.95, -0.25, 11.6, hw + 0.9, -0.15, 12.8, ch=0)
-    g.box('gold', hw - 0.2, -0.27, 12.0, hw + 0.1, -0.13, 12.3, ch=0)
-
-
 def lm_chua_ba(ns, g, rng, w, d):
     """Chùa Bà Thiên Hậu (Chợ Lớn, 1760): a low Cantonese temple, front hall and main hall around a small courtyard,
     green glazed roofs with figures on the ridges, red doors, lanterns and incense coils"""
@@ -1793,7 +1757,7 @@ def lm_ben_buyt_song(ns, g, rng, w, d):
 
 
 LM_OPEN = {'ben_bach_dang', 'ben_xe', 'cong_vien_sang_tao', 'ben_buyt_song'}     # open structures: walk under them
-LM_MODELS = {'ubnd': lm_ubnd, 'chung_cu_42': lm_chung_cu_42, 'ben_bach_dang': lm_ben_bach_dang, 'ben_nha_rong': lm_ben_nha_rong,
+LM_MODELS = {'ubnd': lm_ubnd, 'chung_cu_42': lm_chung_cu_42, 'ben_bach_dang': lm_ben_bach_dang,
              'cho_lon': lm_chua_ba, 'ben_xe': lm_ben_xe, 'cong_vien_sang_tao': lm_sang_tao, 'nha_tho_thu_thiem': lm_nha_tho_tt,
              'ben_buyt_song': lm_ben_buyt_song}
 

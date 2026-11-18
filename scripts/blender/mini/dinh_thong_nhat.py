@@ -6,7 +6,8 @@ on two wood-clad columns, the rooftop pavilion (Tứ phương vô sự lâu) wit
 very top, the helipad on the roof, and the round fountain on the lawn in front. Ngô Viết Thụ composed these lines as
 Chinese characters (the plan as 吉, the canopy, rooftop roof and balcony as 三, with the flagpole 王 and 主).
 
-The facade faces east, down the lawn towards the cathedral, as on Lê Duẩn. 40 m wide, 22 m deep, about 16 m to the
+The facade faces east, down the lawn towards the cathedral, as on Lê Duẩn. 36 m wide (40 until v9, narrowed so the
+fenced grounds have walks either side: docs/landmarks-v9-design.md), 22 m deep, about 16 m to the
 pavilion roof (the real one is about 26 m: heights are squeezed on this map).
 
 Object LM_DinhThongNhat (and its forecourt in LF_DinhThongNhat). Placement from saigon_mini_layout.json (#16,
@@ -35,7 +36,7 @@ D, W = (_sx, _sy) if FACE in ('E', 'W') else (_sy, _sx)           # depth along 
 DRIVE = LM.get('drive', 43.0)     # centre to the end of the drive (v7: the pavement of the street at plan x 100)
 
 GF, F2, F3, ROOF = 1.0, 4.6, 8.0, 11.4      # terrace top, floor 2, floor 3, roof slab
-SCREEN = 15.0                                # half width of the stone screen
+SCREEN = W / 2 - 5.0                         # half width of the stone screen (15 at 40 m wide)
 
 
 def build():
@@ -63,7 +64,7 @@ def build():
     for sy in (-1, 1):
         box('opWhite', fx - 0.6, sy * SCREEN, F2, fx, sy * hw, ROOF)
         for z in (F2 + 1.1, F3 + 1.1):
-            for yy in (17.0, 18.6):
+            for yy in (SCREEN + 2.0, SCREEN + 3.6):
                 box('glassDark', fx, sy * yy - 0.45, z, fx + 0.05, sy * yy + 0.45, z + 1.4)
     # long horizontal lines: the balcony slabs at floors 2 and 3, and the roof slab with its cornice
     box('opWhite', fx - 0.6, -hw - 0.6, F2 - 0.35, fx + 1.9, hw + 0.6, F2)
