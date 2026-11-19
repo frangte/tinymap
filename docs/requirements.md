@@ -167,6 +167,13 @@ Nokla chỉ có Thông báo, Ifone có mọi ứng dụng; tiền hiện bằng 
 trên trình duyệt (tiếng Việt và tiếng Anh, máy tính và điện thoại). Còn lại: chương 0 của từng xuất phát, danh bạ, tin
 nhắn, cô Kim đổi tiền.
 
+**2026-11-19, đợt 2 của bước 2 làm xong (chưa deploy):** chương 0 cho người từ quê lên (tờ giấy ghi địa chỉ, nhà trọ
+bà Chín) và người nước ngoài (hostel anh Tony học xin chào, cảm ơn; cô Kim dạy phân biệt tờ 20.000 và 500.000; trả giá
+với Cô Ba; qua đường với Chú Sáu; hỏi giá cà phê, bánh tráng trộn); điện thoại thật: Danh bạ (gặp ai thì có số người
+đó), gọi điện cho NPC ở đâu cũng được, Tin nhắn từ NPC, cuộc gọi về cho Má (Má gửi 100.000đ, dặn đi gặp Chú Sáu). Quest
+mua điện thoại vẫn đứng đầu khung nhiệm vụ. Chưa làm: "Về nhà" ở nhà trọ bà Chín và hostel anh Tony, tour đi bộ của người
+nước ngoài, đổi đô ở tiệm cô Kim (bỏ: ai cũng có sẵn tiền đồng).
+
 ## Thứ tự đề xuất
 
 R1 (duyệt design → blockout → duyệt → chi tiết, gồm R4, R5) → R2 và R3 khi bake map mới → R6 → R7 (design viết song song, game 1 và 4 cần R6).
