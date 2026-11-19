@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Sài Gòn Q1 Diorama</title>
     <meta name="claude:viewport-fit-sides" content="cover" />
+    <!-- installable app: the manifest link is added by vite-plugin-pwa at build (vite.config.ts, src/pwa.ts) -->
+    <meta name="theme-color" content="#f3ebdd" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sài Gòn Q1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -75,6 +83,13 @@
     </div>
 
     <div class="toast card" id="toast" role="status" data-modes="play" hidden></div>
+
+    <!-- a new version of the app is downloaded (src/pwa.ts); in the menu it takes over without asking -->
+    <div class="update card" id="update" role="status" hidden>
+      <span data-i18n="updateReady"></span>
+      <button id="update-reload" class="btn-primary" type="button" data-i18n="updateReload"></button>
+      <button id="update-later" type="button" data-i18n="updateLater"></button>
+    </div>
 
     <!-- a ride offer for a driver on duty (src/game/offerBanner.ts) -->
     <section class="offer card" id="offer" data-modes="play" aria-labelledby="offer-who" hidden>

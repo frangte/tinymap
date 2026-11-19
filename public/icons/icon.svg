@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="#F3EBDD" stroke="#2B211C" stroke-width="12"/>
+  <clipPath id="card"><rect x="22" y="22" width="468" height="468" rx="90"/></clipPath>
+  <g clip-path="url(#card)">
+  <circle cx="256" cy="196" r="150" fill="#FFE6A8"/>
+  <g stroke="#2B211C" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M76 352 H180 V456 H76 Z" fill="#A0A7AA"/>
+    <path d="M332 352 H436 V456 H332 Z" fill="#A0A7AA"/>
+    <path d="M64 356 L180 292 V356 Z" fill="#A9492F"/>
+    <path d="M448 356 L332 292 V356 Z" fill="#A9492F"/>
+    <path d="M196 166 H316 V316 H196 Z" fill="#A0A7AA"/>
+    <path d="M156 316 H356 V456 H156 Z" fill="#EAD9AE"/>
+    <path d="M218 456 V392 A38 38 0 0 1 294 392 V456 Z" fill="#3B3330"/>
+    <path d="M176 172 L256 88 L336 172 Z" fill="#A9492F"/>
+    <path d="M256 88 L176 172 H256 Z" fill="#C0613F" stroke="none"/>
+    <path d="M176 172 L256 88 L336 172 Z" fill="none"/>
+    <path d="M256 88 V54"/>
+    <circle cx="256" cy="48" r="8" fill="#C9A24A" stroke-width="6"/>
+    <circle cx="256" cy="240" r="46" fill="#4E7CA6" stroke-width="8"/>
+    <circle cx="256" cy="240" r="32" fill="#F3EEE2" stroke="none"/>
+    <path d="M256 240 V216 M256 240 L274 250" stroke-width="7"/>
+    <path d="M40 456 H472"/>
+  </g></g>
+</svg>

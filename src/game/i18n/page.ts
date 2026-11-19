@@ -30,6 +30,10 @@ const vi = {
   // banners
   takeRide: 'Nhận cuốc',
   skip: 'Bỏ qua',
+  // a new version of the app (src/pwa.ts)
+  updateReady: 'Đã có bản mới của game.',
+  updateReload: 'Tải lại',
+  updateLater: 'Để sau',
   // dressing panel and the archetype picker
   character: 'Nhân vật',
   chooseCharacter: 'Chọn nhân vật',
@@ -105,6 +109,9 @@ const en: typeof vi = {
   otherLanguageTitle: 'Chuyển sang tiếng Việt',
   takeRide: 'Take the ride',
   skip: 'Skip',
+  updateReady: 'A new version of the game is ready.',
+  updateReload: 'Reload',
+  updateLater: 'Later',
   character: 'Character',
   chooseCharacter: 'Choose your character',
   namePlaceholder: 'Guest 123',

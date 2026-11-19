@@ -1,6 +1,9 @@
 import './style.css';
 import { startApp } from './game/app';
+import { startPwa } from './pwa';
 
-startApp().catch((err: unknown) => {
-  console.error(err);
-});
+startApp()
+  .then(startPwa)
+  .catch((err: unknown) => {
+    console.error(err);
+  });

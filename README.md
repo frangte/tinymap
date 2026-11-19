@@ -9,7 +9,7 @@ A walkable miniature of District 1, Ho Chi Minh City: an island in the sea with 
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm run build        # type-check + production build into dist/
+npm run build        # type-check + production build into dist/ (an installable app, see below)
 npm run build:single # one HTML file in dist-single/saigon-noir.html (models/ still served next to it)
 npm run i18n:check   # fails on interface text typed outside the catalogs (src/game/i18n/)
 ```
@@ -17,6 +17,16 @@ npm run i18n:check   # fails on interface text typed outside the catalogs (src/g
 The game is in Vietnamese and English. The language comes from `?lang=vi|en`, then the player's last choice, then the browser's languages (English when it lists neither); the switch is on the start menu and in the tool buttons, and changes everything on screen at once. NPCs always speak Vietnamese: in English the English goes under each line.
 
 The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so the back button and shared links work. `?debug` exposes the app as `window.sgGame` (player, follow camera, map view, nav grid, `go(mode)`, `step(n)`); `?debug&manual` stops the frame loop so a test can step it.
+
+## Installing as an app (PWA)
+
+The production build is a Progressive Web App: on a phone, "Add to Home Screen" (Safari) or "Install app" (Chrome) puts Sài Gòn Q1 on the home screen, where it opens full screen. A service worker ([vite-plugin-pwa](https://vite-pwa-org.netlify.app/), set up in `vite.config.ts`) keeps the page, the code, the fonts and the map on the device, so the game starts at once and opens offline too. Offline it plays alone: walking, NPCs and the map need no server, and multiplayer comes back when the network does.
+
+- **What is kept:** the page, the hashed JS/CSS, the icons, and the map files `index.html` names (`#stage data-model`, `data-nav`), about 3.7 MB. Each file is stored under its content hash, so a re-exported GLB or a re-baked nav map under the same name reaches every player with the next version. `/api`, `/ws` and `/healthz` always go to the network.
+- **Updates** (`src/pwa.ts`): the worker is registered once the map has loaded, so it never slows the first download. It looks for a new version on every return to the app and hourly. The client and the server change together and the socket has no version check, so a new version takes over right away in the menu; in the map or a game a banner offers "Tải lại" / "Reload", and it also takes over on the next return to the menu.
+- **Dev and single file:** no service worker in `npm run dev` or `build:single`. To try it, `npm run build && npx vite preview`; DevTools → Application shows the manifest, the worker and its cache.
+- **Icons:** `node scripts/pwa-icons.mjs` draws the icon (Chợ Bến Thành's clock tower) and writes every size into `public/icons/` (needs `rsvg-convert`: `brew install librsvg`).
+- **Hosting:** the page needs HTTPS (production has it). Serve `sw.js` and `index.html` with `Cache-Control: no-cache` and `assets/` as immutable; `.webmanifest` as `application/manifest+json`.
 
 ## Controls
 
@@ -35,6 +45,7 @@ The camera swings back behind the player while walking forward, pulls in instead
 ```
 index.html              HUD markup (start menu + loader, place card, tools, map chips, toast, hints, joystick)
 src/main.ts             entry
+src/pwa.ts              installable app: registers the service worker, the update banner
 src/style.css           HUD styles (paper + ink); `data-modes` on each overlay vs `<body data-mode>`
 src/game/
   app.ts                bootstrap, frame loop, mode switching (menu / map / play) with camera flights
@@ -66,8 +77,10 @@ public/models/
   saigon_q1_nav.png     floor height + walkable flag, 0.35 m grid
   saigon_q1_roof.png    building tops on non-walkable cells (camera collision)
   saigon_q1_nav.json    grid origin, cell size, spawn point
+public/icons/           app icons for the install (made by scripts/pwa-icons.mjs)
 scripts/
   inline.mjs            inlines the single-chunk build into one HTML file
+  pwa-icons.mjs         draws the app icon and writes public/icons/
   blender/export_glb.py exports the diorama GLB from the .blend
   blender/bake_nav.py   bakes the three nav files from the .blend
   blender/nav_boxes.py  the walk-map boxes (NAV collection: buildings nobody walks into) in the .blend
