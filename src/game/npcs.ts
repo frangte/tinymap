@@ -5,6 +5,7 @@
 // ground under their spot (collider.ts): the server does not know the map's heights.
 import * as THREE from 'three';
 import data from '../../server/content/npcs.json';
+import passengerData from '../../server/content/passengers.json';
 import { RemotePlayer } from './remotePlayers';
 import { Motorbike } from './motorbike';
 import { parseLook, type Look } from './outfits';
@@ -35,6 +36,8 @@ export interface NpcDef {
   reach: number;
   /** a vehicle kind parked beside them, '' for none */
   vehicle: string;
+  /** an NPC passenger (server/content/passengers.json): it comes and goes (npc_join), nobody talks to it, and it stands on whatever floor it is put on */
+  guest?: true;
 }
 
 const MODES: readonly TalkMode[] = ['private', 'public', 'group'];
@@ -47,7 +50,14 @@ export const NPC_DEFS: readonly NpcDef[] = data.npcs.map((n): NpcDef => {
   return { id: n.id, name: n.name, role: n.role, look, at: [n.at[0], n.at[1]], face: [n.face[0], n.face[1]], mode, reach: n.reach, vehicle };
 });
 
-const byKey = new Map(NPC_DEFS.map((d) => [d.id, d]));
+/** The NPC passengers of Crab Bike drivers: the server brings one in where it waits (npc_join) and takes it out again. */
+const PASSENGER_DEFS: readonly NpcDef[] = passengerData.cast.map((c): NpcDef => {
+  const look = parseLook(c.look);
+  if (!look) throw new Error(`server/content/passengers.json: bad passenger "${c.id}"`);
+  return { id: c.id, name: c.name, role: c.role, look, at: [0, 0], face: [0, 1], mode: 'private', reach: 0, vehicle: '', guest: true };
+});
+
+const byKey = new Map([...NPC_DEFS, ...PASSENGER_DEFS].map((d) => [d.id, d]));
 
 /** heading 0 faces three.js +Z; Blender (x, y) is three (x, -y) */
 function restHeading(d: NpcDef): number {
@@ -111,11 +121,28 @@ export class Npcs {
     }
   }
 
+  /** A passenger came into the world (npc_join). One this game does not know (a newer server) is left out. */
+  join(n: NpcInfo): void {
+    const d = byKey.get(n.npc);
+    if (d && !this.all.has(n.id)) this.add(n.id, d, performance.now(), n.pose);
+  }
+
+  /** A passenger left the world (npc_leave). */
+  leave(id: number): void {
+    const n = this.all.get(id);
+    if (!n) return;
+    this.drop(n);
+    this.all.delete(id);
+  }
+
   /** NPC rows of a snapshot: how they turn and gesture. One that leaves our view stays where it was last seen. */
   applySnap(rows: readonly SnapRow[], receivedAt: number): void {
     for (const [id, x, , z, h, s, age] of rows) {
       const n = this.all.get(id);
-      if (n) n.actor.push(receivedAt - age, x, n.floorY, z, h, s);
+      if (!n) continue;
+      // a passenger waits on a pavement and rides a bike: its height is the ground under it, not where it first stood
+      const y = n.def.guest ? this.floorAt(x, z, n.actor.position.y) : n.floorY;
+      n.actor.push(receivedAt - age, x, Number.isFinite(y) ? y : n.floorY, z, h, s);
     }
   }
 
@@ -152,12 +179,14 @@ export class Npcs {
   }
 
   private clear(): void {
-    for (const n of this.all.values()) {
-      this.ink.untrack(n.actor.avatar.root);
-      this.scene.remove(n.actor.avatar.root);
-      n.actor.avatar.dispose();
-    }
+    for (const n of this.all.values()) this.drop(n);
     this.all.clear();
+  }
+
+  private drop(n: Npc): void {
+    this.ink.untrack(n.actor.avatar.root);
+    this.scene.remove(n.actor.avatar.root);
+    n.actor.avatar.dispose();
   }
 
   /** A bike on its stand to the NPC's right, the bars turned. */

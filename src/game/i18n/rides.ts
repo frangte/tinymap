@@ -74,6 +74,13 @@ const VI_ENDS: Record<End, Lines> = {
   hold_failed: ['Chưa đặt được xe, thử lại nhé.', ''],
   trip_timeout: ['Chuyến đi quá lâu nên đã huỷ, tiền đã hoàn lại.', 'Chở khách quá lâu: cuốc đã huỷ, khách được hoàn tiền.'],
 };
+/** how a trip with an NPC passenger ended, for the driver: no passenger's wallet is involved, so nothing is refunded */
+const VI_NPC_ENDS: Record<string, string> = {
+  pickup_timeout: 'Khách chờ lâu quá nên đã đi xe khác.',
+  driver_got_off: 'Bạn xuống xe giữa đường: khách bỏ cuốc, không có tiền.',
+  trip_timeout: 'Chuyến đi quá lâu nên khách đã bỏ cuốc.',
+  driver_left: '',
+};
 const VI_END_FALLBACK: Lines = ['Chuyến đi đã kết thúc.', 'Cuốc xe đã kết thúc.'];
 
 const EN_ENDS: Record<End, Lines> = {
@@ -89,12 +96,20 @@ const EN_ENDS: Record<End, Lines> = {
   hold_failed: ["Couldn't book the ride, please try again.", ''],
   trip_timeout: ['The trip took too long and was cancelled; your money has been refunded.', 'The ride took too long: it was cancelled and the passenger refunded.'],
 };
+const EN_NPC_ENDS: Record<string, string> = {
+  pickup_timeout: 'The passenger waited too long and took another ride.',
+  driver_got_off: 'You got off on the way: the passenger gave up, and nothing is paid.',
+  trip_timeout: 'The ride took too long: the passenger gave up.',
+  driver_left: '',
+};
 const EN_END_FALLBACK: Lines = ['The trip is over.', 'The ride is over.'];
 
 const vi = {
   error: (code: RideError): string => VI_ERRORS[code],
   /** how the trip ended, for the passenger or the driver ('' for nothing to say) */
   end: (why: string, passenger: boolean): string => endLine(VI_ENDS, VI_END_FALLBACK, why, passenger),
+  /** how a trip with an NPC passenger ended, for the driver */
+  endNpc: (why: string): string => VI_NPC_ENDS[why] ?? endLine(VI_ENDS, VI_END_FALLBACK, why, false),
   rated: 'Cảm ơn bạn đã đánh giá tài xế!',
   offlineBook: 'Đang mất kết nối, chưa đặt xe được.',
   offline: 'Đang mất kết nối.',
@@ -116,6 +131,7 @@ const vi = {
   alightedPaid: (fare: string) => `Xuống xe giữa đường, đã trả ${fare}.`,
   tripDoneTitle: 'Hoàn thành cuốc xe',
   tripDone: (passenger: string, place: string, paid: string) => `Chở ${passenger} tới ${place}. Nhận ${paid}.`,
+  tripDoneNpc: (passenger: string, place: string, paid: string, stars: number) => `Chở ${passenger} tới ${place}. Nhận ${paid}. Khách chấm ${stars} sao.`,
   earned: (line: string, paid: string) => `${line} Nhận ${paid}.`,
   acceptedRider: (passenger: string) => `Đã nhận cuốc: tới đón ${passenger}.`,
   boardedRider: (passenger: string, place: string) => `${passenger} đã lên xe. Chở tới ${place}, tới nơi thì dừng xe và bấm Trả khách.`,
@@ -129,6 +145,7 @@ const vi = {
 const en: typeof vi = {
   error: (code) => EN_ERRORS[code],
   end: (why, passenger) => endLine(EN_ENDS, EN_END_FALLBACK, why, passenger),
+  endNpc: (why) => EN_NPC_ENDS[why] ?? endLine(EN_ENDS, EN_END_FALLBACK, why, false),
   rated: 'Thanks for rating your driver!',
   offlineBook: "Connection lost: you can't book a ride right now.",
   offline: 'Connection lost.',
@@ -147,6 +164,7 @@ const en: typeof vi = {
   alightedPaid: (fare) => `Got off on the way, paid ${fare}.`,
   tripDoneTitle: 'Ride complete',
   tripDone: (passenger, place, paid) => `Took ${passenger} to ${place}. Earned ${paid}.`,
+  tripDoneNpc: (passenger, place, paid, stars) => `Took ${passenger} to ${place}. Earned ${paid}. They gave you ${stars} ${stars === 1 ? 'star' : 'stars'}.`,
   earned: (line, paid) => `${line} Earned ${paid}.`,
   acceptedRider: (passenger) => `Ride taken: go pick up ${passenger}.`,
   boardedRider: (passenger, place) => `${passenger} is on. Ride to ${place}, then stop and press Drop off.`,

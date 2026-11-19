@@ -202,6 +202,9 @@ export type ServerMsg =
   | { t: 'correct'; k: number; pose: Pose }
   | ({ t: 'vehicle' } & VehicleInfo)
   | { t: 'vehicle_gone'; id: number }
+  /** an NPC came into the world after the welcome (an NPC passenger waiting for a ride), and its leaving */
+  | { t: 'npc_join'; npc: NpcInfo }
+  | { t: 'npc_leave'; id: number }
   | ({ t: 'chat' } & ChatLine)
   | ({ t: 'interaction' } & Interaction)
   | { t: 'interaction_end'; sid: number; reason: EndReason }
@@ -466,6 +469,13 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
     }
     case 'vehicle_gone':
       return isId(m.id) ? { t: 'vehicle_gone', id: m.id } : null;
+    case 'npc_join': {
+      // the fields of an NPC of the welcome sit beside the type
+      const n = npcInfo(m);
+      return n ? { t: 'npc_join', npc: n } : null;
+    }
+    case 'npc_leave':
+      return isId(m.id) ? { t: 'npc_leave', id: m.id } : null;
     case 'chat': {
       const line = chatLine(m);
       return line ? { t: 'chat', ...line } : null;

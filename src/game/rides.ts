@@ -335,10 +335,10 @@ export class Rides {
     }
     this.ride = null;
     if (!passenger && r.end === 'completed') {
-      this.d.notify(L.tripDoneTitle, L.tripDone(r.passenger.name, name, money(r.paid)));
+      this.d.notify(L.tripDoneTitle, r.passenger.npc && r.stars > 0 ? L.tripDoneNpc(r.passenger.name, name, money(r.paid), r.stars) : L.tripDone(r.passenger.name, name, money(r.paid)));
       return;
     }
-    const line = L.end(r.end, passenger);
+    const line = r.passenger.npc && !passenger ? L.endNpc(r.end) : L.end(r.end, passenger);
     if (line) this.d.say(r.paid > 0 && !passenger ? L.earned(line, money(r.paid)) : line);
   }
 

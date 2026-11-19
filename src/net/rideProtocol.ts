@@ -14,6 +14,8 @@ export interface RidePerson {
   /** a driver's average stars (0 before any rating) and completed trips */
   stars: number;
   trips: number;
+  /** an NPC passenger: its id is an NPC's (npc_join), not a player's */
+  npc: boolean;
 }
 
 export interface Ride {
@@ -34,6 +36,8 @@ export interface Ride {
   end: string;
   /** what the driver got */
   paid: number;
+  /** what an NPC passenger rated the trip, on the last message of its completed trip (0 for none) */
+  stars: number;
 }
 
 export interface RideOffer {
@@ -91,7 +95,7 @@ function person(v: unknown): RidePerson | null {
   if (!isObj(v) || !isId(v.id)) return null;
   const name = str(v.name, NAME_MAX);
   if (name === null) return null;
-  return { id: v.id, name, stars: Math.min(5, orZero(v.stars)), trips: Number.isInteger(v.trips) ? Math.max(0, v.trips as number) : 0 };
+  return { id: v.id, name, stars: Math.min(5, orZero(v.stars)), trips: Number.isInteger(v.trips) ? Math.max(0, v.trips as number) : 0, npc: v.npc === true };
 }
 
 function point(v: unknown): [number, number] | null {
@@ -108,7 +112,7 @@ function ride(m: Obj): Ride | null {
   const pickup = point(m.pickup);
   if (!id || !state || !role || !dest || fare === null || !passenger || !pickup) return null;
   const driver = m.driver === undefined ? null : person(m.driver);
-  return { id, state, role, dest, fare, passenger, driver, pickup, deadline: orZero(m.deadline), end: word(m.end), paid: xu(m.paid) ?? 0 };
+  return { id, state, role, dest, fare, passenger, driver, pickup, deadline: orZero(m.deadline), end: word(m.end), paid: xu(m.paid) ?? 0, stars: Math.min(5, orZero(m.stars)) };
 }
 
 function offer(m: Obj): RideOffer | null {

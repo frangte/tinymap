@@ -797,6 +797,8 @@ export async function startApp(): Promise<void> {
     correct: (pose) => p.player.correct(pose[0], pose[1], pose[2]),
     vehicle: (v) => riding.vehicle(v),
     vehicleGone: (id) => riding.gone(id),
+    npcJoin: (n) => cast.join(n),
+    npcLeave: (id) => cast.leave(id),
     mountRefused: () => riding.refused(),
     chat: (line) => {
       const self = line.id === netClient.selfId;
@@ -858,7 +860,7 @@ export async function startApp(): Promise<void> {
     return view;
   };
   seatPassenger = (id, at) => {
-    if (id !== riding.self) others.get(id)?.sitBehind(at);
+    if (id !== riding.self) (others.get(id) ?? cast.get(id)?.actor)?.sitBehind(at);
     else if (p.player.seated !== 0) p.player.carry(at.position, at.heading, at.lean, at.speed);
   };
   // ---- talking to NPCs: next to one on foot, the action button (E) says hello; the sheet shows the conversation
@@ -875,7 +877,8 @@ export async function startApp(): Promise<void> {
     net: netClient,
     player: p.player,
     other: (id) => {
-      const r = others.get(id);
+      // an NPC passenger is drawn like another player
+      const r = others.get(id) ?? cast.get(id)?.actor;
       return r?.inView ? r : null;
     },
     say: (text) => chatBox.system(text),

@@ -37,6 +37,9 @@ export interface NetEvents {
   /** a vehicle arrived or changed (someone got on or off) */
   vehicle(v: VehicleInfo): void;
   vehicleGone(id: number): void;
+  /** an NPC (a passenger waiting for a ride) came into the world, or left it */
+  npcJoin(n: NpcInfo): void;
+  npcLeave(id: number): void;
   /** getting on a vehicle was refused */
   mountRefused(): void;
   chat(line: ChatLine): void;
@@ -393,6 +396,12 @@ export class NetClient {
       }
       case 'vehicle_gone':
         this.on.vehicleGone(m.id);
+        break;
+      case 'npc_join':
+        this.on.npcJoin(m.npc);
+        break;
+      case 'npc_leave':
+        this.on.npcLeave(m.id);
         break;
       case 'chat':
         this.on.chat(m);
