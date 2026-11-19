@@ -125,6 +125,11 @@ export interface QuestState {
   id: string;
   done: boolean;
   n: Record<string, number>;
+  /**
+   * An objective that is taken and then timed (an odd job): the seconds left of a run that is on when this arrived
+   * (-1: no time limit); missing while it is not taken.
+   */
+  left?: Record<string, number>;
 }
 
 export interface AchievementState {

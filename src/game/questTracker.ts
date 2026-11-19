@@ -4,8 +4,9 @@
 // textContent.
 import * as THREE from 'three';
 import { el } from './hud';
-import { current, countOf, type QuestLog } from './questLog';
-import { countText, type Objective } from './quests';
+import { current, type QuestLog } from './questLog';
+import type { Spot } from './quests';
+import { goalLine, goalSpot } from './jobs';
 import type { Guide } from './rides';
 import { onLangChange, tx } from './i18n';
 import { L } from './i18n/questTracker';
@@ -14,6 +15,8 @@ import { L } from './i18n/questTracker';
 const HERE = 6;
 /** where to go and how far is worked out this often (ms); the arrow turns every frame */
 const EVERY = 200;
+/** a job's clock is redrawn this often (ms) */
+const TICK = 500;
 /** the arrow is rewritten when it turned more than this (degrees) */
 const TURN_STEP = 1;
 
@@ -26,8 +29,11 @@ export class QuestTracker {
   private readonly to = new THREE.Vector3();
   private lastAt = -1e9;
   private lastText = '';
-  /** the objectives to do now, worked out when the progress changes rather than every frame */
-  private goals: Objective[] = [];
+  /** where the objectives to do now are, worked out when the progress changes rather than every frame */
+  private spots: Array<Spot | null> = [];
+  /** the goal line has a clock (an odd job against the time): it is redrawn every second */
+  private timed = false;
+  private lastTick = 0;
   /** shown instead of the quest while set */
   private guide: Guide | null = null;
   private hasTarget = false;
@@ -66,6 +72,10 @@ export class QuestTracker {
   /** Every frame in play mode: the arrow turns with the camera; where to go is worked out a few times a second. */
   update(now: number, player: THREE.Vector3, forward: THREE.Vector3): void {
     if (this.root.hidden) return;
+    if (this.timed && now - this.lastTick >= TICK) {
+      this.lastTick = now;
+      this.refresh();
+    }
     if (now - this.lastAt >= EVERY) {
       this.lastAt = now;
       this.findTarget(player);
@@ -92,8 +102,7 @@ export class QuestTracker {
       best = Math.hypot(g.x - player.x, g.z - player.z);
       this.to.set(g.x, 0, g.z);
     }
-    for (const o of this.guide ? [] : this.goals) {
-      const at = o.at;
+    for (const at of this.guide ? [] : this.spots) {
       if (!at) continue;
       for (let i = 0; i < at.length; i++) {
         const b = at[i];
@@ -130,13 +139,15 @@ export class QuestTracker {
     }
     const q = this.log.tracked();
     this.root.hidden = !q;
-    this.goals = q ? current(q) : [];
+    const goals = q ? current(q) : [];
+    this.spots = q ? goals.map((o) => goalSpot(this.log, q, o)) : [];
+    this.timed = false;
     if (!q) return;
-    const goals = this.goals;
     const o = goals[0];
+    const line = o ? goalLine(this.log, q, o) : null;
+    this.timed = line?.timed ?? false;
     const more = goals.length > 1 ? ` (+${goals.length - 1})` : '';
-    const count = o ? countText(o, countOf(q, o)) : '';
-    const goal = (o ? tx(o.text) : '') + more + (count ? ` · ${count}` : '');
+    const goal = (line?.text ?? '') + more + (line?.count ? ` · ${line.count}` : '');
     const title = tx(q.def.title);
     this.show(title, goal, L.label(title, goal));
   }

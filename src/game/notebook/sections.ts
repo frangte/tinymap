@@ -5,13 +5,15 @@ import { archetypeById } from '../archetypes';
 import { BODY_NAMES, HAT_NAMES, outfitStyle } from '../outfits';
 import { MiniMap } from '../phone/miniMap';
 import { badge } from '../badge';
-import { countOf, current, isDone, type ActiveQuest, type QuestLog } from '../questLog';
+import { current, isDone, type ActiveQuest, type QuestLog } from '../questLog';
 import { BOOK_STAMPS, STREAK_STAMPS, countText, titleName, type StampDef } from '../quests';
 import { button, h } from '../phone/dom';
 import type { AppFactory } from '../phone/apps';
 import { money, tx } from '../i18n';
 import { L } from '../i18n/notebook';
 import { L as ItemsL } from '../i18n/items';
+import { L as JobsL } from '../i18n/jobs';
+import { goalLine } from '../jobs';
 
 export const profile: AppFactory = (root, ctx) => {
   const p = ctx.profile();
@@ -124,9 +126,9 @@ function questCard(q: ActiveQuest, log: QuestLog, tracked: ActiveQuest | null): 
   const goals = h('ul', 'quest-goals');
   for (const o of q.def.objectives) {
     const li = h('li', isDone(q, o) ? 'is-done' : now.includes(o) ? 'is-now' : '');
-    li.append(h('span', '', tx(o.text)));
-    const c = countText(o, countOf(q, o));
-    if (c) li.append(h('small', '', c));
+    const line = goalLine(log, q, o);
+    li.append(h('span', '', line.text));
+    if (line.count) li.append(h('small', '', line.count));
     goals.append(li);
   }
   card.append(goals);
@@ -158,6 +160,24 @@ function dailySection(log: QuestLog, tracked: ActiveQuest | null): HTMLElement |
   return box;
 }
 
+/** Today's odd jobs (docs/design/13-jobs.md): once a day each, apart from the streak of dailies. */
+function jobSection(log: QuestLog, tracked: ActiveQuest | null): HTMLElement | null {
+  const jobs = log.jobs();
+  if (jobs.length === 0) return null;
+  const box = h('section', 'daily-section');
+  box.append(h('strong', 'app-section', JobsL.title), h('p', 'app-note', `${JobsL.intro} ${L.resetsIn(untilMidnight(Date.now()))}`));
+  for (const q of jobs) {
+    if (!q.state.done) {
+      box.append(questCard(q, log, tracked));
+      continue;
+    }
+    const card = h('section', 'quest-card is-done');
+    card.append(h('strong', 'quest-title', tx(q.def.title)), h('small', 'quest-tracking', q.def.xu > 0 ? L.doneTodayPaid(money(q.def.xu)) : JobsL.doneToday));
+    box.append(card);
+  }
+  return box;
+}
+
 export const quests: AppFactory = (root, ctx) => {
   const log = ctx.quests();
   let doneOpen = false;
@@ -172,9 +192,11 @@ export const quests: AppFactory = (root, ctx) => {
     const tracked = log.tracked();
     const daily = dailySection(log, tracked);
     if (daily) root.append(daily);
+    const jobs = jobSection(log, tracked);
+    if (jobs) root.append(jobs);
     const active = log.active().filter((q) => !q.def.daily);
-    if (active.length > 0 && daily) root.append(h('strong', 'app-section', L.quests));
-    if (active.length === 0 && !daily) root.append(h('p', 'app-note', L.questsAllDone));
+    if (active.length > 0 && (daily || jobs)) root.append(h('strong', 'app-section', L.quests));
+    if (active.length === 0 && !daily && !jobs) root.append(h('p', 'app-note', L.questsAllDone));
     for (const q of active) root.append(questCard(q, log, tracked));
     const done = log.done();
     if (done.length > 0) {
