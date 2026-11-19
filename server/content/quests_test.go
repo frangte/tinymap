@@ -76,7 +76,7 @@ func TestQuestsRejects(t *testing.T) {
 			f := embedded()
 			// the shipped dialogue refers to the shipped final quest
 			f.quests, f.dialogues = c.file, map[string][]byte{}
-			f.npcs = []byte(`{"npcs": []}`)
+			f.npcs, f.items = []byte(`{"npcs": []}`), noItems
 			_, err := load(f)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err = %v, want it to mention %q", err, c.want)
@@ -84,7 +84,7 @@ func TestQuestsRejects(t *testing.T) {
 		})
 	}
 	f := embedded()
-	f.quests, f.dialogues, f.npcs = file(quest("")), map[string][]byte{}, []byte(`{"npcs": []}`)
+	f.quests, f.dialogues, f.npcs, f.items = file(quest("")), map[string][]byte{}, []byte(`{"npcs": []}`), noItems
 	if _, err := load(f); err != nil {
 		t.Fatalf("the base case: %v", err)
 	}

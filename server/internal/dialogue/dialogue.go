@@ -32,6 +32,8 @@ type Line struct {
 	// Emote is the code of the emote the NPC plays as it speaks (emotes.json), 0 for none, for EmoteFor
 	Emote    int
 	EmoteFor time.Duration
+	// Shop is the shop (items.json) this line opens, "" for none
+	Shop string
 	// Choices are the answers the speaker is offered, by index; none means only goodbye is left
 	Choices []protocol.Text
 }
@@ -93,7 +95,7 @@ func (s *Script) Line(graph, node string, who Speaker) (Line, error) {
 	if !ok {
 		say = n.Say[content.DefaultVariant]
 	}
-	l := Line{Say: fill(say, who.Name), Choices: []protocol.Text{}}
+	l := Line{Say: fill(say, who.Name), Shop: n.Shop, Choices: []protocol.Text{}}
 	if e, ok := s.catalog.Emote(n.Emote); ok {
 		l.Emote, l.EmoteFor = e.Code, time.Duration(e.Seconds*float64(time.Second))
 		if l.EmoteFor <= 0 {

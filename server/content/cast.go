@@ -92,7 +92,9 @@ type Dialogue struct {
 type DialogueNode struct {
 	Say map[string]Text `json:"say"`
 	// Emote is played by the NPC as it says the line (emotes.json), "" for none
-	Emote   string   `json:"emote,omitempty"`
+	Emote string `json:"emote,omitempty"`
+	// Shop is a shop id (items.json): the game offers a button that opens its sheet while this line is shown
+	Shop    string   `json:"shop,omitempty"`
 	Choices []Choice `json:"choices,omitempty"`
 }
 
@@ -282,6 +284,9 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 	}
 	if _, ok := c.Emote(n.Emote); n.Emote != "" && !ok {
 		return fmt.Errorf("emote %q is not in emotes.json", n.Emote)
+	}
+	if n.Shop != "" && !slices.ContainsFunc(c.Shops, func(sh Shop) bool { return sh.ID == n.Shop }) {
+		return fmt.Errorf("shop %q is not in items.json", n.Shop)
 	}
 	if len(n.Choices) > ChoicesMax {
 		return fmt.Errorf("at most %d choices", ChoicesMax)

@@ -1,0 +1,87 @@
+{
+  "id": "anh_bay",
+  "about": "Anh Bảy runs the Dế Yêu phone shop on Lê Lợi (docs/design/10-story.md, chapter 1). The node `shop` carries \"shop\": \"de_yeu\": the game shows a button that opens the shop sheet while it is on screen, and buying is the `buy` message (items.json), never a dialogue answer. Everyone starts with no phone, so the first quest (story.dien_thoai_dau_tien) sends them here.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": {
+          "vi": "Vô coi đi em, máy zin, bao test bảy ngày!",
+          "en": "Come on in and have a look! Original phones, seven days to test them, guaranteed!"
+        },
+        "traveler": {
+          "vi": "Ê, người nước ngoài hả? SIM du lịch nè, 4G xài thả ga! Máy móc gì anh cũng có.",
+          "en": "Hey, visiting? Tourist SIM right here, 4G all you want! And I've got every phone you could need."
+        },
+        "citizen": {
+          "vi": "Ủa {name}, ghé tiệm anh hả? Vô vô, máy mới về nhiều lắm, bao test bảy ngày nha!",
+          "en": "Oh {name}, dropping by the shop? Come in, come in, plenty of new stock, seven days to test them!"
+        },
+        "driver": {
+          "vi": "Chạy xe cả ngày mà hổng có điện thoại sao nhận khách? Vô anh coi cho cái máy ưng ý!",
+          "en": "Riding all day with no phone, how do you get customers? Come in, I'll find you one you like!"
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": { "vi": "Cho em coi máy.", "en": "Let me see the phones." },
+          "goto": "shop"
+        },
+        {
+          "text": { "vi": "Máy nào cũng xài được hả anh?", "en": "Does every phone do the same things?" },
+          "goto": "about"
+        },
+        {
+          "text": { "vi": "Dạ thôi, em đi dạo tiếp.", "en": "No thanks, I'll keep walking." },
+          "goto": "bye"
+        }
+      ]
+    },
+    "shop": {
+      "say": {
+        "default": {
+          "vi": "Máy nằm hết trong tủ kính đó. Em ưng cái nào anh lấy ra cho, hổng ưng thì cứ coi chơi.",
+          "en": "They're all in the glass case. Pick the one you like and I'll take it out. If not, just browse."
+        }
+      },
+      "shop": "de_yeu",
+      "choices": [
+        {
+          "text": { "vi": "Máy nào cũng xài được hả anh?", "en": "Does every phone do the same things?" },
+          "goto": "about"
+        },
+        {
+          "text": { "vi": "Dạ để em suy nghĩ thêm.", "en": "Let me think about it." },
+          "goto": "bye"
+        }
+      ]
+    },
+    "about": {
+      "say": {
+        "default": {
+          "vi": "Cục gạch Nokla gọi với nhắn tin được, pin xài cả tuần, rớt lầu ba hổng bể nha! Muốn đặt Crab, hỏi đường, chat thì phải lấy Ifone, em.",
+          "en": "The Nokla brick calls and texts, the battery lasts all week, and it survives a fall from the third floor! For Crab, directions and chat you need an Ifone."
+        }
+      },
+      "choices": [
+        {
+          "text": { "vi": "Cho em coi máy.", "en": "Let me see the phones." },
+          "goto": "shop"
+        },
+        {
+          "text": { "vi": "Dạ cảm ơn anh Bảy.", "en": "Thanks, Anh Bảy." },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "Ừ, cần máy thì ghé anh nha em. Tiệm Dế Yêu, nhớ hén!",
+          "en": "Sure, come back when you need a phone. Dế Yêu, remember the name!"
+        }
+      }
+    }
+  }
+}

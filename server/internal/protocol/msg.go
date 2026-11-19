@@ -528,6 +528,8 @@ type Interaction struct {
 	// Say is the NPC's line, Choices the answers on offer, by index; none means only goodbye is left
 	Say     Text   `json:"say"`
 	Choices []Text `json:"choices"`
+	// Shop is the shop (server/content/items.json) the line opens: the game shows a button for its sheet
+	Shop string `json:"shop,omitempty"`
 }
 
 type InteractionEnd struct {

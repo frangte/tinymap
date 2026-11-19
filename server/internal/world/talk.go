@@ -195,7 +195,7 @@ func (w *World) showTo(s *session, to []*member) {
 		return
 	}
 	msg := protocol.Interaction{T: protocol.TypeInteraction, Sid: s.id, N: s.npc.id, Mode: s.mode, Step: s.step, Size: len(s.members),
-		Choices: l.Choices}
+		Choices: l.Choices, Shop: l.Shop}
 	var slow []*Peer
 	for _, m := range to {
 		msg.Lead, msg.Say = m == lead, l.Say

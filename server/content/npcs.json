@@ -70,6 +70,22 @@
         { "vi": "Đi đâu đó con? Hỏi đường chú chỉ cho!", "en": "Where are you off to? Ask me the way!" }
       ],
       "vehicle": "xe_so_110"
+    },
+    {
+      "id": "anh_bay",
+      "name": "Anh Bảy",
+      "role": { "vi": "chủ tiệm điện thoại Dế Yêu", "en": "runs the Dế Yêu phone shop" },
+      "look": { "body": "man", "outfit": "somi", "hat": "none" },
+      "place": "duong_le_loi",
+      "at": [-17.5, 110],
+      "face": [-11, 110],
+      "mode": "private",
+      "dialogue": "anh_bay",
+      "reach": 3,
+      "barks": [
+        { "vi": "Điện thoại zin, bao test bảy ngày! Vô coi đi em!", "en": "Original phones, seven days to test! Come have a look!" },
+        { "vi": "Dế Yêu đây! Máy mới về, giá mềm nha!", "en": "Dế Yêu here! New stock, soft prices!" }
+      ]
     }
   ]
 }
