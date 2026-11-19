@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
   /** multiplayer socket when it is not on the page's own host, e.g. wss://server.tinymap.live/ws (see src/net/client.ts) */
