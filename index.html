@@ -51,6 +51,14 @@
         <div class="note" id="wherenote"></div>
         <div class="online" id="online" data-status="offline" hidden><i aria-hidden="true"></i><span id="online-text"></span></div>
       </header>
+      <!-- the info card (placeCard.ts): one line about the place on the card above, when it has a Cẩm nang page -->
+      <section class="place-card card" id="place-card" data-modes="map play" hidden>
+        <p class="place-card-summary" id="place-card-summary"></p>
+        <div class="place-card-actions">
+          <button class="place-card-read btn-primary" id="place-card-read" type="button"><kbd class="mouse-only">I</kbd><span data-i18n="readMore"></span></button>
+          <button class="place-card-close" id="place-card-close" type="button" data-i18n-aria="hideCard" data-i18n-title="hideCard">×</button>
+        </div>
+      </section>
       <button class="tracker card" id="tracker" type="button" data-modes="play" hidden>
         <span class="tracker-text">
           <span class="eyebrow" id="tracker-quest"></span>
@@ -64,6 +72,11 @@
     </div>
 
     <div class="tools" data-modes="map play">
+      <!-- the Sổ tay (src/game/notebook/): everything there is to read, with no phone needed -->
+      <button class="notebook-toggle" id="notebook-toggle" type="button" aria-expanded="false" aria-controls="notebook" data-i18n-title="notebookTitle">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1zM12 6v14" /></svg>
+        <span data-i18n="notebook"></span>
+      </button>
       <button id="lang" type="button" data-i18n="otherLanguage" data-i18n-title="otherLanguageTitle"></button>
       <button id="sound" type="button" aria-pressed="true" data-i18n="sound" data-i18n-title="soundTitle"></button>
       <button id="ink" type="button" data-modes="map" aria-pressed="false" data-i18n="ink" data-i18n-title="inkTitle"></button>
@@ -157,9 +170,11 @@
         <span class="mouse-only"><kbd>Shift</kbd> <span data-i18n="keyRun"></span></span>
         <span class="mouse-only"><kbd>E</kbd> <span data-i18n="keyTalk"></span></span>
         <span class="mouse-only"><kbd>P</kbd> <span data-i18n="keyPhone"></span></span>
+        <span class="mouse-only"><kbd>B</kbd> <span data-i18n="keyNotebook"></span></span>
         <span class="mouse-only" data-i18n="dragToTurn"></span>
         <span class="touch-only" data-i18n="touchStoryMove"></span>
         <span class="touch-only" data-i18n="touchStoryPhone"></span>
+        <span class="touch-only" data-i18n="touchStoryNotebook"></span>
       </div>
       <button id="story-go" class="btn-primary" type="button" data-i18n="start"></button>
     </section>
@@ -204,6 +219,7 @@
         <span class="mouse-only" data-i18n="scrollToZoom"></span>
         <span class="mouse-only"><kbd>Enter</kbd> <span data-i18n="keyChat"></span></span>
         <span class="mouse-only"><kbd>P</kbd> <span data-i18n="keyPhone"></span></span>
+        <span class="mouse-only"><kbd>B</kbd> <span data-i18n="keyNotebook"></span></span>
         <span class="mouse-only"><kbd>C</kbd> <span data-i18n="keyOutfit"></span></span>
         <span class="mouse-only"><kbd>Esc</kbd> <span data-i18n="keyMenu"></span></span>
         <span class="touch-only" data-i18n="touchWalk"></span>
@@ -227,6 +243,17 @@
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" stroke-width="2.2" fill="none" /><path d="M11 17.5h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
       <span class="phone-dot" id="phone-dot" hidden></span>
     </button>
+
+    <!-- the Sổ tay (src/game/notebook/): a book on the left, a bottom sheet on phones; tabs over one section or page -->
+    <section class="notebook card" id="notebook" data-modes="map play" aria-labelledby="notebook-title" hidden>
+      <header class="notebook-bar">
+        <button class="notebook-back" id="notebook-back" type="button" data-i18n-aria="notebookBack" data-i18n-title="notebookBack" hidden>‹</button>
+        <h2 id="notebook-title" data-i18n="notebook"></h2>
+        <button class="notebook-close" id="notebook-close" type="button" data-i18n-aria="notebookClose" data-i18n-title="notebookClose">×</button>
+      </header>
+      <nav class="notebook-tabs" id="notebook-tabs" data-i18n-aria="notebookTabs"></nav>
+      <div class="notebook-view" id="notebook-view"></div>
+    </section>
 
     <!-- jump, the action at hand and the emotes (src/game/actionPad.ts), above the phone button -->
     <div class="actions" data-modes="play">

@@ -25,7 +25,7 @@ func TestCatalogLoads(t *testing.T) {
 		caps := c.Grants(a.ID)
 		apps := c.AppsFor(caps)
 		// everyone has the core apps; each archetype adds at least one of its own
-		for _, core := range []string{"profile", "quests", "chat", "map", "achievements", "notices"} {
+		for _, core := range []string{"crab", "chat", "notices"} {
 			if !slices.Contains(apps, core) {
 				t.Errorf("%s has no %s app", a.ID, core)
 			}

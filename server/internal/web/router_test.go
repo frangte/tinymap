@@ -563,10 +563,10 @@ func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
 	send(t, b, `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"crab","hat":"helmet"}}`)
 	b.Close()
 
-	// an older client without archetypes: the core apps, no badge
+	// an older client without archetypes: the core apps (Crab, chat, notices; the rest is in the Sổ tay), no badge
 	c := dial(t, srv)
 	send(t, c, helloMinh)
-	if w := next(t, c, "welcome"); w.Arch != "" || len(w.Apps) != 7 {
+	if w := next(t, c, "welcome"); w.Arch != "" || !slices.Equal(w.Apps, []string{"crab", "chat", "notices"}) {
 		t.Fatalf("no archetype: %q apps %v", w.Arch, w.Apps)
 	}
 	if got, _ := storedCharacter(srv, token); got.Look.Outfit == "crab" {

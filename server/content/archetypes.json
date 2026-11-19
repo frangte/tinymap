@@ -1,7 +1,7 @@
 {
   "about": "Who a player can be (docs/design/01-gameplay.md). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities and has tags (which quests are offered, quests.json), and systems only ever check capabilities and tags, never the archetype id. vehicle is the starter vehicle (vehicles.json), parked next to the player on arrival. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
   "capabilities": [
-    { "id": "traveler.guide_app", "about": "the Cẩm nang phone app: the landmarks of Quận 1 to discover" },
+    { "id": "traveler.guide_app", "about": "the Hỏi đường phone app: ask the Citizens online the way to a landmark (the Cẩm nang itself is in the Sổ tay, for everyone)" },
     { "id": "citizen.community_app", "about": "the Hàng Xóm phone app: who is out on the street right now" },
     { "id": "driver.app", "about": "the Crab Driver phone app (ride requests arrive with ride-hailing)" },
     { "id": "directions.ask", "about": "may ask the Citizens online the way to a landmark (the co-op quest Hỏi đường người Sài Gòn)" },

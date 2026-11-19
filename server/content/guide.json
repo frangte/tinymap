@@ -1,0 +1,239 @@
+{
+  "about": "The Cẩm nang's pages about places (docs/design/10-story.md, section 10): the info card a player sees on arriving (src/game/placeCard.ts) and the page in the Sổ tay (src/game/notebook/guideBook.ts). One entry per place id of places.json. Every text is {vi, en}; history is paragraphs, the other lists are bullet points. checked is the day the facts that change (hours, prices, works) were last checked against the sources: change it whenever they are checked again. A fact the sources disagree on is given as a range or a pointer to the official source, never as one number. maps is a Google Maps search. The Go tests keep every page about a real place, with its English, its date and https sources.",
+  "entries": [
+    {
+      "place": "cho_ben_thanh",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Ngôi chợ biểu tượng của Sài Gòn, với tháp đồng hồ trên cửa Nam, mở cửa từ năm 1914.",
+        "en": "Saigon's best-known market, with the clock tower over its south gate, open since 1914."
+      },
+      "facts": {
+        "built": { "vi": "1912–1914", "en": "1912–1914" },
+        "hours": { "vi": "Khoảng 6:00–18:00 mỗi ngày; chợ đêm bên ngoài buổi tối", "en": "About 6 am – 6 pm daily; a night market outside in the evening" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        {
+          "vi": "Chợ Bến Thành cũ nằm bên kênh Chợ Vải, nay là đường Nguyễn Huệ. Năm 1870 chợ cũ bị cháy, và người Pháp bàn chuyện xây một ngôi chợ mới ở chỗ khác: khu đầm lầy Bồ Rệt, được lấp đi để làm nền.",
+          "en": "The old Bến Thành market stood by the Chợ Vải canal, where Nguyễn Huệ Boulevard is today. It burned down in 1870, and the French began planning a new market somewhere else: on the Bồ Rệt marsh, which was filled in for it."
+        },
+        {
+          "vi": "Chợ mới được xây từ năm 1912 tới năm 1914 với khung kim loại chống cháy, và khai trương cuối tháng 3 năm 1914 bằng ba ngày lễ hội. Tháp đồng hồ trên cửa Nam trở thành hình ảnh quen thuộc nhất của Sài Gòn. Chợ được sửa lớn năm 1985 và vẫn buôn bán mỗi ngày tới giờ.",
+          "en": "The new market was built from 1912 to 1914 on a fireproof metal frame, and opened at the end of March 1914 with three days of celebrations. The clock tower over the south gate became the most familiar sight in Saigon. The market was renovated in 1985 and still trades every day."
+        }
+      ],
+      "see": [
+        { "vi": "Tháp đồng hồ và bốn cửa Bắc, Nam, Đông, Tây với phù điêu gốm phía trên", "en": "The clock tower, and the four gates (north, south, east, west) with ceramic reliefs above them" },
+        { "vi": "Khu ăn uống ngay trong chợ: bún, hủ tiếu, chè, nước mía", "en": "The food stalls inside: noodle soups, chè (sweet soups), sugarcane juice" },
+        { "vi": "Hàng vải, quần áo, cà phê, đồ khô và đồ lưu niệm", "en": "Fabric, clothes, coffee, dried goods and souvenirs" },
+        { "vi": "Chợ đêm trên các con đường quanh chợ khi trời tối", "en": "The night market on the streets around it after dark" }
+      ],
+      "tips": [
+        { "vi": "Hỏi giá trước khi mua. Ở hàng quần áo và đồ lưu niệm được trả giá, có thể bắt đầu từ khoảng một nửa giá người bán nói; hàng ăn thì thường đúng giá.", "en": "Ask the price before you buy. In the clothes and souvenir stalls you can bargain, starting at about half the asking price; food stalls usually keep to their prices." },
+        { "vi": "Đi khoảng 7–9 giờ sáng là mát và vắng; khoảng 11–14 giờ đông đoàn khách và nóng nhất.", "en": "Go around 7–9 am, when it is cooler and quieter; around 11 am – 2 pm brings the tour groups and the worst heat." },
+        { "vi": "Chỗ đông, nhất là quanh cửa Nam, đeo túi phía trước và cất điện thoại.", "en": "In the crowds, especially around the south gate, carry your bag in front and keep your phone away." },
+        { "vi": "Đừng lên taxi của người mời ở cổng chợ: đặt xe qua ứng dụng, hoặc đi taxi của hãng.", "en": "Do not take a taxi from the touts at the gate: book a ride on an app, or take a company taxi." }
+      ],
+      "getting_there": [
+        { "vi": "Ga Bến Thành của tuyến metro số 1 (Bến Thành – Suối Tiên) nằm ngay cạnh chợ.", "en": "Bến Thành station on Metro Line 1 (Bến Thành – Suối Tiên) is right next to the market." },
+        { "vi": "Đi bộ khoảng 15 phút theo đường Lê Lợi là tới Nhà hát Thành phố.", "en": "The Opera House is about a 15-minute walk along Lê Lợi." }
+      ],
+      "food": [
+        { "vi": "Khu ăn uống bên trong chợ", "en": "The food stalls inside the market" },
+        { "vi": "Phở Minh, hẻm 63 Pasteur, bán từ năm 1945", "en": "Phở Minh, in the alley at 63 Pasteur, serving since 1945" }
+      ],
+      "maps": "Chợ Bến Thành, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigoneer.com/saigon-heritage/26144-from-swampland-to-heartland-the-history-of-bến-thành-market",
+        "https://en.wikipedia.org/wiki/B%E1%BA%BFn_Th%C3%A0nh_Market",
+        "https://www.vietnamtourism.com/en/ben-thanh-market-the-complete-guide-to-saigon-s-landmark-market",
+        "https://www.tatlerasia.com/dining/food/three-pho-brands-saigon-half-century"
+      ]
+    },
+    {
+      "place": "nha_tho_duc_ba",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Nhà thờ gạch đỏ hai tháp chuông của Sài Gòn, xây xong năm 1880, đang được trùng tu.",
+        "en": "Saigon's red-brick cathedral with its twin bell towers, finished in 1880 and now being restored."
+      },
+      "facts": {
+        "built": { "vi": "1877–1880; hai tháp chuông năm 1895", "en": "1877–1880; the bell towers in 1895" },
+        "hours": { "vi": "Đang trùng tu: khách chỉ vào khi dự lễ; ngắm bên ngoài lúc nào cũng được", "en": "Under restoration: visitors go in only for Mass; the outside can be seen any time" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        {
+          "vi": "Viên đá đầu tiên được đặt ngày 7 tháng 10 năm 1877, và nhà thờ được làm phép khánh thành vào lễ Phục Sinh, ngày 11 tháng 4 năm 1880. Gạch, ngói và kính màu đều được chở từ Pháp sang; gạch đỏ để trần, không trát vữa, nên tới giờ vẫn giữ màu. Hai tháp chuông cao gần 58 m được xây thêm năm 1895.",
+          "en": "The first stone was laid on 7 October 1877, and the cathedral was blessed on Easter Day, 11 April 1880. Its bricks, tiles and stained glass were all shipped from France; the red brick was left bare, with no render, and has kept its colour. The two bell towers, almost 58 m tall, were added in 1895."
+        },
+        {
+          "vi": "Năm 1959, tượng Đức Mẹ Hoà Bình bằng đá granite được đặt ở quảng trường trước nhà thờ, từ đó người ta quen gọi là Nhà thờ Đức Bà. Năm 1962 nhà thờ được nâng lên Vương cung Thánh đường. Từ năm 2017 nhà thờ được trùng tu lớn; hai thánh giá mới được đặt lại trên tháp vào tháng 3 năm 2026, và việc trùng tu dự kiến kéo dài tới năm 2027 hoặc lâu hơn.",
+          "en": "In 1959 a granite statue of Our Lady of Peace was set up in the square in front, and since then people have called it the Notre-Dame Cathedral. In 1962 it was made a basilica. A major restoration began in 2017; two new crosses went back up on the towers in March 2026, and the work is expected to last until 2027 or later."
+        }
+      ],
+      "see": [
+        { "vi": "Mặt tiền gạch đỏ và hai tháp chuông (còn giàn giáo trong lúc trùng tu)", "en": "The red-brick front and the two bell towers (with scaffolding while the restoration lasts)" },
+        { "vi": "Tượng Đức Mẹ Hoà Bình giữa quảng trường Công xã Paris", "en": "The statue of Our Lady of Peace in the middle of Paris Commune Square" },
+        { "vi": "Bưu điện Trung tâm ngay bên kia quảng trường", "en": "The Central Post Office just across the square" },
+        { "vi": "Đèn trang trí rực rỡ mùa Giáng sinh", "en": "The bright decorations at Christmas" }
+      ],
+      "tips": [
+        { "vi": "Muốn vào trong thì đi dự lễ; giờ lễ thay đổi, xem bảng ở nhà thờ.", "en": "To see the inside, go to a Mass; the times change, so check the board at the church." },
+        { "vi": "Dự lễ thì ăn mặc kín vai và gối.", "en": "For Mass, cover your shoulders and knees." },
+        { "vi": "Sáng sớm (trước 7:30) hoặc khoảng 16–18 giờ là lúc chụp ảnh đẹp và đỡ đông.", "en": "Early morning (before 7:30) or around 4–6 pm is best for photos, with fewer people." }
+      ],
+      "getting_there": [
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành.", "en": "About a 15-minute walk from Bến Thành Market." },
+        { "vi": "Ga metro gần nhất là Nhà hát Thành phố và Bến Thành (tuyến số 1).", "en": "The nearest metro stations are Opera House and Bến Thành (Line 1)." }
+      ],
+      "food": [],
+      "maps": "Nhà thờ Đức Bà Sài Gòn",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Notre-Dame_Cathedral_Basilica_of_Saigon",
+        "https://vietnamnews.vn/life-style/1731489/sai-gon-notre-dame-cathedral-unveils-newly-crafted-crosses-after-major-restoration-milestone.html",
+        "https://tuoitre.vn/trung-tu-nha-tho.html",
+        "https://www.nomadotravel.app/en/attractions/notre-dame-cathedral-saigon"
+      ]
+    },
+    {
+      "place": "buu_dien_thanh_pho",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Bưu điện thời Pháp vẫn còn gửi thư mỗi ngày, với sảnh mái vòm và hai bản đồ vẽ tay từ năm 1892.",
+        "en": "A French-era post office that still sends letters every day, with a vaulted hall and two hand-painted maps from 1892."
+      },
+      "facts": {
+        "built": { "vi": "1886–1891", "en": "1886–1891" },
+        "hours": { "vi": "Khoảng 7:00–19:00; cuối tuần có thể đóng sớm hơn", "en": "About 7 am – 7 pm; it may close earlier at weekends" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        {
+          "vi": "Toà nhà bây giờ được xây từ năm 1886 tới năm 1891, do kiến trúc sư Alfred Foulhoux thiết kế. Người ta hay kể là Gustave Eiffel (người làm tháp Eiffel) thiết kế bưu điện, nhưng chưa có tài liệu nào chứng minh. Trên mặt tiền có tên các nhà khoa học về điện và điện báo như Morse, Ampère, Volta, Faraday.",
+          "en": "The present building went up from 1886 to 1891, designed by the architect Alfred Foulhoux. People often say Gustave Eiffel (of the Eiffel Tower) designed it, but no document shows that. The front carries the names of scientists of electricity and the telegraph, such as Morse, Ampère, Volta and Faraday."
+        },
+        {
+          "vi": "Bên trong là sảnh dài mái vòm bằng sắt và kính. Hai tấm bản đồ vẽ tay năm 1892 vẫn còn trên tường: đường dây điện báo Nam Kỳ và Campuchia, và Sài Gòn cùng vùng lân cận. Suốt hơn 30 năm, tới năm 2021, ông Dương Văn Ngộ ngồi ở đây viết thư và dịch thư giúp khách: người viết thư thuê cuối cùng của Sài Gòn.",
+          "en": "Inside is a long hall under an iron-and-glass vault. Two hand-painted maps from 1892 are still on the walls: the telegraph lines of southern Vietnam and Cambodia, and Saigon and its surroundings. For more than 30 years, until 2021, Mr Dương Văn Ngộ sat here writing and translating letters for visitors: Saigon's last public letter writer."
+        }
+      ],
+      "see": [
+        { "vi": "Sảnh mái vòm và đồng hồ phía trên lối vào", "en": "The vaulted hall, and the clock over the entrance" },
+        { "vi": "Hai bản đồ vẽ tay năm 1892 trên tường trong sảnh", "en": "The two hand-painted maps from 1892 on the walls of the hall" },
+        { "vi": "Quầy bưu điện vẫn làm việc: gửi một tấm bưu thiếp về nhà", "en": "The working counters: send a postcard home" },
+        { "vi": "Các quầy bán bưu thiếp và đồ lưu niệm", "en": "The postcard and souvenir stalls" }
+      ],
+      "tips": [
+        { "vi": "Vắng nhất trước 8:30 ngày thường và khoảng 13–14:30; đoàn khách thường tới từ 9:30 tới trưa.", "en": "Quietest before 8:30 am on weekdays and around 1–2:30 pm; tour groups usually come from 9:30 to noon." },
+        { "vi": "Trong sảnh chụp ảnh thoải mái, và có máy lạnh: chỗ nghỉ chân tốt giữa trưa.", "en": "Photos are fine in the hall, and it is air-conditioned: a good break at midday." },
+        { "vi": "Mua bưu thiếp, dán tem và gửi ngay tại quầy là món quà lưu niệm rẻ mà vui.", "en": "Buying a postcard, stamping it and posting it at the counter makes a cheap, fun souvenir." }
+      ],
+      "getting_there": [
+        { "vi": "Ngay bên kia quảng trường Công xã Paris, đối diện Nhà thờ Đức Bà.", "en": "Right across Paris Commune Square from Notre-Dame Cathedral." },
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành; ga metro Nhà hát Thành phố cũng gần.", "en": "About a 15-minute walk from Bến Thành Market; Opera House metro station is close too." }
+      ],
+      "food": [],
+      "maps": "Bưu điện Trung tâm Sài Gòn",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Saigon_Central_Post_Office",
+        "https://www.nomadotravel.app/en/attractions/central-post-office-saigon"
+      ]
+    },
+    {
+      "place": "nha_hat_thanh_pho",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Nhà hát kiểu Pháp ở cuối đường Lê Lợi, mở cửa năm 1900, nay vẫn diễn ca nhạc, xiếc, múa.",
+        "en": "A French-style theatre at the end of Lê Lợi, opened in 1900, that still stages music, circus and dance."
+      },
+      "facts": {
+        "built": { "vi": "1898–1900", "en": "1898–1900" },
+        "hours": { "vi": "Ngắm bên ngoài lúc nào cũng được; vào trong khi có vé xem diễn", "en": "The outside any time; the inside with a ticket for a show" },
+        "ticket": { "vi": "Theo từng buổi diễn, xem ở phòng vé bên cạnh", "en": "Depends on the show; see the box office beside it" }
+      },
+      "history": [
+        {
+          "vi": "Nhà hát được xây cho người Pháp ở Sài Gòn xem kịch và opera, xong vào đầu năm 1900. Mặt tiền nhiều tượng và hoa văn, được cho là lấy cảm hứng từ Petit Palais ở Paris.",
+          "en": "The theatre was built for Saigon's French residents to watch plays and opera, and finished at the start of 1900. Its front, full of statues and ornaments, is said to take after the Petit Palais in Paris."
+        },
+        {
+          "vi": "Từ giữa những năm 1950, toà nhà từng được dùng làm trụ sở quốc hội của chính quyền Sài Gòn. Sau năm 1975 nơi đây trở lại làm nhà hát. Mặt tiền được trùng tu năm 1998, dịp Sài Gòn tròn 300 năm. Ngày nay nhà hát có khoảng 500 chỗ ngồi.",
+          "en": "From the mid-1950s the building housed the parliament of the Saigon government. After 1975 it became a theatre again. Its front was restored in 1998, for Saigon's 300th anniversary. Today it seats about 500."
+        }
+      ],
+      "see": [
+        { "vi": "Mặt tiền và tượng trang trí, đẹp nhất khi lên đèn buổi tối", "en": "The front and its statues, best when lit up in the evening" },
+        { "vi": "Quảng trường Lam Sơn trước nhà hát", "en": "Lam Sơn Square in front of it" },
+        { "vi": "Một buổi diễn bên trong, ví dụ AO Show (xiếc tre và múa đương đại)", "en": "A show inside, for instance the AO Show (bamboo circus and contemporary dance)" }
+      ],
+      "tips": [
+        { "vi": "Không chụp ảnh, quay phim trong lúc diễn; bên trong máy lạnh khá lạnh.", "en": "No photos or video during a show; the air conditioning inside is cold." },
+        { "vi": "Chụp mặt tiền thì đứng bên kia quảng trường Lam Sơn cho thấy hết toà nhà.", "en": "To photograph the front, stand across Lam Sơn Square to fit the whole building." },
+        { "vi": "Bay flycam ở đây phải xin phép.", "en": "Flying a drone here needs a permit." }
+      ],
+      "getting_there": [
+        { "vi": "Ga Nhà hát Thành phố của tuyến metro số 1, một ga sau Bến Thành.", "en": "Opera House station on Metro Line 1, one stop from Bến Thành." },
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành theo đường Lê Lợi.", "en": "About a 15-minute walk from Bến Thành Market along Lê Lợi." }
+      ],
+      "food": [
+        { "vi": "Quầy bar trên sân thượng các khách sạn Caravelle và Rex gần đó (phải gọi đồ uống)", "en": "The rooftop bars of the nearby Caravelle and Rex hotels (you order a drink)" }
+      ],
+      "maps": "Nhà hát Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Ho_Chi_Minh_City_Opera_House",
+        "https://www.vietnamtourism.com/en/saigon-opera-house-history-shows-tickets-and-how-to-visit"
+      ]
+    },
+    {
+      "place": "dinh_doc_lap",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Dinh thự do kiến trúc sư Ngô Viết Thụ thiết kế, nơi xe tăng húc đổ cổng ngày 30 tháng 4 năm 1975.",
+        "en": "The palace designed by the architect Ngô Viết Thụ, whose gate a tank broke through on 30 April 1975."
+      },
+      "facts": {
+        "built": { "vi": "1962–1966 (dinh Norodom cũ: 1868–1871)", "en": "1962–1966 (the old Norodom Palace: 1868–1871)" },
+        "hours": { "vi": "Mở cửa hằng ngày, sáng tới chiều; giờ bán vé thay đổi, xem trang dinhdoclap.gov.vn", "en": "Open daily, morning to afternoon; ticket hours change, see dinhdoclap.gov.vn" },
+        "ticket": { "vi": "Khoảng 40.000–80.000đ tuỳ loại vé (có vé ghép với nhà trưng bày)", "en": "About 40,000–80,000 VND depending on the ticket (combined tickets with the exhibition house)" }
+      },
+      "history": [
+        {
+          "vi": "Ngày 23 tháng 2 năm 1868, người Pháp đặt viên đá đầu tiên xây dinh Norodom, nơi ở và làm việc của các Toàn quyền Đông Dương. Năm 1955 dinh được đổi tên thành Dinh Độc Lập. Năm 1962 dinh bị máy bay ném bom hư hại nặng và phải phá đi.",
+          "en": "On 23 February 1868 the French laid the first stone of the Norodom Palace, home and office of the Governors-General of Indochina. In 1955 it was renamed the Independence Palace. In 1962 it was badly damaged by bombs dropped from planes and had to be torn down."
+        },
+        {
+          "vi": "Dinh mới do kiến trúc sư Ngô Viết Thụ thiết kế, người Việt Nam đầu tiên đoạt Giải Khôi nguyên La Mã, khánh thành ngày 31 tháng 10 năm 1966. Trưa ngày 30 tháng 4 năm 1975, xe tăng 843 húc vào cổng phụ và xe tăng 390 húc đổ cổng chính; lá cờ được cắm trên nóc dinh, Tổng thống Dương Văn Minh tuyên bố đầu hàng không điều kiện, đánh dấu ngày thống nhất đất nước. Năm 1976 nơi đây được đặt tên Hội trường Thống Nhất, và năm 2009 được xếp hạng Di tích quốc gia đặc biệt.",
+          "en": "The new palace, designed by Ngô Viết Thụ, the first Vietnamese to win the Grand Prix de Rome, opened on 31 October 1966. Around midday on 30 April 1975, tank 843 rammed the side gate and tank 390 broke through the main gate; the flag was raised on the roof, and President Dương Văn Minh announced an unconditional surrender, marking the reunification of the country. In 1976 it was named the Reunification Hall, and in 2009 it became a Special National Monument."
+        }
+      ],
+      "see": [
+        { "vi": "Các phòng khánh tiết, phòng họp nội các, phòng làm việc của tổng thống", "en": "The reception rooms, the cabinet room, the president's office" },
+        { "vi": "Tầng hầm với hầm chỉ huy và phòng liên lạc", "en": "The basement bunker and its command and radio rooms" },
+        { "vi": "Sân thượng có trực thăng UH-1", "en": "The roof, with a UH-1 helicopter" },
+        { "vi": "Hai xe tăng trong sân (xe thật đang ở bảo tàng tại Hà Nội)", "en": "Two tanks in the grounds (the real ones are in museums in Hanoi)" },
+        { "vi": "Bức bình phong đá hình đốt trúc ở mặt tiền", "en": "The stone screen of bamboo-like segments across the front" }
+      ],
+      "tips": [
+        { "vi": "Mang tiền mặt mệnh giá nhỏ để mua vé.", "en": "Bring cash in small notes for the tickets." },
+        { "vi": "Ăn mặc kín vai và gối.", "en": "Cover your shoulders and knees." },
+        { "vi": "Đi khoảng 8–10 giờ sáng là mát và vắng nhất; tránh ngày lễ và cuối tuần.", "en": "Around 8–10 am is coolest and quietest; avoid holidays and weekends." },
+        { "vi": "Túi lớn phải gửi ở cổng; vài phòng không cho chụp ảnh.", "en": "Large bags are checked at the gate; some rooms do not allow photos." }
+      ],
+      "getting_there": [
+        { "vi": "Lối vào cho khách ở số 135 Nam Kỳ Khởi Nghĩa; đi bộ khoảng 10 phút từ Bưu điện Trung tâm.", "en": "The visitors' entrance is at 135 Nam Kỳ Khởi Nghĩa; about a 10-minute walk from the Central Post Office." },
+        { "vi": "Trước cổng chính là Công viên 30/4, nhiều bóng cây, nối thẳng tới Nhà thờ Đức Bà.", "en": "In front of the main gate is 30/4 Park, full of shade, leading straight to Notre-Dame Cathedral." }
+      ],
+      "food": [
+        { "vi": "Quán cà phê trong khuôn viên dinh", "en": "The café inside the palace grounds" }
+      ],
+      "maps": "Dinh Độc Lập",
+      "sources": [
+        "https://www.dinhdoclap.gov.vn/en/?p=10039",
+        "https://en.wikipedia.org/wiki/Reunification_Palace",
+        "https://www.vietnamtourism.com/vi/dinh-oc-lap-o-tp-hcm-ve-gio-mo-cua-va-nhung-gi-can-xem"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 // The in-game phone: a home screen of apps and one open app at a time. Which apps a player has comes from the
 // server's welcome (worked out from the archetype's capabilities, server/content/apps.json); each is drawn here by
-// its id (apps.ts), and ids this build does not know are skipped, so the server can roll an app out first.
+// its id (apps.ts), and ids this build does not know are skipped, so the server can roll an app out first (and an
+// older server's profile, quests, map and achievements, which are in the Sổ tay now, do not show twice).
 import { el } from '../hud';
 import { PHONE_APPS } from '../archetypes';
 import { APP_VIEWS, type AppContext, type AppView, type Notice, type PhoneHost } from './apps';
@@ -25,9 +26,11 @@ export class Phone {
   private apps: string[] = [];
   private current: { id: string; view: AppView } | null = null;
   private timer = 0;
+  /** the phone came out (the Sổ tay is put away then) */
+  onOpen: () => void = () => {};
 
   constructor(host: PhoneHost) {
-    this.ctx = { ...bind(host), notices: () => this.notices, close: () => this.close() };
+    this.ctx = { ...bindHost(host), notices: () => this.notices, close: () => this.close() };
     this.toggle.addEventListener('click', () => (this.isOpen ? this.close() : this.open()));
     el('phone-close').addEventListener('click', () => this.close());
     this.back.addEventListener('click', () => this.showHome());
@@ -46,6 +49,7 @@ export class Phone {
   }
 
   open(app?: string): void {
+    this.onOpen();
     this.root.hidden = false;
     this.toggle.setAttribute('aria-expanded', 'true');
     this.dot.hidden = true;
@@ -124,8 +128,8 @@ export class Phone {
   }
 }
 
-/** the host's methods bound to it, so spreading them into the app context keeps `this` */
-function bind(host: PhoneHost): PhoneHost {
+/** the host's methods bound to it, so spreading them into an app context keeps `this` (the Sổ tay uses it too) */
+export function bindHost(host: PhoneHost): PhoneHost {
   return {
     profile: () => host.profile(),
     online: () => host.online(),

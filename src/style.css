@@ -855,7 +855,9 @@ body.is-talking .toast { display: none !important; }
   animation: sheet-up 0.22s ease-out backwards;
 }
 .phone-bar { display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; padding: 8px 10px; border-bottom: 1.5px solid var(--ink); background: var(--paper-deep); }
-.phone-bar h2 { margin: 0; text-align: center; font: 800 15px/1.1 var(--display); }
+.phone-bar h2 { grid-column: 2; margin: 0; text-align: center; font: 800 15px/1.1 var(--display); }
+/* the title keeps the middle column while the back button is hidden on the home screen */
+.phone-back { grid-column: 1; grid-row: 1; }
 .phone-bar button { width: 34px; height: 30px; padding: 0; font: 700 18px/1 var(--body); box-shadow: none; }
 .phone-close { grid-column: 3; }
 .phone-home { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px; overflow: auto; align-content: start; }
@@ -910,3 +912,157 @@ body.is-talking .toast { display: none !important; }
   .arch-pitch { font-size: 12px; }
 }
 .act.touch-only { justify-content: center; align-items: center; }
+
+/* the Sổ tay's button, first in the tools: a book in brick so it reads as the way in */
+.notebook-toggle { display: inline-flex; align-items: center; gap: 6px; }
+.notebook-toggle svg { fill: none; stroke: var(--brick); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.notebook-toggle[aria-expanded='true'] { background: var(--ink); color: var(--paper); }
+.notebook-toggle[aria-expanded='true'] svg { stroke: var(--ochre); }
+
+/* the info card under the place card: one line about the place and "Đọc thêm" */
+.place-card {
+  display: grid;
+  gap: 8px;
+  max-width: min(300px, calc(100vw - 32px - 150px));
+  padding: 9px 10px 10px 12px;
+  border-left: 4px solid var(--brick);
+  animation: sheet-up 0.24s ease-out backwards;
+}
+.place-card-summary { margin: 0; font: 500 12.5px/1.4 var(--body); color: var(--ink); text-wrap: pretty; }
+.place-card-actions { display: flex; align-items: center; gap: 6px; }
+.place-card-read { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; font-size: 12.5px; }
+.place-card-read kbd { font: 700 10px var(--mono); min-width: 0; padding: 1px 4px; color: inherit; background: transparent; border: 1.5px solid currentColor; border-radius: 3px; box-shadow: none; }
+.place-card-close { margin-left: auto; width: 28px; height: 26px; padding: 0; font: 700 16px/1 var(--body); box-shadow: none; }
+body.is-dressing .place-card,
+body.is-picking .place-card,
+body.is-story .place-card { display: none !important; }
+
+/* the Sổ tay: a book on the left (its spine the brick edge), over the place card and the chat; the phone and the
+   action buttons stay on the right */
+.notebook {
+  position: fixed;
+  left: var(--edge-l);
+  top: var(--edge-t);
+  bottom: var(--edge-b);
+  z-index: 5;
+  width: min(440px, calc(100vw - 32px - 86px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--paper);
+  border-width: 2px;
+  border-left: 7px solid var(--brick);
+  border-radius: 4px 14px 14px 4px;
+  box-shadow: 4px 5px 0 var(--shade);
+  animation: sheet-up 0.24s ease-out backwards;
+}
+.notebook-bar { display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; padding: 8px 10px; border-bottom: 1.5px solid var(--ink); background: var(--paper-deep); }
+.notebook-bar h2 { grid-column: 2; margin: 0; text-align: center; font: 800 16px/1.1 var(--display); letter-spacing: -0.01em; }
+.notebook-bar button { width: 34px; height: 30px; padding: 0; font: 700 18px/1 var(--body); box-shadow: none; }
+.notebook-back { grid-column: 1; grid-row: 1; }
+.notebook-close { grid-column: 3; }
+.notebook-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1.5px solid var(--ink); background: var(--paper-deep); }
+.notebook-tabs button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 2px 7px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font: 600 11px/1.1 var(--body);
+  color: var(--ink-soft);
+}
+.notebook-tabs button + button { border-left: 1.2px solid color-mix(in srgb, var(--ink) 25%, transparent); }
+.notebook-tabs button:hover { background: color-mix(in srgb, var(--paper) 60%, var(--paper-deep)); color: var(--ink); }
+.notebook-tabs button:active { transform: none; }
+.notebook-tabs button[aria-pressed='true'] { background: var(--paper); color: var(--brick); box-shadow: inset 0 -3px 0 var(--brick); }
+.notebook-tabs svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.notebook-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-content: start;
+  padding: 14px 16px 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* a page is for reading: its text can be selected and copied (an address, a name) */
+  -webkit-user-select: text;
+  user-select: text;
+}
+.notebook-view > button { padding: 10px 12px; font-size: 13px; }
+body.is-notebook .topleft,
+body.is-notebook .corner,
+body.is-notebook .talk { display: none !important; }
+body.is-dressing .notebook,
+body.is-picking .notebook,
+body.is-story .notebook { display: none !important; }
+
+/* the Cẩm nang: the list of landmarks */
+.guide-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.guide-open { width: 100%; display: grid; gap: 3px; padding: 10px 12px 11px; text-align: left; }
+.guide-open strong, .guide-item > strong { font: 800 15px/1.2 var(--display); }
+.guide-note { font: 600 11px/1.25 var(--body); letter-spacing: 0.03em; color: var(--brick); }
+.guide-summary { font: 500 12.5px/1.4 var(--body); color: var(--ink-soft); text-wrap: pretty; }
+.guide-item.is-soon { display: grid; gap: 3px; padding: 9px 12px 10px; border: 1.5px dashed var(--ink-soft); border-radius: 3px; color: var(--ink-soft); }
+.guide-item.is-soon .guide-note { color: var(--ink-soft); }
+.guide-soon { font: 500 11px/1.2 var(--mono); }
+.guide-marks { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+.guide-marks:empty { display: none; }
+.guide-mark { padding: 3px 6px; border: 1.2px solid var(--ink); border-radius: 3px; font: 700 10px/1 var(--body); color: var(--ink); }
+.guide-mark.is-seen { background: color-mix(in srgb, var(--teal) 24%, var(--paper)); }
+.guide-mark.is-read { background: color-mix(in srgb, var(--ochre) 40%, var(--paper)); }
+
+/* the Cẩm nang: a place's page */
+.guide-head { display: grid; gap: 4px; }
+.guide-title { margin: 0; font: 800 26px/1.05 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
+.guide-lede { margin: 6px 0 0; font: 600 14.5px/1.45 var(--body); text-wrap: pretty; }
+.guide-facts { display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; margin: 0; padding: 10px 12px 11px; border: 1.5px solid var(--ink); border-radius: 10px; background: color-mix(in srgb, var(--paper-deep) 55%, var(--paper)); }
+.guide-facts dt { padding-top: 2px; font: 600 10.5px/1.3 var(--body); letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); }
+.guide-facts dd { margin: 0; font: 600 13px/1.4 var(--body); }
+.guide-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.guide-actions button { padding: 9px 12px; font-size: 13px; }
+.guide-maps {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 12px;
+  font: 600 13px/1 var(--body);
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 var(--shade);
+}
+.guide-maps:hover { background: var(--paper-deep); }
+.guide-maps:focus-visible, .guide-foot a:focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; }
+.guide-section { display: grid; gap: 6px; }
+.guide-section h4 { margin: 0; font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brick); }
+.guide-section p { margin: 0; font: 500 14px/1.6 var(--body); text-wrap: pretty; }
+.guide-section ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font: 500 13.5px/1.5 var(--body); text-wrap: pretty; }
+.guide-section li::marker { color: var(--brick); }
+.guide-foot { display: grid; gap: 4px; padding-top: 10px; border-top: 1.5px dashed var(--ink-soft); font: 500 11.5px/1.45 var(--body); color: var(--ink-soft); }
+.guide-foot p { margin: 0; }
+.guide-foot a { color: var(--ink); }
+
+@media (max-width: 560px) {
+  /* a bottom sheet that leaves the top of the game in view; the action buttons step aside while it is out */
+  .notebook {
+    left: var(--edge-l);
+    right: var(--edge-r);
+    top: auto;
+    width: auto;
+    height: min(74%, 640px);
+    border-left-width: 2px;
+    border-top: 6px solid var(--brick);
+    border-radius: 14px 14px 4px 4px;
+  }
+  body.is-notebook .actions,
+  body.is-notebook .phone-toggle { display: none !important; }
+  .place-card { max-width: calc(100vw - 32px - 132px); }
+  .guide-title { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notebook, .place-card { animation: none; }
+}

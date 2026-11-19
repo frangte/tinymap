@@ -116,6 +116,7 @@ type Catalog struct {
 	Achievements []Achievement
 	Ridehail     Ridehail
 	Directions   Directions
+	Guide        []GuideEntry
 	byID         map[string]Archetype
 	vehicleByID  map[string]Vehicle
 	questByID    map[string]Quest
@@ -128,7 +129,7 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, island, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions []byte
+	places, island, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions, guide []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
@@ -136,7 +137,7 @@ type files struct {
 func embedded() files {
 	return files{places: placesJSON, island: mapJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
 		emotes: emotesJSON, npcs: npcsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
-		dialogues: dialogueFiles()}
+		guide: guideJSON, dialogues: dialogueFiles()}
 }
 
 // Load parses and checks the embedded data files.
@@ -180,6 +181,9 @@ func load(f files) (*Catalog, error) {
 		return nil, err
 	}
 	if err := parseCast(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseGuide(f, c); err != nil {
 		return nil, err
 	}
 	c.Capabilities, c.Archetypes, c.Restricted, c.Apps = a.Capabilities, a.Archetypes, a.Restricted, p.Apps

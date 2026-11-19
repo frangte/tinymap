@@ -44,6 +44,8 @@ export class PlayMode {
   private home: Spawn | null = null;
   /** a landmark seen for the first time this visit (the phone notes it) */
   onLandmark: (p: Place) => void = () => {};
+  /** the place the player is in changed (null: none in particular); the Cẩm nang's card follows it */
+  onPlace: (p: Place | null) => void = () => {};
   /** E or the action button: the action at hand (talking to an NPC, getting on or off the bike) */
   onUse: () => void = () => {};
   /** the emote codes keys 1-9 play, in order */
@@ -113,6 +115,7 @@ export class PlayMode {
     FOLIAGE.uSee.value = 1;
     this.place = null;
     this.hud.setPlace(null);
+    this.onPlace(null);
   }
 
   exit(): void {
@@ -179,6 +182,7 @@ export class PlayMode {
     if (p !== this.place) {
       this.place = p;
       this.hud.setPlace(p);
+      this.onPlace(p);
       // not while picking an archetype or dressing: the player has not walked anywhere yet
       if (p && p.kind === 'landmark' && !this.seen.has(p) && !this.dressing) {
         this.seen.add(p);

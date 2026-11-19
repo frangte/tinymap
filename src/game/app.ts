@@ -11,7 +11,7 @@ import { InkPass } from './ink';
 import { CityCollider } from './collider';
 import { MAP } from './mapInfo';
 import { PlayMode } from './play';
-import { CameraFlight, MAP_STOPS, MENU_STOP, MapView } from './mapView';
+import { CameraFlight, MAP_STOPS, MENU_STOP, MapView, type MapStop } from './mapView';
 import { Hud, el, type Mode } from './hud';
 import { damp, fromBlender } from './coords';
 import { Sea } from './sea';
@@ -27,6 +27,9 @@ import { ChatBox, spoken } from './chatBox';
 import { ArchetypePicker } from './archetypePicker';
 import { StoryCard } from './storyCard';
 import { Phone } from './phone/phone';
+import type { PhoneHost } from './phone/apps';
+import { Notebook } from './notebook/notebook';
+import { PlaceCard } from './placeCard';
 import { allowedLook, appsFor, archetypeById, grants, outfitAllowed, type Archetype } from './archetypes';
 import { OUTFITS, outfitStyle, sameLook, type Look } from './outfits';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
@@ -41,14 +44,15 @@ import { QuestTracker } from './questTracker';
 import { ACHIEVEMENTS, STAMPS, STREAK_STAMPS, questById, titleName } from './quests';
 import type { ArchRefusal, News } from '../net/protocol';
 import { loadPose, savePose } from './lastPose';
-import { Rides, xu } from './rides';
+import { Rides, xu, type Guide } from './rides';
 import { OfferBanner } from './offerBanner';
 import { CallBanner } from './callBanner';
 import { Mutes } from './mutes';
 import { Directions } from './directions';
-import { placeNote, placeTitle } from './places';
+import { placeById, placeNote, placeTitle, type Place } from './places';
 import { onLangChange, tx } from './i18n';
 import { L } from './i18n/app';
+import { L as G } from './i18n/guide';
 import { startPageTranslation } from './i18n/page';
 import { LangSwitch } from './langSwitch';
 
@@ -152,6 +156,10 @@ export async function startApp(): Promise<void> {
   let closeStory = (): void => {};
   /** walks out of a conversation when leaving play (replaced once the map has loaded) */
   let closeTalk = (): void => {};
+  /** puts the Sổ tay away (replaced once the map has loaded) */
+  let closeNotebook = (): void => {};
+  /** the info card follows the mode: the map's stop over the map, the player's place in play (replaced once loaded) */
+  let placeCardFor = (_next: Mode): void => {};
   /** what happens when play starts: pick an archetype, dress, or go straight online (replaced once loaded) */
   let arrive = (): void => {};
   /** replaced once the map has loaded and the panel exists */
@@ -219,6 +227,8 @@ export async function startApp(): Promise<void> {
       closeTalk();
       play.exit();
     }
+    closeNotebook();
+    placeCardFor(next);
     // where the camera is looking now, whoever was driving it
     const looking = flight.active ? flight.lookAt.clone() : prev === 'play' ? play.target.clone() : map.controls.target.clone();
     flight.cancel();
@@ -421,6 +431,7 @@ export async function startApp(): Promise<void> {
   openDress = (): void => {
     if (mode !== 'play' || flight.active || panel.isOpen) return;
     chatBox.close(false);
+    closeNotebook();
     // the dressing panel takes over the screen: the conversation ends
     talk.close();
     p.setDressing(true);
@@ -444,6 +455,7 @@ export async function startApp(): Promise<void> {
   const openChat = (): void => {
     // while talking the chat log makes room for the conversation sheet
     if (mode !== 'play' || flight.active || panel.isOpen || story.isOpen || !dressed || talk.isOpen) return;
+    closeNotebook();
     chatBox.open();
   };
 
@@ -576,6 +588,7 @@ export async function startApp(): Promise<void> {
     }
     storyTold = true;
     chatBox.close(false);
+    closeNotebook();
     talk.close();
     p.setDressing(true);
     story.open(a);
@@ -829,8 +842,10 @@ export async function startApp(): Promise<void> {
   p.onUse = () => {
     if (rides.use()) return;
     if (directions.use()) return;
-    if (!p.player.riding && talk.near()) talk.use();
-    else riding.use();
+    if (!p.player.riding && talk.near()) {
+      closeNotebook();
+      talk.use();
+    } else riding.use();
   };
   p.pressDigit = (n) => talk.press(n);
   pad = new ActionPad({
@@ -863,7 +878,7 @@ export async function startApp(): Promise<void> {
   };
 
   // ---- the phone, bottom right: the apps the server sent (or that the archetype gives, offline)
-  const ph = new Phone({
+  const phoneHost: PhoneHost = {
     profile: () => profile,
     online: () => netStatus === 'online',
     self: () => ({ position: p.player.position, heading: p.player.heading }),
@@ -876,23 +891,92 @@ export async function startApp(): Promise<void> {
     changeArchetype: () => openArchetypes(),
     switchBody: () => {
       switchBody();
-      ph.rerender();
+      notebook.rerender();
     },
     quests: () => log,
     chooseTitle: (id) => netClient.sendTitle(id),
     rides: () => rides,
     directions: () => directions,
     mutes: () => mutes,
+  };
+  const ph = new Phone(phoneHost);
+  // ---- the Sổ tay: the Cẩm nang, the map, quests, achievements, the character; a page can show the way there
+  /** the landmark the tracker shows the way to from its Cẩm nang page, and the place the player is in */
+  let guidedPlace: Place | null = null;
+  let herePlace: Place | null = null;
+  const placeGuide = (place: Place): Guide => {
+    const to = new THREE.Vector3(place.pts[0][0], 0, -place.pts[0][1]);
+    return {
+      get title() {
+        return G.trackerTitle;
+      },
+      get goal() {
+        return G.goTo(placeTitle(place));
+      },
+      target: () => to,
+    };
+  };
+  /** fly the map to a place: its stop when it has one, otherwise a look from the south at its point */
+  const flyToPlace = (place: Place): void => {
+    const i = MAP_STOPS.findIndex((st) => st.place === place.id);
+    const [x, y] = place.pts[0];
+    const to: MapStop = i >= 0 ? MAP_STOPS[i] : { place: place.id, year: null, t: [x, y, 4], az: -90, el: 24, d: 80 };
+    if (i >= 0) stop = i;
+    hud.selectStop(i, to);
+    map.flyTo(to);
+    placeCard.show(place);
+  };
+  const notebook = new Notebook({
+    ...phoneHost,
+    goLabel: (place) => {
+      if (mode === 'map') return G.flyThere;
+      if (mode !== 'play' || place === herePlace || rides.guide() || directions.guide()) return null;
+      return place === guidedPlace ? G.stopGuiding : G.walkThere;
+    },
+    goTo: (place) => {
+      notebook.close();
+      if (mode === 'map') {
+        flyToPlace(place);
+        return;
+      }
+      guidedPlace = place === guidedPlace ? null : place;
+      guide();
+    },
   });
+  closeNotebook = (): void => notebook.close();
+  // one or the other: the phone and the notebook put each other away
+  ph.onOpen = () => notebook.close();
+  notebook.onOpen = () => {
+    ph.close();
+    talk.close();
+    chatBox.close(false);
+  };
+  const placeCard = new PlaceCard((id) => notebook.openPage(id));
+  placeCardFor = (next) => {
+    if (next === 'map') placeCard.show(placeById(MAP_STOPS[stop]?.place ?? '') ?? null);
+    else placeCard.show(null);
+  };
+  p.onPlace = (place) => {
+    herePlace = place;
+    placeCard.show(place);
+    // there: the tracker goes back to the quest
+    if (place && place === guidedPlace) {
+      guidedPlace = null;
+      guide();
+    }
+  };
   const questTracker = new QuestTracker(log, () => {
     if (mode !== 'play' || panel.isOpen) return;
-    // while guiding, the tracker opens the app of what it guides to: a trip's, or the Cẩm nang for an ask
-    if (!questTracker.guiding) ph.open('quests');
+    // while guiding, the tracker opens what it guides to: a trip's app, the ask in the phone, or the Cẩm nang page
+    if (!questTracker.guiding) notebook.open('quests');
     else if (rides.guide()) ph.open(rides.ride?.role === 'rider' ? 'crab_driver' : 'crab');
-    else ph.open(directions.calls.size > 0 ? 'quests' : 'guide');
+    else if (directions.guide()) {
+      if (directions.calls.size > 0) notebook.open('quests');
+      else ph.open('guide');
+    } else if (guidedPlace) notebook.openPage(guidedPlace.id);
   });
   tracker = questTracker;
-  const guide = (): void => questTracker.guideTo(rides.guide() ?? directions.guide());
+  const guide = (): void => questTracker.guideTo(rides.guide() ?? directions.guide() ?? (guidedPlace ? placeGuide(guidedPlace) : null));
   rides.onChange(guide);
   directions.onChange(guide);
   phone = ph;
@@ -912,8 +996,12 @@ export async function startApp(): Promise<void> {
     stop = i;
     hud.selectStop(i, MAP_STOPS[i]);
     map.flyTo(MAP_STOPS[i]);
+    placeCard.show(placeById(MAP_STOPS[i].place ?? '') ?? null);
   });
-  map.onUserMove = () => hud.selectStop(-1, null);
+  map.onUserMove = () => {
+    hud.selectStop(-1, null);
+    placeCard.show(null);
+  };
   hud.modeMapButton.addEventListener('click', () => request('map'));
   hud.modePlayButton.addEventListener('click', () => request('play'));
   hud.toMapButton.addEventListener('click', () => request('map'));
@@ -967,6 +1055,11 @@ export async function startApp(): Promise<void> {
       return;
     }
     if (isTyping(e)) return;
+    if (mode !== 'menu' && notebook.isOpen && e.key === 'Escape') {
+      e.preventDefault();
+      notebook.close();
+      return;
+    }
     if (mode === 'play' && talk.isOpen && e.key === 'Escape') {
       e.preventDefault();
       talk.close();
@@ -977,6 +1070,19 @@ export async function startApp(): Promise<void> {
       ph.close();
       return;
     }
+    const busy = panel.isOpen || picker.isOpen || story.isOpen;
+    // B: the Sổ tay, in play and over the map
+    if (mode !== 'menu' && e.code === 'KeyB' && !e.repeat && !busy) {
+      e.preventDefault();
+      if (notebook.isOpen) notebook.close();
+      else notebook.open();
+      return;
+    }
+    // I: the page of the place on the info card
+    if (mode !== 'menu' && e.code === 'KeyI' && !e.repeat && !busy && placeCard.readNow()) {
+      e.preventDefault();
+      return;
+    }
     // P: the phone
     if (mode === 'play' && e.code === 'KeyP' && !panel.isOpen && !picker.isOpen && !story.isOpen) {
       e.preventDefault();
@@ -985,7 +1091,7 @@ export async function startApp(): Promise<void> {
       return;
     }
     // C: the next outfit (held down, it changes once)
-    if (mode === 'play' && e.code === 'KeyC' && !e.repeat && !ph.isOpen && !picker.isOpen && !story.isOpen && !talk.isOpen) {
+    if (mode === 'play' && e.code === 'KeyC' && !e.repeat && !ph.isOpen && !notebook.isOpen && !picker.isOpen && !story.isOpen && !talk.isOpen) {
       e.preventDefault();
       nextOutfit();
       return;
@@ -1025,7 +1131,7 @@ export async function startApp(): Promise<void> {
         colliderView = null;
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, notebook, placeCard, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

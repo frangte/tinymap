@@ -58,7 +58,14 @@ src/game/
   followCamera.ts       third-person orbit camera that keeps out of walls (poles and crowns do not count)
   input.ts              keyboard, mouse, touch joystick, pinch
   places.ts             named landmarks and streets for the HUD
-  phone/mapLand.json    the phone map's land and roads (written by scripts/map/move_game_content_v8.py)
+  guide.ts              the Cẩm nang's pages about places (server/content/guide.json), pages read kept in the browser
+  placeCard.ts          the info card under the place card: one line about the place and "Đọc thêm" (I)
+  notebook/             the Sổ tay (B): the game's own menu, open with no phone, over the map and in play
+    notebook.ts         the panel and its tabs: Cẩm nang, map, quests, achievements, character
+    guideBook.ts        the Cẩm nang: the landmark list and a place's page (history, tips, getting there, sources)
+    sections.ts         the map, quests, achievements and character (phone apps before)
+  phone/                the in-game phone: only what a real phone is for (Crab, chat, notices, asking the way)
+    mapLand.json        the map's land and roads (written by scripts/map/move_game_content_v8.py)
   hud.ts                DOM overlay helpers
   storyCard.ts          the arrival card: the archetype's story and first steps, once per visit
   stories.ts            that text per archetype (written in i18n/stories.ts)
@@ -83,6 +90,7 @@ Interface text never goes straight into the code or `index.html`; `npm run i18n:
 - **In a module:** add a key to its catalog in `src/game/i18n/<module>.ts` (`const vi = {…}; const en: typeof vi = {…}`; tsc fails until the English is there), then read it as `L.key`, or `L.key(arg)` for text with values in it.
 - **In `index.html`:** give the element `data-i18n="key"` (its text), `data-i18n-title`, `data-i18n-aria` or `data-i18n-placeholder`, and add the key to `src/game/i18n/page.ts`.
 - **Game content** (quests, dialogue, places, apps, archetypes in `server/content/`) is a `{ "vi": …, "en": … }` pair: show it with `tx()`, place names with `placeTitle()` / `placeNote()`. `go test` fails on a text without its English.
+- **A Cẩm nang page** (`server/content/guide.json`): one entry per place id, every text in both languages, the day the facts were checked and the https sources they come from. Facts that change (hours, prices, works) get a new `checked` day when they are checked again; a fact the sources disagree on is written as a range or a pointer to the official source.
 - **Text that stays on screen** redraws itself on `onLangChange()`; text built each time something opens needs nothing more.
 
 Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z) is three (x, z, -y). Places, NPC spots and `server/content/map.json` are in Blender XY.

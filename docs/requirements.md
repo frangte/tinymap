@@ -81,7 +81,7 @@ Cách làm đề xuất:
 4. Thứ tự: xe máy (dùng lại `src/game/motorbike.ts`) → xe đạp, xích lô (model mới, duyệt trước) → ô tô, taxi (xe dài 4 m cần cách kiểm tra va chạm khác vòng tròn bán kính 0.42 m, ở cả client và server). Có thể thêm buýt đường sông hoặc tàu cao tốc từ bến Bạch Đằng ra Vũng Tàu khi có sông.
 5. Ghi quyết định D21 vào `docs/design/README.md` khi được duyệt (D20 là map mới).
 
-## R7. Game co-op (chờ: viết design trước, `docs/design/10-coop-games.md`)
+## R7. Game co-op (chờ: viết design trước, `docs/design/11-coop-games.md`)
 
 Dựa trên những gì đã có: quest engine, kiểu "hỏi và đáp" của D18, ghế sau của Crab Bike, NPC, xe công cộng (R6). Ý tưởng để chọn:
 1. **Giao hàng đôi:** một người lái, một người ngồi sau ôm hàng, giao N món trước khi hết giờ.
@@ -117,6 +117,28 @@ hai xe tăng (390, 843), tường Nhà Rồng hồng cam, shader nước cho m�
 Sửa sau góp ý (2026-11-18, 19): xoá dãy nhà bị hàng rào Dinh cắt ngang ở góc đông bắc; camera nhìn xuyên thân cây
 và song sắt, lùi ra chậm sau khi bị chắn, khi zoom xa thì ngẩng lên thay vì lao vào; bỏ cột cờ Thủ Ngữ; bỏ cây trong
 bùng binh (giữ vườn thấp); bo tròn các mũi đất nhọn ở bờ sông, kênh (`TIP_R` trong `build_saigon_mini.py`).
+
+## R10. Design lại game: từ tay trắng tới tài xế Crab (2026-11-19, bản nháp, chờ duyệt)
+
+Khoa quyết định đổi cách vào game:
+- Vào game là người bình thường, mặc đồ thường: chọn nam/nữ, người Việt hay người nước ngoài; có sẵn một ít tiền.
+- Dùng tiền mua điện thoại (nhiều đời, giá khác nhau: Ifone X, 11…), đặt Crab.
+- Làm nhiệm vụ cho đủ tiền mua xe, tới chỗ NPC đăng ký chạy Crab (trừ phí), thành tài xế. Sau đó thêm nhiều nhiệm vụ.
+- Người chỉ muốn đi dạo: tới một chỗ thì NPC nói chuyện hoặc hiện tooltip, bấm vào đọc lịch sử, thông tin, mẹo du lịch.
+  **Đây là mục đích chính của trang web.**
+- Soạn kịch bản trước rồi mới quyết định.
+- Điện thoại là điện thoại thật, có ứng dụng ẩn. Thông tin tách ra một menu riêng (Sổ tay), đọc được mà không cần vào
+  điện thoại (Khoa chốt cùng ngày).
+- Không làm nút "Dạo phố" riêng: ai vào game cũng đi dạo, đọc thông tin được, cốt truyện chỉ là phần chơi thêm (Khoa
+  chốt cùng ngày).
+
+Bản nháp kịch bản: [design/10-story.md](design/10-story.md) (hai chương mở đầu, điện thoại, kiếm tiền, thi bằng, đăng
+ký Crab, thẻ thông tin công trình, mẹo theo tình huống, bảng giá, NPC mới, thứ tự làm). Quyết định D22 (thay D1) ghi
+"proposed" trong `docs/design/README.md`. Còn 7 câu hỏi cuối file đó chờ Khoa (câu 1 về "Dạo phố" đã chốt).
+
+**2026-11-19, Khoa: "làm Sổ tay với thẻ thông tin trước".** Đã làm xong (chưa deploy): Sổ tay (nút "Sổ tay", phím B),
+thẻ thông tin dưới khung tên địa điểm (phím I), trang chi tiết cho 5 công trình đầu, dẫn đường tới đó; Hồ sơ, Nhiệm vụ,
+Thành tích, Bản đồ ra khỏi điện thoại. Chi tiết ở mục 14 của [design/10-story.md](design/10-story.md).
 
 ## Thứ tự đề xuất
 
