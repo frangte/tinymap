@@ -153,6 +153,54 @@ button:disabled { cursor: progress; opacity: 0.55; transform: none; }
 .mode-primary:hover { background: color-mix(in srgb, var(--brick) 86%, var(--ink)); }
 .mode-primary small { color: color-mix(in srgb, var(--paper) 82%, var(--brick)); }
 .mode-primary kbd { color: var(--ink); }
+/* install as an app (src/install.ts), phones only: a dashed outline under the two ways in, an extra and not a
+   third way; it unfolds the steps where the browser cannot ask by itself */
+.install { display: grid; gap: 8px; }
+.install[hidden],
+.install-steps[hidden],
+.install-lead[hidden] { display: none; }
+.install-open {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  text-align: left;
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+}
+.install-open[aria-expanded='true'] { border-style: solid; background: var(--paper-deep); }
+.install-open svg { fill: none; stroke: var(--brick); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.install-open span { display: grid; gap: 3px; min-width: 0; }
+.install-open strong { font: 800 15px/1.15 var(--display); }
+.install-open small { font: 500 12px/1.35 var(--body); color: var(--ink-soft); }
+.install-steps {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper);
+  animation: sheet-up 0.2s ease-out backwards;
+}
+.install-lead { margin: 0; font: 600 13px/1.4 var(--body); color: var(--brick); }
+.install-steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.install-steps li { display: grid; grid-template-columns: 30px 1fr; align-items: start; gap: 10px; font: 500 13.5px/1.4 var(--body); }
+.install-steps li svg {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border: 1.5px solid var(--ink);
+  border-radius: 7px;
+  background: var(--paper-deep);
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.install-steps li span { padding-top: 5px; }
 
 /* map dock: hint line + landmark chips */
 .dock {
@@ -1119,5 +1167,5 @@ body.is-story .notebook { display: none !important; }
   .notebook-tabs button { font-size: 10px; padding: 7px 1px 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .notebook, .place-card, .tip-card { animation: none; }
+  .notebook, .place-card, .tip-card, .install-steps { animation: none; }
 }
