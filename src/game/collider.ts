@@ -30,16 +30,18 @@ const TOUCH = 0.02;
 /** nearestStanding() looks this far apart round the spot asked for (m) */
 const SEARCH_STEP = 0.25;
 
-/** what a body passes through: light glows and hanging lanterns (Blender material names without SD_) */
-const PASS_THROUGH = new Set(['lampGlow', 'lantern']);
+/** what a body passes through: light glows, hanging lanterns and the footbridge's hangers (Blender material names
+ *  without SD_): a 6 cm cable over a railing must not snag a body walking along it */
+const PASS_THROUGH = new Set(['lampGlow', 'lantern', 'cable']);
 const WATER = new Set(['water', 'waterDeep', 'foam']);
 /** tree crowns and the bushes painted on the hill: they stop a body, the camera looks through them (paint.ts) */
 const FOLIAGE = new Set(['leaf', 'leafLight', 'leafDark']);
 /**
- * tree trunks and branches, iron railings: they stop a body, but the camera looks through them. A sight line that
- * jumps in for every trunk it passes behind jerks the camera into the player's back and out again.
+ * tree trunks and branches, iron railings, the footbridge's white steel (arches, posts, rails) and its leaflets: they
+ * stop a body, but the camera looks through them. A sight line that jumps in for every trunk it passes behind jerks
+ * the camera into the player's back and out again.
  */
-const THIN = new Set(['bark', 'railing']);
+const THIN = new Set(['bark', 'railing', 'steelWhite', 'etfe']);
 /** per-vertex flags */
 const FLAG_FOLIAGE = 1;
 const FLAG_THIN = 2;

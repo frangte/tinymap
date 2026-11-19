@@ -55,9 +55,9 @@ SIDEWALK = 3.0
 
 # Parts redrawn as real models (docs/map-v5-tasks.md): scripts/blender/mini/<name>.py, each with a run() that removes
 # its own objects and builds them again, so it also runs alone on an open file. They run after the blockout, in order.
-MINI_SCRIPTS = ['cau_ba_son', 'nui_nho', 'hai_dang', 'tuong_chua', 'dinh_thong_nhat', 'dinh_grounds', 'ho_con_rua',
-                'ben_nha_rong', 'bui_vien', 'no_figures']
-MODELLED_BRIDGES = {'cau_ba_son'}                  # built by a MINI_SCRIPTS entry instead of build_bridges
+MINI_SCRIPTS = ['cau_ba_son', 'cau_di_bo', 'nui_nho', 'hai_dang', 'tuong_chua', 'dinh_thong_nhat', 'dinh_grounds',
+                'ho_con_rua', 'ben_nha_rong', 'tuong', 'bui_vien', 'no_figures']
+MODELLED_BRIDGES = {'cau_ba_son', 'cau_di_bo'}     # built by a MINI_SCRIPTS entry instead of build_bridges
 MODELLED_MOUNTAINS = {'nui_nho'}                   # terrain, forest, boulders and stairs by a MINI_SCRIPTS entry
 MODELLED_LANDMARKS = {'tuong_chua', 'hai_dang', 'dinh_doc_lap', 'bui_vien', 'ben_nha_rong'}   # no blockout volume: a MINI_SCRIPTS entry builds it
 

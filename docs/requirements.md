@@ -118,6 +118,10 @@ Sửa sau góp ý (2026-11-18, 19): xoá dãy nhà bị hàng rào Dinh cắt ng
 và song sắt, lùi ra chậm sau khi bị chắn, khi zoom xa thì ngẩng lên thay vì lao vào; bỏ cột cờ Thủ Ngữ; bỏ cây trong
 bùng binh (giữ vườn thấp); bo tròn các mũi đất nhọn ở bờ sông, kênh (`TIP_R` trong `build_saigon_mini.py`).
 
+Thêm (2026-11-19): vẽ lại cầu đi bộ cho giống thật (vòm lá dừa nước, mặt cầu hình lá, làn xe đạp, lan can song đứng)
+và ba bức tượng chi tiết hơn (Trần Hưng Đạo trên bệ lăng trụ tam giác có chữ, Đức Mẹ Hòa Bình cầm quả địa cầu, Bác Hồ
+ở Bến Nhà Rồng mặc vest xách va li). Đã dựng, xuất map, thử vật lý: xem [landmarks-v9-design.md](landmarks-v9-design.md).
+
 ## R10. Design lại game: từ tay trắng tới tài xế Crab (2026-11-19, bản nháp, chờ duyệt)
 
 Khoa quyết định đổi cách vào game:

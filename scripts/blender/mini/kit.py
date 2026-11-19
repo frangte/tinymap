@@ -149,6 +149,65 @@ class Mesh:
         for t, mk in zip(T, mats):
             self.raw(mk, [V[t[0]], V[t[1]], V[t[2]]], [(0, 1, 2)])
 
+    def face_out(self, mat, V, inside):
+        """one polygon (world points), wound so its normal points away from the point `inside`"""
+        V = [Vector(p) for p in V]
+        n = Vector((0.0, 0.0, 0.0))
+        for i, a in enumerate(V):                     # Newell's normal: fine for any planar-ish polygon
+            b = V[(i + 1) % len(V)]
+            n += Vector(((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y)))
+        c = sum(V, Vector()) / len(V)
+        if n.dot(c - Vector(inside)) < 0:
+            V.reverse()
+        self.raw(mat, V, [tuple(range(len(V)))])
+
+    def sweep(self, mat, P, rings, caps=True):
+        """a closed tube through the cross-sections `rings` (one list of world points per path point P[i], all with
+        the same count, in the same turning order); every face is wound outwards from the path"""
+        n, m = len(P), len(rings[0])
+        for i in range(n - 1):
+            mid = (Vector(P[i]) + Vector(P[i + 1])) / 2
+            for j in range(m):
+                k = (j + 1) % m
+                self.face_out(mat, [rings[i][j], rings[i][k], rings[i + 1][k], rings[i + 1][j]], mid)
+        if caps:
+            self.face_out(mat, rings[0], P[1])
+            self.face_out(mat, rings[-1], P[-2])
+
+    def tube(self, mat, P, R, seg=8, caps=True, up=None):
+        """a round tube along the 3D path P (radius R: a number or one per point), frames carried along the path so
+        it does not twist; `up` picks the first frame (a tilted figure's limbs keep their seam at the back)"""
+        P = [Vector(p) for p in P]
+        R = R if isinstance(R, (list, tuple)) else [R] * len(P)
+        rings = []
+        t0 = (P[1] - P[0]).normalized()
+        a = Vector(up) if up is not None else (Vector((0, 0, 1)) if abs(t0.z) < 0.9 else Vector((1, 0, 0)))
+        N = (a - t0 * a.dot(t0)).normalized()
+        prev = t0
+        for i, p in enumerate(P):
+            t = (P[min(i + 1, len(P) - 1)] - P[max(i - 1, 0)]).normalized()
+            q = prev.rotation_difference(t)                 # parallel transport of the frame
+            N = (q @ N)
+            N = (N - t * N.dot(t)).normalized()
+            B = t.cross(N)
+            prev = t
+            rings.append([p + (N * math.cos(2 * PI * j / seg) + B * math.sin(2 * PI * j / seg)) * R[i] for j in range(seg)])
+        self.sweep(mat, P, rings, caps)
+
+    def strip(self, mat, P, half, v0, v1, caps=True):
+        """a box section swept along P (lateral -half..half across the path in plan, vertical v0..v1 over each point):
+        rails, kerbs, parapets; wound outwards (kit.ribbon's faces point inwards)"""
+        P = [Vector(p) for p in P]
+        rings, axis = [], []
+        for i, p in enumerate(P):
+            t = P[min(i + 1, len(P) - 1)] - P[max(i - 1, 0)]
+            t.z = 0
+            t.normalize()
+            s = Vector((-t.y, t.x, 0))
+            rings.append([p + s * u + Vector((0, 0, v)) for u, v in ((-half, v0), (half, v0), (half, v1), (-half, v1))])
+            axis.append(p + Vector((0, 0, (v0 + v1) / 2)))
+        self.sweep(mat, axis, rings, caps)
+
 
 def make_object(g, name, coll, smooth_angle=30, weld=False, recalc=False):
     """weld merges coincident vertices (terrain); recalc points every face of closed parts outwards (models)"""

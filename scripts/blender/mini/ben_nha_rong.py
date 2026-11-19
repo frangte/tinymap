@@ -25,6 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import kit  # noqa: E402
+import tuong  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 
 PI = math.pi
@@ -269,20 +270,12 @@ def rail_run(g, a, b, h=1.1):
 
 
 def statue(g, M):
-    """the young Nguyễn Tất Thành looking out to the river, on a stone plinth (a plain bronze figure)"""
+    """the young Nguyễn Tất Thành looking out to the river (Phạm Mười, 2003), on a stone plinth; the figure is
+    tuong.figure_ntt()"""
     g.box('stone', -0.8, -0.8, GROUND - 0.2, 0.8, 0.8, 1.9, M)
     g.box('stone', -0.95, -0.95, 1.9, 0.95, 0.95, 2.05, M)
     g.box('stone', -1.0, -1.0, GROUND - 0.2, 1.0, 1.0, 0.45, M)
-    z = 2.05
-    for xx in (-0.13, 0.13):
-        g.box('bronze', xx - 0.1, -0.1, z, xx + 0.1, 0.12, z + 0.95, M)
-    g.box('bronze', -0.27, -0.16, z + 0.9, 0.27, 0.16, z + 1.7, M)
-    g.box('bronze', -0.3, -0.18, z + 1.45, 0.3, 0.18, z + 1.72, M)
-    g.ico('bronze', tuple(M @ Vector((0.0, -0.02, z + 1.95))), 0.17, sub=1)
-    g.box('bronze', 0.3, -0.08, z + 0.95, 0.42, 0.08, z + 1.65, M)          # right arm down
-    g.box('bronze', -0.42, -0.08, z + 0.95, -0.3, 0.08, z + 1.65, M)
-    g.box('bronze', -0.7, -0.12, z + 0.55, -0.32, 0.12, z + 0.98, M)        # the suitcase
-    g.box('bronze', -0.56, -0.03, z + 0.98, -0.46, 0.03, z + 1.06, M)
+    tuong.figure_ntt(g, M @ T(0.0, 0.0, 2.05), s=1.35)
 
 
 def pot(g, p):

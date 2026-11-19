@@ -108,12 +108,14 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
    stand on a roundabout island.
    The detailed landmarks are part scripts in `scripts/blender/mini/` that the build runs (`MINI_SCRIPTS`) and that
    also run alone on the open file, e.g. `blender models/saigon_mini.blend --background --python
-   scripts/blender/mini/ho_con_rua.py -- --save` (v9: `ho_con_rua.py`, `dinh_grounds.py`, `ben_nha_rong.py`; see
-   `docs/landmarks-v9-design.md`).
+   scripts/blender/mini/ho_con_rua.py -- --save` (v9: `ho_con_rua.py`, `dinh_grounds.py`, `ben_nha_rong.py`,
+   `cau_di_bo.py` for the "lá dừa nước" footbridge, `tuong.py` for the Trần Hưng Đạo and Đức Mẹ statues and the
+   figure at Bến Nhà Rồng; see `docs/landmarks-v9-design.md`).
 2. Export: `npm run map:export` writes `export/saigon_mini.glb`; copy it to `public/models/saigon_mini.glb` (the name
    `index.html` loads, `#stage data-model`). That is all collision needs: the game builds it from the GLB as it
    loads (`src/game/collider.ts`, about half a second). Whatever is in the model stops a body (walls, kerbs,
-   trunks, railings; tree crowns too, below head height), except the lamp glows and lanterns; water stops it where
+   trunks, railings; tree crowns too, below head height), except the lamp glows, lanterns and the footbridge's
+   hangers (`cable`); water stops it where
    it is deeper than 0.25 m. Open in `?debug` and call `sgGame.showCollider()` to see it (orange: the skirts under
    the hill's open rim; bridges and other built things get none, the space under them is open). To let players through something, leave it out of the
    model or give it a pass-through material (`PASS_THROUGH` in `collider.ts`); to stop them, model a wall.

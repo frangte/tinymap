@@ -145,6 +145,58 @@ không ai lọt (thử 30 vị trí), hai cổng nhỏ và cổng sau vào đư�
 Rồng, lên bậc vào hành lang vòm, đi vòng ra sau, lan can bờ kè giữ người ở trên kè. 120 lượt đi ngẫu nhiên quanh ba
 chỗ: không kẹt, không rơi, không lọt nước sâu, quãng 1 giây xa nhất 6.9 m (giới hạn server 8.5 m).
 
+## Cầu đi bộ lá dừa nước và ba bức tượng (2026-11-19)
+
+Khoa: "vẽ lại cầu đi bộ cho giống thật một tí, và các bức tượng cũng chi tiết hơn nữa: tượng Bác Hồ, tượng Trần Hưng
+Đạo, tượng Đức Mẹ". Làm thẳng theo ảnh thật, không qua bước design riêng.
+
+![Cầu đi bộ đã dựng](img/v9_caudibo_done.jpg)
+
+**Cầu đi bộ qua sông Sài Gòn** (Nutifood tài trợ, hợp long 10/2026): thật dài 720 m, nhịp chính 187 m treo vào một
+vòm thép không gian hình tàu lá dừa nước, mặt cầu 6–11 m, giữa là làn xe đạp, hai bên lối đi rộng. Trên map
+(`scripts/blender/mini/cau_di_bo.py`, object `LM_CauDiBo`, thay phần cầu này trong blockout `LM_Bridges`), vẫn theo
+tuyến cũ từ bến Bạch Đằng (đầu Nguyễn Huệ) sang công viên Thủ Thiêm, cao 2.8 m giữa sông:
+- Mặt cầu hình chiếc lá khi nhìn từ trên (6 m hai đầu, 11 m giữa sông), dầm hộp trắng sâu dần ra giữa, làn xe đạp xanh
+  có vạch, bồn cây làm dải phân cách mềm đoạn giữa sông, trụ bê tông ở hai mép bờ.
+- Vòm lá: cuống lá là vòm chính, chân ở hai bờ phía bắc mặt cầu, nghiêng vào trên mặt cầu, cao ~11 m; 60 cặp lá chét
+  dài, hẹp, chĩa về phía ngọn (đầu Bạch Đằng), rủ xuống; lá phía trong che trên đầu người đi.
+- Vòm phụ trắng mảnh phía nam nghiêng vào, có 5 thanh giằng lên vòm lá (vòm không gian); dây treo từ hai vòm xuống
+  mép mặt cầu, ngoài lan can.
+- Lan can: gờ chân, song đứng cách 0.4 m, tay vịn cao 1.14 m. Bản đầu dùng thanh ngang thì người chơi trèo lên như
+  thang (mỗi bậc dưới 0.5 m) rồi đứng trên tay vịn, rơi xuống sông; song đứng thì không còn chỗ đặt chân.
+- Vật liệu riêng: `steelWhite` (vòm, lan can) và `etfe` (lá) cho camera nhìn xuyên (`THIN` trong `collider.ts`),
+  `cable` (dây treo) không va chạm (`PASS_THROUGH`), để dây không vướng người đi sát lan can.
+- Không có điểm nào của hai vòm thấp hơn 3 m trên lối đi hay 1.25 m trên lan can (script tự kiểm tra khi dựng).
+
+![Ba bức tượng đã dựng](img/v9_tuong_done.jpg)
+
+**Tượng** (`scripts/blender/mini/tuong.py`): mỗi tượng dựng trong khung riêng, mặt nhìn -Y, bằng áo choàng tiện tròn có
+nếp gấp, tay chân là ống có khuỷu, áo choàng và mạng là tấm cong có độ dày.
+- **Trần Hưng Đạo** (Phạm Thông, 1967, trùng tu 2022; tượng ~6 m trên bệ lăng trụ tam giác ~10 m): tượng đồng cao 3.6 m
+  trên bệ lăng trụ tam giác đá granite vàng 5.6 m, hai bậc; một góc bệ chĩa ra sông, hai mặt bên góc đó có chữ mạ
+  vàng "ĐỨC THÁNH / TRẦN HƯNG ĐẠO" và hai tấm phù điêu đất nung; đội mũ trụ, râu dài, giáp, áo bào, áo choàng, tay
+  phải chỉ xuống sông Bạch Đằng, tay trái tì lên chuôi kiếm cắm cạnh chân; lư hương đồng phía trước. Object
+  `LM_TuongTHD`; bệ và tượng cũ trong `LM_MeLinh` bị xoá, giữ vườn hoa và ghế.
+- **Đức Mẹ Hòa Bình** (G. Ciocchetti, 1959, đá cẩm thạch trắng): đứng thẳng, mạng che đầu, áo choàng mở phía trước,
+  hai tay cầm quả địa cầu có thánh giá, đầu ngước lên trời; bệ tròn đá hoa cương đỏ có gờ. Quay ra phía đông, lưng về
+  nhà thờ. Object `LM_TuongDucMe`; phần tượng cũ trong `LM_TuongDucMe_parkedv4` bị xoá, giữ bồn hoa.
+- **Bác Hồ ra đi tìm đường cứu nước** ở Bến Nhà Rồng (Phạm Mười, 2003): chàng trai trẻ mặc áo vest cài nút, quần tây,
+  tay xách va li nhỏ, nhìn ra sông, trên bệ đá cũ. `tuong.figure_ntt()`, gọi từ `ben_nha_rong.py`.
+
+Màu mới: `graniteGold`, `graniteRed`, `steelWhite`, `etfe`, `cable` (docs/PROJECT.md, bảng màu). Tam giác: cầu 11.1k,
+tượng Trần Hưng Đạo 5.1k (chữ ~3k), Đức Mẹ 1.7k.
+
+Đã thử bằng vật lý của game: đi và chạy qua cầu theo làn xe đạp, sát lan can bắc và nam, hai chiều; chạy và nhảy vào
+lan can ở 9 chỗ mỗi bên: không ai ra khỏi mặt cầu; đi quanh chân vòm trên bờ. Camera đi qua cầu ở hai mức zoom, nhìn
+thẳng và chéo: không lần nào bị kéo vào. Đi vòng quanh bệ Trần Hưng Đạo (hai bậc) và bệ Đức Mẹ: không kẹt.
+`clean_trees.py`: không cây nào phải xoá.
+
+Nguồn: [kích thước cầu (VOH)](https://voh.com.vn/giao-thong/khoi-cong-cau-di-bo-qua-song-sai-gon-mang-bieu-tuong-la-dua-nuoc-nam-bo-587092.html),
+[phối cảnh và công trường (Tiền Phong)](https://tienphong.vn/toan-canh-cau-di-bo-la-dua-nuoc-bieu-tuong-moi-cua-tphcm-post1844032.tpo),
+[hợp long vòm (CafeF)](https://cafef.vn/can-canh-vom-thep-3400-tan-truoc-gio-khoa-nhip-tren-song-sai-gon-188261021075607787.chn),
+[tượng Trần Hưng Đạo, bệ và phù điêu (Tin nhanh chứng khoán)](https://www.tinnhanhchungkhoan.vn/tphcm-khanh-thanh-du-an-chinh-trang-cong-vien-me-linh-va-ben-bach-dang-post293071.html),
+[tượng Đức Mẹ Hòa Bình (Tuổi Trẻ)](https://tuoitre.vn/ten-goi-nha-tho-duc-ba-tu-buc-tuong-duc-me-hoa-binh-988690.htm).
+
 ## Tham khảo
 
 - Ảnh Hồ Con Rùa: [Commons, Category:Hồ Con Rùa](https://commons.wikimedia.org/wiki/Category:H%E1%BB%93_Con_R%C3%B9a)
