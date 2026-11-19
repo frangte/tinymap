@@ -79,6 +79,11 @@ Xuất hiện ở **Bến xe Chợ Lớn**, ba lô trên vai, trong túi 500.000
    - Má: "Tới nơi rồi hả con? Ăn uống đàng hoàng nghe. Có gì khó thì kiếm chú Sáu, bạn ba hồi xưa, chạy xe ôm ở bùng binh Quách Thị Trang."
    - Mở quest đi gặp Chú Sáu: quest đặt Crab đầu tiên.
 
+**Đã làm (chương 0 của người từ quê lên, 2026-11-19, chưa deploy):** questline `chuong_0_que` trong `quests.json`, hai quest đầu; bước 3 là quest điện thoại chung của mọi người, bước 4 (gọi về cho Má) và quest đi gặp Chú Sáu thuộc phần điện thoại thật, không nằm ở đây.
+- `newcomer.to_giay_dia_chi` (50.000đ): `reach_place` dãy nhà phố Lê Lai. Tracker chỉ tới dãy phố. Mẹo qua đường vẫn hiện theo cách mẹo đang chạy (lần đầu bước xuống lòng đường), chưa gắn riêng vào quest.
+- `newcomer.nha_tro_ba_chin` (100.000đ, cần quest trước): Bà Chín đứng ở (-31, -10.5), trên vỉa hè trước dãy nhà phố. Câu trả lời "má kêu con tới đây" chỉ hiện khi quest này đang chạy (`requires_quest`) và gửi tín hiệu `nhan_phong`; bà cho phòng trên lầu, cho thiếu tiền phòng và chỉ tiệm anh Bảy.
+- **Khác kế hoạch:** "Về nhà" của người từ quê lên vẫn là chỗ spawn trong archetype (bến xe), chưa chuyển về nhà trọ bà Chín; chưa có chỗ ở thật trong nhà bà. Quest chương 0 đứng trước quest điện thoại trong `quests.json` nên tracker của người từ quê lên chỉ tờ giấy địa chỉ trước, rồi mới tới điện thoại.
+
 ### Người Sài Gòn gốc: "Con của khu phố Lê Lai" (đề xuất)
 
 Sinh ra và lớn lên ở dãy nhà phố Lê Lai, nhà ở ngay đó (chỗ "Về nhà"), hàng xóm ai cũng quen. Điện thoại cũ vừa hư; má cho ít tiền mua cái mới. Dùng lại các quest Người Sài Gòn đang có:
@@ -107,6 +112,16 @@ Sau đó (đề xuất 2026-11-19): **mỗi bước là một việc thật mà 
 6. **Qua đường với Chú Sáu:** Chú Sáu dẫn qua bùng binh. Mẹo: đi chậm, đều, đừng chạy.
 7. **Ăn như người Sài Gòn:** gọi cà phê sữa đá ở quán Chú Tư, bánh tráng trộn của Dì Năm bằng câu tiếng Việt. Biết giá thật ngoài đời.
 8. **Một ngày ở Sài Gòn:** đi theo một tour trong Cẩm nang (Sài Gòn thời Pháp, bờ sông…), đọc trang từng chỗ.
+
+**Đã làm (chương 0 của người nước ngoài, 2026-11-19, chưa deploy):** questline `chuong_0_nuoc_ngoai`, 5 quest nối nhau bằng `requires`; mua điện thoại (bước 3) là quest chung, và chỉ gợi ý, không chặn ai.
+- Bước 1 `traveler.hostel_anh_tony` (50.000đ): Anh Tony đứng ở (-90, -36) trên phố đi bộ Bùi Viện, dạy "Xin chào" và "Cảm ơn". Hai câu gửi đúng tín hiệu `phrase_xin_chao` / `phrase_cam_on` của Cô Ba, nên điền hai ô Sổ sưu tầm; muốn vậy `dialogue_signal` có thêm `also` (danh sách NPC khác cùng dạy câu đó) trong `collection.json`. Tony dặn đừng đổi tiền ở sân bay, ra tiệm cô Kim.
+- Bước 2 `traveler.tien_viet` (50.000đ + tem "Biết tiền Việt"): **khác kế hoạch**, không đổi tiền (ai cũng có sẵn 500.000đ). Cô Kim đứng ở (-48.6, 111.5), Lê Thánh Tôn, hỏi hai câu: tờ có Chùa Cầu Hội An ở mặt sau là tờ nào (20.000đ), tờ nào dài hơn (500.000đ: 152 mm so với 136 mm). Trả lời đúng gửi `quiz_tien_20k`, rồi `biet_tien_viet`; sai thì cô sửa nhẹ nhàng và hỏi lại. Tem thuộc sổ tem (stamp set rỗng), cuốn sổ tem hiện lại trong Sổ tay.
+- `traveler.di_crab` (cuốc Crab đầu, cần smartphone) giờ cần `traveler.tien_viet`: nó mở sau bài tiền, người đang chạy nó vẫn giữ nguyên.
+- Bước 5 `traveler.tra_gia_cho` (50.000đ): Cô Ba, thứ tự hỏi giá nón lá, "mắc quá", cảm ơn (hai tín hiệu mới `asked_price_hat`, `thanked_after_bargain` gắn vào lời thoại cũ; `phrase_mac_qua` giữ nguyên).
+- Bước 6 `traveler.qua_duong` (50.000đ): làm gọn, chỉ nói chuyện với Chú Sáu ở bùng binh, ông cho lời khuyên (tín hiệu `crossing_advice`), không dẫn đi qua.
+- Bước 7 `traveler.an_nhu_nguoi_sai_gon` (100.000đ): hỏi giá bằng tiếng Việt ở quán Chú Tư (cà phê sữa đá, khoảng 25.000đ) và Dì Năm (bánh tráng trộn, 15.000đ); thêm câu trả lời hỏi giá, chỉ hiện khi quest chạy.
+- Bước 8 (tour đi bộ) chưa làm: cần cơ chế mới. Tổng cả chuỗi 300.000đ (+ tem).
+- Câu hỏi về tiền thật có nguồn: Wikipedia "Vietnamese đồng" (tờ polymer 20.000đ xanh dương 136×65 mm, mặt sau Chùa Cầu Hội An; 500.000đ xanh lơ 152×65 mm, mặt sau nhà ở quê Bác ở Kim Liên).
 
 Xong chuỗi này thì người chơi tự đi khám phá, theo nhiệm vụ ngầm bên dưới. Muốn ở lâu thì anh Tony gợi ý đi chạy Crab, nhưng không bắt buộc.
 
@@ -406,7 +421,8 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
      - Quest cần smartphone (đi Crab, cuốc đầu của tài xế, Thổ địa) chỉ mở khi có máy, và mở ngay lúc mua.
      - Tiền hiện bằng đồng; tiền mang theo 500.000đ. Nhân vật cũ được tặng một Ifone X.
      - Lời thoại có `{anh_chi}` theo giới của nhân vật.
-   - Còn lại của bước 2: chương 0 của từng xuất phát (Bà Chín, anh Tony, cô Kim đổi tiền), danh bạ, cuộc gọi và tin nhắn trong điện thoại, cuộc gọi về cho Má.
+   - **Chương 0 làm xong 2026-11-19 (chưa deploy)**, xem "Đã làm" ở [mục 5](#5-chương-0-tới-sài-gòn): Bà Chín, anh Tony, cô Kim (bài học nhận tiền, không đổi tiền), hai quest của người từ quê lên và chuỗi 5 quest của người nước ngoài.
+   - Còn lại của bước 2: danh bạ, cuộc gọi và tin nhắn trong điện thoại, cuộc gọi về cho Má và quest đi gặp Chú Sáu sau đó; bước 8 của người nước ngoài (tour đi bộ); "Về nhà" ở nhà trọ bà Chín và hostel anh Tony.
 3. Đặt Crab có chỗ thay thế khi không có tài xế: Chú Sáu xe ôm trước, tài xế NPC sau.
 4. Việc vặt, thi bằng, mua xe, đăng ký Crab, khách NPC.
 5. Các chương sau ([mục 9](#9-sau-chương-3-ý-tưởng-chưa-viết)).
