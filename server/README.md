@@ -90,7 +90,7 @@ cmd/server/mod.go                `sg-server mod list|add|remove`: who moderates
 internal/store/wallets.go        xu wallets, the ledger and the rides table (ridehail.Bank)
 internal/store/phone.go          contacts and texts (migration 0010); texts are written inside the quest commit that sends them
 internal/store/items.go          owned items: a purchase is one transaction (shop.Bank); migration 0009 gives old characters an Ifone X
-internal/store/fees.go           fees (shop.Bank.Pay, ledger reason fee) and granting or revoking a capability (driving.Bank); migration 0011 turns old drivers into owners of their job
+internal/store/fees.go           fees (shop.Bank.Pay, ledger reason fee) and granting or revoking a capability (driving.Bank); migration 0012 turns old drivers into owners of their job
 internal/world/npc.go            NPCs: placed at start, turn to whoever speaks, play the line's emote, call out
 internal/world/talk.go           conversations with NPCs: private, public, group; walking away ends yours
 internal/dialogue/dialogue.go    the dialogue engine (a Provider; Script runs the graphs in content/dialogue)

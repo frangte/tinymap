@@ -100,7 +100,7 @@ func TestQuestsRejects(t *testing.T) {
 	// a job may pay what a daily may not, and what the story quests may pay, but not more than the job cap
 	f = embedded()
 	f.quests, f.dialogues, f.npcs, f.items = file(quest(`job=true;repeat="daily";rewards={"xu": 40000}`)), map[string][]byte{}, []byte(`{"npcs": []}`), noItems
-	f.contacts = noContacts
+	f.contacts, f.driving = noContacts, noDriving
 	if _, err := load(f); err != nil {
 		t.Fatalf("a job paying the job cap: %v", err)
 	}

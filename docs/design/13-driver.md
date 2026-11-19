@@ -118,11 +118,11 @@ buys, from that note, and the note ends with the purchase or when the player lea
 `dong_phuc_crab` (300.000đ, grants `uniform.crab`, `driver.app`, `ridehail.drive`) requires `phone.smart`, the licence
 and a bike. Chị Vy's dialogue checks the same three and says which is missing.
 
-## The driver archetype goes (migration 0011)
+## The driver archetype goes (migration 0012)
 
 `driver` is removed from archetypes.json with `job`, the starter `vehicle` and the picker and server code for jobs. A
 character stores an archetype id: one the server no longer knows plays as what its hello asks for and the store keeps
-that. Migration 0011 gives every stored driver the bike item, the uniform item, `vehicle.motorbike.ride` (source
+that. Migration 0012 gives every stored driver the bike item, the uniform item, `vehicle.motorbike.ride` (source
 `migration:driver`), an Ifone X if it owns no phone (a driver made after migration 0009 had none), and makes it a
 `citizen`. Why `citizen` and not `newcomer`: a driver has been working the streets, so Má's call, the guesthouse and
 the first-day quests would be wrong for them; a native has the street quests and the neighbourhood tags, and the

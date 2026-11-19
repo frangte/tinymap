@@ -13,12 +13,12 @@ import (
 )
 
 // A driver from before the job was earned in play gets what the job is made of (the bike, the uniform, the licence,
-// a smartphone if it has none) and becomes a Native Saigonese; everyone else is left as they are (0011).
+// a smartphone if it has none) and becomes a Native Saigonese; everyone else is left as they are (0012).
 func TestTheMigrationTurnsDriversIntoOwnersOfTheirJob(t *testing.T) {
 	opt := tempOptions(t)
 	before := fstest.MapFS{}
 	err := fs.WalkDir(migrationFiles, "migrations", func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || path >= "migrations/0011" {
+		if err != nil || d.IsDir() || path >= "migrations/0012" {
 			return err
 		}
 		b, err := fs.ReadFile(migrationFiles, path)
