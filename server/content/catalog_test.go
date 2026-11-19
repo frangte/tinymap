@@ -137,17 +137,18 @@ func TestMotionContent(t *testing.T) {
 	if c.Movement.RunSpeed <= c.Movement.WalkSpeed || c.Movement.Tolerance < 1 {
 		t.Fatalf("movement = %+v", c.Movement)
 	}
-	var riders []string
-	for _, a := range c.Archetypes {
-		if v, ok := c.StarterVehicle(a.ID, c.Grants(a.ID)); ok {
-			if v.Speed <= c.Movement.RunSpeed {
-				t.Errorf("%s's vehicle is no faster than running", a.ID)
-			}
-			riders = append(riders, a.ID)
+	for _, v := range c.Vehicles {
+		if v.Speed <= c.Movement.RunSpeed {
+			t.Errorf("%s is no faster than running", v.ID)
 		}
 	}
-	if len(riders) == 0 {
-		t.Fatal("no archetype starts with a vehicle: the driver should")
+	// no archetype grants driving: it is earned in play, by items and the licence test (docs/design/13-driver.md)
+	for _, a := range c.Archetypes {
+		for _, k := range a.Capabilities {
+			if k == CapRide || k == "ridehail.drive" || k == "uniform.crab" || k == "driver.app" {
+				t.Errorf("archetype %s grants %s", a.ID, k)
+			}
+		}
 	}
 	if !c.EmoteAllowed(0, c.Grants("")) || c.EmoteAllowed(MaxEmoteCode+1, c.Grants("")) {
 		t.Fatal("code 0 is no emote and always allowed; unknown codes are not")
@@ -183,9 +184,9 @@ func TestMotionRejects(t *testing.T) {
 		{"an emote code past four bits", func(f *files) {
 			f.emotes = []byte(`{"emotes": [{"id": "a", "code": 16, "name": {"vi": "A", "en": "A"}, "seconds": 1}]}`)
 		}, "code"},
-		{"a starter vehicle that does not exist", func(f *files) {
+		{"an npc's vehicle that does not exist", func(f *files) {
 			f.vehicles = []byte(`{"vehicles": []}`)
-		}, "starter vehicle"},
+		}, "vehicle"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -238,19 +239,15 @@ func TestNoArchetypeIDsInCode(t *testing.T) {
 	}
 }
 
-// The first pick offers three origins and Đổi vai adds the driver, a job (docs/design/11-items.md).
-func TestOriginsAndJobs(t *testing.T) {
+// There are three origins and nothing else to pick: the Crab driver is earned in play (docs/design/13-driver.md).
+func TestOrigins(t *testing.T) {
 	c, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 	starts := map[string]string{"newcomer": "ben_xe_cho_lon", "citizen": "day_nha_pho_le_lai", "traveler": "pho_di_bo_bui_vien"}
-	var origins, jobs []string
+	var origins []string
 	for _, a := range c.Archetypes {
-		if a.Job {
-			jobs = append(jobs, a.ID)
-			continue
-		}
 		origins = append(origins, a.ID)
 		if a.Spawn.Place != starts[a.ID] {
 			t.Errorf("%s starts at %q, want %q", a.ID, a.Spawn.Place, starts[a.ID])
@@ -260,8 +257,8 @@ func TestOriginsAndJobs(t *testing.T) {
 			t.Errorf("%s starts in %s and %s, not plain clothes", a.ID, a.Look.Outfit, a.Look.Hat)
 		}
 	}
-	if !slices.Equal(origins, []string{"newcomer", "citizen", "traveler"}) || !slices.Equal(jobs, []string{"driver"}) {
-		t.Errorf("origins %v, jobs %v", origins, jobs)
+	if !slices.Equal(origins, []string{"newcomer", "citizen", "traveler"}) {
+		t.Errorf("origins %v", origins)
 	}
 	if n, _ := c.Archetype("newcomer"); !slices.Contains(n.Tags, "citizen") || !slices.Contains(n.Tags, "newcomer") {
 		t.Errorf("a newcomer has tags %v", n.Tags)

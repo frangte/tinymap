@@ -20,7 +20,23 @@
         {
           "text": { "vi": "Bùng binh đó ở đâu vậy má?", "en": "Where's that roundabout, Mum?" },
           "goto": "where"
+        },
+        {
+          "text": { "vi": "Má ơi, con chạy Crab được chuyến đầu rồi!", "en": "Mum, I finished my first Crab trip!" },
+          "goto": "proud",
+          "requires_quest": "story.khoe_voi_ma"
         }
+      ]
+    },
+    "proud": {
+      "say": {
+        "default": {
+          "vi": "Con má giỏi quá! Chạy từ từ thôi nghe con.",
+          "en": "My clever child! Ride slowly, you hear?"
+        }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn má.", "en": "Thank you, Mum." }, "goto": "bye", "emit": "ma_khoe_crab" }
       ]
     },
     "where": {

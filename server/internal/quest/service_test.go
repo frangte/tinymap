@@ -281,22 +281,22 @@ func TestALateLeaveKeepsTheNewVisit(t *testing.T) {
 
 func TestARetagOpensTheNewArchetypesQuests(t *testing.T) {
 	s, w, _ := startService(t, newMemStore())
-	s.Join("c1", 1, Player{Tags: []string{"driver"}})
+	s.Join("c1", 1, Player{Tags: []string{"newcomer"}})
 	if _, ok := questState(w.last(t, "c1"), "citizen.ca_phe_sang"); ok {
-		t.Fatal("a driver has no Citizen quests")
+		t.Fatal("a newcomer has no native quests")
 	}
 	s.Retag("c1", 1, Player{Tags: []string{"citizen", "native"}})
 	p := w.last(t, "c1")
 	if _, ok := questState(p, "citizen.ca_phe_sang"); !ok {
 		t.Fatalf("after the change to Citizen %+v", p)
 	}
-	if _, ok := questState(p, "driver.nhan_xe"); !ok {
-		t.Fatal("the quests started as a driver are kept")
+	if _, ok := questState(p, "newcomer.to_giay_dia_chi"); !ok {
+		t.Fatal("the quests started as a newcomer are kept")
 	}
 	// a retag from a visit that ended changes nothing: the next one still finds a Citizen
 	s.Retag("c1", 7, Player{Tags: []string{"traveler"}})
 	s.Retag("c1", 1, Player{Tags: []string{"citizen", "native"}})
-	if _, ok := questState(w.last(t, "c1"), "traveler.chao_sai_gon"); ok {
+	if _, ok := questState(w.last(t, "c1"), "traveler.hostel_anh_tony"); ok {
 		t.Fatal("a retag from another visit was applied")
 	}
 }

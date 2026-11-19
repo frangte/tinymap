@@ -91,7 +91,11 @@ func TestChoicesIndexWhatTheSpeakerWasOffered(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			next, signal, err := s.Choose("test", "hi", c.who, c.choice)
+			st, err := s.Choose("test", "hi", c.who, c.choice)
+			next, signal := st.Next, ""
+			if len(st.Signals) > 0 {
+				signal = st.Signals[0]
+			}
 			if !errors.Is(err, c.err) || next != c.next || signal != c.signal {
 				t.Fatalf("got (%q, %q, %v), want (%q, %q, %v)", next, signal, err, c.next, c.signal, c.err)
 			}
@@ -107,7 +111,7 @@ func TestUnknownGraphsAndNodes(t *testing.T) {
 	if _, err := s.Line("test", "nowhere", Speaker{}); !errors.Is(err, ErrUnknown) {
 		t.Fatalf("line: %v", err)
 	}
-	if _, _, err := s.Choose("nobody", "hi", Speaker{}, 0); !errors.Is(err, ErrUnknown) {
+	if _, err := s.Choose("nobody", "hi", Speaker{}, 0); !errors.Is(err, ErrUnknown) {
 		t.Fatalf("choose: %v", err)
 	}
 }
@@ -134,7 +138,8 @@ func TestEveryConversationCanEnd(t *testing.T) {
 				ends[id] = true
 			}
 			for i := range l.Choices {
-				to, _, err := s.Choose(n.Dialogue, id, who, i)
+				st, err := s.Choose(n.Dialogue, id, who, i)
+				to := st.Next
 				if err != nil {
 					t.Fatalf("%s/%s choice %d: %v", n.Dialogue, id, i, err)
 				}

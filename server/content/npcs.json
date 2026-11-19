@@ -4,11 +4,24 @@
     {
       "id": "co_ba",
       "name": "Cô Ba",
-      "role": { "vi": "bán hàng ở chợ Bến Thành", "en": "Bến Thành market vendor" },
-      "look": { "body": "woman", "outfit": "baba", "hat": "nonla" },
+      "role": {
+        "vi": "bán hàng ở chợ Bến Thành",
+        "en": "Bến Thành market vendor"
+      },
+      "look": {
+        "body": "woman",
+        "outfit": "baba",
+        "hat": "nonla"
+      },
       "place": "cho_ben_thanh",
-      "at": [-29, 31],
-      "face": [-21, 31],
+      "at": [
+        -29,
+        31
+      ],
+      "face": [
+        -21,
+        31
+      ],
       "mode": "private",
       "dialogue": "co_ba",
       "reach": 3
@@ -16,11 +29,24 @@
     {
       "id": "chu_tu",
       "name": "Chú Tư",
-      "role": { "vi": "chủ quán cà phê Lê Lai", "en": "runs the café on Lê Lai" },
-      "look": { "body": "man", "outfit": "thun", "hat": "none" },
+      "role": {
+        "vi": "chủ quán cà phê Lê Lai",
+        "en": "runs the café on Lê Lai"
+      },
+      "look": {
+        "body": "man",
+        "outfit": "thun",
+        "hat": "none"
+      },
       "place": "day_nha_pho_le_lai",
-      "at": [-46, -10],
-      "face": [-46, -5],
+      "at": [
+        -46,
+        -10
+      ],
+      "face": [
+        -46,
+        -5
+      ],
       "mode": "private",
       "dialogue": "chu_tu",
       "reach": 3
@@ -28,28 +54,63 @@
     {
       "id": "di_nam",
       "name": "Dì Năm",
-      "role": { "vi": "bán bánh tráng trộn", "en": "sells bánh tráng trộn" },
-      "look": { "body": "woman", "outfit": "thun", "hat": "nonla" },
+      "role": {
+        "vi": "bán bánh tráng trộn",
+        "en": "sells bánh tráng trộn"
+      },
+      "look": {
+        "body": "woman",
+        "outfit": "thun",
+        "hat": "nonla"
+      },
       "place": "ho_con_rua",
-      "at": [-107.5, 155.5],
-      "face": [-103, 149],
+      "at": [
+        -107.5,
+        155.5
+      ],
+      "face": [
+        -103,
+        149
+      ],
       "mode": "public",
       "dialogue": "di_nam",
       "reach": 3,
       "barks": [
-        { "vi": "Bánh tráng trộn đây! Ăn là ghiền nha!", "en": "Bánh tráng trộn here! One bite and you're hooked!" },
-        { "vi": "Ai ăn bánh tráng trộn hông? Có trứng cút, khô bò nè!", "en": "Who wants bánh tráng trộn? Quail eggs, beef jerky!" },
-        { "vi": "Ngồi Hồ Con Rùa mà hông ăn bánh tráng là uổng lắm à!", "en": "Sitting at Turtle Lake without bánh tráng? What a waste!" }
+        {
+          "vi": "Bánh tráng trộn đây! Ăn là ghiền nha!",
+          "en": "Bánh tráng trộn here! One bite and you're hooked!"
+        },
+        {
+          "vi": "Ai ăn bánh tráng trộn hông? Có trứng cút, khô bò nè!",
+          "en": "Who wants bánh tráng trộn? Quail eggs, beef jerky!"
+        },
+        {
+          "vi": "Ngồi Hồ Con Rùa mà hông ăn bánh tráng là uổng lắm à!",
+          "en": "Sitting at Turtle Lake without bánh tráng? What a waste!"
+        }
       ]
     },
     {
       "id": "chi_hanh",
       "name": "Chị Hạnh",
-      "role": { "vi": "hướng dẫn viên du lịch", "en": "tour guide" },
-      "look": { "body": "woman", "outfit": "aodai", "hat": "none" },
+      "role": {
+        "vi": "hướng dẫn viên du lịch",
+        "en": "tour guide"
+      },
+      "look": {
+        "body": "woman",
+        "outfit": "aodai",
+        "hat": "none"
+      },
       "place": "quang_truong_lam_son",
-      "at": [-18, 134],
-      "face": [-24, 127],
+      "at": [
+        -18,
+        134
+      ],
+      "face": [
+        -24,
+        127
+      ],
       "mode": "group",
       "dialogue": "chi_hanh",
       "reach": 4
@@ -57,76 +118,165 @@
     {
       "id": "chu_sau",
       "name": "Chú Sáu",
-      "role": { "vi": "chạy xe ôm ở bùng binh", "en": "xe ôm driver at the roundabout" },
-      "look": { "body": "man", "outfit": "xeom", "hat": "cap" },
+      "role": {
+        "vi": "chạy xe ôm ở bùng binh",
+        "en": "xe ôm driver at the roundabout"
+      },
+      "look": {
+        "body": "man",
+        "outfit": "xeom",
+        "hat": "cap"
+      },
       "place": "bung_binh_quach_thi_trang",
-      "at": [-25, 17],
-      "face": [-11, 25],
+      "at": [
+        -25,
+        17
+      ],
+      "face": [
+        -11,
+        25
+      ],
       "mode": "private",
       "dialogue": "chu_sau",
       "reach": 3,
       "barks": [
-        { "vi": "Xe ôm hông? Đi đâu chú chở!", "en": "Need a ride? I'll take you anywhere!" },
-        { "vi": "Đi đâu đó con? Hỏi đường chú chỉ cho!", "en": "Where are you off to? Ask me the way!" }
+        {
+          "vi": "Xe ôm hông? Đi đâu chú chở!",
+          "en": "Need a ride? I'll take you anywhere!"
+        },
+        {
+          "vi": "Đi đâu đó con? Hỏi đường chú chỉ cho!",
+          "en": "Where are you off to? Ask me the way!"
+        }
       ],
       "vehicle": "xe_so_110"
     },
     {
       "id": "anh_bay",
       "name": "Anh Bảy",
-      "role": { "vi": "chủ tiệm điện thoại Dế Yêu", "en": "runs the Dế Yêu phone shop" },
-      "look": { "body": "man", "outfit": "somi", "hat": "none" },
+      "role": {
+        "vi": "chủ tiệm điện thoại Dế Yêu",
+        "en": "runs the Dế Yêu phone shop"
+      },
+      "look": {
+        "body": "man",
+        "outfit": "somi",
+        "hat": "none"
+      },
       "place": "duong_le_loi",
-      "at": [-18.5, 112.5],
-      "face": [-11, 112.5],
+      "at": [
+        -18.5,
+        112.5
+      ],
+      "face": [
+        -11,
+        112.5
+      ],
       "mode": "private",
       "dialogue": "anh_bay",
       "reach": 3,
       "barks": [
-        { "vi": "Điện thoại zin, bao test bảy ngày! Vô coi đi em!", "en": "Original phones, seven days to test! Come have a look!" },
-        { "vi": "Dế Yêu đây! Máy mới về, giá mềm nha!", "en": "Dế Yêu here! New stock, soft prices!" }
+        {
+          "vi": "Điện thoại zin, bao test bảy ngày! Vô coi đi em!",
+          "en": "Original phones, seven days to test! Come have a look!"
+        },
+        {
+          "vi": "Dế Yêu đây! Máy mới về, giá mềm nha!",
+          "en": "Dế Yêu here! New stock, soft prices!"
+        }
       ]
     },
     {
       "id": "ba_chin",
       "name": "Bà Chín",
-      "role": { "vi": "chủ nhà trọ dãy Lê Lai", "en": "runs the guesthouse on Lê Lai" },
-      "look": { "body": "woman", "outfit": "baba", "hat": "bun" },
+      "role": {
+        "vi": "chủ nhà trọ dãy Lê Lai",
+        "en": "runs the guesthouse on Lê Lai"
+      },
+      "look": {
+        "body": "woman",
+        "outfit": "baba",
+        "hat": "bun"
+      },
       "place": "day_nha_pho_le_lai",
-      "at": [-31, -10.5],
-      "face": [-31, -5],
+      "at": [
+        -31,
+        -10.5
+      ],
+      "face": [
+        -31,
+        -5
+      ],
       "mode": "private",
       "dialogue": "ba_chin",
       "reach": 3,
       "barks": [
-        { "vi": "Nhà trọ sạch sẽ, có quạt, có chỗ để xe nè!", "en": "Clean rooms, a fan, and room for your bike!" },
-        { "vi": "Ai tìm phòng trọ hông? Bà còn một phòng trên lầu!", "en": "Anyone looking for a room? I have one left upstairs!" }
+        {
+          "vi": "Nhà trọ sạch sẽ, có quạt, có chỗ để xe nè!",
+          "en": "Clean rooms, a fan, and room for your bike!"
+        },
+        {
+          "vi": "Ai tìm phòng trọ hông? Bà còn một phòng trên lầu!",
+          "en": "Anyone looking for a room? I have one left upstairs!"
+        }
       ]
     },
     {
       "id": "anh_tony",
       "name": "Anh Tony",
-      "role": { "vi": "chủ hostel phố Bùi Viện", "en": "runs a hostel on Bùi Viện" },
-      "look": { "body": "man", "outfit": "hoa", "hat": "bucket" },
+      "role": {
+        "vi": "chủ hostel phố Bùi Viện",
+        "en": "runs a hostel on Bùi Viện"
+      },
+      "look": {
+        "body": "man",
+        "outfit": "hoa",
+        "hat": "bucket"
+      },
       "place": "pho_di_bo_bui_vien",
-      "at": [-90, -36],
-      "face": [-90, -39],
+      "at": [
+        -90,
+        -36
+      ],
+      "face": [
+        -90,
+        -39
+      ],
       "mode": "private",
       "dialogue": "anh_tony",
       "reach": 3,
       "barks": [
-        { "vi": "Welcome, welcome! Phòng sạch, wifi mạnh, bia rẻ!", "en": "Welcome, welcome! Clean rooms, strong wifi, cheap beer!" },
-        { "vi": "Hello my friend! Hostel đây, giường mềm lắm!", "en": "Hello my friend! Hostel right here, very soft beds!" }
+        {
+          "vi": "Welcome, welcome! Phòng sạch, wifi mạnh, bia rẻ!",
+          "en": "Welcome, welcome! Clean rooms, strong wifi, cheap beer!"
+        },
+        {
+          "vi": "Hello my friend! Hostel đây, giường mềm lắm!",
+          "en": "Hello my friend! Hostel right here, very soft beds!"
+        }
       ]
     },
     {
       "id": "co_kim",
       "name": "Cô Kim",
-      "role": { "vi": "chủ tiệm vàng Lê Thánh Tôn", "en": "runs the gold shop on Lê Thánh Tôn" },
-      "look": { "body": "woman", "outfit": "aodai", "hat": "none" },
+      "role": {
+        "vi": "chủ tiệm vàng Lê Thánh Tôn",
+        "en": "runs the gold shop on Lê Thánh Tôn"
+      },
+      "look": {
+        "body": "woman",
+        "outfit": "aodai",
+        "hat": "none"
+      },
       "place": "duong_le_thanh_ton",
-      "at": [-48.6, 111.5],
-      "face": [-55, 111.5],
+      "at": [
+        -48.6,
+        111.5
+      ],
+      "face": [
+        -55,
+        111.5
+      ],
       "mode": "private",
       "dialogue": "co_kim",
       "reach": 3
@@ -202,6 +352,108 @@
       "mode": "private",
       "dialogue": "nguoi_di_duong",
       "reach": 3
+    },
+    {
+      "id": "thay_muoi",
+      "name": "Thầy Mười",
+      "role": {
+        "vi": "thầy dạy lái xe ở Thủ Thiêm",
+        "en": "riding instructor in Thủ Thiêm"
+      },
+      "look": {
+        "body": "man",
+        "outfit": "somi",
+        "hat": "cap"
+      },
+      "place": "thu_thiem",
+      "at": [
+        120,
+        40
+      ],
+      "face": [
+        130,
+        40
+      ],
+      "mode": "private",
+      "dialogue": "thay_muoi",
+      "reach": 3,
+      "barks": [
+        {
+          "vi": "Thi bằng A1 hông? Nhìn xa phía trước, đừng ngó bánh xe!",
+          "en": "Taking the A1 test? Look far ahead, not at the wheel!"
+        },
+        {
+          "vi": "Ga đều tay nghen! Lệ phí hai trăm ngàn thôi!",
+          "en": "Smooth on the throttle! The fee is only 200.000đ!"
+        }
+      ]
+    },
+    {
+      "id": "chu_tam",
+      "name": "Chú Tám",
+      "role": {
+        "vi": "bán xe cũ ở Chợ Lớn",
+        "en": "sells used bikes in Chợ Lớn"
+      },
+      "look": {
+        "body": "man",
+        "outfit": "xeom",
+        "hat": "none"
+      },
+      "place": "cho_lon",
+      "at": [
+        -170,
+        -70
+      ],
+      "face": [
+        -170,
+        -60
+      ],
+      "mode": "private",
+      "dialogue": "chu_tam",
+      "reach": 3,
+      "barks": [
+        {
+          "vi": "Xe zin, máy êm ru, chạy chục năm chưa hư!",
+          "en": "All original, smooth engine, ten years and never a breakdown!"
+        },
+        {
+          "vi": "Xe cũ đây! Giá mềm, trả giá được nghen!",
+          "en": "Used bikes! Soft prices, you can haggle!"
+        }
+      ],
+      "vehicle": "xe_so_110"
+    },
+    {
+      "id": "chi_vy",
+      "name": "Chị Vy",
+      "role": {
+        "vi": "nhân viên văn phòng Crab",
+        "en": "Crab office clerk"
+      },
+      "look": {
+        "body": "woman",
+        "outfit": "crab",
+        "hat": "none"
+      },
+      "place": "duong_ham_nghi",
+      "at": [
+        14,
+        21
+      ],
+      "face": [
+        14,
+        15
+      ],
+      "mode": "private",
+      "dialogue": "chi_vy",
+      "reach": 3,
+      "barks": [
+        {
+          "vi": "Đăng ký chạy Crab ở đây nè! Năm sao là cơm, một sao là cháo!",
+          "en": "Register to drive for Crab here! Five stars is rice, one star is porridge!"
+        }
+      ]
     }
   ]
 }

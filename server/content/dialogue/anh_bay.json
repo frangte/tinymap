@@ -18,7 +18,7 @@
           "vi": "Ủa {name}, ghé tiệm anh hả? Vô vô, máy mới về nhiều lắm, bao test bảy ngày nha!",
           "en": "Oh {name}, dropping by the shop? Come in, come in, plenty of new stock, seven days to test them!"
         },
-        "driver": {
+        "ridehail.drive": {
           "vi": "Chạy xe cả ngày mà hổng có điện thoại sao nhận khách? Vô anh coi cho cái máy ưng ý!",
           "en": "Riding all day with no phone, how do you get customers? Come in, I'll find you one you like!"
         }

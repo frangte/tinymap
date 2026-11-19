@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/dialogue"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/protocol"
@@ -540,7 +541,7 @@ func TestAnhChiInAGreetingFollowsTheBody(t *testing.T) {
 	hanh := h.npc("chi_hanh")
 	for _, tc := range []struct{ body, want, not string }{{"man", "Chào anh tài xế", "chị"}, {"woman", "Chào chị tài xế", "anh tài"}} {
 		x, z := h.near(hanh, 1.5, 0)
-		p, _ := h.join(Arrival{Name: "Tài", Arch: "driver", Character: "char-" + tc.body, Start: &protocol.Pose{X: x, Z: z},
+		p, _ := h.join(Arrival{Name: "Tài", Arch: "", Caps: capability.Of("ridehail.drive"), Character: "char-" + tc.body, Start: &protocol.Pose{X: x, Z: z},
 			Look: protocol.Look{Body: tc.body, Outfit: "crab", Hat: "helmet"}})
 		h.drain(p)
 		h.interact(p, hanh, 3)

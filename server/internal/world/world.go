@@ -138,6 +138,8 @@ type VehicleSpec struct {
 	Kind string
 	// Speed is its top speed (m/s); moves while riding may reach it times Movement.Tolerance.
 	Speed float64
+	// Requires is the capability its rider needs ("" for none): a mount without it is refused
+	Requires string
 }
 
 // Peer is one participant's link to the world. The world queues outgoing frames on it and closes the queue when
@@ -236,7 +238,12 @@ type member struct {
 	home   protocol.Pose
 	gait   gait
 	// owns is the vehicle that came with this player (nil for none), riding the one they sit on
-	owns   *vehicle
+	owns *vehicle
+	// bike is the player's own bike (an item it bought), parked beside it on arrival and kept through archetype
+	// changes; nil for none. While a vehicle is lent (the test's bike) owns is the lent one and bike waits.
+	bike *VehicleSpec
+	// lent says the vehicle in owns is a lent one
+	lent   bool
 	riding *vehicle
 	// talk is the conversation the player is in, nil for none
 	talk *session
@@ -420,6 +427,10 @@ func (w *World) handle(e event) {
 	case evCaps:
 		if m, ok := w.members[e.p]; ok {
 			m.caps = e.caps
+			// what an NPC offers follows the capabilities (a fee just paid opens the next answer)
+			if m.talk != nil {
+				w.show(m.talk, m)
+			}
 		}
 	case evArch:
 		w.onArch(e.p, *e.change, e.reply)
@@ -480,6 +491,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 		m.name = fmt.Sprintf("Khách %d", m.id)
 	}
 	m.home = w.homeOf(a)
+	m.bike = a.Vehicle
 	w.place(p, m, w.startPose(a, m.home))
 	others := make([]protocol.Player, 0, len(w.members))
 	for _, o := range w.members {

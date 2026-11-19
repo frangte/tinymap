@@ -9,7 +9,7 @@
         "default": { "vi": "Ăn bánh tráng trộn hông con? Dì trộn liền!", "en": "Want some bánh tráng trộn? I'll mix it right now!" },
         "traveler": { "vi": "Khách du lịch hả? Thử bánh tráng trộn đi, món ăn vặt của dân Sài Gòn đó!", "en": "A traveller? Try bánh tráng trộn, Saigon's favourite snack!" },
         "citizen": { "vi": "{name} hả, như mọi bữa hông? Nhiều sa tế?", "en": "{name}! The usual? Extra chilli?" },
-        "driver": { "vi": "Ăn lẹ một bịch rồi chạy nè con!", "en": "Grab a bag quick and get back on the road!" }
+        "ridehail.drive": { "vi": "Ăn lẹ một bịch rồi chạy nè con!", "en": "Grab a bag quick and get back on the road!" }
       },
       "emote": "wave",
       "choices": [

@@ -1,0 +1,233 @@
+{
+  "id": "chi_vy",
+  "about": "Chị Vy runs the Crab office on Hàm Nghi (docs/design/13-driver.md). She checks a smartphone, the A1 licence and a bike (capabilities), and the uniform that opens driving is an item the server sells only to someone with all three (items.json, requires). The `register` node carries the shop button; her welcome line is shown once the uniform is owned.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": {
+          "vi": "Chào em! Văn phòng Crab đây. Muốn chạy Crab thì đăng ký ở chỗ chị.",
+          "en": "Hello! Crab office here. Want to drive for Crab? Register with me."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Con muốn đăng ký chạy Crab.",
+            "en": "I want to register as a Crab driver."
+          },
+          "goto": "apply",
+          "unless": [
+            "uniform.crab"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Con đăng ký rồi chị.",
+            "en": "I am registered already."
+          },
+          "goto": "member",
+          "requires": [
+            "uniform.crab"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Chạy Crab cần gì vậy chị?",
+            "en": "What does a Crab driver need?"
+          },
+          "goto": "about"
+        },
+        {
+          "text": {
+            "vi": "Dạ thôi, con đi dạo tiếp.",
+            "en": "No thanks, I will keep walking."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "apply": {
+      "say": {
+        "default": {
+          "vi": "Để chị coi giấy tờ của em: điện thoại thông minh, bằng A1 và xe.",
+          "en": "Let me check your papers: a smartphone, the A1 licence and a bike."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, đây ạ.",
+            "en": "Here they are."
+          },
+          "goto": "need_phone",
+          "unless": [
+            "phone.smart"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Dạ, đây ạ.",
+            "en": "Here they are."
+          },
+          "goto": "need_licence",
+          "requires": [
+            "phone.smart"
+          ],
+          "unless": [
+            "vehicle.motorbike.ride"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Dạ, đây ạ.",
+            "en": "Here they are."
+          },
+          "goto": "need_bike",
+          "requires": [
+            "phone.smart",
+            "vehicle.motorbike.ride"
+          ],
+          "unless": [
+            "vehicle.motorbike.own"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Dạ, đây ạ.",
+            "en": "Here they are."
+          },
+          "goto": "register",
+          "requires": [
+            "phone.smart",
+            "vehicle.motorbike.ride",
+            "vehicle.motorbike.own"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "say": {
+        "default": {
+          "vi": "Cần ba thứ: điện thoại thông minh để nhận cuốc, bằng lái A1, và xe của mình. Đủ ba thứ thì lấy bộ đồng phục ba trăm ngàn: áo vàng, mũ vàng, tài khoản tài xế.",
+          "en": "Three things: a smartphone to take rides, an A1 licence and a bike of your own. With all three you buy the 300.000đ uniform: yellow jacket, yellow helmet and a driver account."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn chị.",
+            "en": "Thank you."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "need_phone": {
+      "say": {
+        "default": {
+          "vi": "Chị chưa thấy điện thoại thông minh của em. Không có thì sao nhận cuốc? Ghé tiệm Dế Yêu của anh Bảy, đường Lê Lợi.",
+          "en": "I do not see a smartphone. How would you take rides? Visit Anh Bảy's Dế Yêu shop on Lê Lợi."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con đi mua liền.",
+            "en": "I will go and buy one."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "need_licence": {
+      "say": {
+        "default": {
+          "vi": "Em chưa có bằng A1. Ra Thủ Thiêm thi với thầy Mười, đậu rồi quay lại chị.",
+          "en": "You have no A1 licence yet. Take the test with Thầy Mười in Thủ Thiêm, then come back."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con đi thi liền.",
+            "en": "I will go and take it."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "need_bike": {
+      "say": {
+        "default": {
+          "vi": "Có bằng rồi mà chưa có xe hả? Ra Chợ Lớn kiếm chú Tám, xe số cũ giá mềm.",
+          "en": "A licence but no bike? Find Chú Tám in Chợ Lớn: cheap used bikes."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con đi coi xe liền.",
+            "en": "I will go and look."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "register": {
+      "say": {
+        "default": {
+          "vi": "Đủ giấy tờ rồi: điện thoại, bằng A1, xe. Bộ đồng phục ba trăm ngàn đây, em bấm nút để lấy.",
+          "en": "Papers in order: phone, A1 licence, bike. The uniform is 300.000đ, press the button to take it."
+        }
+      },
+      "shop": "van_phong_crab",
+      "choices": [
+        {
+          "text": {
+            "vi": "Con lấy áo rồi chị.",
+            "en": "I have the uniform."
+          },
+          "goto": "member",
+          "requires": [
+            "uniform.crab"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Để con suy nghĩ thêm.",
+            "en": "Let me think about it."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "member": {
+      "say": {
+        "default": {
+          "vi": "Chào mừng {anh_chi} gia nhập đại gia đình Crab! Áo đây, mũ đây. Nhớ nha: năm sao là cơm, một sao là cháo!",
+          "en": "Welcome to the big Crab family! Here is your jacket, here is your helmet. Remember: five stars is rice, one star is porridge!"
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn chị!",
+            "en": "Thank you!"
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "Ừ, chạy cẩn thận nghen. Khách là thượng đế đó!",
+          "en": "Alright, ride safe. The customer is king!"
+        }
+      }
+    }
+  }
+}

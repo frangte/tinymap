@@ -317,8 +317,13 @@ func TestDistinctThingsCountOnce(t *testing.T) {
 	}
 }
 
+// driverCaps is what a Crab driver has: a smartphone, the licence, a bike and the uniform's capabilities
+func driverCaps() capability.Set {
+	return capability.Of(content.CapPhone, content.CapSmartphone, "vehicle.motorbike.ride", "vehicle.motorbike.own", "uniform.crab", "driver.app", "ridehail.drive")
+}
+
 func TestADriverLearnsTheStreets(t *testing.T) {
-	r := newRun(t, "driver")
+	r := newRunWith(t, driverCaps())
 	ride := func(place string, riding bool) events.Event {
 		return events.Event{Kind: events.PlaceEntered, Place: place, PlaceKind: "street", Riding: riding}
 	}
@@ -349,7 +354,7 @@ func TestACrabTripCountsForTheRiderAndThePassenger(t *testing.T) {
 	trip := func(role string, partners ...string) events.Event {
 		return events.Event{Kind: events.TripCompleted, Role: role, Partners: partners, Metres: 300}
 	}
-	d := newRun(t, "driver")
+	d := newRunWith(t, driverCaps())
 	d.do(trip("rider", "lan")) // before the bike quest: not available yet
 	if d.state("driver.chuyen_dau_tien") != "" {
 		t.Fatal("the first trip quest needs the bike quest first")
@@ -547,7 +552,7 @@ func TestRequiresCapsHoldsAQuestBackUntilTheCharacterHasThem(t *testing.T) {
 
 func TestEveryQuestThatNeedsASmartphoneSaysSo(t *testing.T) {
 	c := catalog(t)
-	want := map[string]bool{"traveler.di_crab": true, "driver.chuyen_dau_tien": true, "daily.mot_cuoc_xe": true, "citizen.tho_dia": true}
+	want := map[string]bool{"traveler.di_crab": true, "driver.chuyen_dau_tien": true, "driver.dang_ky_crab": true, "daily.mot_cuoc_xe": true, "citizen.tho_dia": true}
 	for _, q := range c.Quests {
 		has := slices.Contains(q.RequiresCaps, content.CapSmartphone)
 		if has != want[q.ID] {

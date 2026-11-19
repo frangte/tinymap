@@ -97,8 +97,23 @@ type DialogueNode struct {
 	// Emote is played by the NPC as it says the line (emotes.json), "" for none
 	Emote string `json:"emote,omitempty"`
 	// Shop is a shop id (items.json): the game offers a button that opens its sheet while this line is shown
-	Shop    string   `json:"shop,omitempty"`
-	Choices []Choice `json:"choices,omitempty"`
+	Shop string `json:"shop,omitempty"`
+	// Fee is a fee id (items.json): the game offers a button that pays it while this line is shown; paying is the
+	// `pay` message, never an answer
+	Fee string `json:"fee,omitempty"`
+	// Emit is a signal sent whenever the conversation arrives at this node, however it got there: for an outcome
+	// that must count even if the player never picks another answer (a test passed)
+	Emit string `json:"emit,omitempty"`
+	// ResetMarks clears the conversation's tallies on arrival (a quiz starts from none wrong)
+	ResetMarks bool     `json:"reset_marks,omitempty"`
+	Choices    []Choice `json:"choices,omitempty"`
+}
+
+// GotoIf sends a conversation elsewhere once a tally has reached a count.
+type GotoIf struct {
+	Mark    string `json:"mark"`
+	AtLeast int    `json:"at_least"`
+	Goto    string `json:"goto"`
 }
 
 // Choice is an answer to a line.
@@ -110,6 +125,12 @@ type Choice struct {
 	Emit string `json:"emit,omitempty"`
 	// Requires: only players with every one of these capabilities are offered it
 	Requires []string `json:"requires,omitempty"`
+	// Unless: players with any of these capabilities are not offered it
+	Unless []string `json:"unless,omitempty"`
+	// Mark adds one to the conversation's tally of that name when picked (a wrong answer); GotoIf, checked after
+	// it, may send the conversation elsewhere
+	Mark   string  `json:"mark,omitempty"`
+	GotoIf *GotoIf `json:"goto_if,omitempty"`
 	// RequiresQuest: only players with this quest running (quests.json) are offered it
 	RequiresQuest string `json:"requires_quest,omitempty"`
 }
@@ -277,9 +298,15 @@ func (c *Catalog) checkDialogue(d Dialogue, caps map[string]bool) error {
 		n := d.Nodes[queue[0]]
 		queue = queue[1:]
 		for _, ch := range n.Choices {
-			if ch.Goto != DialogueEnd && !reached[ch.Goto] {
-				reached[ch.Goto] = true
-				queue = append(queue, ch.Goto)
+			targets := []string{ch.Goto}
+			if ch.GotoIf != nil {
+				targets = append(targets, ch.GotoIf.Goto)
+			}
+			for _, t := range targets {
+				if t != DialogueEnd && !reached[t] {
+					reached[t] = true
+					queue = append(queue, t)
+				}
 			}
 		}
 	}
@@ -296,8 +323,8 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 		return fmt.Errorf("say needs a %q line", DefaultVariant)
 	}
 	for _, k := range sortedKeys(n.Say) {
-		if k != DefaultVariant && c.byID[k].ID == "" {
-			return fmt.Errorf("say has a line for %q, which is not an archetype", k)
+		if k != DefaultVariant && c.byID[k].ID == "" && !caps[k] {
+			return fmt.Errorf("say has a line for %q, which is neither an archetype nor a capability", k)
 		}
 		if err := checkText(n.Say[k], SayMax, true); err != nil {
 			return fmt.Errorf("say %q: %w", k, err)
@@ -308,6 +335,14 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 	}
 	if n.Shop != "" && !slices.ContainsFunc(c.Shops, func(sh Shop) bool { return sh.ID == n.Shop }) {
 		return fmt.Errorf("shop %q is not in items.json", n.Shop)
+	}
+	if n.Fee != "" {
+		if !slices.ContainsFunc(c.Fees, func(f Fee) bool { return f.ID == n.Fee }) {
+			return fmt.Errorf("fee %q is not in items.json", n.Fee)
+		}
+	}
+	if n.Emit != "" && !signalPattern.MatchString(n.Emit) {
+		return fmt.Errorf("signal %q must be lower_snake_case ascii", n.Emit)
 	}
 	if len(n.Choices) > ChoicesMax {
 		return fmt.Errorf("at most %d choices", ChoicesMax)
@@ -322,9 +357,17 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 		if ch.Emit != "" && !signalPattern.MatchString(ch.Emit) {
 			return fmt.Errorf("choice %d: signal %q must be lower_snake_case ascii", i, ch.Emit)
 		}
-		for _, r := range ch.Requires {
+		for _, r := range append(append([]string{}, ch.Requires...), ch.Unless...) {
 			if !caps[r] {
-				return fmt.Errorf("choice %d requires unknown capability %q", i, r)
+				return fmt.Errorf("choice %d names unknown capability %q", i, r)
+			}
+		}
+		if g := ch.GotoIf; g != nil {
+			if ch.Mark == "" || g.Mark != ch.Mark || g.AtLeast < 1 || !signalPattern.MatchString(g.Mark) {
+				return fmt.Errorf("choice %d: goto_if needs the same mark as the choice and at_least 1 or more", i)
+			}
+			if _, ok := d.Nodes[g.Goto]; !ok {
+				return fmt.Errorf("choice %d: goto_if goes to %q, which is not a node", i, g.Goto)
 			}
 		}
 		if _, ok := c.questByID[ch.RequiresQuest]; ch.RequiresQuest != "" && !ok {

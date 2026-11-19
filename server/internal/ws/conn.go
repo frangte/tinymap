@@ -166,6 +166,26 @@ func (s *Server) Grant(character, capability string) {
 	}
 }
 
+// Revoke takes a capability back from a playing character (a spent ticket): what it may do follows at once. Safe
+// from any goroutine; a character not playing finds it gone on its next visit (the store has already dropped it).
+func (s *Server) Revoke(character, capability string) {
+	s.mu.Lock()
+	c := s.playing[character]
+	s.mu.Unlock()
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.extra, capability)
+	caps := c.capsOf(c.arch)
+	c.caps.Store(&caps)
+	s.world.SetCaps(c.peer, caps)
+	if s.Quests != nil {
+		s.Quests.Capabilities(character, caps)
+	}
+}
+
 func (s *Server) play(c *client) {
 	s.mu.Lock()
 	s.playing[c.character] = c
@@ -322,7 +342,7 @@ func (c *client) readLoop() {
 				msg.S &^= protocol.EmoteMask
 			}
 			ok = w.Handle(c.peer, msg)
-		case protocol.TypeMount, protocol.TypeDismount, protocol.TypeRespawn, protocol.TypeBuy:
+		case protocol.TypeMount, protocol.TypeDismount, protocol.TypeRespawn, protocol.TypeBuy, protocol.TypePay:
 			if !actions.Allow() {
 				continue
 			}
@@ -384,16 +404,10 @@ func (c *client) readLoop() {
 func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	cat := c.s.catalog
 	arch := hello.Arch
-	at, known := cat.Archetype(arch)
-	if !known {
+	if _, known := cat.Archetype(arch); !known {
 		arch = "" // an unknown id plays without an archetype rather than not at all
 	}
-	// a job (the Crab driver) is earned in play, never picked: a hello keeps one only for a character that already
-	// has it (a driver from before), and a new character or a guest asking for one starts without an archetype
 	pick := arch
-	if known && at.Job {
-		pick = ""
-	}
 	look := cat.AllowedLook(*hello.Look, cat.Grants(arch))
 	hello.Name = c.s.cleanName(hello.Name)
 	ctx, cancel := context.WithTimeout(context.Background(), identityWait)
@@ -410,6 +424,16 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 		found = identity.Arrived{Archetype: pick}
 	}
 	kept := found.Archetype
+	if _, known := cat.Archetype(kept); kept != "" && !known {
+		// an archetype that no longer exists (the Crab driver, which is earned in play now): the character starts
+		// over as what its hello asks for, and the store hears of it
+		kept = pick
+		if found.ID != "" {
+			if err := c.s.ids.ChangeArchetype(ctx, found.ID, kept, look); err != nil {
+				c.s.log.Warn("saving archetype", "character", found.ID, "err", err)
+			}
+		}
+	}
 	c.character = found.ID
 	c.extra = capability.Of(found.Caps...)
 	if found.Standing.Moderator {
@@ -439,9 +463,6 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 		x, z, h := at.Spawn.ThreePose()
 		a.Home = &protocol.Pose{X: x, Z: z, H: h}
 	}
-	if v, ok := cat.StarterVehicle(kept, caps); ok {
-		a.Vehicle = &world.VehicleSpec{Kind: v.ID, Speed: v.Speed}
-	}
 	if c.character != "" && c.s.Wallets != nil {
 		// a wallet that cannot open plays without one this visit; booking then fails on its own
 		if balance, err := c.s.Wallets.Arrive(ctx, c.character); err != nil {
@@ -456,6 +477,10 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 			c.s.log.Error("owned items", "character", c.character, "err", err)
 		} else {
 			a.Items = owned
+			// the bike it owns stands beside it, whoever it is (riding it needs the licence, checked on mounting)
+			if _, v, ok := cat.OwnedBike(owned); ok {
+				a.Vehicle = &world.VehicleSpec{Kind: v.ID, Speed: v.Speed, Requires: v.Requires}
+			}
 		}
 	}
 	return a, ""
@@ -468,19 +493,15 @@ func (c *client) changeArch(arch string) bool {
 	cat := c.s.catalog
 	at, known := cat.Archetype(arch)
 	c.mu.Lock()
-	if !known || arch == c.arch || at.Job {
+	if !known || arch == c.arch {
 		c.mu.Unlock()
-		// an id this server does not know, or a job (earned in play, never picked), only comes from a tampered
-		// client; the same one is no change
+		// an id this server does not know only comes from a tampered client; the same one is no change
 		return true
 	}
 	caps := c.capsOf(arch)
 	look := cat.AllowedLook(protocol.Look{Body: c.look.Body, Outfit: at.Look.Outfit, Hat: at.Look.Hat}, caps)
 	x, z, h := at.Spawn.ThreePose()
 	change := world.ArchChange{Arch: arch, Apps: cat.AppsFor(caps), Caps: caps, Look: look, Home: &protocol.Pose{X: x, Z: z, H: h}}
-	if v, ok := cat.StarterVehicle(arch, caps); ok {
-		change.Vehicle = &world.VehicleSpec{Kind: v.ID, Speed: v.Speed}
-	}
 	// under mu while the world answers, so a capability earned meanwhile is added to the new archetype's
 	code, ok := c.s.world.ChangeArch(c.peer, change)
 	if ok && code == "" {

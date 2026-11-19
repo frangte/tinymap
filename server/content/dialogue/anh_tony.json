@@ -51,11 +51,30 @@
         },
         {
           "text": {
+            "vi": "Em muốn ở Sài Gòn lâu, kiếm tiền sao anh?",
+            "en": "I want to stay in Saigon a while. How do I earn money?"
+          },
+          "goto": "earn",
+          "requires_quest": "traveler.tony_goi_y"
+        },
+        {
+          "text": {
             "vi": "Thôi, em đi dạo tiếp.",
             "en": "No thanks, I'll keep walking."
           },
           "goto": "bye"
         }
+      ]
+    },
+    "earn": {
+      "say": {
+        "default": {
+          "vi": "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi, Sài Gòn ai cũng chạy. Cần bằng lái A1, xe, với smartphone. Bằng thì thi ở Thủ Thiêm, thầy Mười dạy.",
+          "en": "Want to stay long? You gotta make money! Drive for Crab, everyone in Saigon does. You need an A1 licence, a bike and a smartphone. The licence test is in Thủ Thiêm, Thầy Mười runs it."
+        }
+      },
+      "choices": [
+        { "text": { "vi": "Cảm ơn anh Tony!", "en": "Thanks, Tony!" }, "goto": "bye", "emit": "tony_goi_y_crab" }
       ]
     },
     "lesson_hello": {

@@ -79,17 +79,13 @@ const (
 type Archetype struct {
 	ID string `json:"id"`
 	// Tags say which quests it is offered (quests.json tags_any)
-	Tags []string `json:"tags"`
-	// Job marks a role earned in play, never picked: neither the first pick nor Đổi vai offers it, and the server
-	// refuses it in a hello or a change; only a character that already has it keeps it (docs/design/11-items.md)
-	Job   bool        `json:"job,omitempty"`
+	Tags  []string    `json:"tags"`
 	Name  Text        `json:"name"`
 	Pitch Text        `json:"pitch"`
 	Badge Badge       `json:"badge"`
 	Spawn Spawn       `json:"spawn"`
 	Look  StarterLook `json:"look"`
-	// Vehicle is the starter vehicle (vehicles.json), "" for none
-	Vehicle      string   `json:"vehicle,omitempty"`
+	// Capabilities are what the archetype grants; driving is never one of them (docs/design/13-driver.md)
 	Capabilities []string `json:"capabilities"`
 }
 
@@ -126,9 +122,11 @@ type Catalog struct {
 	Stamps       []Stamp
 	Items        []Item
 	Shops        []Shop
+	Fees         []Fee
 	Quests       []Quest
 	Achievements []Achievement
 	Ridehail     Ridehail
+	Driving      Driving
 	Directions   Directions
 	Guide        []GuideEntry
 	Collection   []CollectionEntry
@@ -137,6 +135,7 @@ type Catalog struct {
 	questByID    map[string]Quest
 	itemByID     map[string]Item
 	shopByID     map[string]Shop
+	feeByID      map[string]Fee
 }
 
 var (
@@ -146,7 +145,7 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, island, archetypes, apps, movement, vehicles, emotes, npcs, contacts, items, quests, ridehail, directions, guide, collection []byte
+	places, island, archetypes, apps, movement, vehicles, emotes, npcs, contacts, items, quests, ridehail, directions, guide, collection, driving []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
@@ -154,7 +153,7 @@ type files struct {
 func embedded() files {
 	return files{places: placesJSON, island: mapJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
 		emotes: emotesJSON, npcs: npcsJSON, contacts: contactsJSON, items: itemsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
-		guide: guideJSON, collection: collectionJSON, dialogues: dialogueFiles()}
+		guide: guideJSON, collection: collectionJSON, driving: drivingJSON, dialogues: dialogueFiles()}
 }
 
 // Load parses and checks the embedded data files.
@@ -192,6 +191,9 @@ func load(f files) (*Catalog, error) {
 		return nil, err
 	}
 	if err := parseItems(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseDriving(f, c); err != nil {
 		return nil, err
 	}
 	if err := parseQuests(f, c); err != nil {
@@ -248,18 +250,11 @@ func (c *Catalog) check() error {
 	if len(c.Archetypes) == 0 {
 		return errors.New("archetypes.json: no archetypes")
 	}
-	origins := 0
 	for _, a := range c.Archetypes {
 		if err := c.checkArchetype(a, caps, places); err != nil {
 			return fmt.Errorf("archetypes.json: archetype %q: %w", a.ID, err)
 		}
 		c.byID[a.ID] = a
-		if !a.Job {
-			origins++
-		}
-	}
-	if origins == 0 {
-		return errors.New("archetypes.json: every archetype is a job, so a new character has nothing to start as")
 	}
 	seen := map[string]bool{}
 	for _, app := range c.Apps {
@@ -285,6 +280,9 @@ func (c *Catalog) check() error {
 		return err
 	}
 	if err := c.checkItems(caps); err != nil {
+		return err
+	}
+	if err := c.checkDriving(caps); err != nil {
 		return err
 	}
 	if err := c.Ridehail.check(); err != nil {
@@ -330,8 +328,6 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 		return errors.New("spawn is outside the island's bounds (map.json)")
 	case !protocol.OutfitKnown(a.Look.Outfit) || !protocol.HatKnown(a.Look.Hat):
 		return errors.New("unknown starter outfit or hat")
-	case a.Vehicle != "" && c.vehicleByID[a.Vehicle].ID == "":
-		return fmt.Errorf("starter vehicle %q is not in vehicles.json", a.Vehicle)
 	}
 	for _, k := range a.Capabilities {
 		if !caps[k] {
@@ -350,9 +346,6 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 	start := protocol.Look{Body: "man", Outfit: a.Look.Outfit, Hat: a.Look.Hat}
 	if !c.LookAllowed(start, granted) {
 		return errors.New("its starter look needs a capability it does not grant")
-	}
-	if v := c.vehicleByID[a.Vehicle]; a.Vehicle != "" && !granted.Has(v.Requires) {
-		return fmt.Errorf("its starter vehicle needs %q, which it does not grant", v.Requires)
 	}
 	return nil
 }

@@ -502,12 +502,129 @@
       "rewards": { "titles": ["tho_dia"] }
     },
     {
+      "id": "story.chu_sau_ke_chuyen",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Chú Sáu kể chuyện", "en": "Chú Sáu's story" },
+      "about": { "vi": "Chú Sáu có chuyện muốn kể về nghề xe ôm hồi xưa. Ghé bùng binh nghe chú nói.", "en": "Chú Sáu has a story about the xe ôm trade in the old days. Stop by the roundabout and listen." },
+      "tags_any": ["newcomer"],
+      "requires": ["story.gap_chu_sau"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "listen", "type": "dialogue_signal", "params": { "npc": "chu_sau", "signal": "chu_sau_khuyen_crab" }, "text": { "vi": "Hỏi chú Sáu chuyện chạy xe ôm hồi xưa", "en": "Ask Chú Sáu about driving a xe ôm in the old days" }, "at": "chu_sau" }
+      ],
+      "rewards": { "capability": "chapter.crab" }
+    },
+    {
+      "id": "citizen.chu_sau_ke_chuyen",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Chú Sáu kể chuyện", "en": "Chú Sáu's story" },
+      "about": { "vi": "Chú Sáu có chuyện muốn kể về nghề xe ôm hồi xưa. Ghé bùng binh nghe chú nói.", "en": "Chú Sáu has a story about the xe ôm trade in the old days. Stop by the roundabout and listen." },
+      "tags_any": ["native"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "listen", "type": "dialogue_signal", "params": { "npc": "chu_sau", "signal": "chu_sau_khuyen_crab" }, "text": { "vi": "Hỏi chú Sáu chuyện chạy xe ôm hồi xưa", "en": "Ask Chú Sáu about driving a xe ôm in the old days" }, "at": "chu_sau" }
+      ],
+      "rewards": { "capability": "chapter.crab" }
+    },
+    {
+      "id": "traveler.tony_goi_y",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Muốn ở lâu?", "en": "Want to stay longer?" },
+      "about": { "vi": "Không bắt buộc: nếu muốn ở Sài Gòn lâu thì hỏi anh Tony cách kiếm tiền.", "en": "Optional: if you want to stay in Saigon a while, ask Tony how to earn money." },
+      "tags_any": ["traveler"],
+      "requires": ["traveler.hostel_anh_tony"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "ask", "type": "dialogue_signal", "params": { "npc": "anh_tony", "signal": "tony_goi_y_crab" }, "text": { "vi": "Hỏi anh Tony cách kiếm tiền", "en": "Ask Tony how to earn money" }, "at": "anh_tony" }
+      ],
+      "rewards": { "capability": "chapter.crab" }
+    },
+    {
+      "id": "driver.thi_bang_a1",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Thi bằng lái A1", "en": "The A1 licence" },
+      "about": { "vi": "Ra Thủ Thiêm gặp thầy Mười: đóng lệ phí 200.000đ, thi lý thuyết mười câu (đúng tám câu là đậu), rồi thi thực hành trên xe của trường.", "en": "Go to Thầy Mười in Thủ Thiêm: pay the 200.000đ fee, sit ten theory questions (eight right to pass), then the practical on the school's bike." },
+      "requires_caps": ["chapter.crab"],
+      "unless_caps": ["vehicle.motorbike.ride"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "theory", "type": "dialogue_signal", "params": { "npc": "thay_muoi", "signal": "ly_thuyet_dau" }, "text": { "vi": "Đóng lệ phí và đậu lý thuyết với thầy Mười", "en": "Pay the fee and pass the theory with Thầy Mười" }, "at": "thay_muoi" },
+        { "id": "practical", "type": "pass_test", "params": { "test": "a1" }, "text": { "vi": "Thi thực hành: chạy xe của trường qua các điểm, không xuống xe", "en": "The practical: ride the school bike through the checkpoints without getting off" }, "at": "thay_muoi" }
+      ],
+      "rewards": { "capability": "vehicle.motorbike.ride" }
+    },
+    {
+      "id": "driver.mua_xe",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Mua xe", "en": "Buy a bike" },
+      "about": { "vi": "Có bằng rồi thì cần một chiếc xe. Ra Chợ Lớn tìm chú Tám, xe số cũ 1.000.000đ. Nhớ trả giá: “Mắc quá chú!”", "en": "With a licence you need a bike. Find Chú Tám in Chợ Lớn: a used 110cc for 1.000.000đ. Remember to haggle: “Mắc quá chú!”" },
+      "requires_caps": ["vehicle.motorbike.ride"],
+      "unless_caps": ["vehicle.motorbike.own"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "buy", "type": "buy_item", "params": { "item": "xe_so_110" }, "text": { "vi": "Mua xe ở tiệm xe cũ chú Tám, Chợ Lớn", "en": "Buy a bike at Chú Tám's in Chợ Lớn" }, "at": "chu_tam" }
+      ],
+      "rewards": {}
+    },
+    {
+      "id": "driver.dang_ky_crab",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Đăng ký chạy Crab", "en": "Register with Crab" },
+      "about": { "vi": "Có điện thoại thông minh, bằng A1 và xe rồi thì tới văn phòng Crab trên đường Hàm Nghi gặp chị Vy lấy bộ đồng phục 300.000đ.", "en": "With a smartphone, an A1 licence and a bike, go to the Crab office on Hàm Nghi and see Chị Vy for the 300.000đ uniform." },
+      "requires_caps": ["phone.smart", "vehicle.motorbike.ride", "vehicle.motorbike.own"],
+      "unless_caps": ["uniform.crab"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "uniform", "type": "buy_item", "params": { "item": "dong_phuc_crab" }, "text": { "vi": "Lấy đồng phục ở văn phòng Crab, đường Hàm Nghi", "en": "Get the uniform at the Crab office on Hàm Nghi" }, "at": "chi_vy" }
+      ],
+      "rewards": {}
+    },
+    {
+      "id": "story.khoe_voi_ma",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Khoe với má", "en": "Tell Mum" },
+      "about": { "vi": "Chạy được chuyến Crab đầu tiên rồi, gọi về khoe với má.", "en": "You finished your first Crab trip. Call Mum and tell her." },
+      "tags_any": ["newcomer"],
+      "requires": ["driver.chuyen_dau_tien"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "call", "type": "dialogue_signal", "params": { "npc": "ma", "signal": "ma_khoe_crab" }, "text": { "vi": "Gọi về khoe với Má (Danh bạ)", "en": "Call Mum and tell her (Contacts)" } }
+      ],
+      "rewards": {},
+      "texts": {
+        "on_done": [
+          { "from": "chu_sau", "text": { "vi": "Giỏi! Bữa nào dạy chú xài cái app này với.", "en": "Well done! Teach me to use that app one of these days." } }
+        ]
+      }
+    },
+    {
+      "id": "citizen.khoe_voi_chu_sau",
+      "version": 1,
+      "questline": "chuong_3",
+      "title": { "vi": "Khoe với chú Sáu", "en": "Tell Chú Sáu" },
+      "about": { "vi": "Chạy được chuyến Crab đầu tiên rồi, ghé bùng binh khoe với chú Sáu.", "en": "You finished your first Crab trip. Stop by the roundabout and tell Chú Sáu." },
+      "tags_any": ["native"],
+      "requires": ["driver.chuyen_dau_tien"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "tell", "type": "dialogue_signal", "params": { "npc": "chu_sau", "signal": "khoe_crab" }, "text": { "vi": "Khoe với chú Sáu ở bùng binh", "en": "Tell Chú Sáu at the roundabout" }, "at": "chu_sau" }
+      ],
+      "rewards": {}
+    },
+    {
       "id": "driver.nhan_xe",
       "version": 1,
       "questline": "tay_lai",
       "title": { "vi": "Nhận xe", "en": "Your bike" },
-      "about": { "vi": "Chiếc xe số đậu ngay cạnh bạn. Lại gần rồi bấm E (hoặc nút Lên xe) để lên.", "en": "Your motorbike is parked right next to you. Walk up and press E (or the Lên xe button)." },
-      "tags_any": ["driver"],
+      "about": { "vi": "Chiếc xe số bạn mua đậu ngay cạnh bạn. Lại gần rồi bấm E (hoặc nút Lên xe) để lên.", "en": "The motorbike you bought is parked right next to you. Walk up and press E (or the Lên xe button)." },
+      "requires_caps": ["vehicle.motorbike.own", "vehicle.motorbike.ride"],
       "flow": "sequence",
       "objectives": [
         { "id": "mount", "type": "mount", "params": { "vehicle": "xe_so_110" }, "text": { "vi": "Lên xe của bạn", "en": "Get on your bike" } }
@@ -520,7 +637,7 @@
       "questline": "tay_lai",
       "title": { "vi": "Thuộc đường Quận 1", "en": "Learn District 1" },
       "about": { "vi": "Chạy xe dọc Lê Lợi, rồi Đồng Khởi, rồi Hàm Nghi. Tài xế giỏi phải thuộc từng con đường.", "en": "Ride along Lê Lợi, then Đồng Khởi, then Hàm Nghi. A good driver knows every street." },
-      "tags_any": ["driver"],
+      "requires_caps": ["vehicle.motorbike.ride"],
       "requires": ["driver.nhan_xe"],
       "flow": "sequence",
       "objectives": [
@@ -536,8 +653,7 @@
       "questline": "tay_lai",
       "title": { "vi": "Chuyến đầu tiên", "en": "Your first trip" },
       "about": { "vi": "Bật nhận cuốc trong app Crab Driver, nhận một cuốc xe, đón khách và chở tới nơi.", "en": "Go on duty in the Crab Driver app, accept a ride, pick the passenger up and drop them off." },
-      "tags_any": ["driver"],
-      "requires_caps": ["phone.smart"],
+      "requires_caps": ["phone.smart", "ridehail.drive"],
       "requires": ["driver.nhan_xe"],
       "flow": "sequence",
       "objectives": [
@@ -707,7 +823,7 @@
       "questline": "daily",
       "title": { "vi": "Chạy một vòng", "en": "A spin round town" },
       "about": { "vi": "Lên xe chạy một vòng Quận 1 cho nóng máy.", "en": "Take the bike round District 1 to warm it up." },
-      "tags_any": ["driver"],
+      "requires_caps": ["ridehail.drive"],
       "repeat": "daily",
       "pool": "driver_daily",
       "flow": "sequence",
@@ -722,8 +838,7 @@
       "questline": "daily",
       "title": { "vi": "Một cuốc xe", "en": "One fare" },
       "about": { "vi": "Chở một khách Crab, hoặc chạy 3 cây số nếu phố vắng khách.", "en": "Take one Crab passenger, or ride 3 km if the streets are quiet." },
-      "tags_any": ["driver"],
-      "requires_caps": ["phone.smart"],
+      "requires_caps": ["phone.smart", "ridehail.drive"],
       "repeat": "daily",
       "pool": "driver_daily",
       "flow": "any",
@@ -739,7 +854,7 @@
       "questline": "daily",
       "title": { "vi": "Đường ven biển", "en": "The coast road" },
       "about": { "vi": "Chạy dọc bãi biển rồi vòng về đường Hàm Nghi.", "en": "Ride along the beach, then back round by Hàm Nghi." },
-      "tags_any": ["driver"],
+      "requires_caps": ["ridehail.drive"],
       "repeat": "daily",
       "pool": "driver_daily",
       "flow": "all",
@@ -834,7 +949,6 @@
       "id": "tay_lai_lua",
       "title": { "vi": "Tay lái lụa", "en": "Smooth rider" },
       "about": { "vi": "Chạy xe được 5 cây số.", "en": "Ride 5 kilometres." },
-      "tags_any": ["driver"],
       "objective": { "type": "ride_distance", "params": {}, "count": 5000 }
     },
     {

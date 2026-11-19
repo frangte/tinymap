@@ -23,13 +23,22 @@ type session struct {
 	// node is where the conversation is in the NPC's dialogue graph; step counts the lines it has shown
 	node string
 	step uint32
+	// marks are the conversation's tallies (a quiz's wrong answers), see dialogue.Speaker
+	marks map[string]int
 	// call: a phone call (docs/design/12-phone.md). It is a private conversation that distance does not end,
 	// where the NPC does not turn or gesture and is not busy for the others
 	call bool
 }
 
 func (m *member) speaker() dialogue.Speaker {
-	return dialogue.Speaker{Name: m.name, Arch: m.arch, Body: m.look.Body, Caps: m.caps, Quests: m.quests}
+	sp := dialogue.Speaker{Name: m.name, Arch: m.arch, Body: m.look.Body, Caps: m.caps, Quests: m.quests}
+	if m.talk != nil {
+		if m.talk.marks == nil {
+			m.talk.marks = map[string]int{}
+		}
+		sp.Marks = m.talk.marks
+	}
+	return sp
 }
 
 // onInteract starts a conversation with an NPC, or joins its group one.
@@ -110,7 +119,7 @@ func (w *World) onChoose(p *Peer, m *member, msg protocol.ClientMsg) {
 		return
 	}
 	n := s.npc
-	next, signal, err := w.cfg.Dialogue.Choose(n.spec.Dialogue, s.node, m.speaker(), msg.C)
+	step, err := w.cfg.Dialogue.Choose(n.spec.Dialogue, s.node, m.speaker(), msg.C)
 	if errors.Is(err, dialogue.ErrChoice) {
 		w.result(p, msg.Rid, protocol.ResChoice)
 		return
@@ -121,16 +130,16 @@ func (w *World) onChoose(p *Peer, m *member, msg protocol.ClientMsg) {
 		w.result(p, msg.Rid, protocol.ResStale)
 		return
 	}
-	if signal != "" {
+	for _, signal := range step.Signals {
 		// only whoever picked the answer: in a group the others did not, and the answers offered were the leader's
 		w.signal(m, n, signal)
 	}
-	if next == "" {
+	if step.Next == "" {
 		w.endTalk(s, protocol.EndDone)
 		w.result(p, msg.Rid, "")
 		return
 	}
-	s.node = next
+	s.node = step.Next
 	if !w.speak(s, m) {
 		w.result(p, msg.Rid, protocol.ResStale)
 		return
@@ -200,7 +209,7 @@ func (w *World) showTo(s *session, to []*member) {
 		return
 	}
 	msg := protocol.Interaction{T: protocol.TypeInteraction, Sid: s.id, N: s.npc.id, Mode: s.mode, Step: s.step, Size: len(s.members),
-		Choices: l.Choices, Shop: l.Shop}
+		Choices: l.Choices, Shop: l.Shop, Fee: l.Fee}
 	if s.call {
 		msg.Call = s.npc.spec.Key
 	}
@@ -301,6 +310,11 @@ func (w *World) walkAways() {
 func (w *World) signal(m *member, n *npc, signal string) {
 	w.log.Debug("dialogue signal", "player", m.id, "npc", n.spec.Key, "signal", signal)
 	w.publish(events.Event{Kind: events.Signal, Character: m.character, NPC: n.spec.Key, Signal: signal})
+	for _, mod := range w.modules {
+		if h, ok := mod.(SignalHook); ok {
+			h.Signalled(m, n.spec.Key, signal)
+		}
+	}
 }
 
 // result answers a command that carried a request id; code "" is success.

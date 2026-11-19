@@ -10,7 +10,7 @@ import (
 // Changing archetype in game (docs/design/README.md, D1). The connection checks the archetype id and works out
 // what the new one gives (an ArchChange); the world refuses the change while the player is busy or changed a
 // moment ago, and otherwise swaps everything in one step of the loop, so no move, mount or trip slips in between:
-// off the bike, the old archetype's vehicle gone, the new one's parked beside them, the new clothes, home and
+// off the bike (which stays parked: it is the player's own), the new clothes, home and
 // capabilities, and everyone told.
 
 // DefaultArchGap is how long after one archetype change the next one waits (protocol.ErrArchWait).
@@ -27,8 +27,6 @@ type ArchChange struct {
 	Look protocol.Look
 	// Home is the new archetype's start (x, z and heading), nil for the map's spawn
 	Home *protocol.Pose
-	// Vehicle is the new archetype's starter vehicle, parked beside the player; nil for none
-	Vehicle *VehicleSpec
 }
 
 // ArchHook is a module with a say in archetype changes; modules without one do not mind them.
@@ -115,9 +113,6 @@ func (w *World) stampArch(m *member, now time.Time) {
 func (w *World) changeArch(p *Peer, m *member, c ArchChange) {
 	w.stampArch(m, w.now())
 	w.dismount(m)
-	if v := m.owns; v != nil {
-		w.removeVehicle(v)
-	}
 	m.arch, m.caps, m.look = c.Arch, c.Caps, c.Look
 	m.home = w.homeAt(c.Home)
 	apps := c.Apps
@@ -126,9 +121,6 @@ func (w *World) changeArch(p *Peer, m *member, c ArchChange) {
 	}
 	w.sendTo(p, protocol.Encode(protocol.Arch{T: protocol.TypeArch, Arch: m.arch, Apps: apps, Look: m.look}))
 	w.broadcast(m.profile(), p)
-	if c.Vehicle != nil {
-		w.broadcast(w.addVehicle(m, *c.Vehicle).encode(), nil)
-	}
 	for _, mod := range w.modules {
 		if h, ok := mod.(ArchHook); ok {
 			h.ArchChanged(m)

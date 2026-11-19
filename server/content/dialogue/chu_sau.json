@@ -10,7 +10,7 @@
         "traveler": { "vi": "Khách du lịch hả? Muốn đi đâu chú chỉ đường cho, hông đi xe cũng được!", "en": "A traveller? Tell me where you're going and I'll show you the way, ride or not!" },
         "citizen": { "vi": "Ê {name}, nay rảnh hả con? Ngồi xuống nói chuyện chơi.", "en": "Hey {name}, free today? Sit down and chat." },
         "newcomer": { "vi": "Ủa, con của bạn chú dưới Bến Tre hả? Giống ba con như đúc! Mới lên hả? Có gì khó cứ nói chú nghe, đừng ngại.", "en": "Oh, my old friend's child from Bến Tre? You look just like your dad! Just arrived? Anything hard, just tell me, don't be shy." },
-        "driver": { "vi": "Ủa, Crab Bike hả? Nay chạy được nhiêu cuốc rồi con?", "en": "Oh, Crab Bike? How many rides today?" }
+        "ridehail.drive": { "vi": "Ủa, Crab Bike hả? Nay chạy được nhiêu cuốc rồi con?", "en": "Oh, Crab Bike? How many rides today?" }
       },
       "emote": "wave",
       "choices": [
@@ -80,17 +80,37 @@
     "life": {
       "say": {
         "default": { "vi": "Chú chạy xe ôm ba chục năm rồi. Giờ người ta đặt xe trên điện thoại hết, mà khách quen vẫn kêu chú.", "en": "Thirty years on a xe ôm. Everyone books rides on their phones now, but my regulars still call me." },
-        "driver": { "vi": "Tụi con áo vàng chạy lẹ thiệt, mà khách quen ở bùng binh này vẫn là của chú nghen!", "en": "You yellow jackets are fast, but the regulars at this roundabout are still mine!" }
+        "ridehail.drive": { "vi": "Tụi con áo vàng chạy lẹ thiệt, mà khách quen ở bùng binh này vẫn là của chú nghen!", "en": "You yellow jackets are fast, but the regulars at this roundabout are still mine!" }
       },
       "choices": [
+        { "text": { "vi": "Hồi xưa chú chạy xe ôm sao hả chú?", "en": "What was xe ôm life like back then, uncle?" }, "goto": "crab_story", "requires_quest": "story.chu_sau_ke_chuyen" },
+        { "text": { "vi": "Hồi xưa chú chạy xe ôm sao hả chú?", "en": "What was xe ôm life like back then, uncle?" }, "goto": "crab_story", "requires_quest": "citizen.chu_sau_ke_chuyen" },
+        { "text": { "vi": "Chú ơi, con chạy Crab được chuyến đầu rồi!", "en": "Uncle, I did my first Crab trip!" }, "goto": "proud", "requires_quest": "citizen.khoe_voi_chu_sau" },
         { "text": { "vi": "Chú chỉ đường giúp con nha?", "en": "Could you give me directions?" }, "goto": "where" },
         { "text": { "vi": "Dạ, chúc chú đắt khách!", "en": "Good luck with the customers!" }, "goto": "bye" }
+      ]
+    },
+    "crab_story": {
+      "say": {
+        "default": { "vi": "Hồi xưa chú chạy xe ôm nuôi cả nhà, mưa nắng gì cũng đứng đây. Giờ khách đặt app hết, đứng cả buổi chưa được một cuốc. Con còn trẻ, đi chạy Crab đi. Có bằng, có xe, có điện thoại là chạy được.", "en": "In the old days I drove a xe ôm to feed the whole family, rain or shine, right here. Now everyone books on apps and I can stand all morning without a fare. You are young: go drive for Crab. A licence, a bike and a phone is all it takes." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, để con thử coi, cảm ơn chú!", "en": "I will give it a try, thank you, uncle!" }, "goto": "bye_road", "emit": "chu_sau_khuyen_crab" }
+      ]
+    },
+    "proud": {
+      "say": {
+        "default": { "vi": "Giỏi! Bữa nào dạy chú xài cái app này với.", "en": "Well done! Teach me to use that app one of these days." }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Dạ, con dạy chú liền!", "en": "Of course, I will teach you!" }, "goto": "bye", "emit": "khoe_crab" }
       ]
     },
     "ride": {
       "say": {
         "default": { "vi": "Nay chú nghỉ trưa rồi, mỏi chân quá. Mà Quận 1 nhỏ xíu, đi bộ là tới hết đó con!", "en": "I'm on my lunch break, my legs are tired. But District 1 is tiny, you can walk everywhere!" },
-        "driver": { "vi": "Con cũng chạy xe mà, chở chú đi còn được nữa đó!", "en": "You ride a bike too, you could give me a ride!" }
+        "ridehail.drive": { "vi": "Con cũng chạy xe mà, chở chú đi còn được nữa đó!", "en": "You ride a bike too, you could give me a ride!" }
       },
       "choices": [
         { "text": { "vi": "Vậy chú chỉ đường cho con nha.", "en": "Then could you give me directions?" }, "goto": "where" },

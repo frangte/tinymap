@@ -39,7 +39,7 @@ func giveItem(t *testing.T, srv *testServer, token, item string) {
 	if _, err := srv.db.ArriveWallet(ctx, c.ID, 10_000_000, 10_000_000, "2026-11-19", 1); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := srv.db.Buy(ctx, shop.Purchase{Character: c.ID, Item: it.ID, Price: it.Price, Grants: it.Grants, At: 2}); err != nil {
+	if _, err := srv.db.Buy(ctx, shop.Purchase{Character: c.ID, Item: it.ID, Price: 0, Grants: it.Grants, At: 2}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -118,34 +118,33 @@ func TestACharacterWithoutAPhoneHasNoAppsAndNoItems(t *testing.T) {
 
 func TestAPhoneInTheStoreGivesTheAppsOnArrival(t *testing.T) {
 	cases := []struct {
-		name, arch, outfit, hat, item string
-		apps                          []string
-		missing                       []string
+		name, arch, outfit, hat string
+		items                   []string
+		apps                    []string
+		missing                 []string
 	}{
-		{"a brick", "citizen", "baba", "nonla", "nokla_1280", []string{"notices"}, []string{"crab", "chat"}},
-		{"a smartphone", "citizen", "baba", "nonla", "ifone_x", []string{"notices", "crab", "chat", "community"}, nil},
-		{"a driver with a smartphone", "driver", "crab", "helmet", "ifone_x", []string{"notices", "crab", "chat", "crab_driver"}, nil},
-		{"a driver with only a brick", "driver", "crab", "helmet", "nokla_1280", []string{"notices"}, []string{"crab_driver"}},
+		{"a brick", "citizen", "baba", "nonla", []string{"nokla_1280"}, []string{"notices"}, []string{"crab", "chat"}},
+		{"a smartphone", "citizen", "baba", "nonla", []string{"ifone_x"}, []string{"notices", "crab", "chat", "community"}, nil},
+		{"a driver: a smartphone and the uniform", "citizen", "crab", "helmet", []string{"ifone_x", "dong_phuc_crab"}, []string{"notices", "crab", "chat", "crab_driver"}, nil},
+		{"a driver's uniform with only a brick", "citizen", "crab", "helmet", []string{"nokla_1280", "dong_phuc_crab"}, []string{"notices"}, []string{"crab_driver"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			srv := startServer(t, shopConfig(t))
 			_, _, token := postGuest(t, srv, "")
-			// the character exists once it has arrived; a driver is one from before (a hello cannot pick the job)
-			if c.arch == "driver" {
-				asDriver(t, srv, token)
-			} else {
-				first := dial(t, srv)
-				send(t, first, helloAs(token, c.arch, c.outfit, c.hat))
-				next(t, first, "welcome")
-				first.Close()
+			// the character exists once it has arrived
+			first := dial(t, srv)
+			send(t, first, helloAs(token, c.arch, "thun", "none"))
+			next(t, first, "welcome")
+			first.Close()
+			for _, item := range c.items {
+				giveItem(t, srv, token, item)
 			}
-			giveItem(t, srv, token, c.item)
 
 			a := dial(t, srv)
 			send(t, a, helloAs(token, c.arch, c.outfit, c.hat))
 			w := next(t, a, "welcome")
-			if !slices.Equal(w.Items, []string{c.item}) {
+			if !slices.Equal(w.Items, c.items) {
 				t.Fatalf("items %v", w.Items)
 			}
 			for _, app := range c.apps {

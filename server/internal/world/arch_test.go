@@ -21,9 +21,8 @@ func (h *harness) changeArch(p *Peer, c ArchChange) (code string, ok bool) {
 var (
 	toCitizen = ArchChange{Arch: "citizen", Apps: []string{"profile", "community"}, Caps: capability.Of("citizen.community_app"),
 		Look: protocol.Look{Body: "man", Outfit: "baba", Hat: "nonla"}, Home: &protocol.Pose{X: -30, Z: 19}}
-	toDriver = ArchChange{Arch: "driver", Apps: []string{"profile", "crab_driver"}, Caps: capability.Of("driver.app", "uniform.crab"),
-		Look: protocol.Look{Body: "man", Outfit: "crab", Hat: "helmet"}, Home: &protocol.Pose{X: 36, Z: 37},
-		Vehicle: &VehicleSpec{Kind: "xe_so_110", Speed: 11}}
+	toTraveler = ArchChange{Arch: "traveler", Apps: []string{"profile", "guide"}, Caps: capability.Of("traveler.guide_app"),
+		Look: protocol.Look{Body: "man", Outfit: "thun", Hat: "cap"}, Home: &protocol.Pose{X: 36, Z: 37}}
 )
 
 // archHook is a module that may hold a player and hears who changed.
@@ -44,11 +43,11 @@ func frameOf(fs []frame, t string) (frame, bool) {
 	return fs[i], true
 }
 
-func TestChangingArchetypeSwapsTheBikeAndTellsEveryone(t *testing.T) {
+func TestChangingArchetypeKeepsTheBikeAndTellsEveryone(t *testing.T) {
 	h := newHarness(t)
 	home := protocol.Pose{X: 36, Z: 37}
-	p, m := h.join(Arrival{Name: "Tài", Character: "char-tai", Arch: "driver", Caps: toDriver.Caps, Look: toDriver.Look, Home: &home,
-		Vehicle: toDriver.Vehicle})
+	p, m := h.join(Arrival{Name: "Tài", Character: "char-tai", Arch: "traveler", Caps: toTraveler.Caps, Look: toTraveler.Look, Home: &home,
+		Vehicle: &VehicleSpec{Kind: "xe_so_110", Speed: 11}})
 	near := m.pose
 	near.X += 2
 	po, _ := h.join(Arrival{Name: "Lan", Start: &near})
@@ -60,11 +59,12 @@ func TestChangingArchetypeSwapsTheBikeAndTellsEveryone(t *testing.T) {
 	if code, ok := h.changeArch(p, toCitizen); !ok || code != "" {
 		t.Fatalf("change = %q, %v", code, ok)
 	}
-	if m.arch != "citizen" || m.look != toCitizen.Look || !m.caps.Has("citizen.community_app") || m.caps.Has("driver.app") {
+	if m.arch != "citizen" || m.look != toCitizen.Look || !m.caps.Has("citizen.community_app") || m.caps.Has("traveler.guide_app") {
 		t.Fatalf("member after the change: arch %q look %+v caps %v", m.arch, m.look, m.caps)
 	}
-	if m.riding != nil || m.owns != nil || h.w.vehicles[bike] != nil || m.flags&protocol.FlagRide != 0 {
-		t.Fatal("the driver's bike must go with the driver's archetype")
+	// the bike is the player's own, not the archetype's: it stays, parked, and the player is off it
+	if m.riding != nil || m.owns == nil || m.owns.id != bike || h.w.vehicles[bike] == nil || m.flags&protocol.FlagRide != 0 {
+		t.Fatal("the player's own bike must stay, parked, through an archetype change")
 	}
 	if m.home.X > -25 || m.home.X < -35 {
 		t.Fatalf("home = %+v, want the Citizen's start", m.home)
@@ -82,21 +82,8 @@ func TestChangingArchetypeSwapsTheBikeAndTellsEveryone(t *testing.T) {
 	if !ok || pr.ID != m.id || pr.Arch != "citizen" || pr.Look != toCitizen.Look {
 		t.Fatalf("the others see %+v (%v)", pr, ok)
 	}
-	if count(theirs, protocol.TypeVehicleGone) != 1 {
-		t.Fatalf("the others see the bike go: %+v", theirs)
-	}
-
-	// back to driving a minute later: a new bike beside them, for everyone to see
-	h.tick(DefaultArchGap)
-	if code, ok := h.changeArch(p, toDriver); !ok || code != "" {
-		t.Fatalf("change back = %q, %v", code, ok)
-	}
-	if m.owns == nil || m.owns.id == bike || m.owns.kind != "xe_so_110" {
-		t.Fatalf("a driver again needs a new bike: %+v", m.owns)
-	}
-	theirs, _ = h.drain(po)
-	if v, ok := frameOf(theirs, protocol.TypeVehicle); !ok || v.ID != m.owns.id || v.Owner != m.id {
-		t.Fatalf("the others see the new bike: %+v (%v)", v, ok)
+	if count(theirs, protocol.TypeVehicleGone) != 0 {
+		t.Fatalf("the others must not see the bike go: %+v", theirs)
 	}
 }
 
@@ -108,7 +95,7 @@ func TestAnArchetypeChangeWaitsAMinute(t *testing.T) {
 	}
 	h.drain(p)
 	h.tick(DefaultArchGap - time.Second)
-	if code, _ := h.changeArch(p, toDriver); code != protocol.ErrArchWait {
+	if code, _ := h.changeArch(p, toTraveler); code != protocol.ErrArchWait {
 		t.Fatalf("a change within the minute = %q, want %q", code, protocol.ErrArchWait)
 	}
 	if fs, _ := h.drain(p); count(fs, protocol.TypeError) != 1 || fs[0].Code != protocol.ErrArchWait {
@@ -116,7 +103,7 @@ func TestAnArchetypeChangeWaitsAMinute(t *testing.T) {
 	}
 	// coming back on another connection does not skip the wait
 	p2, m2 := h.join(Arrival{Name: "Tài", Character: "char-tai", Arch: "citizen"})
-	if code, _ := h.changeArch(p2, toDriver); code != protocol.ErrArchWait {
+	if code, _ := h.changeArch(p2, toTraveler); code != protocol.ErrArchWait {
 		t.Fatalf("after a reconnect = %q, want %q", code, protocol.ErrArchWait)
 	}
 	// a guest's wait is its own
@@ -125,7 +112,7 @@ func TestAnArchetypeChangeWaitsAMinute(t *testing.T) {
 		t.Fatalf("a guest's first change = %q", code)
 	}
 	h.tick(time.Second)
-	if code, _ := h.changeArch(p2, toDriver); code != "" || m2.arch != "driver" {
+	if code, _ := h.changeArch(p2, toTraveler); code != "" || m2.arch != "traveler" {
 		t.Fatalf("a minute after the change = %q, arch %q", code, m2.arch)
 	}
 	if len(h.w.archAt) != 1 {
@@ -141,7 +128,7 @@ func TestABusyPlayerKeepsTheirArchetype(t *testing.T) {
 	if !h.w.seat(p, d.riding) {
 		t.Fatal("not seated")
 	}
-	if code, _ := h.changeArch(pp, toDriver); code != protocol.ErrArchBusy {
+	if code, _ := h.changeArch(pp, toTraveler); code != protocol.ErrArchBusy {
 		t.Fatalf("a passenger's change = %q, want %q", code, protocol.ErrArchBusy)
 	}
 	if code, _ := h.changeArch(pd, toCitizen); code != protocol.ErrArchBusy {

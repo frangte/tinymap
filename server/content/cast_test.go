@@ -76,6 +76,9 @@ var noQuests = []byte(`{"titles": [], "stamps": [], "quests": [], "achievements"
 // noItems is an items.json without shops: the shipped shop belongs to an NPC these small casts do not have
 var noItems = []byte(`{"shops": [], "items": []}`)
 
+// noDriving is a driving.json without a licence test, for the same reason
+var noDriving = []byte(`{}`)
+
 // noContacts is a contacts.json with nobody: the shipped numbers belong to NPCs and dialogue these small casts do not have
 var noContacts = []byte(`{"contacts": []}`)
 
@@ -106,7 +109,7 @@ func TestCastRejects(t *testing.T) {
 		{"a goto to nowhere", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "b"}]}`), "not a node"},
 		{"an unreachable node", npcs(""), dialogue(okNodes + `, "b": {"say": {"default": {"vi": "Ơ", "en": "Ơ"}}}`), "cannot be reached"},
 		{"no default line", npcs(""), dialogue(`"a": {"say": {"traveler": {"vi": "Chào", "en": "Chào"}}}`), "default"},
-		{"a line for an archetype that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}, "tourist": {"vi": "Hi", "en": "Hi"}}}`), "not an archetype"},
+		{"a line for an archetype that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}, "tourist": {"vi": "Hi", "en": "Hi"}}}`), "neither an archetype nor a capability"},
 		{"a placeholder other than {name}", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {player}", "en": "Chào {player}"}}}`), "placeholder"},
 		{"{anh_chi} in an English line", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {anh_chi}", "en": "Hello {anh_chi}"}}}`), "Vietnamese"},
 		{"{anh_chi} in a Vietnamese choice is fine, in a bark it is not", npcs(`, "barks": [{"vi": "Ê {anh_chi}", "en": "Hey"}]`), dialogue(okNodes), "Vietnamese"},
@@ -123,7 +126,7 @@ func TestCastRejects(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			f := embedded()
-			f.npcs, f.dialogues, f.quests, f.items = c.npcs, c.dialogues, noQuests, noItems
+			f.npcs, f.dialogues, f.quests, f.items, f.driving = c.npcs, c.dialogues, noQuests, noItems, noDriving
 			f.contacts = noContacts
 			_, err := load(f)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -133,7 +136,7 @@ func TestCastRejects(t *testing.T) {
 	}
 	// and the base case loads, so each failure above is the one edit
 	f := embedded()
-	f.npcs, f.dialogues, f.quests, f.items = npcs(""), dialogue(okNodes), noQuests, noItems
+	f.npcs, f.dialogues, f.quests, f.items, f.driving = npcs(""), dialogue(okNodes), noQuests, noItems, noDriving
 	f.contacts = noContacts
 	if _, err := load(f); err != nil {
 		t.Fatalf("the base case: %v", err)

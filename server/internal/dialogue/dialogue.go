@@ -8,6 +8,7 @@ package dialogue
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,6 +27,9 @@ type Speaker struct {
 	Caps capability.Set
 	// Quests are the ids of the quests the speaker has running
 	Quests map[string]bool
+	// Marks are the conversation's tallies (a quiz's wrong answers); Choose adds to them and a node may reset
+	// them. The world keeps the map with the conversation; nil counts nothing.
+	Marks map[string]int
 }
 
 // Line is a node of a conversation as one speaker sees it.
@@ -36,6 +40,8 @@ type Line struct {
 	EmoteFor time.Duration
 	// Shop is the shop (items.json) this line opens, "" for none
 	Shop string
+	// Fee is the fee (items.json) this line asks for, "" for none
+	Fee string
 	// Choices are the answers the speaker is offered, by index; none means only goodbye is left
 	Choices []protocol.Text
 }
@@ -48,9 +54,15 @@ type Provider interface {
 	Call(graph string) (node string, ok bool)
 	// Line renders a node for a speaker.
 	Line(graph, node string, who Speaker) (Line, error)
-	// Choose applies the speaker's answer (an index into Line's choices for them): next is the node it leads to,
-	// "" when the conversation ends; signal is what the answer sends, "" for nothing.
-	Choose(graph, node string, who Speaker, choice int) (next, signal string, err error)
+	// Choose applies the speaker's answer (an index into Line's choices for them).
+	Choose(graph, node string, who Speaker, choice int) (Step, error)
+}
+
+// Step is where an answer leads: Next is the node, "" when the conversation ends; Signals are what the answer and
+// the node it arrives at send, in that order.
+type Step struct {
+	Next    string
+	Signals []string
 }
 
 var (
@@ -100,11 +112,8 @@ func (s *Script) Line(graph, node string, who Speaker) (Line, error) {
 	if err != nil {
 		return Line{}, err
 	}
-	say, ok := n.Say[who.Arch]
-	if !ok {
-		say = n.Say[content.DefaultVariant]
-	}
-	l := Line{Say: fill(say, who), Shop: n.Shop, Choices: []protocol.Text{}}
+	say := variant(n, who)
+	l := Line{Say: fill(say, who), Shop: n.Shop, Fee: n.Fee, Choices: []protocol.Text{}}
 	if e, ok := s.catalog.Emote(n.Emote); ok {
 		l.Emote, l.EmoteFor = e.Code, time.Duration(e.Seconds*float64(time.Second))
 		if l.EmoteFor <= 0 {
@@ -117,27 +126,49 @@ func (s *Script) Line(graph, node string, who Speaker) (Line, error) {
 	return l, nil
 }
 
-func (s *Script) Choose(graph, node string, who Speaker, choice int) (string, string, error) {
+func (s *Script) Choose(graph, node string, who Speaker, choice int) (Step, error) {
 	n, err := s.node(graph, node)
 	if err != nil {
-		return "", "", err
+		return Step{}, err
 	}
 	on := offered(n, who)
 	if choice < 0 || choice >= len(on) {
-		return "", "", ErrChoice
+		return Step{}, ErrChoice
 	}
 	ch := on[choice]
-	if ch.Goto == content.DialogueEnd {
-		return "", ch.Emit, nil
+	var st Step
+	if ch.Emit != "" {
+		st.Signals = append(st.Signals, ch.Emit)
 	}
-	return ch.Goto, ch.Emit, nil
+	if ch.Mark != "" && who.Marks != nil {
+		who.Marks[ch.Mark]++
+	}
+	next := ch.Goto
+	if g := ch.GotoIf; g != nil && who.Marks[g.Mark] >= g.AtLeast {
+		next = g.Goto
+	}
+	if next == content.DialogueEnd {
+		return st, nil
+	}
+	st.Next = next
+	arrived, err := s.node(graph, next)
+	if err != nil {
+		return Step{}, err
+	}
+	if arrived.ResetMarks {
+		clear(who.Marks)
+	}
+	if arrived.Emit != "" {
+		st.Signals = append(st.Signals, arrived.Emit)
+	}
+	return st, nil
 }
 
 // offered is the answers of n the speaker may pick, in order.
 func offered(n content.DialogueNode, who Speaker) []content.Choice {
 	out := make([]content.Choice, 0, len(n.Choices))
 	for _, ch := range n.Choices {
-		if who.Caps.HasAll(ch.Requires) && (ch.RequiresQuest == "" || who.Quests[ch.RequiresQuest]) {
+		if who.Caps.HasAll(ch.Requires) && !hasAny(who.Caps, ch.Unless) && (ch.RequiresQuest == "" || who.Quests[ch.RequiresQuest]) {
 			out = append(out, ch)
 		}
 	}
@@ -153,4 +184,32 @@ func fill(t protocol.Text, who Speaker) protocol.Text {
 	}
 	vi := strings.NewReplacer(content.PlaceholderName, who.Name, content.PlaceholderAnhChi, anhChi).Replace(t.VI)
 	return protocol.Text{VI: vi, EN: strings.ReplaceAll(t.EN, content.PlaceholderName, who.Name)}
+}
+
+// variant is the line for the speaker: the one for its archetype, else the one for a capability it has (a key
+// with a dot, such as "ridehail.drive"; the first in alphabetical order), else the default.
+func variant(n content.DialogueNode, who Speaker) protocol.Text {
+	if say, ok := n.Say[who.Arch]; ok {
+		return say
+	}
+	keys := make([]string, 0, len(n.Say))
+	for k := range n.Say {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for _, k := range keys {
+		if who.Caps.Has(k) {
+			return n.Say[k]
+		}
+	}
+	return n.Say[content.DefaultVariant]
+}
+
+func hasAny(caps capability.Set, ids []string) bool {
+	for _, id := range ids {
+		if caps.Has(id) {
+			return true
+		}
+	}
+	return false
 }

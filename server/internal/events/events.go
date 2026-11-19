@@ -40,6 +40,10 @@ const (
 	TripCompleted Kind = "trip.completed"
 	// ItemBought: the player bought Item (of ItemKind), paid and kept (published by the shop)
 	ItemBought Kind = "item.bought"
+	// FeePaid: the player paid Fee (items.json), published by the shop
+	FeePaid Kind = "fee.paid"
+	// TestPassed: the player passed the test Test (the A1 licence, server/internal/driving)
+	TestPassed Kind = "test.passed"
 )
 
 // Event is one fact about one character.
@@ -55,6 +59,8 @@ type Event struct {
 	Vehicle   string
 	Item      string
 	ItemKind  string
+	Fee       string
+	Test      string
 	Quest     string
 	Role      string
 	Riding    bool

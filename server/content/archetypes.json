@@ -1,5 +1,5 @@
 {
-  "about": "Who a player can be (docs/design/01-gameplay.md, 11-items.md). job: true marks a role that is earned in play rather than picked at the start (the first pick leaves it out, Đổi vai shows it). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities and has tags (which quests are offered, quests.json), and systems only ever check capabilities and tags, never the archetype id. vehicle is the starter vehicle (vehicles.json), parked next to the player on arrival. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
+  "about": "Who a player can be (docs/design/01-gameplay.md, 11-items.md). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities and has tags (which quests are offered, quests.json), and systems only ever check capabilities and tags, never the archetype id. Driving is not an archetype: the Crab driver is earned in play (docs/design/13-driver.md), and the bike a player owns is an item (items.json) parked next to it on arrival. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
   "capabilities": [
     { "id": "traveler.guide_app", "about": "the Hỏi đường phone app: ask the Citizens online the way to a landmark (the Cẩm nang itself is in the Sổ tay, for everyone)" },
     { "id": "citizen.community_app", "about": "the Hàng Xóm phone app: who is out on the street right now" },
@@ -12,7 +12,12 @@
     { "id": "ridehail.drive", "about": "may go on duty in the Crab Driver app and take ride requests (ridehail.json)" },
     { "id": "traveler.settled", "about": "has finished the foreigner's chapter 0 (quest traveler.an_nhu_nguoi_sai_gon): Anh Tony then suggests ways to earn money; used only to gate that line, never by an archetype" },
     { "id": "phone.basic", "about": "has a phone (any phone, items.json): the phone opens, with notifications, calls, contacts and messages; given by items, never by an archetype" },
-    { "id": "phone.smart", "about": "has a smartphone (items.json): every other phone app (Crab, chat, Hỏi đường, Hàng Xóm, Crab Driver); given by items, never by an archetype" }
+    { "id": "phone.smart", "about": "has a smartphone (items.json): every other phone app (Crab, chat, Hỏi đường, Hàng Xóm, Crab Driver); given by items, never by an archetype" },
+    { "id": "vehicle.motorbike.own", "about": "owns a motorbike (an item of kind bike, items.json); the bike is parked beside the player and the Crab office asks for it" },
+    { "id": "chapter.crab", "about": "has heard that driving a Crab is the way to earn: the quests of chapter 3 are offered (docs/design/13-driver.md); given by the quests Chú Sáu kể chuyện and Anh Tony's suggestion, never by an archetype" },
+    { "id": "exam.a1.ticket", "about": "has paid the A1 licence test fee and not used it yet: spent when a theory or practical attempt starts (docs/design/13-driver.md); given by fees and the test, never by an archetype" },
+    { "id": "exam.a1.retake", "about": "has started an A1 attempt: the next fee is the retake one; given by the test, never by an archetype" },
+    { "id": "exam.a1.theory", "about": "has passed the A1 theory test and may take the practical on the school's bike; given by the test, never by an archetype" }
   ],
   "archetypes": [
     {
@@ -53,21 +58,6 @@
       "spawn": { "place": "pho_di_bo_bui_vien", "at": [-100, -39], "face": [-69, -39], "button": { "vi": "Về Bùi Viện", "en": "Back to Bùi Viện" } },
       "look": { "outfit": "thun", "hat": "cap" },
       "capabilities": ["traveler.guide_app", "directions.ask"]
-    },
-    {
-      "id": "driver",
-      "tags": ["driver"],
-      "job": true,
-      "name": { "vi": "Tài xế Crab Bike", "en": "Crab Bike driver" },
-      "pitch": {
-        "vi": "Áo khoác vàng, mũ bảo hiểm, thuộc từng con đường. Sắp tới: nhận cuốc xe trên điện thoại và chở khách khắp phố.",
-        "en": "Yellow jacket, helmet, knows every street. Coming soon: ride requests on the phone, and passengers all over town."
-      },
-      "badge": { "short": { "vi": "Crab", "en": "Crab" }, "color": "#D9A21B", "text": "#2B211C" },
-      "spawn": { "place": "duong_ham_nghi", "at": [11, 18], "face": [35, 18], "button": { "vi": "Về bãi xe", "en": "Back to the bike stand" } },
-      "look": { "outfit": "crab", "hat": "helmet" },
-      "vehicle": "xe_so_110",
-      "capabilities": ["driver.app", "uniform.crab", "vehicle.motorbike.ride", "ridehail.drive"]
     }
   ],
   "restricted_looks": [

@@ -1,0 +1,1125 @@
+{
+  "id": "thay_muoi",
+  "about": "Thầy Mười runs the A1 licence test in Thủ Thiêm (docs/design/13-driver.md). The fee is paid with the pay message (nodes with a fee), never by an answer. The theory is a quiz: wrong answers add to the conversation's tally `wrong` and the third sends it to `fail`; entering q1 sends thi_bat_dau (the attempt starts: the ticket is spent), entering `pass` sends ly_thuyet_dau, entering practical_go sends thuc_hanh_bat_dau (the server lends the school's bike). The driving module (server/internal/driving) turns those signals into capabilities and runs the practical. Facts: Luật Trật tự, an toàn giao thông đường bộ 2024 (36/2024/QH15) and Nghị định 168/2024/NĐ-CP, in force since 2025-01-01.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": {
+          "vi": "Chào con, thầy là thầy Mười, dạy lái xe ở Thủ Thiêm. Muốn thi bằng A1 thì ghé thầy.",
+          "en": "Hello, I am Thầy Mười, I teach riding here in Thủ Thiêm. Come to me for the A1 licence."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Con muốn thi bằng lái xe máy A1.",
+            "en": "I want to take the A1 motorbike licence."
+          },
+          "goto": "intro",
+          "unless": [
+            "vehicle.motorbike.ride"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Con có bằng rồi thầy.",
+            "en": "I already have my licence."
+          },
+          "goto": "has_licence",
+          "requires": [
+            "vehicle.motorbike.ride"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Thi bằng gồm những gì vậy thầy?",
+            "en": "What does the test involve?"
+          },
+          "goto": "about"
+        },
+        {
+          "text": {
+            "vi": "Dạ thôi, con đi dạo tiếp.",
+            "en": "No thanks, I will keep walking."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "about": {
+      "say": {
+        "default": {
+          "vi": "Hai phần. Lý thuyết mười câu về biển báo và luật, đúng tám câu là đậu. Thực hành thì thầy cho mượn xe của trường, con chạy qua các điểm trong hai phút, không được xuống xe. Lệ phí hai trăm ngàn, rớt thi lại năm chục ngàn.",
+          "en": "Two parts. Ten theory questions on signs and rules, eight right to pass. Then the practical: I lend you the school's bike and you ride through the checkpoints within two minutes without getting off. The fee is 200.000đ, and a retake is 50.000đ."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Con muốn thi.",
+            "en": "I want to take it."
+          },
+          "goto": "intro",
+          "unless": [
+            "vehicle.motorbike.ride"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn thầy.",
+            "en": "Thank you, Thầy."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "intro": {
+      "say": {
+        "default": {
+          "vi": "Được. Lệ phí phải đóng trước, bấm nút bên dưới. Thi xong lý thuyết mới tới thực hành. Ngoài đời còn thi vòng số 8 với đường thẳng hẹp, sân tập của thầy đang xây nên con chạy ngoài phố thay.",
+          "en": "Good. The fee comes first: press the button below. Theory first, then the practical. In real life you also ride a figure 8 and a narrow straight line, but my yard is still being built, so you ride the streets instead."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Con đóng lệ phí thi.",
+            "en": "I will pay the test fee."
+          },
+          "goto": "fee_first",
+          "unless": [
+            "exam.a1.ticket",
+            "exam.a1.retake",
+            "exam.a1.theory"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Con đóng lệ phí thi lại.",
+            "en": "I will pay the retake fee."
+          },
+          "goto": "fee_retake",
+          "requires": [
+            "exam.a1.retake"
+          ],
+          "unless": [
+            "exam.a1.ticket"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Con thi lý thuyết.",
+            "en": "I will take the theory test."
+          },
+          "goto": "quiz_intro",
+          "requires": [
+            "exam.a1.ticket"
+          ],
+          "unless": [
+            "exam.a1.theory"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Con thi thực hành.",
+            "en": "I will take the practical."
+          },
+          "goto": "practical_intro",
+          "requires": [
+            "exam.a1.ticket",
+            "exam.a1.theory"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Để con suy nghĩ thêm.",
+            "en": "Let me think about it."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "fee_first": {
+      "say": {
+        "default": {
+          "vi": "Lệ phí thi hai trăm ngàn. Đóng rồi thầy mới cho thi. Thầy không nhận tiền mặt, con bấm nút nghen.",
+          "en": "The test fee is 200.000đ. You pay first, then you sit it. I take no cash, press the button."
+        }
+      },
+      "fee": "thi_a1",
+      "choices": [
+        {
+          "text": {
+            "vi": "Con đóng rồi, thi lý thuyết đi thầy.",
+            "en": "Paid. Let us do the theory, Thầy."
+          },
+          "goto": "quiz_intro",
+          "requires": [
+            "exam.a1.ticket"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Để con suy nghĩ thêm.",
+            "en": "Let me think about it."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "fee_retake": {
+      "say": {
+        "default": {
+          "vi": "Thi lại thì lệ phí năm chục ngàn thôi. Con bấm nút để đóng.",
+          "en": "A retake is only 50.000đ. Press the button to pay."
+        }
+      },
+      "fee": "thi_lai_a1",
+      "choices": [
+        {
+          "text": {
+            "vi": "Con đóng rồi, thi lý thuyết lại thầy.",
+            "en": "Paid. Theory again, Thầy."
+          },
+          "goto": "quiz_intro",
+          "requires": [
+            "exam.a1.ticket"
+          ],
+          "unless": [
+            "exam.a1.theory"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Con đóng rồi, thi thực hành lại thầy.",
+            "en": "Paid. The practical again, Thầy."
+          },
+          "goto": "practical_intro",
+          "requires": [
+            "exam.a1.ticket",
+            "exam.a1.theory"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Để con suy nghĩ thêm.",
+            "en": "Let me think about it."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "quiz_intro": {
+      "say": {
+        "default": {
+          "vi": "Mười câu, đúng tám câu là đậu. Sai ba câu là rớt liền. Một lần thi là một lần đóng lệ phí, đừng bỏ giữa chừng nghen. Sẵn sàng chưa?",
+          "en": "Ten questions, eight right to pass. Three wrong and you fail on the spot. One attempt is one fee, so do not walk out halfway. Ready?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ sẵn sàng.",
+            "en": "Ready."
+          },
+          "goto": "q1",
+          "requires": [
+            "exam.a1.ticket"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Để con xem lại bài.",
+            "en": "Let me revise first."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "q1": {
+      "say": {
+        "default": {
+          "vi": "Câu 1 trên 10. Đèn giao thông chuyển sang đỏ. Con làm gì?",
+          "en": "Question 1 of 10. The traffic light turns red. What do you do?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Tăng ga qua cho kịp",
+            "en": "Speed up to make it"
+          },
+          "goto": "q1_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Dừng lại trước vạch dừng",
+            "en": "Stop before the stop line"
+          },
+          "goto": "q1_ok"
+        },
+        {
+          "text": {
+            "vi": "Chạy chậm qua nếu đường vắng",
+            "en": "Roll through slowly if the road is empty"
+          },
+          "goto": "q1_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        }
+      ],
+      "emit": "thi_bat_dau",
+      "reset_marks": true
+    },
+    "q1_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Đèn đỏ là phải dừng trước vạch dừng, dù đường vắng. Xe máy vượt đèn đỏ bị phạt từ 4 đến 6 triệu đồng.",
+          "en": "Right! Red means stop before the stop line, even on an empty road. A motorbike running a red light is fined 4 to 6 million đồng."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q2"
+        }
+      ]
+    },
+    "q1_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Đèn đỏ là phải dừng trước vạch dừng, dù đường vắng. Xe máy vượt đèn đỏ bị phạt từ 4 đến 6 triệu đồng.",
+          "en": "Wrong. Red means stop before the stop line, even on an empty road. A motorbike running a red light is fined 4 to 6 million đồng."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q2"
+        }
+      ]
+    },
+    "q2": {
+      "say": {
+        "default": {
+          "vi": "Câu 2 trên 10. Chạy xe máy thì ai phải đội mũ bảo hiểm?",
+          "en": "Question 2 of 10. On a motorbike, who must wear a helmet?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Chỉ người lái",
+            "en": "Only the rider"
+          },
+          "goto": "q2_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Chỉ khi đi đường xa",
+            "en": "Only on long trips"
+          },
+          "goto": "q2_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Cả người lái và người ngồi sau, cài quai cho đúng",
+            "en": "Both rider and passenger, with the strap fastened"
+          },
+          "goto": "q2_ok"
+        }
+      ]
+    },
+    "q2_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Cả người lái và người ngồi sau đều phải đội mũ và cài quai đúng cách. Người lái không đội hoặc không cài quai bị phạt từ 400 đến 600 nghìn đồng.",
+          "en": "Right! Rider and passenger both wear a helmet with the strap fastened. A rider with no helmet, or an unfastened one, is fined 400 to 600 thousand đồng."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q3"
+        }
+      ]
+    },
+    "q2_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Cả người lái và người ngồi sau đều phải đội mũ và cài quai đúng cách. Người lái không đội hoặc không cài quai bị phạt từ 400 đến 600 nghìn đồng.",
+          "en": "Wrong. Rider and passenger both wear a helmet with the strap fastened. A rider with no helmet, or an unfastened one, is fined 400 to 600 thousand đồng."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q3"
+        }
+      ]
+    },
+    "q3": {
+      "say": {
+        "default": {
+          "vi": "Câu 3 trên 10. Con uống một lon bia rồi chạy xe máy. Được không?",
+          "en": "Question 3 of 10. You had one can of beer and want to ride. Is that allowed?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Không được: người lái xe không được có nồng độ cồn",
+            "en": "No: a driver may have no alcohol at all"
+          },
+          "goto": "q3_ok"
+        },
+        {
+          "text": {
+            "vi": "Được, nếu chạy chậm",
+            "en": "Yes, if you ride slowly"
+          },
+          "goto": "q3_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Được, mới một lon thôi",
+            "en": "Yes, it is only one can"
+          },
+          "goto": "q3_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        }
+      ]
+    },
+    "q3_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Luật Trật tự, an toàn giao thông đường bộ 2024 cấm lái xe khi trong máu hoặc hơi thở có nồng độ cồn: mức cho phép là không. Uống rồi thì đi Crab, đừng lái!",
+          "en": "Right! The 2024 Road Traffic Order and Safety Law bans driving with any alcohol in your blood or breath: the allowed level is zero. Had a drink? Take a Crab, do not ride!"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q4"
+        }
+      ]
+    },
+    "q3_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Luật Trật tự, an toàn giao thông đường bộ 2024 cấm lái xe khi trong máu hoặc hơi thở có nồng độ cồn: mức cho phép là không. Uống rồi thì đi Crab, đừng lái!",
+          "en": "Wrong. The 2024 Road Traffic Order and Safety Law bans driving with any alcohol in your blood or breath: the allowed level is zero. Had a drink? Take a Crab, do not ride!"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q4"
+        }
+      ]
+    },
+    "q4": {
+      "say": {
+        "default": {
+          "vi": "Câu 4 trên 10. Biển tròn, viền đỏ, nền trắng báo điều gì?",
+          "en": "Question 4 of 10. What does a round sign with a red border and white background say?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Cấm: có điều không được làm",
+            "en": "A prohibition: something you must not do"
+          },
+          "goto": "q4_ok"
+        },
+        {
+          "text": {
+            "vi": "Nguy hiểm phía trước",
+            "en": "Danger ahead"
+          },
+          "goto": "q4_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Chỉ dẫn đường đi",
+            "en": "Directions"
+          },
+          "goto": "q4_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        }
+      ]
+    },
+    "q4_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Biển tròn viền đỏ là biển báo cấm: cấm đi ngược chiều, cấm rẽ trái, cấm đỗ xe… Thấy là phải tuân theo.",
+          "en": "Right! A round sign with a red border prohibits: no entry, no left turn, no parking… Obey it."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q5"
+        }
+      ]
+    },
+    "q4_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Biển tròn viền đỏ là biển báo cấm: cấm đi ngược chiều, cấm rẽ trái, cấm đỗ xe… Thấy là phải tuân theo.",
+          "en": "Wrong. A round sign with a red border prohibits: no entry, no left turn, no parking… Obey it."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q5"
+        }
+      ]
+    },
+    "q5": {
+      "say": {
+        "default": {
+          "vi": "Câu 5 trên 10. Biển tam giác, viền đỏ, nền vàng là biển gì?",
+          "en": "Question 5 of 10. What is a triangular sign with a red border and yellow background?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Biển hiệu lệnh",
+            "en": "A command sign"
+          },
+          "goto": "q5_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Biển chỉ dẫn",
+            "en": "A direction sign"
+          },
+          "goto": "q5_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Biển cảnh báo nguy hiểm",
+            "en": "A danger warning sign"
+          },
+          "goto": "q5_ok"
+        }
+      ]
+    },
+    "q5_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Tam giác viền đỏ nền vàng là biển cảnh báo nguy hiểm: đường trơn, trẻ em qua đường, đường gồ ghề… Thấy là giảm tốc.",
+          "en": "Right! A red-bordered yellow triangle warns of danger: slippery road, children crossing, bumps… Slow down when you see one."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q6"
+        }
+      ]
+    },
+    "q5_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Tam giác viền đỏ nền vàng là biển cảnh báo nguy hiểm: đường trơn, trẻ em qua đường, đường gồ ghề… Thấy là giảm tốc.",
+          "en": "Wrong. A red-bordered yellow triangle warns of danger: slippery road, children crossing, bumps… Slow down when you see one."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q6"
+        }
+      ]
+    },
+    "q6": {
+      "say": {
+        "default": {
+          "vi": "Câu 6 trên 10. Ngã tư không đèn, không biển báo. Xe con và xe bên phải cùng tới. Ai đi trước?",
+          "en": "Question 6 of 10. An intersection with no lights or signs. You and a vehicle on your right arrive together. Who goes first?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Xe nào bấm còi trước",
+            "en": "Whoever honks first"
+          },
+          "goto": "q6_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Xe bên phải, con nhường",
+            "en": "The vehicle on your right: you give way"
+          },
+          "goto": "q6_ok"
+        },
+        {
+          "text": {
+            "vi": "Xe nào chạy nhanh hơn",
+            "en": "Whoever is faster"
+          },
+          "goto": "q6_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        }
+      ]
+    },
+    "q6_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Ở nơi giao nhau không có đèn hay biển báo, phải nhường đường cho xe đi tới từ bên phải mình.",
+          "en": "Right! Where roads meet without lights or signs, give way to vehicles coming from your right."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q7"
+        }
+      ]
+    },
+    "q6_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Ở nơi giao nhau không có đèn hay biển báo, phải nhường đường cho xe đi tới từ bên phải mình.",
+          "en": "Wrong. Where roads meet without lights or signs, give way to vehicles coming from your right."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q7"
+        }
+      ]
+    },
+    "q7": {
+      "say": {
+        "default": {
+          "vi": "Câu 7 trên 10. Đèn vàng nhấp nháy nghĩa là gì?",
+          "en": "Question 7 of 10. What does a flashing yellow light mean?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Giống đèn đỏ, phải dừng",
+            "en": "The same as red: stop"
+          },
+          "goto": "q7_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Tăng tốc cho kịp qua",
+            "en": "Speed up to get through"
+          },
+          "goto": "q7_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Được đi nhưng phải giảm tốc, quan sát và nhường người đi bộ",
+            "en": "You may go, but slow down, look and give way to pedestrians"
+          },
+          "goto": "q7_ok"
+        }
+      ]
+    },
+    "q7_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Đèn vàng nhấp nháy: được đi nhưng phải giảm tốc độ, chú ý quan sát và nhường đường cho người đi bộ.",
+          "en": "Right! A flashing yellow light lets you go, but you must slow down, look carefully and give way to pedestrians."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q8"
+        }
+      ]
+    },
+    "q7_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Đèn vàng nhấp nháy: được đi nhưng phải giảm tốc độ, chú ý quan sát và nhường đường cho người đi bộ.",
+          "en": "Wrong. A flashing yellow light lets you go, but you must slow down, look carefully and give way to pedestrians."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q8"
+        }
+      ]
+    },
+    "q8": {
+      "say": {
+        "default": {
+          "vi": "Câu 8 trên 10. Điện thoại reo khi con đang chạy xe. Con làm sao?",
+          "en": "Question 8 of 10. Your phone rings while you ride. What do you do?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Tấp vào lề, dừng lại rồi mới nghe",
+            "en": "Pull over and stop before you answer"
+          },
+          "goto": "q8_ok"
+        },
+        {
+          "text": {
+            "vi": "Một tay cầm máy nghe cho lẹ",
+            "en": "Answer one-handed, quickly"
+          },
+          "goto": "q8_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Kẹp máy giữa vai và cổ",
+            "en": "Pinch it between shoulder and ear"
+          },
+          "goto": "q8_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        }
+      ]
+    },
+    "q8_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Người lái xe không được dùng điện thoại khi đang lái. Cần nghe thì tấp vào lề, dừng hẳn rồi mới nghe.",
+          "en": "Right! A driver must not use a phone while driving. If you need to answer, pull over and stop first."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q9"
+        }
+      ]
+    },
+    "q8_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Người lái xe không được dùng điện thoại khi đang lái. Cần nghe thì tấp vào lề, dừng hẳn rồi mới nghe.",
+          "en": "Wrong. A driver must not use a phone while driving. If you need to answer, pull over and stop first."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q9"
+        }
+      ]
+    },
+    "q9": {
+      "say": {
+        "default": {
+          "vi": "Câu 9 trên 10. Kẹt xe quá. Con chạy lên vỉa hè cho lẹ được không?",
+          "en": "Question 9 of 10. Heavy traffic. May you ride up onto the pavement to get ahead?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Được, nếu bấm còi",
+            "en": "Yes, if you use your horn"
+          },
+          "goto": "q9_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Không, vỉa hè dành cho người đi bộ",
+            "en": "No, the pavement is for pedestrians"
+          },
+          "goto": "q9_ok"
+        },
+        {
+          "text": {
+            "vi": "Được, nếu không có ai",
+            "en": "Yes, if nobody is there"
+          },
+          "goto": "q9_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        }
+      ]
+    },
+    "q9_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Vỉa hè dành cho người đi bộ. Xe máy chạy lên vỉa hè bị phạt, kẹt xe thì kiên nhẫn chờ nghen.",
+          "en": "Right! Pavements are for pedestrians. A motorbike on the pavement is fined. Stuck in traffic? Be patient."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q10"
+        }
+      ]
+    },
+    "q9_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Vỉa hè dành cho người đi bộ. Xe máy chạy lên vỉa hè bị phạt, kẹt xe thì kiên nhẫn chờ nghen.",
+          "en": "Wrong. Pavements are for pedestrians. A motorbike on the pavement is fined. Stuck in traffic? Be patient."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "q10"
+        }
+      ]
+    },
+    "q10": {
+      "say": {
+        "default": {
+          "vi": "Câu 10 trên 10. Xe số 110 phân khối cần bằng lái hạng nào?",
+          "en": "Question 10 of 10. Which licence class does a 110cc bike need?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Hạng B",
+            "en": "Class B"
+          },
+          "goto": "q10_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Hạng C",
+            "en": "Class C"
+          },
+          "goto": "q10_no",
+          "mark": "wrong",
+          "goto_if": {
+            "mark": "wrong",
+            "at_least": 3,
+            "goto": "fail"
+          }
+        },
+        {
+          "text": {
+            "vi": "Hạng A1",
+            "en": "Class A1"
+          },
+          "goto": "q10_ok"
+        }
+      ]
+    },
+    "q10_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Xe máy từ 50 đến dưới 125 phân khối như xe số 110 cần bằng hạng A1. Con đang thi đúng cái bằng đó!",
+          "en": "Right! A motorbike from 50 to under 125 cc, like a 110, needs a class A1 licence. That is the one you are taking!"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "pass"
+        }
+      ]
+    },
+    "q10_no": {
+      "say": {
+        "default": {
+          "vi": "Sai rồi. Xe máy từ 50 đến dưới 125 phân khối như xe số 110 cần bằng hạng A1. Con đang thi đúng cái bằng đó!",
+          "en": "Wrong. A motorbike from 50 to under 125 cc, like a 110, needs a class A1 licence. That is the one you are taking!"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Câu tiếp theo.",
+            "en": "Next question."
+          },
+          "goto": "pass"
+        }
+      ]
+    },
+    "pass": {
+      "say": {
+        "default": {
+          "vi": "Đậu lý thuyết rồi! Giỏi lắm. Giờ qua thực hành, xe của trường thầy đậu sẵn đó.",
+          "en": "You passed the theory! Well done. On to the practical: the school bike is waiting."
+        }
+      },
+      "emit": "ly_thuyet_dau",
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con thi thực hành luôn.",
+            "en": "Yes, the practical right now."
+          },
+          "goto": "practical_intro"
+        },
+        {
+          "text": {
+            "vi": "Để con nghỉ một chút.",
+            "en": "Let me rest a moment."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "fail": {
+      "say": {
+        "default": {
+          "vi": "Sai ba câu rồi, rớt con ơi. Học lại luật rồi thi lại nghen, lệ phí thi lại năm chục ngàn thôi.",
+          "en": "Three wrong, you did not pass. Study the rules and come back: a retake is only 50.000đ."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con đóng lệ phí thi lại.",
+            "en": "I will pay the retake fee."
+          },
+          "goto": "fee_retake"
+        },
+        {
+          "text": {
+            "vi": "Dạ, con về học lại.",
+            "en": "I will go and study."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "practical_intro": {
+      "say": {
+        "default": {
+          "vi": "Xe của trường đậu bên cạnh con. Lên xe là bắt đầu tính giờ: chạy qua các điểm theo thứ tự trong hai phút, không được xuống xe. Nhìn xa phía trước, đừng ngó bánh xe! Ga đều tay!",
+          "en": "The school bike will be parked beside you. The clock starts when you get on: ride through the checkpoints in order within two minutes, and do not get off. Look far ahead, not at the wheel! Smooth on the throttle!"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ con sẵn sàng.",
+            "en": "I am ready."
+          },
+          "goto": "practical_go",
+          "requires": [
+            "exam.a1.ticket",
+            "exam.a1.theory"
+          ]
+        },
+        {
+          "text": {
+            "vi": "Để con chuẩn bị thêm.",
+            "en": "Let me get ready."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "practical_go": {
+      "say": {
+        "default": {
+          "vi": "Xe đậu bên cạnh con đó. Lên xe đi, thầy ở đây coi. Chạy cẩn thận nghen!",
+          "en": "The bike is right beside you. Get on, I am watching. Ride carefully!"
+        }
+      },
+      "emit": "thuc_hanh_bat_dau"
+    },
+    "has_licence": {
+      "say": {
+        "default": {
+          "vi": "Có bằng rồi thì chạy xe cho cẩn thận, đội mũ, đừng uống rượu bia. Cần mua xe thì ra Chợ Lớn tìm chú Tám.",
+          "en": "With a licence, ride carefully, wear your helmet, never drink and ride. Need a bike? Find Chú Tám in Chợ Lớn."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn thầy.",
+            "en": "Thank you, Thầy."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "Ừ, đi đường cẩn thận nghen con.",
+          "en": "Alright, take care on the road."
+        }
+      }
+    }
+  }
+}

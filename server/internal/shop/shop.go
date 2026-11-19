@@ -33,11 +33,14 @@ type Service struct {
 	// world runs.
 	OnCapability func(character, capability string)
 	spots        map[string]spot // by shop id
+	// deals are the bargains in force, by player then shop: the percent off the next purchase there. They end with
+	// a purchase or when the player leaves; a client never names a price.
+	deals map[uint32]map[string]int
 }
 
 // New makes the module; hand it to world.Use.
 func New(h world.Host, c *content.Catalog, bank Bank, log *slog.Logger) *Service {
-	s := &Service{h: h, catalog: c, bank: bank, log: log, spots: map[string]spot{}}
+	s := &Service{h: h, catalog: c, bank: bank, log: log, spots: map[string]spot{}, deals: map[uint32]map[string]int{}}
 	for _, sh := range c.Shops {
 		if n, ok := c.NPCByID(sh.NPC); ok {
 			x, z, _ := n.ThreePose()
@@ -48,15 +51,42 @@ func New(h world.Host, c *content.Catalog, bank Bank, log *slog.Logger) *Service
 }
 
 func (s *Service) Handle(m world.Member, msg protocol.ClientMsg) bool {
-	if msg.T != protocol.TypeBuy {
+	switch msg.T {
+	case protocol.TypeBuy:
+		s.onBuy(m, msg)
+	case protocol.TypePay:
+		s.onPay(m, msg)
+	default:
 		return false
 	}
-	s.onBuy(m, msg)
 	return true
 }
 
-func (s *Service) Tick(time.Time)    {}
-func (s *Service) Left(world.Member) {}
+func (s *Service) Tick(time.Time) {}
+
+func (s *Service) Left(m world.Member) { delete(s.deals, m.ID()) }
+
+// Signalled starts a bargain: the signal a shop's haggle names, said to the shop's NPC, takes a percent off the
+// player's next purchase there (docs/design/13-driver.md).
+func (s *Service) Signalled(m world.Member, npc, signal string) {
+	for _, sh := range s.catalog.Shops {
+		h := sh.Haggle
+		if h == nil || sh.NPC != npc || h.Signal != signal {
+			continue
+		}
+		if s.deals[m.ID()] == nil {
+			s.deals[m.ID()] = map[string]int{}
+		}
+		s.deals[m.ID()][sh.ID] = h.Percent
+		s.h.Send(m.ID(), protocol.Encode(protocol.Deal{T: protocol.TypeDeal, Shop: sh.ID, Percent: h.Percent}))
+	}
+}
+
+// priceFor is what the player pays for the item now: its price less the bargain in force in its shop.
+func (s *Service) priceFor(m world.Member, item content.Item) int64 {
+	pct := int64(s.deals[m.ID()][item.Shop])
+	return item.Price - item.Price*pct/100
+}
 
 func (s *Service) result(id, rid uint32, code string) {
 	if rid == 0 {
@@ -78,9 +108,12 @@ func (s *Service) onBuy(m world.Member, msg protocol.ClientMsg) {
 	case !s.near(m, item.Shop):
 		s.result(m.ID(), msg.Rid, protocol.ResFar)
 		return
+	case !m.Caps().HasAll(item.Requires):
+		s.result(m.ID(), msg.Rid, protocol.ResLocked)
+		return
 	}
 	id, rid, character := m.ID(), msg.Rid, m.Character()
-	p := Purchase{Character: character, Item: item.ID, Price: item.Price, Grants: item.Grants, At: s.h.Now().UnixMilli()}
+	p := Purchase{Character: character, Item: item.ID, Price: s.priceFor(m, item), Grants: item.Grants, At: s.h.Now().UnixMilli()}
 	var balance int64
 	var owned []string
 	s.h.Do(character, func(ctx context.Context) error {
@@ -133,6 +166,14 @@ func (s *Service) bought(id, rid uint32, item content.Item, p Purchase, balance 
 	m, ok := s.h.Member(id)
 	if !ok || m.Character() != p.Character {
 		return
+	}
+	if _, bargained := s.deals[id][item.Shop]; bargained {
+		delete(s.deals[id], item.Shop)
+		s.h.Send(id, protocol.Encode(protocol.Deal{T: protocol.TypeDeal, Shop: item.Shop}))
+	}
+	if v, ok := s.catalog.Vehicle(item.Vehicle); ok && item.Kind == content.KindBike {
+		// the bike it bought stands beside it now, and on every arrival after
+		s.h.Park(id, world.VehicleSpec{Kind: v.ID, Speed: v.Speed, Requires: v.Requires})
 	}
 	s.h.Send(id, protocol.Encode(protocol.Wallet{T: protocol.TypeWallet, Balance: balance}))
 	s.h.Send(id, protocol.Encode(protocol.Items{T: protocol.TypeItems, Items: owned, Apps: s.catalog.AppsFor(s.capsWith(m, owned))}))

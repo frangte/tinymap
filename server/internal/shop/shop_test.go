@@ -51,6 +51,7 @@ type host struct {
 	inbox   map[uint32][][]byte
 	jobs    []job
 	events  []events.Event
+	parked  []world.VehicleSpec
 }
 
 func (h *host) Member(id uint32) (world.Member, bool) { m, ok := h.members[id]; return m, ok }
@@ -66,9 +67,12 @@ func (h *host) Send(id uint32, frame []byte)      { h.inbox[id] = append(h.inbox
 func (h *host) Do(_ string, run func(context.Context) error, done func(error)) {
 	h.jobs = append(h.jobs, job{run, done})
 }
-func (h *host) Publish(ev events.Event) { h.events = append(h.events, ev) }
-func (h *host) Now() time.Time          { return time.UnixMilli(1_000) }
-func (h *host) Kick(uint32, string)     {}
+func (h *host) Publish(ev events.Event)             { h.events = append(h.events, ev) }
+func (h *host) Now() time.Time                      { return time.UnixMilli(1_000) }
+func (h *host) Kick(uint32, string)                 {}
+func (h *host) Park(_ uint32, v world.VehicleSpec)  { h.parked = append(h.parked, v) }
+func (h *host) Lend(uint32, world.VehicleSpec) bool { return false }
+func (h *host) Return(uint32)                       {}
 
 func (h *host) settle() {
 	for len(h.jobs) > 0 {

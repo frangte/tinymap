@@ -87,8 +87,16 @@ func TestItemsReject(t *testing.T) {
 		}
 		return `{` + strings.Join(parts, ", ") + `}`
 	}
+	// the shops and fees the shipped dialogues open must exist whatever else a case replaces
+	const others = `{"id": "xe_chu_tam", "npc": "chu_tam", "name": {"vi": "X", "en": "X"}}, {"id": "van_phong_crab", "npc": "chi_vy", "name": {"vi": "V", "en": "V"}}`
+	const fees = `{"id": "thi_a1", "npc": "thay_muoi", "amount": 200000, "grants": ["exam.a1.ticket"], "name": {"vi": "T", "en": "T"}, "about": {"vi": "T", "en": "T"}},
+		{"id": "thi_lai_a1", "npc": "thay_muoi", "amount": 50000, "grants": ["exam.a1.ticket"], "name": {"vi": "T", "en": "T"}, "about": {"vi": "T", "en": "T"}}`
 	file := func(shops, items string) []byte {
-		return []byte(`{"shops": [` + shops + `], "items": [` + items + `]}`)
+		sep := ""
+		if shops != "" {
+			sep = ", "
+		}
+		return []byte(`{"shops": [` + shops + sep + others + `], "fees": [` + fees + `], "items": [` + items + `]}`)
 	}
 	cases := []struct {
 		name string

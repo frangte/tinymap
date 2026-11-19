@@ -25,6 +25,8 @@ type vehicle struct {
 	passenger *member
 	guest     *npc
 	pose      protocol.Pose
+	// requires is the capability the rider needs, "" for none
+	requires string
 }
 
 // parkOffset is how far to the side of its player a vehicle is parked (m).
@@ -52,7 +54,7 @@ func (v *vehicle) encode() []byte {
 // addVehicle parks a new vehicle beside its owner.
 func (w *World) addVehicle(owner *member, spec VehicleSpec) *vehicle {
 	w.nextID++
-	v := &vehicle{id: w.nextID, kind: spec.Kind, speed: spec.Speed, owner: owner}
+	v := &vehicle{id: w.nextID, kind: spec.Kind, speed: spec.Speed, owner: owner, requires: spec.Requires}
 	w.parkBeside(v, owner.pose)
 	w.vehicles[v.id] = v
 	owner.owns = v
@@ -98,7 +100,7 @@ func (w *World) vehicleList() []protocol.Vehicle {
 // against the vehicle's speed. Everyone hears of it; a refusal only goes to the member.
 func (w *World) onMount(p *Peer, m *member, id uint32) {
 	v := w.vehicles[id]
-	if v == nil || v.owner != m || v.rider != nil || m.riding != nil || m.seated != nil ||
+	if v == nil || v.owner != m || v.rider != nil || (v.requires != "" && !m.caps.Has(v.requires)) || m.riding != nil || m.seated != nil ||
 		math.Hypot(v.pose.X-m.pose.X, v.pose.Z-m.pose.Z) > w.cfg.Move.MountReach {
 		w.sendTo(p, protocol.Encode(protocol.Error{T: protocol.TypeError, Code: protocol.ErrMount}))
 		return

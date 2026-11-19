@@ -81,6 +81,7 @@ type Refs interface {
 	Vehicle(id string) (content.Vehicle, bool)
 	Quest(id string) (content.Quest, bool)
 	Item(id string) (content.Item, bool)
+	Fee(id string) (content.Fee, bool)
 	// ItemsOfKind is how many items of the kind there are
 	ItemsOfKind(kind string) int
 	// Emits: some answer of the NPC's dialogue sends the signal

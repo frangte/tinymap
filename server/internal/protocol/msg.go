@@ -65,6 +65,9 @@ const (
 	// TypeBuy buys an item (item) in the shop of the NPC the player stands next to (server/internal/shop); the server
 	// answers with a result for the rid, and on success a wallet and an items first
 	TypeBuy = "buy"
+	// TypePay pays a fee (fee) to the NPC the player stands next to (server/internal/shop, docs/design/13-driver.md);
+	// answered like buy
+	TypePay = "pay"
 	// TypeCall calls a contact (contact) of the phone: a conversation with them wherever both are
 	// (server/internal/world); the server answers with a result for the rid, and the conversation's first
 	// interaction. TypeTextsRead says the player has read its texts.
@@ -95,6 +98,10 @@ const (
 	TypeWallet = "wallet"
 	// TypeItems is every item a character owns and the phone apps it has now, after a purchase
 	TypeItems = "items"
+	// TypeDeal is a price the player bargained down in a shop, so its sheet shows what it will pay
+	TypeDeal = "deal"
+	// TypeDriveTest is the state of the A1 practical test the player is on (server/internal/driving)
+	TypeDriveTest = "drive_test"
 	// TypePhone is the numbers a character has and the texts it got, when it joins and when it gets a phone;
 	// TypeContact is a number it just got; TypeText a text that just arrived (server/internal/phone)
 	TypePhone   = "phone"
@@ -174,6 +181,8 @@ const (
 	ResBalance = "balance"
 	// ResPhone: a call without a phone (phone.basic)
 	ResPhone = "phone"
+	// ResLocked: a buy or a fee whose prerequisites (capabilities) the character does not have yet
+	ResLocked = "locked"
 	// ResBusy: a buy that could not be written now (the database is slow or down); nothing was kept, try again
 	ResBusy = "busy"
 )
@@ -269,6 +278,8 @@ type ClientMsg struct {
 	Step uint32 `json:"step"`
 	// Item is the item to buy, in buy (an id from server/content/items.json)
 	Item string `json:"item"`
+	// Fee is the fee to pay, in pay (an id from server/content/items.json)
+	Fee string `json:"fee"`
 	// Contact is the number to call, in call (a contact id from server/content/contacts.json)
 	Contact string `json:"contact"`
 	// Rid is a request id, in interact, choose, call and buy: the server answers {"t":"result","rid":…} (0: no answer wanted)
@@ -340,7 +351,7 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeChoose {
 		m.C, m.Step = 0, 0
 	}
-	if m.T != TypeInteract && m.T != TypeChoose && m.T != TypeBuy && m.T != TypeCall {
+	if m.T != TypeInteract && m.T != TypeChoose && m.T != TypeBuy && m.T != TypePay && m.T != TypeCall {
 		m.Rid = 0
 	}
 	if m.T != TypeCall {
@@ -348,6 +359,9 @@ func Decode(data []byte) (ClientMsg, error) {
 	}
 	if m.T != TypeBuy {
 		m.Item = ""
+	}
+	if m.T != TypePay {
+		m.Fee = ""
 	}
 	if m.T != TypeTitle {
 		m.Title = ""
@@ -411,6 +425,10 @@ func Decode(data []byte) (ClientMsg, error) {
 		}
 	case TypeBuy:
 		if m.Item == "" || len(m.Item) > ArchMax || !titlePattern.MatchString(m.Item) {
+			return m, ErrBadItem
+		}
+	case TypePay:
+		if m.Fee == "" || len(m.Fee) > ArchMax || !titlePattern.MatchString(m.Fee) {
 			return m, ErrBadItem
 		}
 	case TypeCall:
@@ -577,6 +595,8 @@ type Interaction struct {
 	Choices []Text `json:"choices"`
 	// Shop is the shop (server/content/items.json) the line opens: the game shows a button for its sheet
 	Shop string `json:"shop,omitempty"`
+	// Fee is the fee (items.json) the line asks for: the game shows a button that pays it
+	Fee string `json:"fee,omitempty"`
 	// Call is the contact id when the conversation is a phone call ("" face to face): N is then a voice the game
 	// does not see, and the sheet shows the contact instead
 	Call string `json:"call,omitempty"`
@@ -617,6 +637,29 @@ type Items struct {
 	T     string   `json:"t"`
 	Items []string `json:"items"`
 	Apps  []string `json:"apps"`
+}
+
+// Deal is the discount a player bargained in a shop (items.json, haggle): the sheet shows prices Percent off until
+// it ends (Percent 0).
+type Deal struct {
+	T       string `json:"t"`
+	Shop    string `json:"shop"`
+	Percent int    `json:"percent"`
+}
+
+// DriveTest is the practical test of the A1 licence as the player is on it. State is "lent" (the school's bike
+// is beside them), "run" (the clock is going: Next is the checkpoint to ride to, Index of Total, Left seconds
+// remain), "pass" or "fail" (Reason: "time", "off" or "away").
+type DriveTest struct {
+	T     string  `json:"t"`
+	State string  `json:"state"`
+	Index int     `json:"index,omitempty"`
+	Total int     `json:"total,omitempty"`
+	Left  float64 `json:"left,omitempty"`
+	// Next is the next checkpoint in three.js x and z, with its radius (m)
+	Next   []float64 `json:"next,omitempty"`
+	Radius float64   `json:"radius,omitempty"`
+	Reason string    `json:"reason,omitempty"`
 }
 
 // PhoneText is a text message: ID is stable (the quest and moment that sent it), From a contact id.

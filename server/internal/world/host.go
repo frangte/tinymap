@@ -61,6 +61,20 @@ type Host interface {
 	Now() time.Time
 	// Kick sends the player an error with code and drops them from the world (their socket closes)
 	Kick(id uint32, code string)
+	// Park makes spec the player's own bike, parked beside them (it replaces the one they had, which is put
+	// away); a bike they lend or ride stays as it is
+	Park(id uint32, spec VehicleSpec)
+	// Lend puts a vehicle beside the player that is only theirs for now (the licence test's bike): their own bike
+	// is put away until Return. False when the player cannot be lent one (riding someone else's, a passenger).
+	Lend(id uint32, spec VehicleSpec) bool
+	// Return takes a lent vehicle away and brings the player's own bike back beside them
+	Return(id uint32)
+}
+
+// SignalHook is a module that wants the dialogue signals players send (an answer, or a node arrived at): the
+// signal's NPC and name, on the world goroutine, after the event is published.
+type SignalHook interface {
+	Signalled(m Member, npc, signal string)
 }
 
 // Use adds a module; call it before Run. make gets the world as the module's host.
@@ -167,6 +181,52 @@ func (h host) Kick(id uint32, code string) {
 	}
 }
 func (h host) Now() time.Time { return h.w.now() }
+
+func (h host) Park(id uint32, spec VehicleSpec) {
+	m := h.w.byID(id)
+	if m == nil {
+		return
+	}
+	m.bike = &spec
+	if m.lent {
+		return // the lent one is out; the new bike comes back with it
+	}
+	h.w.putOwn(m)
+}
+
+func (h host) Lend(id uint32, spec VehicleSpec) bool {
+	m := h.w.byID(id)
+	if m == nil || m.seated != nil || (m.riding != nil && m.riding != m.owns) {
+		return false
+	}
+	h.w.dismount(m)
+	if m.owns != nil {
+		h.w.removeVehicle(m.owns)
+	}
+	m.lent = true
+	h.w.broadcast(h.w.addVehicle(m, spec).encode(), nil)
+	return true
+}
+
+func (h host) Return(id uint32) {
+	m := h.w.byID(id)
+	if m == nil || !m.lent {
+		return
+	}
+	m.lent = false
+	h.w.putOwn(m)
+}
+
+// putOwn puts the member's own bike beside it, in place of whatever vehicle it has out (nothing when it has none).
+func (w *World) putOwn(m *member) {
+	w.dismount(m)
+	if m.owns != nil {
+		w.removeVehicle(m.owns)
+	}
+	if m.bike != nil {
+		w.broadcast(w.addVehicle(m, *m.bike).encode(), nil)
+	}
+}
 
 func pin(m, o *member, on bool) {
 	if on {

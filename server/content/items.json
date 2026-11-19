@@ -1,7 +1,80 @@
 {
-  "about": "What can be bought, and where (docs/design/11-items.md). Shared by the server (server/content/items.go), which sells and keeps what each character owns, and the game (src/game/), which shows the shops and what a player has. An item is bought once; grants are capabilities (archetypes.json) the owner has from then on. Prices are whole xu, shown as đồng (1 xu = 1 đồng); big things (phones, bikes) have game prices, small things real ones (docs/design/10-story.md, section 11). Of several phones, the one in hand is the last owned in this file's order. Ids are stable: characters store them.",
+  "about": "What can be bought, and where (docs/design/11-items.md). Shared by the server (server/content/items.go), which sells and keeps what each character owns, and the game (src/game/), which shows the shops and what a player has. An item is bought once; grants are capabilities (archetypes.json) the owner has from then on. Prices are whole xu, shown as đồng (1 xu = 1 đồng); big things (phones, bikes) have game prices, small things real ones (docs/design/10-story.md, section 11). A bike has a vehicle (vehicles.json) that is parked beside its owner; the uniform needs capabilities (requires). A shop may let its customers bargain (haggle: a dialogue signal takes a percent off the next purchase there). fees are paid each time and never owned: paying gives the capabilities in grants (a ticket), and the server checks requires_caps and unless_caps (docs/design/13-driver.md). Of several phones, the one in hand is the last owned in this file's order. Ids are stable: characters store them.",
   "shops": [
-    { "id": "de_yeu", "npc": "anh_bay", "name": { "vi": "Tiệm điện thoại Dế Yêu", "en": "Dế Yêu phone shop" } }
+    {
+      "id": "de_yeu",
+      "npc": "anh_bay",
+      "name": {
+        "vi": "Tiệm điện thoại Dế Yêu",
+        "en": "Dế Yêu phone shop"
+      }
+    },
+    {
+      "id": "xe_chu_tam",
+      "npc": "chu_tam",
+      "name": {
+        "vi": "Tiệm xe cũ chú Tám",
+        "en": "Chú Tám's used bikes"
+      },
+      "haggle": {
+        "signal": "phrase_mac_qua",
+        "percent": 10
+      }
+    },
+    {
+      "id": "van_phong_crab",
+      "npc": "chi_vy",
+      "name": {
+        "vi": "Văn phòng Crab",
+        "en": "Crab office"
+      }
+    }
+  ],
+  "fees": [
+    {
+      "id": "thi_a1",
+      "npc": "thay_muoi",
+      "amount": 200000,
+      "grants": [
+        "exam.a1.ticket"
+      ],
+      "unless_caps": [
+        "exam.a1.ticket",
+        "exam.a1.retake",
+        "vehicle.motorbike.ride"
+      ],
+      "name": {
+        "vi": "Lệ phí thi bằng A1",
+        "en": "A1 licence test fee"
+      },
+      "about": {
+        "vi": "Lệ phí thi lần đầu: một buổi thi lý thuyết rồi thi thực hành.",
+        "en": "The first-time fee: a theory test, then the practical."
+      }
+    },
+    {
+      "id": "thi_lai_a1",
+      "npc": "thay_muoi",
+      "amount": 50000,
+      "grants": [
+        "exam.a1.ticket"
+      ],
+      "requires_caps": [
+        "exam.a1.retake"
+      ],
+      "unless_caps": [
+        "exam.a1.ticket",
+        "vehicle.motorbike.ride"
+      ],
+      "name": {
+        "vi": "Lệ phí thi lại A1",
+        "en": "A1 retake fee"
+      },
+      "about": {
+        "vi": "Rớt thì thi lại, lệ phí rẻ hơn: một lần thi nữa.",
+        "en": "Fail and you retake it for less: one more attempt."
+      }
+    }
   ],
   "items": [
     {
@@ -9,8 +82,13 @@
       "kind": "phone",
       "shop": "de_yeu",
       "price": 150000,
-      "grants": ["phone.basic"],
-      "name": { "vi": "Nokla 1280", "en": "Nokla 1280" },
+      "grants": [
+        "phone.basic"
+      ],
+      "name": {
+        "vi": "Nokla 1280",
+        "en": "Nokla 1280"
+      },
       "about": {
         "vi": "Cục gạch huyền thoại: gọi điện, nhắn tin, pin xài cả tuần. Không có Crab, không có camera.",
         "en": "The legendary brick: calls, texts, and a battery that lasts all week. No Crab, no camera."
@@ -21,8 +99,14 @@
       "kind": "phone",
       "shop": "de_yeu",
       "price": 400000,
-      "grants": ["phone.basic", "phone.smart"],
-      "name": { "vi": "Ifone X", "en": "Ifone X" },
+      "grants": [
+        "phone.basic",
+        "phone.smart"
+      ],
+      "name": {
+        "vi": "Ifone X",
+        "en": "Ifone X"
+      },
       "about": {
         "vi": "Máy cũ, hơi trầy nhưng còn zin: đủ mọi ứng dụng, đặt Crab được.",
         "en": "Second-hand and a little scratched, but all original: every app, Crab included."
@@ -33,8 +117,14 @@
       "kind": "phone",
       "shop": "de_yeu",
       "price": 1200000,
-      "grants": ["phone.basic", "phone.smart"],
-      "name": { "vi": "Ifone 11", "en": "Ifone 11" },
+      "grants": [
+        "phone.basic",
+        "phone.smart"
+      ],
+      "name": {
+        "vi": "Ifone 11",
+        "en": "Ifone 11"
+      },
       "about": {
         "vi": "Đời mới hơn, chạy mượt hơn: đủ mọi ứng dụng.",
         "en": "A newer model that runs more smoothly: every app."
@@ -45,11 +135,59 @@
       "kind": "phone",
       "shop": "de_yeu",
       "price": 6000000,
-      "grants": ["phone.basic", "phone.smart"],
-      "name": { "vi": "Ifone 15 Pro", "en": "Ifone 15 Pro" },
+      "grants": [
+        "phone.basic",
+        "phone.smart"
+      ],
+      "name": {
+        "vi": "Ifone 15 Pro",
+        "en": "Ifone 15 Pro"
+      },
       "about": {
         "vi": "Máy xịn nhất tiệm, để khoe. Chạy Crab cũng không nhanh hơn đâu nha!",
         "en": "The fanciest phone in the shop, for showing off. It won't make your Crab rides any faster!"
+      }
+    },
+    {
+      "id": "xe_so_110",
+      "kind": "bike",
+      "shop": "xe_chu_tam",
+      "price": 1000000,
+      "grants": [
+        "vehicle.motorbike.own"
+      ],
+      "vehicle": "xe_so_110",
+      "name": {
+        "vi": "Xe số 110 cũ",
+        "en": "Used 110cc bike"
+      },
+      "about": {
+        "vi": "Xe zin, máy êm ru, chạy chục năm chưa hư! Cần có bằng A1 mới chạy được.",
+        "en": "All original, a smooth engine, ten years and never a breakdown! You need an A1 licence to ride it."
+      }
+    },
+    {
+      "id": "dong_phuc_crab",
+      "kind": "uniform",
+      "shop": "van_phong_crab",
+      "price": 300000,
+      "grants": [
+        "uniform.crab",
+        "driver.app",
+        "ridehail.drive"
+      ],
+      "requires": [
+        "phone.smart",
+        "vehicle.motorbike.ride",
+        "vehicle.motorbike.own"
+      ],
+      "name": {
+        "vi": "Đồng phục tài xế Crab",
+        "en": "Crab driver uniform"
+      },
+      "about": {
+        "vi": "Áo vàng, mũ vàng, và tài khoản tài xế trong app Crab Driver. Cần điện thoại thông minh, bằng A1 và xe của mình.",
+        "en": "Yellow jacket, yellow helmet and a driver account in the Crab Driver app. You need a smartphone, an A1 licence and a bike of your own."
       }
     }
   ]

@@ -119,16 +119,6 @@ func (c *Catalog) Vehicle(id string) (Vehicle, bool) {
 	return v, ok
 }
 
-// StarterVehicle is the vehicle an archetype parks next to its players, if they may ride it.
-func (c *Catalog) StarterVehicle(archetype string, caps capability.Set) (Vehicle, bool) {
-	a, ok := c.byID[archetype]
-	if !ok || a.Vehicle == "" {
-		return Vehicle{}, false
-	}
-	v, ok := c.vehicleByID[a.Vehicle]
-	return v, ok && caps.Has(v.Requires)
-}
-
 // EmoteAllowed reports whether a character with caps may play the emote with this code (0, none, always may).
 func (c *Catalog) EmoteAllowed(code int, caps capability.Set) bool {
 	if code == 0 {

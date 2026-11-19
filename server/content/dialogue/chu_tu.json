@@ -9,7 +9,7 @@
         "default": { "vi": "Vô ngồi đi con, uống gì chú pha?", "en": "Come sit down. What can I make you?" },
         "traveler": { "vi": "Khách mới hả? Ngồi ghế nhựa cho đúng chất Sài Gòn nghen!", "en": "New here? Take a plastic stool, that's the real Saigon way!" },
         "citizen": { "vi": "{name}! Như cũ hả con? Đen đá không đường?", "en": "{name}! The usual? Black, iced, no sugar?" },
-        "driver": { "vi": "Nghỉ tay làm ly cà phê rồi chạy tiếp con.", "en": "Take a break, have a coffee, then back on the road." }
+        "ridehail.drive": { "vi": "Nghỉ tay làm ly cà phê rồi chạy tiếp con.", "en": "Take a break, have a coffee, then back on the road." }
       },
       "emote": "wave",
       "choices": [

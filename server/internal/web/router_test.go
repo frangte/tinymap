@@ -471,24 +471,27 @@ func eventually(t *testing.T, what string, ok func() bool) {
 	}
 }
 
-// storedCharacter is the character behind a token, read straight from the database.
-// asDriver makes the character behind token a Crab driver from before driving became a job earned in play: it
-// arrives once as a Citizen, then the store gives it the driver archetype and uniform (a hello cannot pick a job).
+// asDriver makes the character behind token a Crab driver the way play does now (docs/design/13-driver.md): a
+// smartphone, the licence, a bike and the uniform, all kept in the store. It arrives once as a Citizen first.
 func asDriver(t *testing.T, srv *testServer, token string) {
 	t.Helper()
 	a := dial(t, srv)
 	send(t, a, helloAs(token, "citizen", "thun", "none"))
 	next(t, a, "welcome")
 	a.Close()
+	for _, item := range []string{"ifone_x", "xe_so_110", "dong_phuc_crab"} {
+		giveItem(t, srv, token, item)
+	}
 	c, err := storedCharacter(srv, token)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := srv.db.ChangeArchetype(context.Background(), c.ID, "driver", protocol.Look{Body: "woman", Outfit: "crab", Hat: "helmet"}, 1); err != nil {
+	if err := srv.db.GrantCapability(context.Background(), c.ID, "vehicle.motorbike.ride", "test", 3); err != nil {
 		t.Fatal(err)
 	}
 }
 
+// storedCharacter is the character behind a token, read straight from the database.
 func storedCharacter(srv *testServer, token string) (identity.Character, error) {
 	sum := sha256.Sum256([]byte(token))
 	account, err := srv.db.AccountByToken(context.Background(), sum[:], 0)
@@ -646,66 +649,86 @@ func TestNobodyPicksTheDriverJob(t *testing.T) {
 }
 
 func TestDriverWearsTheUniform(t *testing.T) {
-	srv := startServer(t, testConfig())
+	srv := startServer(t, shopConfig(t))
 	_, _, token := postGuest(t, srv, "")
 	asDriver(t, srv, token)
 	a := dial(t, srv)
-	send(t, a, helloAs(token, "driver", "crab", "helmet"))
-	// the Crab Driver app needs a smartphone too (bought, docs/design/11-items.md)
-	if w := next(t, a, "welcome"); w.Arch != "driver" || len(w.Apps) != 0 {
+	send(t, a, helloAs(token, "citizen", "crab", "helmet"))
+	// the uniform is an item now: it opens the Crab Driver app and the look, on any archetype
+	if w := next(t, a, "welcome"); w.Arch != "citizen" || !slices.Contains(w.Apps, "crab_driver") {
 		t.Fatalf("driver welcome: %q %v", w.Arch, w.Apps)
 	}
-	if c, err := storedCharacter(srv, token); err != nil || c.Look.Outfit != "crab" || c.Archetype != "driver" {
+	if c, err := storedCharacter(srv, token); err != nil || !slices.Contains(c.Caps, "uniform.crab") || c.Archetype != "citizen" {
 		t.Fatalf("stored driver = %+v, %v", c, err)
 	}
 }
 
+// An archetype id the server no longer knows (the old driver) plays as what its hello asks for, and the store
+// keeps that: the character is not stuck with an archetype nothing grants.
+func TestAStoredArchetypeThatNoLongerExistsIsReplaced(t *testing.T) {
+	srv := startServer(t, shopConfig(t))
+	_, _, token := postGuest(t, srv, "")
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "citizen", "thun", "none"))
+	next(t, a, "welcome")
+	a.Close()
+	c, err := storedCharacter(srv, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := srv.db.ChangeArchetype(context.Background(), c.ID, "driver", protocol.Look{Body: "woman", Outfit: "thun", Hat: "none"}, 1); err != nil {
+		t.Fatal(err)
+	}
+	b := dial(t, srv)
+	send(t, b, helloAs(token, "traveler", "thun", "cap"))
+	if w := next(t, b, "welcome"); w.Arch != "traveler" {
+		t.Fatalf("a stored unknown archetype: welcome arch %q, want what the hello asked for", w.Arch)
+	}
+	eventually(t, "the replacement to be stored", func() bool {
+		c, err := storedCharacter(srv, token)
+		return err == nil && c.Archetype == "traveler"
+	})
+}
+
+// A bike a player owns stays through a change of archetype: it is theirs, not the role's.
 func TestTheArchetypeChangesInGame(t *testing.T) {
-	srv := startServer(t, testConfig())
+	srv := startServer(t, shopConfig(t))
 	_, _, token := postGuest(t, srv, "")
 	asDriver(t, srv, token)
 	a := dial(t, srv)
-	send(t, a, helloAs(token, "driver", "crab", "helmet"))
+	send(t, a, helloAs(token, "citizen", "crab", "helmet"))
 	w := next(t, a, "welcome")
 	if len(w.Vehicles) != 1 || w.Vehicles[0].Owner != w.ID {
-		t.Fatalf("a driver arrives with a bike: %+v", w.Vehicles)
+		t.Fatalf("an owner of a bike arrives with it: %+v", w.Vehicles)
 	}
-	bike := w.Vehicles[0].ID
 	next(t, a, "progress")
 	b := dial(t, srv)
 	send(t, b, helloAs("", "traveler", "thun", "cap"))
 	next(t, b, "welcome")
 
-	send(t, a, `{"t":"arch","arch":"citizen"}`)
+	send(t, a, `{"t":"arch","arch":"traveler"}`)
 	ch := next(t, a, "arch")
-	if ch.Arch != "citizen" || len(ch.Apps) != 0 ||
-		ch.Look == nil || *ch.Look != (look{Body: "woman", Outfit: "somi", Hat: "none"}) {
-		t.Fatalf("the change: arch %q apps %v look %+v", ch.Arch, ch.Apps, ch.Look)
+	if ch.Arch != "traveler" || ch.Look == nil || *ch.Look != (look{Body: "woman", Outfit: "thun", Hat: "cap"}) {
+		t.Fatalf("the change: arch %q look %+v", ch.Arch, ch.Look)
 	}
-	if p := next(t, a, "progress"); !hasQuest(p, "citizen.ca_phe_sang", false) || !hasQuest(p, "driver.nhan_xe", false) {
-		t.Fatalf("the Citizen's quests open, the driver's stay: %+v", p.Quests)
-	}
-	if g := next(t, b, "vehicle_gone"); g.ID != bike {
-		t.Fatalf("the others see the bike go: %+v", g)
-	}
-	if pr := next(t, b, "profile"); pr.ID != w.ID || pr.Arch != "citizen" || pr.Look == nil || pr.Look.Outfit != "somi" {
+	if pr := next(t, b, "profile"); pr.ID != w.ID || pr.Arch != "traveler" {
 		t.Fatalf("the others see %+v", pr)
 	}
 	eventually(t, "the change to be stored", func() bool {
 		c, err := storedCharacter(srv, token)
-		return err == nil && c.Archetype == "citizen" && c.Look.Outfit == "somi"
+		return err == nil && c.Archetype == "traveler"
 	})
 	// another change at once waits
-	send(t, a, `{"t":"arch","arch":"traveler"}`)
+	send(t, a, `{"t":"arch","arch":"citizen"}`)
 	if e := next(t, a, "error"); e.Code != protocol.ErrArchWait {
 		t.Fatalf("a second change at once = %+v", e)
 	}
 	a.Close()
 
-	// the next visit is a Citizen, whatever the hello asks for
+	// the next visit is a Traveler, whatever the hello asks for, with the same bike beside it
 	c := dial(t, srv)
-	send(t, c, helloAs(token, "driver", "baba", "nonla"))
-	if w := next(t, c, "welcome"); w.Arch != "citizen" || len(w.Vehicles) != 0 {
+	send(t, c, helloAs(token, "citizen", "baba", "nonla"))
+	if w := next(t, c, "welcome"); w.Arch != "traveler" || len(w.Vehicles) != 1 || w.Vehicles[0].Kind != "xe_so_110" {
 		t.Fatalf("after the change: arch %q vehicles %+v", w.Arch, w.Vehicles)
 	}
 }
@@ -784,11 +807,11 @@ func TestTheNextVisitStartsWhereTheLastEnded(t *testing.T) {
 }
 
 func TestTheDriverGetsOnTheirBike(t *testing.T) {
-	srv := startServer(t, testConfig())
+	srv := startServer(t, shopConfig(t))
 	_, _, token := postGuest(t, srv, "")
 	asDriver(t, srv, token)
 	a := dial(t, srv)
-	send(t, a, helloAs(token, "driver", "crab", "helmet"))
+	send(t, a, helloAs(token, "citizen", "crab", "helmet"))
 	w := next(t, a, "welcome")
 	if len(w.Vehicles) != 1 || w.Vehicles[0].Owner != w.ID || w.Vehicles[0].Kind != "xe_so_110" || w.Vehicles[0].Rider != 0 {
 		t.Fatalf("welcome vehicles = %+v", w.Vehicles)

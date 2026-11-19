@@ -79,6 +79,10 @@ func (h *host) Kick(id uint32, code string) {
 	delete(h.members, id)
 }
 
+func (h *host) Park(uint32, world.VehicleSpec)      {}
+func (h *host) Lend(uint32, world.VehicleSpec) bool { return false }
+func (h *host) Return(uint32)                       {}
+
 // notes are the mod_notice texts a player got, and clears the inbox.
 func (h *host) notes(id uint32) []string {
 	var out []string

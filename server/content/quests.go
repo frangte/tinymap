@@ -477,6 +477,9 @@ func (c *Catalog) Emits(npc, signal string) bool {
 		return false
 	}
 	for _, node := range c.Dialogues[graph].Nodes {
+		if node.Emit == signal {
+			return true
+		}
 		for _, ch := range node.Choices {
 			if ch.Emit == signal {
 				return true

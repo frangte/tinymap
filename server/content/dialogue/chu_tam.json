@@ -1,0 +1,116 @@
+{
+  "id": "chu_tam",
+  "about": "Chú Tám sells used bikes in Chợ Lớn (docs/design/13-driver.md). The shop button opens the sheet; buying is the `buy` message. The answer “Mắc quá chú!” (the phrase Cô Ba teaches) sends phrase_mac_qua, which the shop module reads as a bargain: 10% off the next purchase there (items.json, haggle), decided on the server.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": {
+          "vi": "Xe cũ đây! Xe zin, máy êm ru, chạy chục năm chưa hư! Vô coi đi con.",
+          "en": "Used bikes here! All original, smooth engine, ten years and never a breakdown! Come and look."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Cho con coi xe.",
+            "en": "Let me see the bikes."
+          },
+          "goto": "shop"
+        },
+        {
+          "text": {
+            "vi": "Xe cũ có chạy bền không chú?",
+            "en": "Do used bikes last, uncle?"
+          },
+          "goto": "about"
+        },
+        {
+          "text": {
+            "vi": "Dạ thôi, con đi dạo tiếp.",
+            "en": "No thanks, I will keep walking."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "about": {
+      "say": {
+        "default": {
+          "vi": "Xe số 110 là xe của dân chạy Crab đó con. Bền, ít hao xăng, hư thì sửa dễ. Nhưng nhớ có bằng A1 mới chạy được nghen, chưa có thì ra Thủ Thiêm kiếm thầy Mười.",
+          "en": "The 110cc is the Crab riders' bike: sturdy, light on fuel, easy to fix. But you need an A1 licence to ride it. No licence yet? Find Thầy Mười in Thủ Thiêm."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Cho con coi xe.",
+            "en": "Let me see the bikes."
+          },
+          "goto": "shop"
+        },
+        {
+          "text": {
+            "vi": "Dạ cảm ơn chú.",
+            "en": "Thank you, uncle."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "shop": {
+      "say": {
+        "default": {
+          "vi": "Chiếc xe số một triệu đồng, giá chú niêm yết rồi. Ưng thì lấy.",
+          "en": "The bike is a million đồng, the price on the tag. Like it? Take it."
+        }
+      },
+      "shop": "xe_chu_tam",
+      "choices": [
+        {
+          "text": {
+            "vi": "Mắc quá chú!",
+            "en": "That is too expensive, uncle!"
+          },
+          "goto": "haggle",
+          "emit": "phrase_mac_qua"
+        },
+        {
+          "text": {
+            "vi": "Dạ để con suy nghĩ thêm.",
+            "en": "Let me think about it."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "haggle": {
+      "say": {
+        "default": {
+          "vi": "Ôi, con nói mắc quá hả? Thôi được, thấy con dễ thương chú bớt cho mười phần trăm. Đừng nói với ai nghen!",
+          "en": "Too expensive, you say? Fine, you are a nice kid, ten percent off. Do not tell anyone!"
+        }
+      },
+      "emote": "wave",
+      "shop": "xe_chu_tam",
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn chú!",
+            "en": "Thank you, uncle!"
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "Ừ, cần xe thì ghé chú. Xe zin, nhớ hén!",
+          "en": "Sure, come back when you need a bike. All original, remember!"
+        }
+      }
+    }
+  }
+}

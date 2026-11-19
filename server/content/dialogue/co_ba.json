@@ -18,7 +18,7 @@
           "vi": "Ủa {name}, đi chợ sớm vậy con? Má con khỏe hông?",
           "en": "Oh {name}, at the market this early? How's your mum?"
         },
-        "driver": {
+        "ridehail.drive": {
           "vi": "Chạy xe cả ngày mệt hông con? Ghé đây uống miếng nước nè.",
           "en": "Riding all day, aren't you tired? Come have some water."
         }

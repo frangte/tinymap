@@ -32,6 +32,7 @@ import (
 	"saigon-noir/server/internal/chatfilter"
 	"saigon-noir/server/internal/dialogue"
 	"saigon-noir/server/internal/directions"
+	"saigon-noir/server/internal/driving"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/moderation"
@@ -175,6 +176,12 @@ func run() error {
 		shops = shop.New(h, catalog, db, log)
 		return shops
 	})
+	// the A1 licence test: the test NPC's signals become tickets, the practical runs on a lent bike
+	var licence *driving.Service
+	w.Use(func(h world.Host) world.Module {
+		licence = driving.New(h, catalog, db, log)
+		return licence
+	})
 	// moderation sees every chat line first: reports, mutes, bans, the moderators' commands (D17)
 	w.Use(func(h world.Host) world.Module { return moderation.New(h, db, log) })
 	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
@@ -189,6 +196,7 @@ func run() error {
 	quests.OnPhone = phones.Sync
 	quests.OnCapability = sockets.Grant
 	shops.OnCapability = sockets.Grant
+	licence.OnGrant, licence.OnRevoke = sockets.Grant, sockets.Revoke
 	go quests.Run(ctx)
 	go phones.Run(ctx)
 	go w.Run(ctx)

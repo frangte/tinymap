@@ -83,9 +83,12 @@ func (h *host) Send(id uint32, frame []byte) {
 func (h *host) Do(_ string, job func(context.Context) error, done func(error)) {
 	done(job(context.Background()))
 }
-func (h *host) Publish(ev events.Event)     { h.events = append(h.events, ev) }
-func (h *host) Now() time.Time              { return h.now }
-func (h *host) Kick(id uint32, code string) { delete(h.members, id) }
+func (h *host) Publish(ev events.Event)             { h.events = append(h.events, ev) }
+func (h *host) Now() time.Time                      { return h.now }
+func (h *host) Kick(id uint32, code string)         { delete(h.members, id) }
+func (h *host) Park(uint32, world.VehicleSpec)      {}
+func (h *host) Lend(uint32, world.VehicleSpec) bool { return false }
+func (h *host) Return(uint32)                       {}
 
 // last is the latest message of type t a player got (nil for none), and clears the inbox.
 func (h *host) last(id uint32, t string) map[string]any {

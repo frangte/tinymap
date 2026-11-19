@@ -124,9 +124,12 @@ func (h *host) Do(_ string, job func(context.Context) error, done func(error)) {
 	h.jobs = append(h.jobs, func() { done(job(context.Background())) })
 }
 
-func (h *host) Publish(ev events.Event)     { h.events = append(h.events, ev) }
-func (h *host) Now() time.Time              { return h.now }
-func (h *host) Kick(id uint32, code string) { delete(h.members, id) }
+func (h *host) Publish(ev events.Event)             { h.events = append(h.events, ev) }
+func (h *host) Now() time.Time                      { return h.now }
+func (h *host) Kick(id uint32, code string)         { delete(h.members, id) }
+func (h *host) Park(uint32, world.VehicleSpec)      {}
+func (h *host) Lend(uint32, world.VehicleSpec) bool { return false }
+func (h *host) Return(uint32)                       {}
 
 type fixture struct {
 	*host
