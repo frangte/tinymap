@@ -234,6 +234,175 @@
         "https://en.wikipedia.org/wiki/Reunification_Palace",
         "https://www.vietnamtourism.com/vi/dinh-oc-lap-o-tp-hcm-ve-gio-mo-cua-va-nhung-gi-can-xem"
       ]
+    },
+    {
+      "place": "quang_truong_lam_son",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Quảng trường trước Nhà hát Thành phố, có công viên Lam Sơn và ga metro Nhà hát Thành phố.", "en": "The square in front of the Opera House, with Lam Sơn Park and Opera House metro station." },
+      "facts": {
+        "built": { "vi": "Quảng trường có từ khi xây Nhà hát (xong năm 1900); công viên được dựng lại năm 2020", "en": "The square dates from the Opera House (finished 1900); the park was rebuilt in 2020" },
+        "hours": { "vi": "Chỗ công cộng ngoài trời, không có cổng", "en": "An open public space with no gates" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        { "vi": "Quảng trường nằm trên một đoạn đại lộ Bonard cũ, giữa phố Catinat (nay là Đồng Khởi) và phố Nationale (nay là Hai Bà Trưng). Sau khi Nhà hát xây xong, nơi này được gọi là Place du Théâtre; ngày 11 tháng 1 năm 1935 nó chính thức mang tên Place Augustin Foray, theo tên một cựu thị trưởng Sài Gòn. Năm 1955 chính quyền miền Nam đổi tên thành công trường Lam Sơn.", "en": "The square lies on a stretch of the old Boulevard Bonard, between rue Catinat (now Đồng Khởi) and rue Nationale (now Hai Bà Trưng). Once the Opera House was built the place was called Place du Théâtre; on 11 January 1935 it officially became Place Augustin Foray, after a former mayor of Saigon. In 1955 the southern government renamed it Lam Sơn Square." },
+        { "vi": "Khách sạn Continental, Caravelle và Park Hyatt đều nằm trên quảng trường. Bãi đậu xe sau Nhà hát được làm thành vườn cây năm 2018. Công viên Lam Sơn trước Nhà hát, rộng gần 2.200 m², bị dỡ đi để xây ga metro Nhà hát Thành phố, rồi được dựng lại đúng diện tích và bố cục cũ và mở lại cuối tháng 8 năm 2020. Công viên làm đơn giản, không có tượng cố định, và thường có triển lãm ảnh hay lễ kỷ niệm của thành phố.", "en": "The Continental, Caravelle and Park Hyatt hotels are all on the square. The car park behind the Opera House was turned into a garden in 2018. Lam Sơn Park in front of the Opera House, almost 2,200 m², was taken down to build Opera House metro station, then rebuilt at its old size and layout and reopened in late August 2020. It is kept simple, with no fixed statues, and often holds photo exhibitions or city celebrations." }
+      ],
+      "see": [
+        { "vi": "Mặt tiền Nhà hát Thành phố nhìn từ công viên (xem trang Nhà hát Thành phố)", "en": "The Opera House front seen from the park (see the Opera House page)" },
+        { "vi": "Khách sạn Continental và Caravelle trên quảng trường", "en": "The Continental and Caravelle hotels on the square" },
+        { "vi": "Triển lãm ảnh ngoài trời trong công viên, khi có", "en": "Outdoor photo exhibitions in the park, when there is one" }
+      ],
+      "tips": [
+        { "vi": "Công viên nằm ngay trên ga metro và nối với phố đi bộ Nguyễn Huệ, nên là chỗ hẹn dễ tìm.", "en": "The park is right over the metro station and links to the Nguyễn Huệ walking street, so it is an easy place to meet." },
+        { "vi": "Triển lãm và sự kiện thay đổi theo thời gian: xem thông báo tại chỗ.", "en": "Exhibitions and events change over time: check the notices on the spot." }
+      ],
+      "getting_there": [
+        { "vi": "Ga Nhà hát Thành phố của tuyến metro số 1 nằm ở phía đường Đồng Khởi của quảng trường.", "en": "Opera House station on Metro Line 1 is on the Đồng Khởi side of the square." },
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành theo đường Lê Lợi.", "en": "About a 15-minute walk from Bến Thành Market along Lê Lợi." }
+      ],
+      "food": [],
+      "maps": "Công viên Lam Sơn, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Lam_S%C6%A1n_Square",
+        "https://tuoitre.vn/cong-vien-lam-son-se-la-cong-vien-van-hoa-20200429091201272.htm"
+      ]
+    },
+    {
+      "place": "cong_xa_paris",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Quảng trường quanh Nhà thờ Đức Bà, có tượng Đức Mẹ Hòa Bình, được coi là km số 0 của thành phố.", "en": "The square around the cathedral, with the Our Lady of Peace statue, marked as the city's kilometre zero." },
+      "facts": {
+        "built": { "vi": "Tượng Đức Mẹ Hòa Bình đặt năm 1959", "en": "The Our Lady of Peace statue was set up in 1959" },
+        "hours": { "vi": "Quảng trường công cộng, không có cổng", "en": "A public square with no gates" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        { "vi": "Thời Pháp, quảng trường là Place de la Cathédrale. Năm 1903 chính quyền thuộc địa dựng ở đây bức tượng đồng giám mục Pigneau de Béhaine (Bá Đa Lộc) dẫn hoàng tử Cảnh, và nơi này đổi tên thành Place Pigneau de Béhaine. Tháng 10 năm 1945 bức tượng bị kéo đổ, để lại cái bệ trống.", "en": "Under the French the square was Place de la Cathédrale. In 1903 the colonial government put up a bronze statue of Bishop Pigneau de Béhaine (Bá Đa Lộc) leading Prince Cảnh, and the place became Place Pigneau de Béhaine. In October 1945 the statue was pulled down, leaving the pedestal empty." },
+        { "vi": "Ngày 16 tháng 2 năm 1959, tượng Đức Mẹ Hòa Bình được đặt lên chính cái bệ đá granite đỏ cao khoảng 2,5 m đó, và được làm phép hôm sau. Theo Tuổi Trẻ, tượng bằng đá cẩm thạch trắng từ Ý, cao 4,6 m, nặng 5,8 tấn, do G. Ciocchetti tạc. Quảng trường khi đó là công trường Hòa Bình. Tháng 5 năm 1964 nó mang tên Tổng thống John F. Kennedy; sau năm 1975 là công trường Công xã Paris, tên còn dùng tới nay.", "en": "On 16 February 1959 the statue of Our Lady of Peace was placed on that same red granite pedestal, about 2.5 m high, and blessed the next day. According to Tuổi Trẻ it is white Italian marble, 4.6 m tall and 5.8 tonnes, carved by G. Ciocchetti. The square was then Hòa Bình (Peace) Square. In May 1964 it was renamed for President John F. Kennedy; after 1975 it became Paris Commune Square, the name still used today." },
+        { "vi": "Vì Nhà thờ Đức Bà và Bưu điện Thành phố đều ở đây, quảng trường được coi là km số 0 của thành phố. Chuyện xây nhà thờ và bưu điện nằm ở hai trang riêng.", "en": "Because the cathedral and the Central Post Office are both here, the square is marked as the city's kilometre zero. How the cathedral and the post office were built is on their own pages." }
+      ],
+      "see": [
+        { "vi": "Tượng Đức Mẹ Hòa Bình trên bệ granite đỏ, trước nhà thờ", "en": "The Our Lady of Peace statue on its red granite pedestal, in front of the cathedral" },
+        { "vi": "Nhà thờ Đức Bà ở một bên và Bưu điện Thành phố ở bên kia quảng trường", "en": "The cathedral on one side and the Central Post Office across the square" },
+        { "vi": "Chỗ bắt đầu của đường Đồng Khởi", "en": "The start of Đồng Khởi street" }
+      ],
+      "tips": [
+        { "vi": "Nhà thờ đang trùng tu nên có thể có rào chắn; ngắm từ ngoài quảng trường thì lúc nào cũng được.", "en": "The cathedral is under restoration, so there may be hoardings; you can look from the square at any time." }
+      ],
+      "getting_there": [
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành; ga metro Nhà hát Thành phố và Bến Thành (tuyến số 1) đều gần.", "en": "About a 15-minute walk from Bến Thành Market; Opera House and Bến Thành metro stations (Line 1) are both close." }
+      ],
+      "food": [],
+      "maps": "Công trường Công xã Paris, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Paris_Commune_Square_(Saigon)",
+        "https://tuoitre.vn/ten-goi-nha-tho-duc-ba-tu-buc-tuong-duc-me-hoa-binh-988690.htm"
+      ]
+    },
+    {
+      "place": "ho_con_rua",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Tháp bê tông hình búp sen giữa vòng xoay công trường Quốc tế, có từ năm 1969 và vẫn mang tên con rùa đã mất.", "en": "The lotus-shaped concrete tower in the middle of the International Square roundabout, from 1969 and still named for a turtle that is gone." },
+      "facts": {
+        "built": { "vi": "Ra mắt tháng 6 năm 1969, kiến trúc sư Nguyễn Kỳ", "en": "Unveiled June 1969, architect Nguyễn Kỳ" },
+        "hours": { "vi": "Quảng trường công cộng, không có cổng", "en": "A public square with no gates" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        { "vi": "Năm 1790 vua Gia Long cho xây thành Bát Quái; một đoạn giác bảo của thành nằm đúng chỗ hồ bây giờ. Năm 1835 vua Minh Mạng cho dỡ thành. Từ năm 1876 người Pháp làm hệ thống nước máy, và tháp nước đứng ở đây cho tới khi bị dỡ sau năm 1921. Năm 1927 họ dựng đài tưởng niệm lính Thế chiến thứ nhất, nên dân gọi nơi này là công trường Ba Hình. Ngày 29 tháng 7 năm 1964 sinh viên Sài Gòn kéo đổ các tượng.", "en": "In 1790 Emperor Gia Long had the octagonal Bát Quái citadel built; a semicircular bastion of it stood right where the lake is today. In 1835 Emperor Minh Mạng had the citadel taken down. From 1876 the French built a water supply, and the water tower stood here until it was dismantled after 1921. In 1927 they put up a memorial to the First World War dead, so locals called the place Công trường Ba Hình. On 29 July 1964 Saigon students pulled the statues down." },
+        { "vi": "Đài bây giờ do kiến trúc sư Nguyễn Kỳ thiết kế và ra mắt tháng 6 năm 1969 với tên Hoa Tự Do: tháp bê tông hình búp sen, cao khoảng 34 m, trên hồ nước hình bát giác, với con rùa đồng đội tấm bia ghi tên các nước viện trợ. Năm 1976 con rùa, tấm bia và các chi tiết đồng bị phá, nhưng tên Hồ Con Rùa vẫn ở lại. Nơi này ngay bên kia ranh giới Quận 1, thuộc phường Xuân Hòa. Các nguồn ghi năm hoàn thành khác nhau (1965 hoặc 1967 trong Wikipedia).", "en": "The present monument was designed by architect Nguyễn Kỳ and unveiled in June 1969 as Hoa Tự Do (Flower of Freedom): a concrete tower shaped like a lotus, about 34 m high, over an octagonal pool, with a bronze turtle carrying a slab that listed the aid-giving countries. In 1976 the turtle, the slab and the bronze details were destroyed, but the name Turtle Lake stayed. The site is just across the District 1 line, in Xuân Hòa ward. Sources give different completion years (1965 or 1967 on Wikipedia)." },
+        { "vi": "Đầu năm 2026, một đợt chỉnh trang do doanh nghiệp tài trợ làm đổi màu cầu thang và tháp, và bị nhiều người phản đối vì khác ký ức quen thuộc. Ngày 2 tháng 2 năm 2026, Sở Quy hoạch - Kiến trúc đề nghị tạm dừng; Sở Xây dựng nói cần lưu ý màu sắc hiện hữu, và doanh nghiệp nói sẽ chỉnh lại theo góp ý. Chưa tìm được quyết định cuối cùng, nên màu hiện nay có thể đã khác.", "en": "In early 2026 a refit paid for by a company changed the colours of the stairs and the tower, and many people objected that it no longer matched the familiar memory. On 2 February 2026 the Department of Planning and Architecture asked for a pause; the Department of Construction said the existing colours must be respected, and the company said it would adjust. No final decision was found, so the colours today may differ." }
+      ],
+      "see": [
+        { "vi": "Tháp bê tông hình búp sen giữa hồ nước hình bát giác", "en": "The lotus-shaped concrete tower in the octagonal pool" },
+        { "vi": "Các lối đi bộ quanh hồ", "en": "The walking paths around the lake" },
+        { "vi": "Hàng quán và người bán rong quanh quảng trường", "en": "Food stalls and street vendors around the square" }
+      ],
+      "tips": [
+        { "vi": "Là vòng xoay có xe cộ chạy liên tục: sang đường ở chỗ có vạch hoặc đèn.", "en": "It is a working roundabout with steady traffic: cross at the marked crossings or lights." }
+      ],
+      "getting_there": [
+        { "vi": "Gần Dinh Độc Lập và Nhà thờ Đức Bà; chưa có ga metro (tuyến số 3 và 4 mới là kế hoạch).", "en": "Close to Independence Palace and Notre-Dame Cathedral; no metro station yet (Lines 3 and 4 are only planned)." }
+      ],
+      "food": [],
+      "maps": "Hồ Con Rùa, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigoneer.com/saigon-heritage/26145-from-vauban-citadel-to-modernist-icon-the-history-of-h%E1%BB%93-con-r%C3%B9a-turtle-lake",
+        "https://en.wikipedia.org/wiki/Turtle_Lake_(Ho_Chi_Minh_City)",
+        "https://vietnamnews.vn/society/1765110/hcm-city-halts-beautification-works-at-ben-thanh-market-turtle-lake-traffic-roundabout.html",
+        "https://vtcnews.vn/san-sang-dieu-chinh-lai-mau-son-cho-ben-thanh-ho-con-rua-theo-gop-y-ar1001495.html"
+      ]
+    },
+    {
+      "place": "bitexco",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Tháp tài chính 68 tầng hình búp sen, khai trương năm 2010, có đài quan sát Saigon Skydeck ở tầng 49.", "en": "The 68-storey lotus-shaped financial tower, opened in 2010, with the Saigon Skydeck observation deck on the 49th floor." },
+      "facts": {
+        "built": { "vi": "Khởi công 2005, khai trương 31/10/2010; Skydeck mở năm 2011", "en": "Groundbreaking 2005, opened 31 Oct 2010; the Skydeck opened in 2011" },
+        "hours": { "vi": "Skydeck khoảng 9:30–21:30 mỗi ngày; vé cuối khoảng 20:00–20:45", "en": "Skydeck about 9:30 am – 9:30 pm daily; last entry about 8:00–8:45 pm" },
+        "ticket": { "vi": "Người lớn khoảng 240.000 đ (tháng 10/2026); trẻ 4–12 tuổi và người từ 65 tuổi khoảng 160.000 đ; dưới 4 tuổi miễn phí", "en": "Adults about 240,000 VND (Oct 2026); children 4–12 and people 65+ about 160,000 VND; under 4 free" }
+      },
+      "history": [
+        { "vi": "Tháp do Carlos Zapata thiết kế, hình dáng lấy từ búp sen, quốc hoa của Việt Nam. Lễ khởi công tháng 9 năm 2005, thi công từ tháng 6 năm 2007 và khai trương ngày 31 tháng 10 năm 2010. Tháp cao 262,5 m với 68 tầng nổi và 3 tầng hầm, là tòa nhà cao nhất Việt Nam cho tới tháng 1 năm 2011, khi Keangnam ở Hà Nội cao hơn.", "en": "The tower was designed by Carlos Zapata, its shape taken from the lotus bud, Vietnam's national flower. The groundbreaking was in September 2005, building started in June 2007, and it opened on 31 October 2010. It is 262.5 m tall with 68 floors above ground and 3 basements, and was Vietnam's tallest building until January 2011, when Keangnam in Hà Nội passed it." },
+        { "vi": "Saigon Skydeck ở tầng 49, cao khoảng 178 m, mở cho khách từ ngày 1 tháng 1 năm 2011 và khai trương chính thức vào tháng 7 năm 2011. Sân đỗ trực thăng ở tầng 52, nhô ra khoảng 22 m khỏi mặt tòa nhà, không nằm trong vé Skydeck.", "en": "Saigon Skydeck is on the 49th floor, about 178 m up. It opened to visitors on 1 January 2011 and officially in July 2011. The helipad on the 52nd floor, jutting about 22 m out from the facade, is not part of the Skydeck ticket." }
+      ],
+      "see": [
+        { "vi": "Vòng đi bộ 360 độ trong kính, có kính viễn vọng và bảng chỉ các địa danh", "en": "The enclosed 360-degree walkway with telescopes and panels naming the landmarks" },
+        { "vi": "Triển lãm áo dài nhỏ và chiếc xích lô trưng bày trên đài", "en": "A small áo dài exhibit and a displayed cyclo on the deck" },
+        { "vi": "Sân đỗ trực thăng ở tầng 52, nhìn như một búp sen nhô ra khỏi tháp", "en": "The helipad on the 52nd floor, which looks like a lotus bud jutting out of the tower" }
+      ],
+      "tips": [
+        { "vi": "Vào bằng cửa Skydeck ở số 2 Hải Triều, đi theo biển \"Saigon Skydeck\"; sảnh văn phòng là lối vào khác.", "en": "Use the Skydeck entrance at 2 Hải Triều and follow the \"Saigon Skydeck\" signs; the office lobby is a separate entrance." },
+        { "vi": "Vé mua qua trang bán lẻ phải đổi lấy vé giấy ở quầy.", "en": "Tickets bought on a reseller site must be exchanged for paper tickets at the counter." },
+        { "vi": "Đài hoàn toàn trong nhà, không có chỗ ngoài trời. Đến trước hoàng hôn khoảng 45 phút (mặt trời lặn khoảng 17:30 từ tháng 11 tới tháng 1); mùa khô tháng 12 tới tháng 4 thường trong hơn.", "en": "The deck is fully indoors, with no outdoor area. Arrive about 45 minutes before sunset (around 5:30 pm from November to January); the dry season, December to April, usually has the clearer views." },
+        { "vi": "Quanh tháp, nhất là trên đường Tôn Đức Thắng và Nguyễn Huệ, coi chừng bị giật điện thoại và túi từ xe máy chạy qua.", "en": "Around the tower, especially on Tôn Đức Thắng and Nguyễn Huệ, watch for phone and bag snatching from passing motorbikes." }
+      ],
+      "getting_there": [
+        { "vi": "Từ ga metro Nhà hát Thành phố (tuyến số 1) đi bộ khoảng 700 m; từ ga Bến Thành khoảng 1 km.", "en": "About 700 m on foot from Opera House metro station (Line 1); about 1 km from Bến Thành station." },
+        { "vi": "Đi bộ khoảng 9 phút từ Nhà hát Thành phố.", "en": "About a 9-minute walk from the Opera House." }
+      ],
+      "food": [],
+      "maps": "Tháp tài chính Bitexco, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Bitexco_Financial_Tower",
+        "https://www.vietnamtourism.com/vi/thap-bitexco-va-saigon-skydeck-lich-su-tam-nhin-ve-va-danh"
+      ]
+    },
+    {
+      "place": "chung_cu_42_nguyen_hue",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Chung cư chín tầng từ đầu thập niên 1960 trên phố đi bộ Nguyễn Huệ, nay đầy quán cà phê và cửa hàng nhỏ.", "en": "A nine-storey apartment block from the early 1960s on the Nguyễn Huệ walking street, now full of cafés and small shops." },
+      "facts": {
+        "built": { "vi": "Đầu thập niên 1960", "en": "Early 1960s" },
+        "hours": { "vi": "Mỗi quán tự đặt giờ; nhiều quán mở khoảng 7–8 giờ sáng tới khoảng 22 giờ, quán bar mở muộn hơn", "en": "Each business sets its own hours; many open about 7–8 am to about 10 pm, and bars open later" },
+        "ticket": { "vi": "Vào cửa miễn phí; thang máy tính vài nghìn đồng mỗi lượt, đi cầu thang thì không mất tiền", "en": "Free to enter; the lift costs a few thousand dong a ride, the stairs are free" }
+      },
+      "history": [
+        { "vi": "Chung cư được xây vào đầu những năm 1960. Trước năm 1975 nơi đây là chỗ ở của quan chức chính quyền Sài Gòn, trong đó có ông Trương Bửu Khanh, thông dịch viên của Tổng thống Ngô Đình Diệm; sĩ quan Mỹ cũng ở đây, trong các căn mặt phố. Sau năm 1975 một số căn được giao cho công nhân xưởng Ba Son.", "en": "The block was built in the early 1960s. Before 1975 it housed officials of the Saigon government, among them Trương Bửu Khanh, interpreter to President Ngô Đình Diệm; American officers lived here too, in the street-front units. After 1975 some flats went to workers of the Ba Son shipyard." },
+        { "vi": "Phần lớn cư dân vẫn là người thu nhập thấp hoặc trung bình cho tới năm 2015, khi Nguyễn Huệ thành phố đi bộ đầu tiên của Sài Gòn và giá nhà quanh đây tăng vọt. Từ đó hầu hết căn mặt phố thành quán cà phê và cửa hàng. Luật cấm kinh doanh trong nhà ở: chính quyền từng yêu cầu các cơ sở dọn đi nhưng hạn chót không được thực thi, và tới các hướng dẫn mới nhất tôi đọc được thì các quán vẫn mở. Tôi không tìm thấy kế hoạch phá dỡ có ngày cụ thể.", "en": "Most residents were poor or lower-middle class until 2015, when Nguyễn Huệ became Saigon's first walking street and prices nearby jumped. Almost every front unit has since become a café or shop. Vietnamese law bars running a business in a flat: the city once told the businesses to leave, but the deadline was not enforced, and in the latest guides I read the cafés are still open. I found no demolition plan with a date." }
+      ],
+      "see": [
+        { "vi": "Mặt tiền chung cư từ phố đi bộ Nguyễn Huệ, với nhà sách Fahasa ở tầng trệt", "en": "The block's front from the Nguyễn Huệ walking street, with the Fahasa bookstore on the ground floor" },
+        { "vi": "Quán cà phê, quán trà, tiệm đồ cũ và cửa hàng nhỏ ở các tầng 1–8", "en": "Cafés, tea rooms, thrift shops and small stores on floors 1–8" },
+        { "vi": "Hành lang và cầu thang cũ, và cảnh phố đi bộ nhìn từ các ban công", "en": "The old corridors and stairwells, and the walking street seen from the balconies" }
+      ],
+      "tips": [
+        { "vi": "Lối vào nằm ở bên trái nhà sách Fahasa. Trong nhà dễ lạc: nhìn trước từ ngoài phố xem quán mình muốn nằm tầng nào.", "en": "The entrance is to the left of the Fahasa bookstore. It is easy to get lost inside: look from the street first to see which floor your café is on." },
+        { "vi": "Tầng 9 chủ yếu là nhà ở: nói khẽ trong hành lang.", "en": "The ninth floor is mostly residential: keep your voice down in the corridors." },
+        { "vi": "Giờ mở cửa các nguồn ghi khác nhau và các quán thay đổi liên tục: xem trước giờ và địa chỉ của quán mình muốn đến.", "en": "Sources give different opening hours and the businesses change often: check the hours and floor of the place you want before you go." }
+      ],
+      "getting_there": [
+        { "vi": "Nằm trên phố đi bộ Nguyễn Huệ, cách ga metro Nhà hát Thành phố (tuyến số 1) vài phút đi bộ.", "en": "On the Nguyễn Huệ walking street, a few minutes' walk from Opera House metro station (Line 1)." },
+        { "vi": "Cách Bitexco và công viên Lam Sơn đều không xa.", "en": "Not far from Bitexco or Lam Sơn Park." }
+      ],
+      "food": [],
+      "maps": "Chung cư 42 Nguyễn Huệ, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigoneer.com/saigon-heritage/9925-video-trading-places-the-story-of-42-nguyen-hue",
+        "https://vietnamcoracle.com/the-cafe-apartment-on-saigons-walking-street",
+        "https://silverlandhotels.com/cafe-apartment-saigon-guide/"
+      ]
     }
   ]
 }
