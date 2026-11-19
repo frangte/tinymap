@@ -71,7 +71,8 @@ export class Talk {
 
   /** The NPC the action button would talk to: the nearest in reach, on foot, online, not the one we talk to. */
   near(): Npc | null {
-    if (this.d.player.riding || !this.d.net.isOnline) return null;
+    // on a call the sheet is the whole conversation: hang up before walking up to someone
+    if (this.d.player.riding || !this.d.net.isOnline || this.current?.call) return null;
     const n = this.d.npcs.nearest(this.d.player.position);
     return n && n.id !== this.current?.n ? n : null;
   }
