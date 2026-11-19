@@ -118,8 +118,8 @@ const (
 	TitleMax      = 32
 	objectivesMax = 8
 	textMax       = 200
-	// XuRewardMax keeps a reward well under a day's top-up (ridehail.json)
-	XuRewardMax = 20_000
+	// XuRewardMax: a story quest pays 50.000 to 200.000 xu (docs/design/10-story.md, section 11); dailies pay far less
+	XuRewardMax = 200_000
 )
 
 var (
