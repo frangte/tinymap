@@ -15,12 +15,12 @@ const vi = {
   traveler: {
     opening: 'Bạn vừa xuống xe ở bùng binh Quách Thị Trang, lần đầu tới Sài Gòn: balo trên vai, chưa quen ai, và cả Quận 1 ở ngay trước mặt.',
     todo: [
-      'Học vài câu chào với Cô Ba ở cổng nam chợ Bến Thành.',
-      'Gọi một ly cà phê sữa đá ở quán Chú Tư trên Lê Lai.',
-      'Ghé Nhà thờ Đức Bà, Bưu điện và Nhà hát; ăn vặt bên Hồ Con Rùa.',
-      'Hỏi đường một người Sài Gòn đang chơi, rồi làm bài kiểm tra cuối để thành Người Sài Gòn chính hiệu.',
+      'Đi dạo khắp phố: tới một công trình thì thẻ thông tin hiện dưới tên địa điểm, bấm Đọc thêm để biết lịch sử và mẹo.',
+      'Mở Sổ tay (nút góc trên phải, phím B): Cẩm nang, bản đồ, nhiệm vụ.',
+      'Ghé chợ Bến Thành nói chuyện với Cô Ba, rồi gọi một ly cà phê sữa đá ở quán Chú Tư trên Lê Lai.',
+      'Đặt một cuốc Crab trên điện thoại để đi một vòng thành phố.',
     ],
-    tip: 'Nhiệm vụ tự bắt đầu và hiện ở góc trên trái. Điện thoại có Cẩm nang các công trình của Quận 1.',
+    tip: 'Nhiệm vụ tự bắt đầu và hiện ở góc trên trái. Điện thoại dùng để đặt Crab, chat và hỏi đường.',
   },
   citizen: {
     opening: 'Nhà bạn ở dãy nhà phố Lê Lai. Sáng nào cũng cà phê quán Chú Tư, hàng xóm ai cũng quen, góc phố nào cũng thuộc.',
@@ -43,7 +43,7 @@ const vi = {
 } satisfies Record<string, Story>;
 
 const fallbackVi: Story = {
-  opening: 'Bạn đang ở Quận 1, Sài Gòn, trên một hòn đảo vẽ tay.',
+  opening: 'Bạn đang ở Sài Gòn, một thành phố vẽ tay giữa biển: Quận 1, Thủ Thiêm, Chợ Lớn, Khánh Hội và biển Vũng Tàu.',
   todo: ['Đi bộ khắp phố: mỗi công trình bạn tới sẽ tự giới thiệu.', 'Bắt chuyện với người quanh bạn.'],
   tip: 'Nhiệm vụ hiện ở góc trên trái; điện thoại ở góc dưới phải.',
 };
@@ -53,12 +53,12 @@ const en: typeof vi = {
   traveler: {
     opening: 'You have just stepped off at the Quách Thị Trang roundabout, your first time in Saigon: a backpack on your shoulders, nobody you know yet, and all of District 1 right in front of you.',
     todo: [
-      'Learn a few greetings from Cô Ba at the south gate of Bến Thành Market.',
-      'Order an iced milk coffee (cà phê sữa đá) at Chú Tư’s café on Lê Lai.',
-      'Visit Notre-Dame Cathedral, the Post Office and the Opera House; grab a snack by Turtle Lake.',
-      'Ask a Saigonese player the way, then take the final test to become a True Saigonese.',
+      'Walk around town: at a landmark an info card shows under the place name; tap Read more for its history and tips.',
+      'Open the Notebook (the button top right, or B): the guidebook, the map, your quests.',
+      'Stop by Bến Thành Market to chat with Cô Ba, then order an iced milk coffee (cà phê sữa đá) at Chú Tư’s café on Lê Lai.',
+      'Book a Crab on your phone and ride around the city.',
     ],
-    tip: 'Quests start on their own and show in the top left corner. Your phone has a Guidebook to the landmarks of District 1.',
+    tip: 'Quests start on their own and show in the top left corner. Your phone is for booking a Crab, chatting and asking the way.',
   },
   citizen: {
     opening: 'You live in the shophouses on Lê Lai. Coffee at Chú Tư’s every morning; you know every neighbour and every street corner.',
@@ -81,7 +81,7 @@ const en: typeof vi = {
 };
 
 const fallbackEn: Story = {
-  opening: 'You are in District 1, Saigon, on a hand-drawn island.',
+  opening: 'You are in Saigon, a hand-drawn city in the sea: District 1, Thủ Thiêm, Chợ Lớn, Khánh Hội and the beaches of Vũng Tàu.',
   todo: ['Walk the streets: every landmark you reach introduces itself.', 'Strike up a chat with the people around you.'],
   tip: 'Quests show in the top left; your phone is in the bottom right.',
 };

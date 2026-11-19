@@ -11,7 +11,7 @@ Stages (default all, comma separated):
 The builders (Geo, house parts, scooter, tile roofs) are the Text blocks of the root sg.tinymap.blend, loaded from
 there; the merged file has no Text blocks. New geometry goes into new objects (IX_Roads_TonDucThang,
 IX_RoadMarks_TonDucThang, IX_RoadMarks_LeLaiZebra, SH_BuiVien_N/S/Life/Lights); deletions and cuts are made in
-place in the merged meshes. The nav maps are NOT rebuilt by this (bake_nav.py cannot run on the merged file).
+place in the merged meshes. (The game collides with the exported GLB itself: there is no nav map to rebuild.)
 """
 import ast, math, os, random, sys
 import bpy, bmesh

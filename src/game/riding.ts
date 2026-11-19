@@ -3,19 +3,22 @@
 // is told. Offline (no server, or the connection dropped) a player whose archetype starts with a bike gets a
 // local one parked beside them, so the driver can still ride. A Crab Bike passenger sits behind someone else's
 // bike (seat 1) while the server says so; the vehicles carry them where the rider is drawn (app.ts).
+import * as THREE from 'three';
 import { LOCAL_VEHICLE, Vehicles } from './vehicles';
 import type { Player } from './player';
 import { rideTuning } from './player';
 import { vehicleKind } from './motion';
 import type { NetClient } from '../net/client';
 import type { Pose, VehicleInfo } from '../net/protocol';
-import type { NavGrid } from './nav';
+import type { Body, CityCollider } from './collider';
 import { L } from './i18n/riding';
 
 /** how close to the bike the button offers to get on (m); the server allows 2.5 */
 const MOUNT_REACH = 2.2;
 /** offline, the local bike is parked this far to the player's right (m), as the server parks it */
 const PARK_SIDE = 1.4;
+/** a parked bike, for finding a spot it fits (m) */
+const PARKED: Body = { radius: 0.45, height: 1.2 };
 /** the local player's id for the local bike while offline */
 const OFFLINE_SELF = -1;
 /** a mount the server has not answered by then is given up (ms): the server drops presses that come too fast */
@@ -27,7 +30,7 @@ export interface RidingDeps {
   player: Player;
   vehicles: Vehicles;
   net: NetClient;
-  nav: NavGrid;
+  collider: CityCollider;
   /** the vehicle kind the player's archetype starts with, '' for none */
   starter(): string;
   notify(text: string): void;
@@ -38,6 +41,7 @@ export class Riding {
   private pending = 0;
   private pendingAt = 0;
   private resyncAt = 0;
+  private readonly spot = new THREE.Vector3();
 
   constructor(private readonly d: RidingDeps) {}
 
@@ -182,8 +186,8 @@ export class Riding {
   private sitOn(v: VehicleInfo): void {
     const kind = vehicleKind(v.kind);
     if (!kind) return;
-    const [x, , z, h] = v.pose;
-    this.d.player.mount(v.id, rideTuning(kind.speed), x, z, h);
+    const [x, y, z, h] = v.pose;
+    this.d.player.mount(v.id, rideTuning(kind.speed), x, y, z, h);
     this.d.vehicles.park(v.id, v.pose, this.self);
   }
 
@@ -200,9 +204,11 @@ export class Riding {
     const p = this.d.player;
     const h = p.heading;
     // three.js heading h faces (sin h, cos h); the right hand is (-cos h, sin h)
-    const fit = this.d.nav.nearestStanding(p.position.x - Math.cos(h) * PARK_SIDE, p.position.z + Math.sin(h) * PARK_SIDE, 0.45, 4);
-    const [x, z] = fit ?? [p.position.x, p.position.z];
-    const pose: Pose = [x, this.d.nav.floorAt(x, z), z, h];
+    const at = this.spot;
+    if (!this.d.collider.nearestStanding(p.position.x - Math.cos(h) * PARK_SIDE, p.position.z + Math.sin(h) * PARK_SIDE, PARKED, p.position.y, 4, at, p.position)) {
+      at.copy(p.position);
+    }
+    const pose: Pose = [at.x, at.y, at.z, h];
     if (this.d.vehicles.get(LOCAL_VEHICLE)) this.d.vehicles.park(LOCAL_VEHICLE, pose);
     else this.d.vehicles.upsert({ id: LOCAL_VEHICLE, kind, owner: OFFLINE_SELF, rider: 0, passenger: 0, pose });
   }

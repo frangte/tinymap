@@ -1,6 +1,6 @@
 {
   "id": "chu_tu",
-  "about": "Chú Tư's café on Lê Lai. Ordering a cà phê sữa đá sends order_ca_phe_sua_da, the first step of the Traveler's quest Một ly cà phê sữa đá.",
+  "about": "Chú Tư's café on Lê Lai. Ordering a cà phê sữa đá sends order_ca_phe_sua_da (the Citizen's morning coffee and the dailies listen for it). The Sổ sưu tầm (collection.json) listens for phrase_da (greeting with “dạ”) and phrase_mot_hai (ordering two).",
   "start": "greet",
   "nodes": {
     "greet": {
@@ -13,8 +13,18 @@
       "emote": "wave",
       "choices": [
         { "text": { "vi": "Cho con một ly cà phê sữa đá.", "en": "One iced milk coffee, please." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
+        { "text": { "vi": "Dạ, con chào chú!", "en": "Hello, uncle! (polite “dạ”)" }, "goto": "hello", "emit": "phrase_da" },
         { "text": { "vi": "Cà phê sữa đá là sao chú?", "en": "What is cà phê sữa đá?" }, "goto": "explain" },
         { "text": { "vi": "Quán mở lâu chưa chú?", "en": "How long has the café been here?" }, "goto": "history" },
+        { "text": { "vi": "Dạ thôi, lát con ghé.", "en": "Not now, I'll come back later." }, "goto": "bye" }
+      ]
+    },
+    "hello": {
+      "say": {
+        "default": { "vi": "Dạ! Biết nói “dạ” lễ phép ghê. Trả lời người lớn thì thêm “dạ”: “Dạ có”, “Dạ được”. Con uống gì chú pha?", "en": "Dạ! Polite of you. With elders, add “dạ” to answer: “Dạ có”, “Dạ được”. What will you have?" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, cho con một ly cà phê sữa đá.", "en": "Yes please, an iced milk coffee." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
         { "text": { "vi": "Dạ thôi, lát con ghé.", "en": "Not now, I'll come back later." }, "goto": "bye" }
       ]
     },
@@ -32,7 +42,16 @@
         "default": { "vi": "Có liền! Phin nhỏ giọt từ từ, thêm sữa đặc, đá nhiều. Ngồi chờ phin chảy hết nha.", "en": "Coming up! The phin drips slowly, then condensed milk and lots of ice. Sit and wait for it to finish dripping." }
       },
       "choices": [
+        { "text": { "vi": "Cho con hai ly luôn nha chú!", "en": "Make it two, please!" }, "goto": "two", "emit": "phrase_mot_hai" },
         { "text": { "vi": "Phải chờ bao lâu vậy chú?", "en": "How long do I wait?" }, "goto": "wait" },
+        { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "enjoy" }
+      ]
+    },
+    "two": {
+      "say": {
+        "default": { "vi": "Hai ly hả? Một ly cho con, một ly cho bạn con. Chú pha liền: một, hai, xong!", "en": "Two? One for you, one for your friend. Coming up: một, hai, done!" }
+      },
+      "choices": [
         { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "enjoy" }
       ]
     },

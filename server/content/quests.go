@@ -21,11 +21,11 @@ type Title struct {
 	Name Text   `json:"name"`
 }
 
-// Stamp is a collectible earned as a reward: the Traveler's stamp book (Sổ tem), or another set.
+// Stamp is a collectible earned as a reward: the stamp book (Sổ tem, empty since the Traveler's questline left), or another set.
 type Stamp struct {
 	ID   string `json:"id"`
 	Name Text   `json:"name"`
-	// Set groups stamps in the phone: "" for the Traveler's stamp book, "streak" for days of dailies in a row
+	// Set groups stamps in the Sổ tay: "" for the stamp book, "streak" for days of dailies in a row
 	Set string `json:"set,omitempty"`
 }
 
@@ -192,7 +192,7 @@ func (c *Catalog) checkQuests(caps, places map[string]bool) error {
 		}
 		seen[a.ID] = true
 	}
-	return nil
+	return refs.collection()
 }
 
 type questRefs struct {

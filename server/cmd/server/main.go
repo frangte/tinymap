@@ -105,17 +105,14 @@ func run() error {
 		}
 	}
 
-	// the game data (archetypes, apps, places, speeds, the nav map) is embedded; tests keep it valid, this catches
-	// a broken build
+	// the game data (archetypes, apps, places, speeds, the map's spawn) is embedded; tests keep it valid, this
+	// catches a broken build
 	catalog, err := content.Load()
 	if err != nil {
 		return fmt.Errorf("content: %w", err)
 	}
-	grid, err := content.Nav()
-	if err != nil {
-		return fmt.Errorf("content: %w", err)
-	}
 	cfg.Move.RunSpeed, cfg.Move.Tolerance = catalog.Movement.RunSpeed, catalog.Movement.Tolerance
+	cfg.Spawn[0], cfg.Spawn[1] = catalog.Map.ThreeSpawn()
 	cfg.NPCs, cfg.Dialogue = world.NPCsFrom(catalog), dialogue.NewScript(catalog)
 	cfg.Places, cfg.Emotes = catalog.Places, world.EmoteNames(catalog)
 	words, err := content.LoadChatWords()
@@ -151,7 +148,7 @@ func run() error {
 	go db.BackupDaily(ctx, backupsKept)
 	accounts := identity.New(db)
 
-	w := world.New(cfg, grid, log)
+	w := world.New(cfg, log)
 	// Crab Bike trips run inside the world loop; their money moves in the database (docs/design/08-ride-hailing.md)
 	w.Use(func(h world.Host) world.Module {
 		return ridehail.New(h, ridehail.ConfigFrom(catalog.Ridehail), catalog.Places, db, log)

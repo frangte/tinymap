@@ -1,0 +1,371 @@
+{
+  "about": "The Traveler's first questline (Người Sài Gòn chính hiệu), taken out of the game on 2026-11-19 to be designed again with the story (docs/design/10-story.md) and kept here as a test fixture: it exercises requires, sequences, distinct places, asking the way, a title carried at once, stamps and a capability. The final test talks to Cô Ba instead of her quiz, which left her dialogue with it.",
+  "titles": [
+    {
+      "id": "nguoi_sai_gon_chinh_hieu",
+      "name": {
+        "vi": "Người Sài Gòn chính hiệu",
+        "en": "True Saigonese"
+      }
+    }
+  ],
+  "stamps": [
+    {
+      "id": "chao_sai_gon",
+      "name": {
+        "vi": "Chào Sài Gòn",
+        "en": "Hello, Saigon"
+      }
+    },
+    {
+      "id": "ca_phe_sua_da",
+      "name": {
+        "vi": "Cà phê sữa đá",
+        "en": "Iced milk coffee"
+      }
+    },
+    {
+      "id": "kien_truc_phap",
+      "name": {
+        "vi": "Kiến trúc Pháp",
+        "en": "French architecture"
+      }
+    },
+    {
+      "id": "banh_trang_tron",
+      "name": {
+        "vi": "Bánh tráng trộn",
+        "en": "Bánh tráng trộn"
+      }
+    },
+    {
+      "id": "hoi_duong",
+      "name": {
+        "vi": "Hỏi đường",
+        "en": "Asking the way"
+      }
+    },
+    {
+      "id": "chung_nhan",
+      "name": {
+        "vi": "Người Sài Gòn chính hiệu",
+        "en": "True Saigonese"
+      }
+    }
+  ],
+  "quests": [
+    {
+      "id": "traveler.chao_sai_gon",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": {
+        "vi": "Chào Sài Gòn",
+        "en": "Hello, Saigon"
+      },
+      "about": {
+        "vi": "Cô Ba bán hàng ở cổng nam chợ Bến Thành sẽ dạy bạn ba câu chào hỏi đầu tiên.",
+        "en": "Cô Ba, who sells at Bến Thành's south gate, teaches you your first three phrases."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "learn",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "co_ba",
+            "signal": "greetings_learned"
+          },
+          "text": {
+            "vi": "Học chào hỏi với Cô Ba",
+            "en": "Learn to greet from Cô Ba"
+          },
+          "at": "co_ba"
+        }
+      ],
+      "rewards": {
+        "stamps": [
+          "chao_sai_gon"
+        ]
+      }
+    },
+    {
+      "id": "traveler.ca_phe_sua_da",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": {
+        "vi": "Một ly cà phê sữa đá",
+        "en": "One iced milk coffee"
+      },
+      "about": {
+        "vi": "Gọi một ly cà phê sữa đá ở quán Chú Tư trên đường Lê Lai, rồi ngồi lại thưởng thức như người Sài Gòn.",
+        "en": "Order an iced milk coffee at Chú Tư's on Lê Lai, then stay and enjoy it like a Saigonese."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.chao_sai_gon"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "order",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "chu_tu",
+            "signal": "order_ca_phe_sua_da"
+          },
+          "text": {
+            "vi": "Gọi cà phê sữa đá ở quán Chú Tư",
+            "en": "Order an iced milk coffee at Chú Tư's"
+          },
+          "at": "chu_tu"
+        },
+        {
+          "id": "sit",
+          "type": "stay_place",
+          "params": {
+            "place": "day_nha_pho_le_lai"
+          },
+          "count": 20,
+          "text": {
+            "vi": "Ngồi lại quán thưởng thức",
+            "en": "Stay at the café and enjoy it"
+          },
+          "at": "chu_tu"
+        }
+      ],
+      "rewards": {
+        "stamps": [
+          "ca_phe_sua_da"
+        ]
+      }
+    },
+    {
+      "id": "traveler.kien_truc_phap",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": {
+        "vi": "Ba công trình thời Pháp",
+        "en": "Three French buildings"
+      },
+      "about": {
+        "vi": "Ghé Nhà thờ Đức Bà, Bưu điện Thành phố và Nhà hát Thành phố, thứ tự nào cũng được.",
+        "en": "Visit the Cathedral, the Post Office and the Opera House, in any order."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.chao_sai_gon"
+      ],
+      "flow": "all",
+      "objectives": [
+        {
+          "id": "nha_tho",
+          "type": "reach_place",
+          "params": {
+            "place": "nha_tho_duc_ba"
+          },
+          "text": {
+            "vi": "Ghé Nhà thờ Đức Bà",
+            "en": "Visit the Cathedral"
+          },
+          "at": "nha_tho_duc_ba"
+        },
+        {
+          "id": "buu_dien",
+          "type": "reach_place",
+          "params": {
+            "place": "buu_dien_thanh_pho"
+          },
+          "text": {
+            "vi": "Ghé Bưu điện Thành phố",
+            "en": "Visit the Post Office"
+          },
+          "at": "buu_dien_thanh_pho"
+        },
+        {
+          "id": "nha_hat",
+          "type": "reach_place",
+          "params": {
+            "place": "nha_hat_thanh_pho"
+          },
+          "text": {
+            "vi": "Ghé Nhà hát Thành phố",
+            "en": "Visit the Opera House"
+          },
+          "at": "nha_hat_thanh_pho"
+        }
+      ],
+      "rewards": {
+        "stamps": [
+          "kien_truc_phap"
+        ]
+      }
+    },
+    {
+      "id": "traveler.banh_trang_tron",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": {
+        "vi": "Ăn vặt Hồ Con Rùa",
+        "en": "A snack at Turtle Lake"
+      },
+      "about": {
+        "vi": "Mua một bịch bánh tráng trộn của Dì Năm rồi ngồi ăn bên Hồ Con Rùa.",
+        "en": "Buy a bag of bánh tráng trộn from Dì Năm and eat it by Turtle Lake."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.chao_sai_gon"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "buy",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "di_nam",
+            "signal": "buy_banh_trang_tron"
+          },
+          "text": {
+            "vi": "Mua bánh tráng trộn của Dì Năm",
+            "en": "Buy bánh tráng trộn from Dì Năm"
+          },
+          "at": "di_nam"
+        },
+        {
+          "id": "eat",
+          "type": "stay_place",
+          "params": {
+            "place": "ho_con_rua"
+          },
+          "count": 15,
+          "text": {
+            "vi": "Ngồi ăn bên Hồ Con Rùa",
+            "en": "Eat it by Turtle Lake"
+          },
+          "at": "ho_con_rua"
+        }
+      ],
+      "rewards": {
+        "stamps": [
+          "banh_trang_tron"
+        ]
+      }
+    },
+    {
+      "id": "traveler.hoi_duong",
+      "version": 2,
+      "questline": "saigon_local",
+      "title": {
+        "vi": "Hỏi đường người Sài Gòn",
+        "en": "Ask a Saigonese the way"
+      },
+      "about": {
+        "vi": "Người Sài Gòn chỉ đường nhiệt tình lắm. Mở Cẩm nang và hỏi đường: người Sài Gòn đang chơi sẽ tới chỉ cho bạn. Không ai tới thì Chú Sáu xe ôm ở bùng binh biết hết mọi ngả.",
+        "en": "Saigonese love to give directions. Open the Guidebook and ask: a Saigonese playing now will come and show you. If nobody comes, Chú Sáu, the xe ôm driver at the roundabout, knows every way."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.chao_sai_gon"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "ask",
+          "type": "ask_way",
+          "params": {
+            "npc": "chu_sau",
+            "signal": "asked_directions"
+          },
+          "text": {
+            "vi": "Hỏi đường người Sài Gòn (Cẩm nang); không ai tới thì hỏi Chú Sáu",
+            "en": "Ask a Saigonese the way (Guidebook); if nobody comes, ask Chú Sáu"
+          }
+        }
+      ],
+      "rewards": {
+        "stamps": [
+          "hoi_duong"
+        ]
+      }
+    },
+    {
+      "id": "traveler.bai_kiem_tra_cuoi",
+      "version": 1,
+      "questline": "saigon_local",
+      "title": {
+        "vi": "Bài kiểm tra cuối",
+        "en": "The final test"
+      },
+      "about": {
+        "vi": "Quay lại gặp Cô Ba. Trả lời đúng năm câu hỏi về những gì bạn đã thấy là thành người Sài Gòn chính hiệu.",
+        "en": "Go back to Cô Ba. Answer five questions about what you have seen and become a true Saigonese."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.ca_phe_sua_da",
+        "traveler.kien_truc_phap",
+        "traveler.banh_trang_tron",
+        "traveler.hoi_duong"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "quiz",
+          "type": "talk_npc",
+          "params": {
+            "npc": "co_ba"
+          },
+          "text": {
+            "vi": "Nói chuyện với Cô Ba",
+            "en": "Talk to Cô Ba"
+          },
+          "at": "co_ba"
+        }
+      ],
+      "rewards": {
+        "titles": [
+          "nguoi_sai_gon_chinh_hieu"
+        ],
+        "stamps": [
+          "chung_nhan"
+        ],
+        "capability": "local.certified"
+      }
+    }
+  ],
+  "achievements": [
+    {
+      "id": "nguoi_sai_gon_chinh_hieu",
+      "title": {
+        "vi": "Người Sài Gòn chính hiệu",
+        "en": "True Saigonese"
+      },
+      "about": {
+        "vi": "Hoàn thành bài kiểm tra cuối của Cô Ba.",
+        "en": "Pass Cô Ba's final test."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "objective": {
+        "type": "quest_done",
+        "params": {
+          "quest": "traveler.bai_kiem_tra_cuoi"
+        }
+      }
+    }
+  ]
+}

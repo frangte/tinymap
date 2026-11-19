@@ -211,6 +211,8 @@ func (c *Catalog) checkNPC(n NPC, places map[string]bool) error {
 		return fmt.Errorf("place %q is not in places.json", n.Place)
 	case !point(n.At) || !point(n.Face):
 		return fmt.Errorf("at and face must be [x, y] within ±%d m", coordLimit)
+	case !c.Map.Inside(n.At[0], n.At[1]):
+		return errors.New("stands outside the island's bounds (map.json)")
 	case n.At[0] == n.Face[0] && n.At[1] == n.Face[1]:
 		return errors.New("face must be another point than at")
 	case !modes[n.Mode]:

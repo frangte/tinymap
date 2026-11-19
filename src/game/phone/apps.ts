@@ -1,23 +1,19 @@
 // The phone's apps, one view each, keyed by the ids in server/content/apps.json. A view draws into the phone's
-// screen when its app opens; live ones (the map, who is around) also get update() a few times a second.
-// Text only ever goes in through textContent.
+// screen when its app opens; live ones (who is around) also get update() a few times a second. What is there to read
+// (the character, the map, quests, achievements, the Cẩm nang) moved to the Sổ tay (src/game/notebook/), which
+// draws its sections with the same AppFactory. Text only ever goes in through textContent.
 import type * as THREE from 'three';
-import { archetypeById } from '../archetypes';
-import { PLACES, placeById, placeNote, placeTitle, type Place } from '../places';
-import { BODY_NAMES, HAT_NAMES, outfitStyle } from '../outfits';
+import { PLACES, placeById, placeTitle, type Place } from '../places';
 import type { Profile } from '../profile';
 import type { RemotePlayer } from '../remotePlayers';
 import { NEARBY_RADIUS, type Channel } from '../../net/protocol';
-import { MiniMap } from './miniMap';
 import { badge } from '../badge';
-import { countOf, current, isDone, type ActiveQuest, type QuestLog } from '../questLog';
-import { BOOK_STAMPS, STREAK_STAMPS, countText, titleName, type StampDef } from '../quests';
-import { xu, type Rides } from '../rides';
+import type { QuestLog } from '../questLog';
+import type { Rides } from '../rides';
 import { button, h } from './dom';
 import type { Directions } from '../directions';
 import type { Mutes } from '../mutes';
 import { crab, crabDriver } from './crabApps';
-import { tx } from '../i18n';
 import { L } from '../i18n/phoneApps';
 
 export interface Notice {
@@ -75,63 +71,6 @@ const destName = (id: string): string => {
   return p ? placeTitle(p) : id;
 };
 
-const profile: AppFactory = (root, ctx) => {
-  const p = ctx.profile();
-  const a = archetypeById(p.archetype);
-  const head = h('div', 'app-head');
-  head.append(h('strong', 'app-name', p.name));
-  const b = badge(p.archetype);
-  if (b) head.append(b);
-  root.append(head);
-  if (a) root.append(h('p', 'app-text', tx(a.pitch)));
-  const facts = h('dl', 'app-facts');
-  const fact = (k: string, v: string): void => facts.append(h('dt', '', k), h('dd', '', v));
-  fact(L.role, a ? tx(a.name) : L.roleNone);
-  fact(L.outfit, outfitStyle(p.look.outfit, p.look.body).name);
-  fact(L.hat, HAT_NAMES[p.look.hat]);
-  const balance = ctx.rides().balance;
-  if (balance !== null) fact(L.wallet, xu(balance));
-  root.append(facts);
-  const log = ctx.quests();
-  let stop: (() => void) | undefined;
-  if (log.titles.length > 0) {
-    // the title shown under the name, among those earned
-    const field = h('label', 'field');
-    field.append(h('span', '', L.title));
-    const select = document.createElement('select');
-    select.className = 'title-select';
-    const none = new Option(L.titleNone, '');
-    select.append(none, ...log.titles.map((id) => new Option(titleName(id) ?? id, id)));
-    // the server has the last word: the picker shows what it says is carried, and waits while offline
-    const sync = (): void => {
-      select.value = log.title;
-      select.disabled = !ctx.online();
-    };
-    sync();
-    select.addEventListener('change', () => ctx.chooseTitle(select.value));
-    field.append(select);
-    root.append(field);
-    stop = log.onChange(sync);
-  }
-  const actions = h('div', 'app-actions');
-  const other = BODY_NAMES[p.look.body === 'man' ? 'woman' : 'man'];
-  actions.append(
-    button(L.dress, () => {
-      ctx.close();
-      ctx.dress();
-    }, true),
-    button(L.switchBody(other), () => ctx.switchBody()),
-  );
-  const change = button(a ? L.changeRole : L.chooseRole, () => {
-    ctx.close();
-    ctx.changeArchetype();
-  });
-  change.classList.add('app-wide');
-  actions.append(change);
-  root.append(actions);
-  return { dispose: stop };
-};
-
 const chat: AppFactory = (root, ctx) => {
   root.append(h('p', 'app-text', L.channelsAbout(NEARBY_RADIUS)));
   const seg = h('div', 'seg');
@@ -171,18 +110,6 @@ const chat: AppFactory = (root, ctx) => {
   drawMuted();
   root.append(muted);
   return { dispose: mutes.onChange(drawMuted) };
-};
-
-const map: AppFactory = (root, ctx) => {
-  const m = new MiniMap();
-  root.append(m.canvas, h('p', 'app-note', L.mapAbout));
-  const draw = (): void => {
-    const s = ctx.self();
-    m.draw({ x: s.position.x, z: s.position.z, heading: s.heading }, ctx.others());
-  };
-  // after layout, so the canvas has its size
-  requestAnimationFrame(draw);
-  return { update: draw };
 };
 
 const clock = (at: number): string => {
@@ -242,38 +169,11 @@ function askSection(ctx: AppContext): { root: HTMLElement; update(): void; dispo
   return { root, update, dispose: directions.onChange(draw) };
 }
 
+/** Hỏi đường: asking a Citizen online the way (D18); the Cẩm nang itself is in the Sổ tay. */
 const guide: AppFactory = (root, ctx) => {
-  const log = ctx.quests();
   const ask = askSection(ctx);
   root.append(ask.root);
-  // the stamp book: one stamp per quest of the Traveler's questline (redrawn when one is earned)
-  const stamps = h('div', 'stamp-section');
-  const drawStamps = (): void => {
-    stamps.replaceChildren();
-    if (!log.known) return;
-    const earned = new Set(log.stamps);
-    const have = BOOK_STAMPS.filter((s) => earned.has(s.id)).length;
-    stamps.append(h('strong', 'app-section', L.stampBook(have, BOOK_STAMPS.length)), stampRow(BOOK_STAMPS, earned));
-  };
-  drawStamps();
-  root.append(stamps);
-  const stop = log.onChange(drawStamps);
-  const seen = ctx.landmarksSeen();
-  root.append(h('p', 'app-text', L.landmarksSeen(seen.size, LANDMARKS.length)));
-  const ol = h('ol', 'app-list');
-  for (const l of LANDMARKS) {
-    const li = h('li', seen.has(l) ? 'landmark is-seen' : 'landmark');
-    li.append(h('strong', '', placeTitle(l)), h('span', '', placeNote(l)));
-    ol.append(li);
-  }
-  root.append(ol);
-  return {
-    update: ask.update,
-    dispose: () => {
-      stop();
-      ask.dispose();
-    },
-  };
+  return { update: ask.update, dispose: ask.dispose };
 };
 
 const community: AppFactory = (root, ctx) => {
@@ -304,152 +204,8 @@ const community: AppFactory = (root, ctx) => {
   return { update: draw };
 };
 
-/** A row of stamps, earned ones inked. */
-function stampRow(stamps: readonly StampDef[], earned: ReadonlySet<string>, cls = 'stamp-book'): HTMLOListElement {
-  const book = h('ol', cls);
-  book.setAttribute('role', 'list');
-  for (const s of stamps) {
-    const li = h('li', earned.has(s.id) ? 'stamp is-earned' : 'stamp');
-    li.append(h('span', '', tx(s.name)), h('span', 'sr-only', earned.has(s.id) ? L.stampEarned : L.stampMissing));
-    book.append(li);
-  }
-  return book;
-}
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-/** Saigon is UTC+7 all year: the dailies start over at its midnight */
-const SAIGON_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-/** "4 giờ 12 phút" ("4 h 12 min") until the dailies start over. */
-function untilMidnight(now: number): string {
-  const t = now + SAIGON_OFFSET_MS;
-  const left = Math.max(0, (Math.floor(t / DAY_MS) + 1) * DAY_MS - t);
-  const hours = Math.floor(left / 3_600_000);
-  const minutes = Math.ceil((left % 3_600_000) / 60_000);
-  return hours > 0 ? L.hoursMinutes(hours, minutes) : L.minutes(minutes);
-}
-
-/** One quest's card: its objectives, and how to track it. */
-function questCard(q: ActiveQuest, log: QuestLog, tracked: ActiveQuest | null): HTMLElement {
-  const now = current(q);
-  const card = h('section', q.def === tracked?.def ? 'quest-card is-tracked' : 'quest-card');
-  card.append(h('strong', 'quest-title', tx(q.def.title)), h('p', 'app-note', tx(q.def.about)));
-  const goals = h('ul', 'quest-goals');
-  for (const o of q.def.objectives) {
-    const li = h('li', isDone(q, o) ? 'is-done' : now.includes(o) ? 'is-now' : '');
-    li.append(h('span', '', tx(o.text)));
-    const c = countText(o, countOf(q, o));
-    if (c) li.append(h('small', '', c));
-    goals.append(li);
-  }
-  card.append(goals);
-  if (q.def.xu > 0) card.append(h('small', 'quest-reward', L.reward(xu(q.def.xu))));
-  card.append(q.def === tracked?.def ? h('small', 'quest-tracking', L.tracking) : button(L.track, () => log.track(q.def.id)));
-  return card;
-}
-
-/** Today's dailies, the streak and its stamps. */
-function dailySection(log: QuestLog, tracked: ActiveQuest | null): HTMLElement | null {
-  const dailies = log.dailies();
-  if (dailies.length === 0) return null;
-  const box = h('section', 'daily-section');
-  const streak = log.streak;
-  box.append(
-    h('strong', 'app-section', L.daily),
-    h('p', 'app-note', `${streak > 0 ? L.streak(streak) : L.noStreak} · ${L.resetsIn(untilMidnight(Date.now()))}`),
-  );
-  for (const q of dailies) {
-    if (!q.state.done) {
-      box.append(questCard(q, log, tracked));
-      continue;
-    }
-    const card = h('section', 'quest-card is-done');
-    card.append(h('strong', 'quest-title', tx(q.def.title)), h('small', 'quest-tracking', q.def.xu > 0 ? L.doneTodayPaid(xu(q.def.xu)) : L.doneToday));
-    box.append(card);
-  }
-  if (STREAK_STAMPS.length > 0) box.append(stampRow(STREAK_STAMPS, new Set(log.stamps), 'stamp-book is-small'));
-  return box;
-}
-
-const questsApp: AppFactory = (root, ctx) => {
-  const log = ctx.quests();
-  let doneOpen = false;
-  const draw = (): void => {
-    // a redraw (progress ticking while the app is open) keeps the place and what was unfolded
-    const scroll = root.scrollTop;
-    root.replaceChildren();
-    if (!log.known) {
-      root.append(h('p', 'app-note', ctx.online() ? L.questsNoAccount : L.questsOffline));
-      return;
-    }
-    const tracked = log.tracked();
-    const daily = dailySection(log, tracked);
-    if (daily) root.append(daily);
-    const active = log.active().filter((q) => !q.def.daily);
-    if (active.length > 0 && daily) root.append(h('strong', 'app-section', L.quests));
-    if (active.length === 0 && !daily) root.append(h('p', 'app-note', L.questsAllDone));
-    for (const q of active) root.append(questCard(q, log, tracked));
-    const done = log.done();
-    if (done.length > 0) {
-      const box = document.createElement('details');
-      box.className = 'quest-done';
-      box.open = doneOpen;
-      box.addEventListener('toggle', () => {
-        doneOpen = box.open;
-      });
-      box.append(h('summary', '', L.questsDone(done.length)));
-      const ol = h('ol', 'app-list');
-      for (const d of done) ol.append(h('li', 'landmark is-seen', tx(d.title)));
-      box.append(ol);
-      root.append(box);
-    }
-    root.scrollTop = scroll;
-  };
-  draw();
-  return { dispose: log.onChange(draw) };
-};
-
-const achievementsApp: AppFactory = (root, ctx) => {
-  const log = ctx.quests();
-  const draw = (): void => {
-    root.replaceChildren();
-    if (!log.known) {
-      root.append(h('p', 'app-note', ctx.online() ? L.achievementsNoAccount : L.achievementsOffline));
-      return;
-    }
-    const ol = h('ol', 'app-list');
-    for (const { def, state } of log.achievements()) {
-      const done = state?.done === true;
-      const secret = def.hidden && !done;
-      const li = h('li', done ? 'achievement is-done' : 'achievement');
-      li.append(h('strong', '', secret ? '???' : tx(def.title)), h('span', '', secret ? L.achievementSecret : tx(def.about)));
-      if (!done && def.count > 1) {
-        const n = Math.min(state?.n ?? 0, def.count);
-        const bar = h('span', 'meter');
-        bar.setAttribute('role', 'progressbar');
-        bar.setAttribute('aria-valuemin', '0');
-        bar.setAttribute('aria-valuemax', String(def.count));
-        bar.setAttribute('aria-valuenow', String(n));
-        bar.setAttribute('aria-label', tx(def.title));
-        const fill = h('i', '');
-        fill.style.width = `${Math.round((100 * n) / def.count)}%`;
-        bar.append(fill);
-        li.append(bar, h('small', '', countText(def, state?.n ?? 0)));
-      }
-      ol.append(li);
-    }
-    root.append(ol);
-  };
-  draw();
-  return { dispose: log.onChange(draw) };
-};
-
 export const APP_VIEWS: Readonly<Record<string, AppFactory>> = {
-  profile,
-  quests: questsApp,
-  achievements: achievementsApp,
   chat,
-  map,
   notices,
   guide,
   community,

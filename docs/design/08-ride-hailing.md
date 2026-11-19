@@ -187,7 +187,7 @@ Server to client:
 - **Crab app** (new, `apps.json` with no `requires`, yellow): destination list with distance and fare from `ridehail.json`, the booking states, the driver card, the rating sheet, and the balance.
 - **Crab Driver app** (today a placeholder): the duty toggle, today's trips and earnings, average stars, history, and the open offer.
 - **Offer banner:** outside the phone, top centre, with a 15 s ring and **Nhận**. Offers are urgent, and the phone may be closed.
-- **Guidance:** a small HUD compass arrow with the distance, to the pickup, then to the destination, plus markers on the phone map. Movement only reads the nav grid, so this is a straight-line arrow, not a route.
+- **Guidance:** a small HUD compass arrow with the distance, to the pickup, then to the destination, plus markers on the phone map. There is no route graph (movement collides with the map itself, D21), so this is a straight-line arrow, not a route.
 - **Passenger mode** (`src/game/player.ts`): while seated, the local player is carried. Each frame its position, heading and lean come from the driver's avatar as drawn (`RemotePlayer`, 230 ms behind, already smooth), the joystick does nothing, the camera follows, and the action button reads **Xuống xe**. A `correct` from the server ends it at the spot beside the bike.
 - **Poses** (`src/game/character.ts`): `ridePose` gains the seat. Seat 1 sits 0.45 m further back and a little higher, hands on the knees or the driver's waist.
 - **The bike model** (`src/game/motorbike.ts`): the yellow top box sits where the passenger goes. Move a smaller box onto a rear rack behind seat 1, or hide it while seat 1 is taken. The Crab mark stays on the jacket and helmet.

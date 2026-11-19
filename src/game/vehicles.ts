@@ -1,10 +1,12 @@
 // Every vehicle on the island, drawn: parked ones where the server says, ridden ones under their rider (our own
 // player or a remote one, wherever it is drawn this frame). Online the list comes from the server (welcome,
 // vehicle, vehicle_gone); offline the game parks one local bike for a player whose archetype starts with one.
+// A parked bike stands on the floor under where the server put it: the server does not know the map's heights.
 import * as THREE from 'three';
 import { Motorbike } from './motorbike';
 import type { InkPass } from './ink';
 import type { Pose, VehicleInfo } from '../net/protocol';
+import type { FloorAt } from './collider';
 import { damp, wrapAngle } from './coords';
 
 /** a bike further than this from the camera is hidden in play mode (m), like other players */
@@ -35,7 +37,13 @@ export class Vehicles {
   /** owner id → vehicle id, so the per-frame lookups do not walk the map */
   private readonly byOwner = new Map<number, number>();
 
-  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass) {}
+  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass, private readonly floorAt: FloorAt) {}
+
+  /** A copy of `pose` standing on the floor under it (as high as given, near enough, where there is none). */
+  private onFloor(pose: Readonly<Pose>): Pose {
+    const y = this.floorAt(pose[0], pose[2], pose[1]);
+    return [pose[0], Number.isFinite(y) ? y : pose[1], pose[2], pose[3]];
+  }
 
   get(id: number): VehicleInfo | undefined {
     return this.all.get(id)?.info;
@@ -64,7 +72,7 @@ export class Vehicles {
     const e = this.all.get(info.id);
     this.byOwner.set(info.owner, info.id);
     if (e) {
-      e.info = { ...info, pose: [...info.pose] };
+      e.info = { ...info, pose: this.onFloor(info.pose) };
       return;
     }
     const bike = new Motorbike();
@@ -72,7 +80,7 @@ export class Vehicles {
     bike.root.visible = false;
     this.scene.add(bike.root);
     this.ink.track(bike.root);
-    this.all.set(info.id, { info: { ...info, pose: [...info.pose] }, bike, lastHeading: info.pose[3], steer: 0 });
+    this.all.set(info.id, { info: { ...info, pose: this.onFloor(info.pose) }, bike, lastHeading: info.pose[3], steer: 0 });
   }
 
   remove(id: number): void {
@@ -89,7 +97,7 @@ export class Vehicles {
   park(id: number, pose: Readonly<Pose>, rider = 0): void {
     const e = this.all.get(id);
     if (!e) return;
-    e.info.pose = [pose[0], pose[1], pose[2], pose[3]];
+    e.info.pose = this.onFloor(pose);
     e.info.rider = rider;
   }
 

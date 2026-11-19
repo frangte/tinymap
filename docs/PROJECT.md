@@ -2,6 +2,8 @@
 
 Đọc file này trước khi làm tiếp. Code game xem README.md, quy ước code xem CLAUDE.md.
 
+> **Đang design lại map (2026-11-11):** map mới tên "Sài Gòn mini" (thành phố, sông Sài Gòn, cầu Ba Son, biển Vũng Tàu, Núi Nhỏ có tượng Chúa Kitô Vua). Design đã duyệt, blockout lần 1 (`models/saigon_mini.blend`) chờ duyệt: [map-v5.md](map-v5.md). Mọi yêu cầu đang mở: [requirements.md](requirements.md). File này vẫn mô tả đảo v4 đang chạy trong game.
+
 ![Toàn cảnh](img/00_overview.jpg)
 
 ## Dự án là gì
@@ -16,7 +18,7 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
   - Phố Bùi Viện trên đường Lê Lai: nhà ống hai bên phố (`SH_BuiVien_N/S`), biển hiệu quán bar, đèn dây, lồng đèn, cờ, bàn ghế nhựa, xe máy đậu (`SH_BuiVien_Life/Lights`), cổng "PHỐ ĐI BỘ BÙI VIỆN" ở đầu bùng binh. Dãy nam nông 4.6 m vì lối đi bộ ven biển chạy ngay sau lưng (y −37…−41); dãy bắc ngắn lại ở đầu tây cũng vì lối đi đó.
   - Đường Tôn Đức Thắng: Hàm Nghi không còn cụt ở Bitexco mà vòng sang nối vào Đồng Khởi (`IX_Roads_TonDucThang`), cắt qua đầu nam phố Nguyễn Huệ; đoạn cụt cũ của Đồng Khởi (y −60…−52) bỏ.
   - Bỏ hai đèn 4 bóng (một đứng giữa cổng nam chợ, một đứng trên mặt đường ở cửa đông bùng binh), bỏ các vạch qua đường vẽ chồng trên vòng xuyến, thêm một vạch sạch trên nhánh Lê Lai (`IX_RoadMarks_LeLaiZebra`).
-  - Nav bake lại ngày 2026-11-07: hai dãy nhà là hộp `NAV_Solid_BuiVien_*` (đi tới quầy bar thì dừng, vỉa hè dưới ban công và biển hiệu vẫn đi được); chỗ đèn và bồn cây đã bỏ trên Tôn Đức Thắng, ở cửa đông bùng binh và chỗ hai tượng người cũ (sau Chú Tư, cạnh Chị Hạnh) đi qua được.
+  - (Lịch sử: từ 2026-11-17 không còn nav, va chạm lấy thẳng từ model, xem Pipeline.) Nav bake lại ngày 2026-11-07: hai dãy nhà là hộp `NAV_Solid_BuiVien_*` (đi tới quầy bar thì dừng, vỉa hè dưới ban công và biển hiệu vẫn đi được); chỗ đèn và bồn cây đã bỏ trên Tôn Đức Thắng, ở cửa đông bùng binh và chỗ hai tượng người cũ (sau Chú Tư, cạnh Chị Hạnh) đi qua được.
 - **Để dành, chưa làm:**
   - UBND: ô trống lát gạch ở đầu bắc phố đi bộ Nguyễn Huệ (x 48…72, y 12…31), sát đường Lê Thánh Tôn, giống vị trí thật.
 - **Tiếp theo:** NPC và quest.
@@ -46,11 +48,12 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
 
 | Nhóm | Key và màu |
 |---|---|
-| Tường | cream `#EAD9AE`, creamLight `#F4EBD3`, wallGrey `#A0A7AA`, wallTeal `#5E9A96`, wallOchre `#C9A25E`, wallBeige `#CFC1A0`, wallPink `#D29A86`, opWhite `#EEE7D7`, opShade `#D8CDB8`, poYellow `#E0B45A`, brick `#B5523B`, stone `#E6DCC8`, towerPale `#DAD4C8`, concrete `#ABA69C` |
+| Tường | cream `#EAD9AE`, creamLight `#F4EBD3`, wallGrey `#A0A7AA`, wallTeal `#5E9A96`, wallOchre `#C9A25E`, wallBeige `#CFC1A0`, wallPink `#D29A86`, wallSalmon `#EBA78A` (Nhà Rồng), opWhite `#EEE7D7`, opShade `#D8CDB8`, poYellow `#E0B45A`, brick `#B5523B`, stone `#E6DCC8`, towerPale `#DAD4C8`, concrete `#ABA69C` |
 | Mái | roofRed `#A9492F` (dark `#7D3326`, light `#C0613F`), slate `#646B74`, spire `#6F7780`, tinBlue `#8AA3B6` |
-| Điểm nhấn | poGreen `#3E7F5F`, clockBlue `#4E7CA6`, clockWhite `#F3EEE2`, gold `#C9A24A`, lotusTop `#E6D29C`, turq `#5BA9A1`, archDark `#3B3330`, glassBlue `#7FA0B5`, glassTeal `#4F7A7C`, finSilver `#D3DAE0`, bridgeWhite `#EEF0EE`, statueW `#F2EFE8` |
+| Điểm nhấn | poGreen `#3E7F5F`, clockBlue `#4E7CA6`, clockWhite `#F3EEE2`, gold `#C9A24A`, lotusTop `#E6D29C`, turq `#5BA9A1`, archDark `#3B3330`, railing `#3B3330` (song rào, lan can: camera trong game nhìn xuyên qua), glassBlue `#7FA0B5`, glassTeal `#4F7A7C`, finSilver `#D3DAE0`, bridgeWhite `#EEF0EE`, statueW `#F2EFE8`, bronze `#55604F` và bronzeLight `#8A8B66` (tượng đồng), graniteGold `#D6B47E` (bệ tượng Trần Hưng Đạo), graniteRed `#94574C` (bệ tượng Đức Mẹ), tankGreen `#56653F` (xe tăng ở Dinh), steelWhite `#F1F2EE` (vòm, lan can cầu đi bộ: camera nhìn xuyên), etfe `#E3EDDC` (lá của vòm lá dừa: camera nhìn xuyên), cable `#C9CED2` (dây treo: không va chạm) |
 | Mặt đất | asphalt `#6F6D69`, paving `#BDB4A2`, curb `#D3CBB8`, roadLine `#ECE6D4`, grass `#86A85E`, sand `#CDB98F`, water `#6FA9B6` (hồ) |
 | Biển (Three.js, `src/game/sea.ts`) | sâu `#3F8399`, cạn `#86CBC6`, bọt `#F3F1E7`, sương chân trời `#DCDCD0` |
+| Nước hồ (Three.js, `src/game/water.ts`, mọi mesh `water`) | sâu `#3E8E9C`, cạn `#8FD0C8`, viền `#EEF4EC`, trời phản chiếu `#D8E9E6` |
 | Cây | leaf `#6E9B4C`, leafLight `#93B85F`, leafDark `#4D7539`, bark `#6B4C36` |
 | Mực | ink `#2B211C`; lampGlow `#FFE6A8` (không đổ bóng) |
 
@@ -104,7 +107,7 @@ ns['art_pass_geometry']()
 | Nhà hát Thành phố (1900) | `LM_NhaHatLon` · (106, −4), mặt tiền hướng tây, nhìn về chợ dọc Lê Lợi · 14.6 m | Tường kem trắng (opWhite, opShade). Vòm lớn giữa mặt tiền có kính hình quạt, hai cánh hai bên, mái xám. Đã có mặt sau và hai mặt bên. Quảng trường Lam Sơn và đài phun nước phía trước | [model](img/02_nha_hat.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Municipal_Theatre_of_Ho_Chi_Minh_City) |
 | Nhà thờ Đức Bà (1880) | `LM_NhaThoDucBa` · (78, 82), mặt tiền hướng nam, nhìn xuống Đồng Khởi · 26.6 m | Gạch đỏ (brick), hai tháp chuông chóp xám nhọn, cửa sổ tròn và đồng hồ giữa hai tháp | [model](img/03_nha_tho_duc_ba.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Notre-Dame_Cathedral_Basilica_of_Saigon) |
 | Bưu điện Thành phố (1891) | `LM_BuuDien` · (100, 54), mặt tiền hướng tây, nhìn ra Công xã Paris · 15.7 m | Tường vàng (poYellow), cửa vòm xanh lá (poGreen), đồng hồ trên vòm cổng chính, hai khối đầu hồi, mái slate. Sân trước nhìn ra Công xã Paris; đã có mặt sau | [model](img/04_buu_dien.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Saigon_Central_Post_Office) |
-| Công xã Paris | `LM_TuongDucMe` · (78, 50) | Bùng binh có tượng Đức Mẹ trắng (statueW) trên bệ, nằm trước nhà thờ | [model](img/08_cong_xa_paris.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Paris_Commune_Square_(Saigon)) |
+| Công xã Paris | `LM_TuongDucMe` · (78, 50) | Bùng binh có tượng Đức Mẹ trắng (statueW) trên bệ, nằm trước nhà thờ. Map mini: tượng đứng thẳng, mạng che đầu, áo choàng, hai tay cầm quả địa cầu có thánh giá, mắt ngước lên, trên bệ tròn đá đỏ (`tuong.py`) | [model](img/08_cong_xa_paris.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Paris_Commune_Square_(Saigon)) |
 | Hồ Con Rùa (1967) | `LM_HoConRua` (+`_Water`) · (44, 90), cuối đường Phạm Ngọc Thạch · 15.1 m | Hồ tròn có vòi phun, trụ cao với đỉnh hình hoa sen (lotusTop), cầu thang lên vòng đi bộ trên cao, tường xanh ngọc (turq). Sân vòng ngoài có ghế và bồn hoa | [model](img/05_ho_con_rua.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:H%E1%BB%93_Con_R%C3%B9a) |
 | Bitexco (2010) | `LM_Bitexco` · (44, −62), bờ nước giữa Hàm Nghi và Nguyễn Huệ · 52.4 m | Tháp kính xanh hình búp sen thuôn dần, đỉnh cắt xiên. Sân đỗ trực thăng nhô ra ở khoảng 2/3 chiều cao, khối đế bên dưới. Không méo tay | [model](img/06_bitexco.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Bitexco_Financial_Tower) |
 | Quảng trường Lam Sơn | `CX_LamSon` (+`_Water`) · (89, −4) | Đài phun nước tròn nhiều tầng giữa bồn hoa, thu nhỏ 0.72 lần | [model](img/09_lam_son.jpg) · [thật](https://commons.wikimedia.org/wiki/Category:Lam_Son_Square) |
@@ -117,21 +120,19 @@ Cầu Ba Son và bờ Thủ Thiêm đã bỏ từ v3; muốn xem lại thì mở
 
 ## Pipeline: từ Blender ra game
 
-1. Sửa map. Đảo hiện tại là `models/temp.sg.tinymap.blend` (đảo v4 thêm Bùi Viện và Tôn Đức Thắng): muốn sửa bằng script trên file gộp này thì xem `scripts/blender/edit_v4_buivien.py` (xoá theo cụm lưới liền nhau, cắt mặt đất theo đa giác, dựng thêm object mới bằng bộ `Geo` nạp từ Text của `sg.tinymap.blend`); file đó là file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` và `bake_nav.py` đều chạy được trên file này. `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
+1. Sửa map. Đảo hiện tại là `models/temp.sg.tinymap.blend` (đảo v4 thêm Bùi Viện và Tôn Đức Thắng): muốn sửa bằng script trên file gộp này thì xem `scripts/blender/edit_v4_buivien.py` (xoá theo cụm lưới liền nhau, cắt mặt đất theo đa giác, dựng thêm object mới bằng bộ `Geo` nạp từ Text của `sg.tinymap.blend`); file đó là file GLB đã xuất được nhập lại vào Blender (một scene, lưới gộp theo vật liệu, không còn scene `SaigonDiorama` hay các collection `SD_`). `export_glb.py` chạy được trên file này. `sg.tinymap.blend` ở thư mục gốc còn đủ object gốc nhưng là bố cục cũ (còn cầu Ba Son).
 2. Export GLB, file `.blend` không bị đổi:
    ```bash
    blender models/temp.sg.tinymap.blend --background --python scripts/blender/export_glb.py -- export/saigon_q1_raw.glb
    ```
-3. Thu nhỏ file bằng 5 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune`). Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/` với tên mà `index.html` nạp (`data-model` của `#stage`, hiện là `saigon_q1_v5.glb`).
-4. Bake lại bản đồ đi lại, mất khoảng 15 giây, rồi copy sang server (server kiểm tra mọi bước đi theo bản của nó). Script đọc mực nước biển và khung lưới (`SEA_LEVEL`, `X0…Y1`) ở đầu file; đổi kích thước đảo thì sửa hai giá trị này:
-   ```bash
-   blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
-   npm run nav:sync
-   ```
-   - Mặt đất nhận theo vật liệu (cỏ, cát, nhựa đường, bó vỉa, vạch đường, đá, nước); mọi thứ khác cao ngang người là vật cản.
-   - Nhà không ai được đi vào (hay đi bên dưới): thêm một hộp `NAV_Solid_<tên>` vào collection `NAV` của file (hộp đứng, chỉ tính khung nhìn từ trên xuống; trong hộp, ô nào có gì cao hơn sàn 2 m là bị chặn). Hộp hiện có do `scripts/blender/nav_boxes.py` tạo; đầu file đó giải thích thêm hộp `NAV_Block_` (chặn hẳn) và `NAV_Open_` (bỏ vật cản). Các hộp không bị export.
-   - Người chơi bước lên được bậc 0.5 m và bước xuống được 1.1 m (`src/game/player.ts`), nên nhảy lên ghế hay mép bồn cây thì vẫn xuống được.
-   - File gốc cũ (`sg.tinymap.blend`, scene `SaigonDiorama`) vẫn bake theo tên object như trước: `ROOF_PREFIX`, `SOLID_PREFIX`.
+3. Thu nhỏ file bằng 6 lệnh `gltf-transform` ghi trong đầu `export_glb.py` (`flatten → join → weld → quantize --pattern POSITION → prune → meshopt`). Bước `meshopt` nén hình học khoảng 5 lần; game giải nén bằng `MeshoptDecoder` (`src/game/world.ts`). Object `PREVIEW_*` (mặt biển xem trước của map mới) không được export, vì biển và nước sông do Three.js vẽ. Ra `export/saigon_q1.glb` (khoảng 2 MB), rồi copy sang `public/models/` với tên mà `index.html` nạp (`data-model` của `#stage`, hiện là `saigon_q1_v5.glb`).
+3b. Map Sài Gòn mini (`models/saigon_mini.blend`, xuất bằng `npm run map:export`): cây do script rải trước khi dựng công trình và nhà quanh đó, nên dựng lại map hay thêm công trình xong thì chạy `blender models/saigon_mini.blend --background --python scripts/blender/mini/clean_trees.py` (thêm `-- --dry-run` để chỉ xem danh sách) trước khi xuất: nó xoá cây có thân xuyên nhà, công trình, cầu thang hay đường lên đồi, cây nằm trong hay dưới nhà, cây đứng trong hồ hay trên lòng sông, cây lơ lửng, cây có tường chẻ qua lõi tán và cây trên đảo bùng binh (Khoa 2026-11-19: bùng binh không có cây, giữ vườn thấp) (lần đầu 2026-11-18: 59 cây, có 4 cây xuyên tháp và cầu thang Hồ Con Rùa, 2 cây mọc từ tượng Đức Mẹ). Mũi đất nhọn chỗ sông, kênh và biển gặp nhau được bo tròn ngay trong `build_saigon_mini.py` (`TIP_R` = 5 m, 2026-11-19), phần bị cắt thành lòng sông.
+3c. Công trình chi tiết của map Sài Gòn mini là script trong `scripts/blender/mini/` (danh sách `MINI_SCRIPTS` trong `build_saigon_mini.py`), mỗi script xoá đồ cũ của mình rồi dựng lại nên chạy riêng được trên file đang mở: `blender models/saigon_mini.blend --background --python scripts/blender/mini/ho_con_rua.py -- --save`. Bản v9 (2026-11-18) làm lại Hồ Con Rùa, khuôn viên Dinh Độc Lập (hàng rào, cổng, xe tăng 390 và 843) và Bến Nhà Rồng (cùng bờ kè và tàu; cột cờ Thủ Ngữ đã dựng rồi bỏ theo ý Khoa 2026-11-19): [landmarks-v9-design.md](landmarks-v9-design.md). Màu mới của chúng (wallSalmon, bronze, tankGreen) nằm trong `kit.PAL` của các script này. Sau đó (2026-11-19) vẽ lại cầu đi bộ lá dừa nước (`cau_di_bo.py`) và ba bức tượng Trần Hưng Đạo, Đức Mẹ Hòa Bình, Nguyễn Tất Thành (`tuong.py`, tượng Bến Nhà Rồng gọi từ `ben_nha_rong.py`), cùng file design.
+4. Va chạm không cần bake: game dựng nó từ chính file GLB lúc tải (`src/game/collider.ts`, khoảng nửa giây). Thứ gì có trong model thì chặn người (tường, bó vỉa, thân cây, lan can, tán cây thấp hơn đầu), trừ quầng đèn và lồng đèn treo (`PASS_THROUGH`); nước chỉ chặn chỗ sâu hơn 0.25 m (biển ở mực `sea_level` trong `server/content/map.json`, hồ và đài phun nước theo vật liệu nước). Người chơi là một hình con nhộng (bán kính 0.26 m, cao 1.65 m), bước lên được bậc 0.5 m từ mọi hướng (đi chéo vào bó vỉa cũng lên), cao hơn thì nhảy lên; rơi khỏi gờ thì rơi thật; chỗ nào trần thấp hơn người (gầm cầu sát bờ) thì không chui vào được. Vách chỉ dùng cho va chạm (màu cam trong `sgGame.showCollider()`) chỉ còn ở vành rỗng của đồi Núi Nhỏ.
+   - Muốn chặn chỗ nào: dựng tường thật trong model. Muốn cho đi qua: bỏ vật đó ra khỏi model hoặc dùng vật liệu trong `PASS_THROUGH`. Không còn hộp `NAV_*` (hộp cũ trong file .blend vẫn không bị export, để đó cũng được).
+   - Núi Nhỏ là vỏ rỗng úp trên mặt đảo, mép vỏ hở so với mặt đất: game tự dựng vách chỉ để va chạm từ mép hở của mặt địa hình xuống đất, nên không ai đi lọt vào gầm. Cầu và bệ Bitexco không có vách; không chui được vào gầm cầu là nhờ luật trần thấp trong `player.ts` (`PRESSED`). Đóng kín vỏ núi trong Blender thì vách đó tự hết.
+   - Xem va chạm trong game: mở `?debug`, gọi `sgGame.showCollider()` (lưới hồng là thứ chặn người, mảng cam là vách tự dựng).
+   - Server không biết tường hay sàn, chỉ kiểm tra tốc độ (D21 trong `docs/design/README.md`).
 5. Thêm tên địa điểm mới vào `src/game/places.ts`, toạ độ Blender XY.
 
 ![Trong game](img/12_gameplay.jpg)

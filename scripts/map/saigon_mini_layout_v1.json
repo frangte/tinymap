@@ -1,0 +1,137 @@
+{
+  "about": "Sài Gòn mini (map v5) layout, the one source for the plan drawing (scripts/map/layout_svg.mjs -> docs/img/saigon_mini_layout.svg) and the Blender blockout (scripts/blender/build_saigon_mini.py). Units are metres in plan coordinates: x east, y SOUTH (SVG convention), north up. Blender XY = (x - toBlender.x, toBlender.y - y). Paths use absolute SVG commands M L Q C S Z only. See docs/map-v5.md.",
+  "toBlender": { "x": 251, "y": 231 },
+  "coast": "M 32,10 L 470,10 Q 492,10 492,32 L 492,334 Q 492,364 474,382 L 462,396 L 452,406 L 428,414 Q 410,420 380,421 L 262,422 Q 254,424 252,432 Q 246,448 220,453 Q 196,452 186,438 Q 180,426 176,414 Q 150,372 112,380 Q 92,385 84,396 Q 70,406 58,396 Q 46,384 34,386 Q 16,388 12,370 L 10,32 Q 10,10 32,10 Z",
+  "river": { "path": "M 312,-40 L 312,236 C 312,292 348,312 384,346 S 438,392 446,480", "width": 26, "shallows": 36 },
+  "beaches": [
+    { "id": "bai_sau", "path": "M 262,422 L 380,421 Q 410,420 428,414", "width": 24 },
+    { "id": "bai_truoc", "path": "M 176,414 Q 150,372 112,380 Q 92,385 84,396", "width": 18 },
+    { "id": "bai_dau", "path": "M 58,396 Q 46,384 34,386", "width": 12 }
+  ],
+  "rocks": [[40, 385, 2.6], [50, 390, 2], [34, 380, 1.8], [62, 398, 2.2], [86, 397, 2.4], [252, 434, 2.6], [182, 434, 2.2], [226, 451, 2.4]],
+  "promenades": [
+    { "path": "M 338,22 L 338,236 C 338,282 368,302 404,334 S 458,378 470,398", "w": 6 },
+    { "path": "M 295,22 L 295,232", "w": 6 }
+  ],
+  "roads": [
+    { "name": "Đường ven biển", "path": "M 18,22 L 286,22", "w": 8, "label": [26, 20.6] },
+    { "path": "M 338,22 L 470,22", "w": 7 },
+    { "name": "Hai Bà Trưng", "path": "M 18,66 L 286,66", "w": 10, "label": [30, 64.6] },
+    { "path": "M 338,66 L 470,66", "w": 9 },
+    { "name": "Đồng Khởi", "path": "M 140,104 L 286,104", "w": 10, "label": [252, 102.6] },
+    { "path": "M 18,104 L 100,104", "w": 8 },
+    { "name": "Pasteur", "path": "M 18,176 L 240,176", "w": 10, "label": [24, 174.6] },
+    { "path": "M 18,206 L 140,206", "w": 8 },
+    { "name": "Hàm Nghi", "path": "M 240,206 L 286,206", "w": 10, "label": [255, 204.6] },
+    { "name": "Lê Lai", "path": "M 18,236 L 222,236 Q 236,236 238,220", "w": 10, "label": [24, 234.6] },
+    { "name": "Trần Hưng Đạo", "path": "M 18,296 L 286,296", "w": 10, "label": [24, 294.6] },
+    { "path": "M 18,22 L 18,296", "w": 8 },
+    { "path": "M 59,22 L 59,104", "w": 8 },
+    { "path": "M 59,176 L 59,296", "w": 8 },
+    { "path": "M 100,22 L 100,296", "w": 8 },
+    { "name": "Phạm Ngọc Thạch", "path": "M 140,22 L 140,104", "w": 9, "label": [141.4, 100], "vertical": true },
+    { "path": "M 140,104 L 140,236", "w": 8 },
+    { "name": "Lê Thánh Tôn", "path": "M 196,22 L 196,176", "w": 9, "label": [197.4, 170], "vertical": true },
+    { "name": "Lê Lợi", "path": "M 240,104 L 240,192", "w": 10, "label": [241.4, 172], "vertical": true },
+    { "name": "Tôn Đức Thắng", "path": "M 286,22 L 286,250", "w": 10, "label": [287.4, 246], "vertical": true },
+    { "path": "M 286,250 C 286,292 316,316 342,344 L 366,372 Q 378,388 395,396", "w": 10 },
+    { "name": "Quốc lộ 51", "path": "M 200,296 L 200,360", "w": 10, "label": [201.4, 352], "vertical": true },
+    { "name": "Thùy Vân (Bãi Sau)", "path": "M 256,398 L 395,396", "w": 10, "label": [330, 394.6] },
+    { "name": "Hạ Long", "path": "M 256,398 Q 260,432 236,443 Q 214,450 196,442 Q 182,434 181,414 Q 180,390 196,368 L 200,360", "w": 7 },
+    { "name": "Trần Phú", "path": "M 200,360 Q 160,360 130,368 Q 108,374 98,382 Q 84,391 66,389 Q 50,386 36,377", "w": 8 },
+    { "path": "M 59,296 L 59,330", "w": 7 }
+  ],
+  "loops": [{ "name": "Thủ Thiêm", "rect": [356, 104, 484, 284], "r": 24, "w": 8 }],
+  "walks": [
+    { "name": "Phố đi bộ Nguyễn Huệ", "path": "M 196,140 L 286,140", "w": 16, "planters": true, "label": [205, 142.6] },
+    { "name": "Bùi Viện", "path": "M 100,262 L 280,262", "w": 8, "label": [200, 264.4] }
+  ],
+  "roundabouts": [
+    { "id": "quach_thi_trang", "c": [240, 206], "r": 9, "inner": "grassDark" },
+    { "id": "ho_con_rua", "c": [140, 66], "r": 11, "inner": "paving", "model": true },
+    { "id": "cong_xa_paris", "c": [140, 104], "r": 6, "inner": "grassDark" },
+    { "id": "lam_son", "c": [240, 104], "r": 5, "inner": "paving" }
+  ],
+  "bridges": [
+    { "id": "cau_ba_son", "name": "Cầu Ba Son", "path": "M 280,66 L 344,66", "w": 9, "deck": 3.2, "pylon": [330, 66] },
+    { "id": "cau_ham_nghi", "name": "Cầu 2 (tuỳ chọn)", "path": "M 280,206 L 344,206", "w": 8, "deck": 2.4, "optional": true }
+  ],
+  "parks": [
+    { "rect": [107, 241, 233, 253], "kind": "trees" },
+    { "rect": [25, 111, 93, 169], "kind": "lawn" },
+    { "rect": [362, 110, 478, 278], "kind": "lawn", "r": 18 }
+  ],
+  "plazas": [[218, 183, 234, 229]],
+  "lakes": [{ "ellipse": [420, 195, 26, 14] }],
+  "grid": {
+    "comment": "house blocks: each cell between these street lines that is not under a landmark or park; inset = half street + sidewalk",
+    "inset": 7,
+    "cells": [
+      { "x": [18, 59, 100], "y": [22, 66, 104], "kind": "hem" },
+      { "x": [18, 59, 100], "y": [176, 206, 236], "kind": "hem" },
+      { "x": [18, 59, 100], "y": [236, 296], "kind": "hem" },
+      { "x": [100, 140], "y": [22, 66], "kind": "hem" },
+      { "x": [140, 196, 240, 286], "y": [22, 66], "kind": "np" },
+      { "x": [100, 140], "y": [66, 104], "kind": "np" },
+      { "x": [140, 196], "y": [176, 236], "kind": "np" },
+      { "x": [240, 286], "y": [206, 250], "kind": "np" }
+    ]
+  },
+  "lots": [
+    { "rect": [203, 73, 226, 97], "kind": "np" },
+    { "rect": [254, 73, 279, 97], "kind": "np" },
+    { "rect": [203, 111, 233, 133], "kind": "np" },
+    { "rect": [247, 111, 279, 133], "kind": "np" },
+    { "rect": [147, 111, 165, 169], "kind": "np" },
+    { "rect": [203, 163, 233, 169], "kind": "np" },
+    { "rect": [107, 160, 133, 169], "kind": "hem" },
+    { "rect": [107, 183, 133, 229], "kind": "hem" },
+    { "rect": [107, 269, 280, 289], "kind": "bar" },
+    { "rect": [240, 243, 280, 255], "kind": "bar" },
+    { "rect": [22, 303, 112, 317], "kind": "cl" },
+    { "rect": [208, 303, 262, 329], "kind": "np" },
+    { "rect": [262, 377, 392, 390], "kind": "ks" },
+    { "rect": [128, 340, 190, 354], "kind": "ks" },
+    { "rect": [420, 296, 478, 330], "kind": "hem" }
+  ],
+  "mountains": [
+    { "id": "nui_nho", "outline": "M 214,356 C 240,356 256,374 255,396 C 254,420 240,438 218,441 C 194,443 178,426 178,402 C 178,376 192,356 214,356 Z", "peaks": [[221, 382, 14, 24], [225, 417, 12, 20]], "stairs": "M 250.5,421 L 244.5,414.5 L 240,423.5 L 232.2,420.5", "model": "scripts/blender/mini/nui_nho.py" },
+    { "id": "nui_lon", "outline": "M 60,330 C 80,330 90,342 88,354 C 86,368 76,374 60,374 C 44,374 34,366 34,352 C 34,338 44,330 60,330 Z", "peaks": [[60, 352, 11, 24]], "optional": true }
+  ],
+  "landmarks": [
+    { "n": 1, "id": "cho_ben_thanh", "name": "Chợ Bến Thành", "status": "keep", "at": [200, 206], "size": [36, 35], "face": "E", "mark": [198, 196], "models": ["BT_Arcades", "BT_Halls", "BT_SideGates", "BT_SouthGate_ClockTower"], "srcFace": "S", "color": "cream", "roof": "roofRed", "h": 10 },
+    { "n": 2, "id": "bung_binh_quach_thi_trang", "name": "Bùng binh Quách Thị Trang", "status": "keep", "at": [240, 206], "mark": [240, 206] },
+    { "n": 3, "id": "nha_hat", "name": "Nhà hát Thành phố, Lam Sơn", "status": "keep", "at": [240, 85], "size": [23, 19], "face": "S", "mark": [240, 82], "models": ["LM_NhaHatLon_parkedv4"], "srcFace": "W", "color": "opWhite", "roof": "slate", "h": 14 },
+    { "n": 4, "id": "nha_tho_duc_ba", "name": "Nhà thờ Đức Bà", "status": "keep", "at": [120, 132], "size": [23, 38], "face": "N", "mark": [120, 132], "models": ["LM_NhaThoDucBa"], "srcFace": "auto", "color": "brick", "roof": "slate", "h": 26 },
+    { "n": 5, "id": "buu_dien", "name": "Bưu điện Thành phố", "status": "keep", "at": [172, 85], "size": [31, 22], "face": "S", "mark": [172, 85], "models": ["LM_BuuDien"], "srcFace": "auto", "color": "poYellow", "roof": "slate", "h": 15 },
+    { "n": 6, "id": "ho_con_rua", "name": "Hồ Con Rùa", "status": "keep", "at": [140, 66], "mark": [140, 66], "models": ["LM_HoConRua", "LM_HoConRua_Water"], "srcFace": "S", "face": "S" },
+    { "n": 7, "id": "ubnd", "name": "UBND Thành phố", "status": "new", "at": [180, 140], "size": [18, 26], "face": "E", "mark": [180, 140], "color": "creamLight", "roof": "poYellow", "h": 16 },
+    { "n": 8, "id": "nguyen_hue", "name": "Phố đi bộ Nguyễn Huệ", "status": "keep", "mark": [262, 140] },
+    { "n": 9, "id": "chung_cu_42", "name": "Chung cư 42 Nguyễn Huệ", "status": "new", "at": [218, 156], "size": [26, 12], "face": "N", "mark": [218, 157], "color": "cream", "roof": "concrete", "h": 30 },
+    { "n": 10, "id": "bitexco", "name": "Bitexco", "status": "keep", "at": [263, 174], "size": [31, 34], "face": "E", "mark": [263, 174], "models": ["LM_Bitexco"], "srcFace": "S", "color": "glassBlue", "h": 52 },
+    { "n": 11, "id": "ben_bach_dang", "name": "Bến Bạch Đằng, bến tàu", "status": "new", "at": [304, 150], "size": [9, 28], "face": "S", "mark": [302, 128], "models": ["LM_MeLinh_Pier"], "srcFace": "S", "color": "stone", "h": 3 },
+    { "n": 12, "id": "cau_ba_son", "name": "Cầu Ba Son", "status": "new", "mark": [312, 56] },
+    { "n": 13, "id": "bui_vien", "name": "Phố Bùi Viện", "status": "redo", "mark": [180, 262] },
+    { "n": 14, "id": "cong_vien_23_9", "name": "Công viên 23/9", "status": "keep", "mark": [160, 247] },
+    { "n": 15, "id": "ben_nha_rong", "name": "Bến Nhà Rồng", "status": "optional", "at": [262, 228], "size": [24, 16], "face": "E", "mark": [262, 228], "color": "creamLight", "roof": "roofRed", "h": 9 },
+    { "n": 16, "id": "dinh_doc_lap", "name": "Dinh Độc Lập", "status": "optional", "at": [59, 140], "size": [40, 22], "face": "E", "mark": [59, 140], "color": "opWhite", "roof": "concrete", "h": 14 },
+    { "n": 17, "id": "cho_lon", "name": "Phố Chợ Lớn, Chùa Bà Thiên Hậu", "status": "new", "at": [128, 311], "size": [16, 16], "face": "N", "mark": [128, 311], "color": "poYellow", "roof": "roofRed", "h": 8 },
+    { "n": 18, "id": "ben_xe", "name": "Bến xe", "status": "new", "at": [171, 316], "size": [42, 26], "face": "N", "mark": [182, 316], "color": "concrete", "roof": "tinBlue", "h": 6 },
+    { "n": 19, "id": "thu_thiem", "name": "Công viên, tháp Thủ Thiêm", "status": "new", "mark": [420, 175] },
+    { "n": 20, "id": "bac_thang_nui_nho", "name": "Bậc thang lên Núi Nhỏ", "status": "new", "mark": [214, 360] },
+    { "n": 21, "id": "tuong_chua", "name": "Tượng Chúa Kitô Vua", "status": "new", "at": [225, 417], "mark": [225, 426], "statueChrist": true },
+    { "n": 22, "id": "hai_dang", "name": "Hải đăng Vũng Tàu", "status": "new", "at": [221, 382], "mark": [214, 376], "lighthouse": true },
+    { "n": 23, "id": "bai_truoc", "name": "Bãi Trước", "status": "new", "mark": [140, 377] },
+    { "n": 24, "id": "bai_sau", "name": "Bãi Sau", "status": "new", "mark": [330, 415] },
+    { "n": 25, "id": "bai_dau", "name": "Bãi Dâu", "status": "new", "mark": [44, 383] },
+    { "n": 26, "id": "hon_ba", "name": "Hòn Bà", "status": "new", "at": [302, 447], "mark": [312, 447] },
+    { "n": 27, "id": "mui_nghinh_phong", "name": "Mũi Nghinh Phong, Cổng Trời", "status": "new", "mark": [232, 456] },
+    { "n": 28, "id": "nui_lon", "name": "Núi Lớn (đồi thứ hai)", "status": "optional", "mark": [60, 352] },
+    { "n": 29, "id": "bach_dinh", "name": "Bạch Dinh", "status": "optional", "at": [109, 352], "size": [14, 13], "face": "S", "mark": [109, 351], "color": "opWhite", "roof": "roofRed", "h": 9 },
+    { "n": 30, "id": "me_linh", "name": "Công trường Mê Linh", "status": "keep", "at": [268, 48], "size": [16, 18], "face": "E", "mark": [268, 48], "models": ["LM_MeLinh"], "srcFace": "S" },
+    { "n": 31, "id": "cong_xa_paris", "name": "Công xã Paris (tượng Đức Mẹ)", "status": "keep", "at": [140, 104], "mark": [148, 113], "models": ["LM_TuongDucMe_parkedv4"], "srcFace": "S", "face": "S" }
+  ],
+  "towers": [[445, 30, 463, 52, 46], [468, 30, 484, 48, 38], [372, 28, 388, 46, 70], [450, 72, 472, 90, 34]],
+  "signals": [[196, 66], [196, 104], [196, 140], [196, 176], [240, 140], [240, 176], [286, 66], [286, 104], [286, 140], [286, 206], [140, 176], [100, 176], [59, 176], [100, 104], [59, 66], [100, 236], [59, 236], [200, 296], [100, 296], [140, 236]],
+  "hydrofoil": "M 306,150 L 312,160 L 312,236 C 312,292 348,312 384,346 S 438,392 444,446 Q 436,466 360,464 Q 262,464 226,468 Q 178,464 152,432 L 134,406"
+}

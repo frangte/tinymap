@@ -119,9 +119,9 @@ export interface AchievementState {
   done: boolean;
 }
 
-export type NewsKind = 'quest' | 'achievement' | 'title' | 'stamp';
+export type NewsKind = 'quest' | 'achievement' | 'collection' | 'title' | 'stamp';
 
-/** Something that just happened: a quest or achievement completed, a title or stamp earned. */
+/** Something that just happened: a quest or achievement completed, a collection entry found, a title or stamp earned. */
 export interface News {
   kind: NewsKind;
   id: string;
@@ -137,6 +137,8 @@ export interface Progress {
   title: string;
   /** days in a row with a daily quest done (0 once a day went by without one) */
   streak: number;
+  /** ids of the Sổ sưu tầm entries found (server/content/collection.json) */
+  collection: string[];
   news: News[];
 }
 
@@ -268,7 +270,7 @@ function npcInfo(v: unknown): NpcInfo | null {
   return p && key ? { id: v.id, npc: key, pose: p } : null;
 }
 
-const NEWS: readonly NewsKind[] = ['quest', 'achievement', 'title', 'stamp'];
+const NEWS: readonly NewsKind[] = ['quest', 'achievement', 'collection', 'title', 'stamp'];
 /** quest ids are dotted ids (traveler.chao_sai_gon) */
 const QUEST_RE = /^[a-z0-9_]+(\.[a-z0-9_]+)*$/;
 
@@ -317,6 +319,7 @@ function progress(m: Obj): Progress | null {
     achievements: distinct(achievements, QUESTS_MAX),
     titles: ids(m.titles),
     stamps: ids(m.stamps),
+    collection: ids(m.collection),
     title: idOf(m.title),
     streak: Number.isInteger(m.streak) && (m.streak as number) >= 0 ? Math.min(m.streak as number, STREAK_MAX) : 0,
     news: news.slice(0, NEWS_MAX),

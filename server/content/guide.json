@@ -1,0 +1,1123 @@
+{
+  "about": "The Cẩm nang's pages about places (docs/design/10-story.md, section 10): the info card a player sees on arriving (src/game/placeCard.ts) and the page in the Sổ tay (src/game/notebook/guideBook.ts). One entry per place id of places.json. Every text is {vi, en}; history is paragraphs, the other lists are bullet points. checked is the day the facts that change (hours, prices, works) were last checked against the sources: change it whenever they are checked again. A fact the sources disagree on is given as a range or a pointer to the official source, never as one number. maps is a Google Maps search. The Go tests keep every page about a real place, with its English, its date and https sources.",
+  "entries": [
+    {
+      "place": "cho_ben_thanh",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Ngôi chợ biểu tượng của Sài Gòn, với tháp đồng hồ trên cửa Nam, mở cửa từ năm 1914.",
+        "en": "Saigon's best-known market, with the clock tower over its south gate, open since 1914."
+      },
+      "facts": {
+        "built": { "vi": "1912–1914", "en": "1912–1914" },
+        "hours": { "vi": "Khoảng 6:00–18:00 mỗi ngày; chợ đêm bên ngoài buổi tối", "en": "About 6 am – 6 pm daily; a night market outside in the evening" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        {
+          "vi": "Chợ Bến Thành cũ nằm bên kênh Chợ Vải, nay là đường Nguyễn Huệ. Năm 1870 chợ cũ bị cháy, và người Pháp bàn chuyện xây một ngôi chợ mới ở chỗ khác: khu đầm lầy Bồ Rệt, được lấp đi để làm nền.",
+          "en": "The old Bến Thành market stood by the Chợ Vải canal, where Nguyễn Huệ Boulevard is today. It burned down in 1870, and the French began planning a new market somewhere else: on the Bồ Rệt marsh, which was filled in for it."
+        },
+        {
+          "vi": "Chợ mới được xây từ năm 1912 tới năm 1914 với khung kim loại chống cháy, và khai trương cuối tháng 3 năm 1914 bằng ba ngày lễ hội. Tháp đồng hồ trên cửa Nam trở thành hình ảnh quen thuộc nhất của Sài Gòn. Chợ được sửa lớn năm 1985 và vẫn buôn bán mỗi ngày tới giờ.",
+          "en": "The new market was built from 1912 to 1914 on a fireproof metal frame, and opened at the end of March 1914 with three days of celebrations. The clock tower over the south gate became the most familiar sight in Saigon. The market was renovated in 1985 and still trades every day."
+        }
+      ],
+      "see": [
+        { "vi": "Tháp đồng hồ và bốn cửa Bắc, Nam, Đông, Tây với phù điêu gốm phía trên", "en": "The clock tower, and the four gates (north, south, east, west) with ceramic reliefs above them" },
+        { "vi": "Khu ăn uống ngay trong chợ: bún, hủ tiếu, chè, nước mía", "en": "The food stalls inside: noodle soups, chè (sweet soups), sugarcane juice" },
+        { "vi": "Hàng vải, quần áo, cà phê, đồ khô và đồ lưu niệm", "en": "Fabric, clothes, coffee, dried goods and souvenirs" },
+        { "vi": "Chợ đêm trên các con đường quanh chợ khi trời tối", "en": "The night market on the streets around it after dark" }
+      ],
+      "tips": [
+        { "vi": "Hỏi giá trước khi mua. Ở hàng quần áo và đồ lưu niệm được trả giá, có thể bắt đầu từ khoảng một nửa giá người bán nói; hàng ăn thì thường đúng giá.", "en": "Ask the price before you buy. In the clothes and souvenir stalls you can bargain, starting at about half the asking price; food stalls usually keep to their prices." },
+        { "vi": "Đi khoảng 7–9 giờ sáng là mát và vắng; khoảng 11–14 giờ đông đoàn khách và nóng nhất.", "en": "Go around 7–9 am, when it is cooler and quieter; around 11 am – 2 pm brings the tour groups and the worst heat." },
+        { "vi": "Chỗ đông, nhất là quanh cửa Nam, đeo túi phía trước và cất điện thoại.", "en": "In the crowds, especially around the south gate, carry your bag in front and keep your phone away." },
+        { "vi": "Đừng lên taxi của người mời ở cổng chợ: đặt xe qua ứng dụng, hoặc đi taxi của hãng.", "en": "Do not take a taxi from the touts at the gate: book a ride on an app, or take a company taxi." }
+      ],
+      "getting_there": [
+        { "vi": "Ga Bến Thành của tuyến metro số 1 (Bến Thành – Suối Tiên) nằm ngay cạnh chợ.", "en": "Bến Thành station on Metro Line 1 (Bến Thành – Suối Tiên) is right next to the market." },
+        { "vi": "Đi bộ khoảng 15 phút theo đường Lê Lợi là tới Nhà hát Thành phố.", "en": "The Opera House is about a 15-minute walk along Lê Lợi." }
+      ],
+      "food": [
+        { "vi": "Khu ăn uống bên trong chợ", "en": "The food stalls inside the market" },
+        { "vi": "Phở Minh, hẻm 63 Pasteur, bán từ năm 1945", "en": "Phở Minh, in the alley at 63 Pasteur, serving since 1945" }
+      ],
+      "maps": "Chợ Bến Thành, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigoneer.com/saigon-heritage/26144-from-swampland-to-heartland-the-history-of-bến-thành-market",
+        "https://en.wikipedia.org/wiki/B%E1%BA%BFn_Th%C3%A0nh_Market",
+        "https://www.vietnamtourism.com/en/ben-thanh-market-the-complete-guide-to-saigon-s-landmark-market",
+        "https://www.tatlerasia.com/dining/food/three-pho-brands-saigon-half-century"
+      ]
+    },
+    {
+      "place": "nha_tho_duc_ba",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Nhà thờ gạch đỏ hai tháp chuông của Sài Gòn, xây xong năm 1880, đang được trùng tu.",
+        "en": "Saigon's red-brick cathedral with its twin bell towers, finished in 1880 and now being restored."
+      },
+      "facts": {
+        "built": { "vi": "1877–1880; hai tháp chuông năm 1895", "en": "1877–1880; the bell towers in 1895" },
+        "hours": { "vi": "Đang trùng tu: khách chỉ vào khi dự lễ; ngắm bên ngoài lúc nào cũng được", "en": "Under restoration: visitors go in only for Mass; the outside can be seen any time" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        {
+          "vi": "Viên đá đầu tiên được đặt ngày 7 tháng 10 năm 1877, và nhà thờ được làm phép khánh thành vào lễ Phục Sinh, ngày 11 tháng 4 năm 1880. Gạch, ngói và kính màu đều được chở từ Pháp sang; gạch đỏ để trần, không trát vữa, nên tới giờ vẫn giữ màu. Hai tháp chuông cao gần 58 m được xây thêm năm 1895.",
+          "en": "The first stone was laid on 7 October 1877, and the cathedral was blessed on Easter Day, 11 April 1880. Its bricks, tiles and stained glass were all shipped from France; the red brick was left bare, with no render, and has kept its colour. The two bell towers, almost 58 m tall, were added in 1895."
+        },
+        {
+          "vi": "Năm 1959, tượng Đức Mẹ Hoà Bình bằng đá cẩm thạch trắng được đặt ở quảng trường trước nhà thờ, từ đó người ta quen gọi là Nhà thờ Đức Bà. Năm 1962 nhà thờ được nâng lên Vương cung Thánh đường. Từ năm 2017 nhà thờ được trùng tu lớn; hai thánh giá mới được đặt lại trên tháp vào tháng 3 năm 2026, và việc trùng tu dự kiến kéo dài tới năm 2027 hoặc lâu hơn.",
+          "en": "In 1959 a white marble statue of Our Lady of Peace was set up in the square in front, and since then people have called it the Notre-Dame Cathedral. In 1962 it was made a basilica. A major restoration began in 2017; two new crosses went back up on the towers in March 2026, and the work is expected to last until 2027 or later."
+        }
+      ],
+      "see": [
+        { "vi": "Mặt tiền gạch đỏ và hai tháp chuông (còn giàn giáo trong lúc trùng tu)", "en": "The red-brick front and the two bell towers (with scaffolding while the restoration lasts)" },
+        { "vi": "Tượng Đức Mẹ Hoà Bình giữa quảng trường Công xã Paris", "en": "The statue of Our Lady of Peace in the middle of Paris Commune Square" },
+        { "vi": "Bưu điện Trung tâm ngay bên kia quảng trường", "en": "The Central Post Office just across the square" },
+        { "vi": "Đèn trang trí rực rỡ mùa Giáng sinh", "en": "The bright decorations at Christmas" }
+      ],
+      "tips": [
+        { "vi": "Muốn vào trong thì đi dự lễ; giờ lễ thay đổi, xem bảng ở nhà thờ.", "en": "To see the inside, go to a Mass; the times change, so check the board at the church." },
+        { "vi": "Dự lễ thì ăn mặc kín vai và gối.", "en": "For Mass, cover your shoulders and knees." },
+        { "vi": "Sáng sớm (trước 7:30) hoặc khoảng 16–18 giờ là lúc chụp ảnh đẹp và đỡ đông.", "en": "Early morning (before 7:30) or around 4–6 pm is best for photos, with fewer people." }
+      ],
+      "getting_there": [
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành.", "en": "About a 15-minute walk from Bến Thành Market." },
+        { "vi": "Ga metro gần nhất là Nhà hát Thành phố và Bến Thành (tuyến số 1).", "en": "The nearest metro stations are Opera House and Bến Thành (Line 1)." }
+      ],
+      "food": [],
+      "maps": "Nhà thờ Đức Bà Sài Gòn",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Notre-Dame_Cathedral_Basilica_of_Saigon",
+        "https://tuoitre.vn/ten-goi-nha-tho-duc-ba-tu-buc-tuong-duc-me-hoa-binh-988690.htm",
+        "https://vietnamnews.vn/life-style/1731489/sai-gon-notre-dame-cathedral-unveils-newly-crafted-crosses-after-major-restoration-milestone.html",
+        "https://tuoitre.vn/trung-tu-nha-tho.html",
+        "https://www.nomadotravel.app/en/attractions/notre-dame-cathedral-saigon"
+      ]
+    },
+    {
+      "place": "buu_dien_thanh_pho",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Bưu điện thời Pháp vẫn còn gửi thư mỗi ngày, với sảnh mái vòm và hai bản đồ vẽ tay từ năm 1892.",
+        "en": "A French-era post office that still sends letters every day, with a vaulted hall and two hand-painted maps from 1892."
+      },
+      "facts": {
+        "built": { "vi": "1886–1891", "en": "1886–1891" },
+        "hours": { "vi": "Khoảng 7:00–19:00; cuối tuần có thể đóng sớm hơn", "en": "About 7 am – 7 pm; it may close earlier at weekends" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        {
+          "vi": "Toà nhà bây giờ được xây từ năm 1886 tới năm 1891, do kiến trúc sư Alfred Foulhoux thiết kế. Người ta hay kể là Gustave Eiffel (người làm tháp Eiffel) thiết kế bưu điện, nhưng chưa có tài liệu nào chứng minh. Trên mặt tiền có tên các nhà khoa học về điện và điện báo như Morse, Ampère, Volta, Faraday.",
+          "en": "The present building went up from 1886 to 1891, designed by the architect Alfred Foulhoux. People often say Gustave Eiffel (of the Eiffel Tower) designed it, but no document shows that. The front carries the names of scientists of electricity and the telegraph, such as Morse, Ampère, Volta and Faraday."
+        },
+        {
+          "vi": "Bên trong là sảnh dài mái vòm bằng sắt và kính. Hai tấm bản đồ vẽ tay năm 1892 vẫn còn trên tường: đường dây điện báo Nam Kỳ và Campuchia, và Sài Gòn cùng vùng lân cận. Suốt hơn 30 năm, tới năm 2021, ông Dương Văn Ngộ ngồi ở đây viết thư và dịch thư giúp khách: người viết thư thuê cuối cùng của Sài Gòn.",
+          "en": "Inside is a long hall under an iron-and-glass vault. Two hand-painted maps from 1892 are still on the walls: the telegraph lines of southern Vietnam and Cambodia, and Saigon and its surroundings. For more than 30 years, until 2021, Mr Dương Văn Ngộ sat here writing and translating letters for visitors: Saigon's last public letter writer."
+        }
+      ],
+      "see": [
+        { "vi": "Sảnh mái vòm và đồng hồ phía trên lối vào", "en": "The vaulted hall, and the clock over the entrance" },
+        { "vi": "Hai bản đồ vẽ tay năm 1892 trên tường trong sảnh", "en": "The two hand-painted maps from 1892 on the walls of the hall" },
+        { "vi": "Quầy bưu điện vẫn làm việc: gửi một tấm bưu thiếp về nhà", "en": "The working counters: send a postcard home" },
+        { "vi": "Các quầy bán bưu thiếp và đồ lưu niệm", "en": "The postcard and souvenir stalls" }
+      ],
+      "tips": [
+        { "vi": "Vắng nhất trước 8:30 ngày thường và khoảng 13–14:30; đoàn khách thường tới từ 9:30 tới trưa.", "en": "Quietest before 8:30 am on weekdays and around 1–2:30 pm; tour groups usually come from 9:30 to noon." },
+        { "vi": "Trong sảnh chụp ảnh thoải mái, và có máy lạnh: chỗ nghỉ chân tốt giữa trưa.", "en": "Photos are fine in the hall, and it is air-conditioned: a good break at midday." },
+        { "vi": "Mua bưu thiếp, dán tem và gửi ngay tại quầy là món quà lưu niệm rẻ mà vui.", "en": "Buying a postcard, stamping it and posting it at the counter makes a cheap, fun souvenir." }
+      ],
+      "getting_there": [
+        { "vi": "Ngay bên kia quảng trường Công xã Paris, đối diện Nhà thờ Đức Bà.", "en": "Right across Paris Commune Square from Notre-Dame Cathedral." },
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành; ga metro Nhà hát Thành phố cũng gần.", "en": "About a 15-minute walk from Bến Thành Market; Opera House metro station is close too." }
+      ],
+      "food": [],
+      "maps": "Bưu điện Trung tâm Sài Gòn",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Saigon_Central_Post_Office",
+        "https://www.nomadotravel.app/en/attractions/central-post-office-saigon"
+      ]
+    },
+    {
+      "place": "nha_hat_thanh_pho",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Nhà hát kiểu Pháp ở cuối đường Lê Lợi, mở cửa năm 1900, nay vẫn diễn ca nhạc, xiếc, múa.",
+        "en": "A French-style theatre at the end of Lê Lợi, opened in 1900, that still stages music, circus and dance."
+      },
+      "facts": {
+        "built": { "vi": "1898–1900", "en": "1898–1900" },
+        "hours": { "vi": "Ngắm bên ngoài lúc nào cũng được; vào trong khi có vé xem diễn", "en": "The outside any time; the inside with a ticket for a show" },
+        "ticket": { "vi": "Theo từng buổi diễn, xem ở phòng vé bên cạnh", "en": "Depends on the show; see the box office beside it" }
+      },
+      "history": [
+        {
+          "vi": "Nhà hát được xây cho người Pháp ở Sài Gòn xem kịch và opera, xong vào đầu năm 1900. Mặt tiền nhiều tượng và hoa văn, được cho là lấy cảm hứng từ Petit Palais ở Paris.",
+          "en": "The theatre was built for Saigon's French residents to watch plays and opera, and finished at the start of 1900. Its front, full of statues and ornaments, is said to take after the Petit Palais in Paris."
+        },
+        {
+          "vi": "Từ giữa những năm 1950, toà nhà từng được dùng làm trụ sở quốc hội của chính quyền Sài Gòn. Sau năm 1975 nơi đây trở lại làm nhà hát. Mặt tiền được trùng tu năm 1998, dịp Sài Gòn tròn 300 năm. Ngày nay nhà hát có khoảng 500 chỗ ngồi.",
+          "en": "From the mid-1950s the building housed the parliament of the Saigon government. After 1975 it became a theatre again. Its front was restored in 1998, for Saigon's 300th anniversary. Today it seats about 500."
+        }
+      ],
+      "see": [
+        { "vi": "Mặt tiền và tượng trang trí, đẹp nhất khi lên đèn buổi tối", "en": "The front and its statues, best when lit up in the evening" },
+        { "vi": "Quảng trường Lam Sơn trước nhà hát", "en": "Lam Sơn Square in front of it" },
+        { "vi": "Một buổi diễn bên trong, ví dụ AO Show (xiếc tre và múa đương đại)", "en": "A show inside, for instance the AO Show (bamboo circus and contemporary dance)" }
+      ],
+      "tips": [
+        { "vi": "Không chụp ảnh, quay phim trong lúc diễn; bên trong máy lạnh khá lạnh.", "en": "No photos or video during a show; the air conditioning inside is cold." },
+        { "vi": "Chụp mặt tiền thì đứng bên kia quảng trường Lam Sơn cho thấy hết toà nhà.", "en": "To photograph the front, stand across Lam Sơn Square to fit the whole building." },
+        { "vi": "Bay flycam ở đây phải xin phép.", "en": "Flying a drone here needs a permit." }
+      ],
+      "getting_there": [
+        { "vi": "Ga Nhà hát Thành phố của tuyến metro số 1, một ga sau Bến Thành.", "en": "Opera House station on Metro Line 1, one stop from Bến Thành." },
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành theo đường Lê Lợi.", "en": "About a 15-minute walk from Bến Thành Market along Lê Lợi." }
+      ],
+      "food": [
+        { "vi": "Quầy bar trên sân thượng các khách sạn Caravelle và Rex gần đó (phải gọi đồ uống)", "en": "The rooftop bars of the nearby Caravelle and Rex hotels (you order a drink)" }
+      ],
+      "maps": "Nhà hát Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Ho_Chi_Minh_City_Opera_House",
+        "https://www.vietnamtourism.com/en/saigon-opera-house-history-shows-tickets-and-how-to-visit"
+      ]
+    },
+    {
+      "place": "dinh_doc_lap",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Dinh thự do kiến trúc sư Ngô Viết Thụ thiết kế, nơi xe tăng húc đổ cổng ngày 30 tháng 4 năm 1975.",
+        "en": "The palace designed by the architect Ngô Viết Thụ, whose gate a tank broke through on 30 April 1975."
+      },
+      "facts": {
+        "built": { "vi": "1962–1966 (dinh Norodom cũ: 1868–1871)", "en": "1962–1966 (the old Norodom Palace: 1868–1871)" },
+        "hours": { "vi": "Mở cửa hằng ngày, sáng tới chiều; giờ bán vé thay đổi, xem trang dinhdoclap.gov.vn", "en": "Open daily, morning to afternoon; ticket hours change, see dinhdoclap.gov.vn" },
+        "ticket": { "vi": "Khoảng 40.000–80.000đ tuỳ loại vé (có vé ghép với nhà trưng bày)", "en": "About 40,000–80,000 VND depending on the ticket (combined tickets with the exhibition house)" }
+      },
+      "history": [
+        {
+          "vi": "Ngày 23 tháng 2 năm 1868, người Pháp đặt viên đá đầu tiên xây dinh Norodom, nơi ở và làm việc của các Toàn quyền Đông Dương. Năm 1955 dinh được đổi tên thành Dinh Độc Lập. Năm 1962 dinh bị máy bay ném bom hư hại nặng và phải phá đi.",
+          "en": "On 23 February 1868 the French laid the first stone of the Norodom Palace, home and office of the Governors-General of Indochina. In 1955 it was renamed the Independence Palace. In 1962 it was badly damaged by bombs dropped from planes and had to be torn down."
+        },
+        {
+          "vi": "Dinh mới do kiến trúc sư Ngô Viết Thụ thiết kế, người Việt Nam đầu tiên đoạt Giải Khôi nguyên La Mã, khánh thành ngày 31 tháng 10 năm 1966. Trưa ngày 30 tháng 4 năm 1975, xe tăng 843 húc vào cổng phụ và xe tăng 390 húc đổ cổng chính; lá cờ được cắm trên nóc dinh, Tổng thống Dương Văn Minh tuyên bố đầu hàng không điều kiện, đánh dấu ngày thống nhất đất nước. Năm 1976 nơi đây được đặt tên Hội trường Thống Nhất, và năm 2009 được xếp hạng Di tích quốc gia đặc biệt.",
+          "en": "The new palace, designed by Ngô Viết Thụ, the first Vietnamese to win the Grand Prix de Rome, opened on 31 October 1966. Around midday on 30 April 1975, tank 843 rammed the side gate and tank 390 broke through the main gate; the flag was raised on the roof, and President Dương Văn Minh announced an unconditional surrender, marking the reunification of the country. In 1976 it was named the Reunification Hall, and in 2009 it became a Special National Monument."
+        }
+      ],
+      "see": [
+        { "vi": "Các phòng khánh tiết, phòng họp nội các, phòng làm việc của tổng thống", "en": "The reception rooms, the cabinet room, the president's office" },
+        { "vi": "Tầng hầm với hầm chỉ huy và phòng liên lạc", "en": "The basement bunker and its command and radio rooms" },
+        { "vi": "Sân thượng có trực thăng UH-1", "en": "The roof, with a UH-1 helicopter" },
+        { "vi": "Hai xe tăng trong sân (xe thật đang ở bảo tàng tại Hà Nội)", "en": "Two tanks in the grounds (the real ones are in museums in Hanoi)" },
+        { "vi": "Bức bình phong đá hình đốt trúc ở mặt tiền", "en": "The stone screen of bamboo-like segments across the front" }
+      ],
+      "tips": [
+        { "vi": "Mang tiền mặt mệnh giá nhỏ để mua vé.", "en": "Bring cash in small notes for the tickets." },
+        { "vi": "Ăn mặc kín vai và gối.", "en": "Cover your shoulders and knees." },
+        { "vi": "Đi khoảng 8–10 giờ sáng là mát và vắng nhất; tránh ngày lễ và cuối tuần.", "en": "Around 8–10 am is coolest and quietest; avoid holidays and weekends." },
+        { "vi": "Túi lớn phải gửi ở cổng; vài phòng không cho chụp ảnh.", "en": "Large bags are checked at the gate; some rooms do not allow photos." }
+      ],
+      "getting_there": [
+        { "vi": "Lối vào cho khách ở số 135 Nam Kỳ Khởi Nghĩa; đi bộ khoảng 10 phút từ Bưu điện Trung tâm.", "en": "The visitors' entrance is at 135 Nam Kỳ Khởi Nghĩa; about a 10-minute walk from the Central Post Office." },
+        { "vi": "Trước cổng chính là Công viên 30/4, nhiều bóng cây, nối thẳng tới Nhà thờ Đức Bà.", "en": "In front of the main gate is 30/4 Park, full of shade, leading straight to Notre-Dame Cathedral." }
+      ],
+      "food": [
+        { "vi": "Quán cà phê trong khuôn viên dinh", "en": "The café inside the palace grounds" }
+      ],
+      "maps": "Dinh Độc Lập",
+      "sources": [
+        "https://www.dinhdoclap.gov.vn/en/?p=10039",
+        "https://en.wikipedia.org/wiki/Reunification_Palace",
+        "https://www.vietnamtourism.com/vi/dinh-oc-lap-o-tp-hcm-ve-gio-mo-cua-va-nhung-gi-can-xem"
+      ]
+    },
+    {
+      "place": "quang_truong_lam_son",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Quảng trường trước Nhà hát Thành phố, có công viên Lam Sơn và ga metro Nhà hát Thành phố.", "en": "The square in front of the Opera House, with Lam Sơn Park and Opera House metro station." },
+      "facts": {
+        "built": { "vi": "Quảng trường có từ khi xây Nhà hát (xong năm 1900); công viên được dựng lại năm 2020", "en": "The square dates from the Opera House (finished 1900); the park was rebuilt in 2020" },
+        "hours": { "vi": "Chỗ công cộng ngoài trời, không có cổng", "en": "An open public space with no gates" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        { "vi": "Quảng trường nằm trên một đoạn đại lộ Bonard cũ, giữa phố Catinat (nay là Đồng Khởi) và phố Nationale (nay là Hai Bà Trưng). Sau khi Nhà hát xây xong, nơi này được gọi là Place du Théâtre; ngày 11 tháng 1 năm 1935 nó chính thức mang tên Place Augustin Foray, theo tên một cựu thị trưởng Sài Gòn. Năm 1955 chính quyền miền Nam đổi tên thành công trường Lam Sơn.", "en": "The square lies on a stretch of the old Boulevard Bonard, between rue Catinat (now Đồng Khởi) and rue Nationale (now Hai Bà Trưng). Once the Opera House was built the place was called Place du Théâtre; on 11 January 1935 it officially became Place Augustin Foray, after a former mayor of Saigon. In 1955 the southern government renamed it Lam Sơn Square." },
+        { "vi": "Khách sạn Continental, Caravelle và Park Hyatt đều nằm trên quảng trường. Bãi đậu xe sau Nhà hát được làm thành vườn cây năm 2018. Công viên Lam Sơn trước Nhà hát, rộng gần 2.200 m², bị dỡ đi để xây ga metro Nhà hát Thành phố, rồi được dựng lại đúng diện tích và bố cục cũ và mở lại cuối tháng 8 năm 2020. Công viên làm đơn giản, không có tượng cố định, và thường có triển lãm ảnh hay lễ kỷ niệm của thành phố.", "en": "The Continental, Caravelle and Park Hyatt hotels are all on the square. The car park behind the Opera House was turned into a garden in 2018. Lam Sơn Park in front of the Opera House, almost 2,200 m², was taken down to build Opera House metro station, then rebuilt at its old size and layout and reopened in late August 2020. It is kept simple, with no fixed statues, and often holds photo exhibitions or city celebrations." }
+      ],
+      "see": [
+        { "vi": "Mặt tiền Nhà hát Thành phố nhìn từ công viên (xem trang Nhà hát Thành phố)", "en": "The Opera House front seen from the park (see the Opera House page)" },
+        { "vi": "Khách sạn Continental và Caravelle trên quảng trường", "en": "The Continental and Caravelle hotels on the square" },
+        { "vi": "Triển lãm ảnh ngoài trời trong công viên, khi có", "en": "Outdoor photo exhibitions in the park, when there is one" }
+      ],
+      "tips": [
+        { "vi": "Công viên nằm ngay trên ga metro và nối với phố đi bộ Nguyễn Huệ, nên là chỗ hẹn dễ tìm.", "en": "The park is right over the metro station and links to the Nguyễn Huệ walking street, so it is an easy place to meet." },
+        { "vi": "Triển lãm và sự kiện thay đổi theo thời gian: xem thông báo tại chỗ.", "en": "Exhibitions and events change over time: check the notices on the spot." }
+      ],
+      "getting_there": [
+        { "vi": "Ga Nhà hát Thành phố của tuyến metro số 1 nằm ở phía đường Đồng Khởi của quảng trường.", "en": "Opera House station on Metro Line 1 is on the Đồng Khởi side of the square." },
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành theo đường Lê Lợi.", "en": "About a 15-minute walk from Bến Thành Market along Lê Lợi." }
+      ],
+      "food": [],
+      "maps": "Công viên Lam Sơn, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Lam_S%C6%A1n_Square",
+        "https://tuoitre.vn/cong-vien-lam-son-se-la-cong-vien-van-hoa-20200429091201272.htm"
+      ]
+    },
+    {
+      "place": "cong_xa_paris",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Quảng trường quanh Nhà thờ Đức Bà, có tượng Đức Mẹ Hòa Bình, được coi là km số 0 của thành phố.", "en": "The square around the cathedral, with the Our Lady of Peace statue, marked as the city's kilometre zero." },
+      "facts": {
+        "built": { "vi": "Tượng Đức Mẹ Hòa Bình đặt năm 1959", "en": "The Our Lady of Peace statue was set up in 1959" },
+        "hours": { "vi": "Quảng trường công cộng, không có cổng", "en": "A public square with no gates" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        { "vi": "Thời Pháp, quảng trường là Place de la Cathédrale. Năm 1903 chính quyền thuộc địa dựng ở đây bức tượng đồng giám mục Pigneau de Béhaine (Bá Đa Lộc) dẫn hoàng tử Cảnh, và nơi này đổi tên thành Place Pigneau de Béhaine. Tháng 10 năm 1945 bức tượng bị kéo đổ, để lại cái bệ trống.", "en": "Under the French the square was Place de la Cathédrale. In 1903 the colonial government put up a bronze statue of Bishop Pigneau de Béhaine (Bá Đa Lộc) leading Prince Cảnh, and the place became Place Pigneau de Béhaine. In October 1945 the statue was pulled down, leaving the pedestal empty." },
+        { "vi": "Ngày 16 tháng 2 năm 1959, tượng Đức Mẹ Hòa Bình được đặt lên chính cái bệ đá granite đỏ cao khoảng 2,5 m đó, và được làm phép hôm sau. Theo Tuổi Trẻ, tượng bằng đá cẩm thạch trắng từ Ý, cao 4,6 m, nặng 5,8 tấn, do G. Ciocchetti tạc. Quảng trường khi đó là công trường Hòa Bình. Tháng 5 năm 1964 nó mang tên Tổng thống John F. Kennedy; sau năm 1975 là công trường Công xã Paris, tên còn dùng tới nay.", "en": "On 16 February 1959 the statue of Our Lady of Peace was placed on that same red granite pedestal, about 2.5 m high, and blessed the next day. According to Tuổi Trẻ it is white Italian marble, 4.6 m tall and 5.8 tonnes, carved by G. Ciocchetti. The square was then Hòa Bình (Peace) Square. In May 1964 it was renamed for President John F. Kennedy; after 1975 it became Paris Commune Square, the name still used today." },
+        { "vi": "Vì Nhà thờ Đức Bà và Bưu điện Thành phố đều ở đây, quảng trường được coi là km số 0 của thành phố. Chuyện xây nhà thờ và bưu điện nằm ở hai trang riêng.", "en": "Because the cathedral and the Central Post Office are both here, the square is marked as the city's kilometre zero. How the cathedral and the post office were built is on their own pages." }
+      ],
+      "see": [
+        { "vi": "Tượng Đức Mẹ Hòa Bình trên bệ granite đỏ, trước nhà thờ", "en": "The Our Lady of Peace statue on its red granite pedestal, in front of the cathedral" },
+        { "vi": "Nhà thờ Đức Bà ở một bên và Bưu điện Thành phố ở bên kia quảng trường", "en": "The cathedral on one side and the Central Post Office across the square" },
+        { "vi": "Chỗ bắt đầu của đường Đồng Khởi", "en": "The start of Đồng Khởi street" }
+      ],
+      "tips": [
+        { "vi": "Nhà thờ đang trùng tu nên có thể có rào chắn; ngắm từ ngoài quảng trường thì lúc nào cũng được.", "en": "The cathedral is under restoration, so there may be hoardings; you can look from the square at any time." }
+      ],
+      "getting_there": [
+        { "vi": "Đi bộ khoảng 15 phút từ chợ Bến Thành; ga metro Nhà hát Thành phố và Bến Thành (tuyến số 1) đều gần.", "en": "About a 15-minute walk from Bến Thành Market; Opera House and Bến Thành metro stations (Line 1) are both close." }
+      ],
+      "food": [],
+      "maps": "Công trường Công xã Paris, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Paris_Commune_Square_(Saigon)",
+        "https://tuoitre.vn/ten-goi-nha-tho-duc-ba-tu-buc-tuong-duc-me-hoa-binh-988690.htm"
+      ]
+    },
+    {
+      "place": "ho_con_rua",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Tháp bê tông hình búp sen giữa vòng xoay công trường Quốc tế, có từ năm 1969 và vẫn mang tên con rùa đã mất.", "en": "The lotus-shaped concrete tower in the middle of the International Square roundabout, from 1969 and still named for a turtle that is gone." },
+      "facts": {
+        "built": { "vi": "Ra mắt tháng 6 năm 1969, kiến trúc sư Nguyễn Kỳ", "en": "Unveiled June 1969, architect Nguyễn Kỳ" },
+        "hours": { "vi": "Quảng trường công cộng, không có cổng", "en": "A public square with no gates" },
+        "ticket": { "vi": "Miễn phí", "en": "Free" }
+      },
+      "history": [
+        { "vi": "Năm 1790 vua Gia Long cho xây thành Bát Quái; một đoạn giác bảo của thành nằm đúng chỗ hồ bây giờ. Năm 1835 vua Minh Mạng cho dỡ thành. Từ năm 1876 người Pháp làm hệ thống nước máy, và tháp nước đứng ở đây cho tới khi bị dỡ sau năm 1921. Năm 1927 họ dựng đài tưởng niệm lính Thế chiến thứ nhất, nên dân gọi nơi này là công trường Ba Hình. Ngày 29 tháng 7 năm 1964 sinh viên Sài Gòn kéo đổ các tượng.", "en": "In 1790 Emperor Gia Long had the octagonal Bát Quái citadel built; a semicircular bastion of it stood right where the lake is today. In 1835 Emperor Minh Mạng had the citadel taken down. From 1876 the French built a water supply, and the water tower stood here until it was dismantled after 1921. In 1927 they put up a memorial to the First World War dead, so locals called the place Công trường Ba Hình. On 29 July 1964 Saigon students pulled the statues down." },
+        { "vi": "Đài bây giờ do kiến trúc sư Nguyễn Kỳ thiết kế và ra mắt tháng 6 năm 1969 với tên Hoa Tự Do: tháp bê tông hình búp sen, cao khoảng 34 m, trên hồ nước hình bát giác, với con rùa đồng đội tấm bia ghi tên các nước viện trợ. Năm 1976 con rùa, tấm bia và các chi tiết đồng bị phá, nhưng tên Hồ Con Rùa vẫn ở lại. Nơi này ngay bên kia ranh giới Quận 1, thuộc phường Xuân Hòa. Một số nguồn ghi năm hoàn thành là 1965 hoặc 1967.", "en": "The present monument was designed by architect Nguyễn Kỳ and unveiled in June 1969 as Hoa Tự Do (Flower of Freedom): a concrete tower shaped like a lotus, about 34 m high, over an octagonal pool, with a bronze turtle carrying a slab that listed the aid-giving countries. In 1976 the turtle, the slab and the bronze details were destroyed, but the name Turtle Lake stayed. The site is just across the District 1 line, in Xuân Hòa ward. Some sources give 1965 or 1967 as the year it was finished." },
+        { "vi": "Đầu năm 2026, một đợt chỉnh trang do doanh nghiệp tài trợ làm đổi màu cầu thang và tháp, và bị nhiều người phản đối vì khác ký ức quen thuộc. Ngày 2 tháng 2 năm 2026, Sở Quy hoạch - Kiến trúc đề nghị tạm dừng; Sở Xây dựng nói cần lưu ý màu sắc hiện hữu, và doanh nghiệp nói sẽ chỉnh lại theo góp ý. Chưa có tin về quyết định cuối cùng, nên màu hiện nay có thể đã khác.", "en": "In early 2026 a refit paid for by a company changed the colours of the stairs and the tower, and many people objected that it no longer matched the familiar memory. On 2 February 2026 the Department of Planning and Architecture asked for a pause; the Department of Construction said the existing colours must be respected, and the company said it would adjust. No final decision has been reported, so the colours today may differ." }
+      ],
+      "see": [
+        { "vi": "Tháp bê tông hình búp sen giữa hồ nước hình bát giác", "en": "The lotus-shaped concrete tower in the octagonal pool" },
+        { "vi": "Các lối đi bộ quanh hồ", "en": "The walking paths around the lake" },
+        { "vi": "Hàng quán và người bán rong quanh quảng trường", "en": "Food stalls and street vendors around the square" }
+      ],
+      "tips": [
+        { "vi": "Là vòng xoay có xe cộ chạy liên tục: sang đường ở chỗ có vạch hoặc đèn.", "en": "It is a working roundabout with steady traffic: cross at the marked crossings or lights." }
+      ],
+      "getting_there": [
+        { "vi": "Gần Dinh Độc Lập và Nhà thờ Đức Bà; chưa có ga metro (tuyến số 3 và 4 mới là kế hoạch).", "en": "Close to Independence Palace and Notre-Dame Cathedral; no metro station yet (Lines 3 and 4 are only planned)." }
+      ],
+      "food": [],
+      "maps": "Hồ Con Rùa, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigoneer.com/saigon-heritage/26145-from-vauban-citadel-to-modernist-icon-the-history-of-h%E1%BB%93-con-r%C3%B9a-turtle-lake",
+        "https://en.wikipedia.org/wiki/Turtle_Lake_(Ho_Chi_Minh_City)",
+        "https://vietnamnews.vn/society/1765110/hcm-city-halts-beautification-works-at-ben-thanh-market-turtle-lake-traffic-roundabout.html",
+        "https://vtcnews.vn/san-sang-dieu-chinh-lai-mau-son-cho-ben-thanh-ho-con-rua-theo-gop-y-ar1001495.html"
+      ]
+    },
+    {
+      "place": "bitexco",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Tháp tài chính 68 tầng hình búp sen, khai trương năm 2010, có đài quan sát Saigon Skydeck ở tầng 49.", "en": "The 68-storey lotus-shaped financial tower, opened in 2010, with the Saigon Skydeck observation deck on the 49th floor." },
+      "facts": {
+        "built": { "vi": "Khởi công 2005, khai trương 31/10/2010; Skydeck mở năm 2011", "en": "Groundbreaking 2005, opened 31 Oct 2010; the Skydeck opened in 2011" },
+        "hours": { "vi": "Skydeck khoảng 9:30–21:30 mỗi ngày; vé cuối khoảng 20:00–20:45", "en": "Skydeck about 9:30 am – 9:30 pm daily; last entry about 8:00–8:45 pm" },
+        "ticket": { "vi": "Người lớn khoảng 240.000 đ (tháng 10/2026); trẻ 4–12 tuổi và người từ 65 tuổi khoảng 160.000 đ; dưới 4 tuổi miễn phí", "en": "Adults about 240,000 VND (Oct 2026); children 4–12 and people 65+ about 160,000 VND; under 4 free" }
+      },
+      "history": [
+        { "vi": "Tháp do Carlos Zapata thiết kế, hình dáng lấy từ búp sen, quốc hoa của Việt Nam. Lễ khởi công tháng 9 năm 2005, thi công từ tháng 6 năm 2007 và khai trương ngày 31 tháng 10 năm 2010. Tháp cao 262,5 m với 68 tầng nổi và 3 tầng hầm, là tòa nhà cao nhất Việt Nam cho tới tháng 1 năm 2011, khi Keangnam ở Hà Nội cao hơn.", "en": "The tower was designed by Carlos Zapata, its shape taken from the lotus bud, Vietnam's national flower. The groundbreaking was in September 2005, building started in June 2007, and it opened on 31 October 2010. It is 262.5 m tall with 68 floors above ground and 3 basements, and was Vietnam's tallest building until January 2011, when Keangnam in Hà Nội passed it." },
+        { "vi": "Saigon Skydeck ở tầng 49, cao khoảng 178 m, mở cho khách từ ngày 1 tháng 1 năm 2011 và khai trương chính thức vào tháng 7 năm 2011. Sân đỗ trực thăng ở tầng 52, nhô ra khoảng 22 m khỏi mặt tòa nhà, không nằm trong vé Skydeck.", "en": "Saigon Skydeck is on the 49th floor, about 178 m up. It opened to visitors on 1 January 2011 and officially in July 2011. The helipad on the 52nd floor, jutting about 22 m out from the facade, is not part of the Skydeck ticket." }
+      ],
+      "see": [
+        { "vi": "Vòng đi bộ 360 độ trong kính, có kính viễn vọng và bảng chỉ các địa danh", "en": "The enclosed 360-degree walkway with telescopes and panels naming the landmarks" },
+        { "vi": "Triển lãm áo dài nhỏ và chiếc xích lô trưng bày trên đài", "en": "A small áo dài exhibit and a displayed cyclo on the deck" },
+        { "vi": "Sân đỗ trực thăng ở tầng 52, nhìn như một búp sen nhô ra khỏi tháp", "en": "The helipad on the 52nd floor, which looks like a lotus bud jutting out of the tower" }
+      ],
+      "tips": [
+        { "vi": "Vào bằng cửa Skydeck ở số 2 Hải Triều, đi theo biển \"Saigon Skydeck\"; sảnh văn phòng là lối vào khác.", "en": "Use the Skydeck entrance at 2 Hải Triều and follow the \"Saigon Skydeck\" signs; the office lobby is a separate entrance." },
+        { "vi": "Vé mua qua trang bán lẻ phải đổi lấy vé giấy ở quầy.", "en": "Tickets bought on a reseller site must be exchanged for paper tickets at the counter." },
+        { "vi": "Đài hoàn toàn trong nhà, không có chỗ ngoài trời. Đến trước hoàng hôn khoảng 45 phút (mặt trời lặn khoảng 17:30 từ tháng 11 tới tháng 1); mùa khô tháng 12 tới tháng 4 thường trong hơn.", "en": "The deck is fully indoors, with no outdoor area. Arrive about 45 minutes before sunset (around 5:30 pm from November to January); the dry season, December to April, usually has the clearer views." },
+        { "vi": "Ngoài đường, cầm điện thoại và túi phía xa lòng đường: giật đồ từ xe máy chạy qua vẫn xảy ra.", "en": "Out on the street, keep your phone and bag on the side away from the road: snatching from passing motorbikes does happen." }
+      ],
+      "getting_there": [
+        { "vi": "Từ ga metro Nhà hát Thành phố (tuyến số 1) đi bộ khoảng 700 m; từ ga Bến Thành khoảng 1 km.", "en": "About 700 m on foot from Opera House metro station (Line 1); about 1 km from Bến Thành station." },
+        { "vi": "Đi bộ khoảng 9 phút từ Nhà hát Thành phố.", "en": "About a 9-minute walk from the Opera House." }
+      ],
+      "food": [],
+      "maps": "Tháp tài chính Bitexco, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Bitexco_Financial_Tower",
+        "https://www.vietnamtourism.com/vi/thap-bitexco-va-saigon-skydeck-lich-su-tam-nhin-ve-va-danh"
+      ]
+    },
+    {
+      "place": "chung_cu_42_nguyen_hue",
+      "checked": "2026-11-19",
+      "summary": { "vi": "Chung cư chín tầng từ đầu thập niên 1960 trên phố đi bộ Nguyễn Huệ, nay đầy quán cà phê và cửa hàng nhỏ.", "en": "A nine-storey apartment block from the early 1960s on the Nguyễn Huệ walking street, now full of cafés and small shops." },
+      "facts": {
+        "built": { "vi": "Đầu thập niên 1960", "en": "Early 1960s" },
+        "hours": { "vi": "Mỗi quán tự đặt giờ; nhiều quán mở khoảng 7–8 giờ sáng tới khoảng 22 giờ, quán bar mở muộn hơn", "en": "Each business sets its own hours; many open about 7–8 am to about 10 pm, and bars open later" },
+        "ticket": { "vi": "Vào cửa miễn phí; thang máy tính vài nghìn đồng mỗi lượt, đi cầu thang thì không mất tiền", "en": "Free to enter; the lift costs a few thousand dong a ride, the stairs are free" }
+      },
+      "history": [
+        { "vi": "Chung cư được xây vào đầu những năm 1960. Trước năm 1975 nơi đây là chỗ ở của quan chức chính quyền Sài Gòn, trong đó có ông Trương Bửu Khanh, thông dịch viên của Tổng thống Ngô Đình Diệm; sĩ quan Mỹ cũng ở đây, trong các căn mặt phố. Sau năm 1975 một số căn được giao cho công nhân xưởng Ba Son.", "en": "The block was built in the early 1960s. Before 1975 it housed officials of the Saigon government, among them Trương Bửu Khanh, interpreter to President Ngô Đình Diệm; American officers lived here too, in the street-front units. After 1975 some flats went to workers of the Ba Son shipyard." },
+        { "vi": "Phần lớn cư dân vẫn là người thu nhập thấp hoặc trung bình cho tới năm 2015, khi Nguyễn Huệ thành phố đi bộ đầu tiên của Sài Gòn và giá nhà quanh đây tăng vọt. Từ đó hầu hết căn mặt phố thành quán cà phê và cửa hàng. Luật cấm kinh doanh trong nhà ở: chính quyền từng yêu cầu các cơ sở dọn đi nhưng hạn chót không được thực hiện, và các quán vẫn mở. Hiện chưa có kế hoạch phá dỡ nào có ngày cụ thể.", "en": "Most residents were poor or lower-middle class until 2015, when Nguyễn Huệ became Saigon's first walking street and prices nearby jumped. Almost every front unit has since become a café or shop. Vietnamese law bars running a business in a flat: the city once told the businesses to leave, but the deadline was not enforced, and the cafés are still open. There is no demolition plan with a date so far." }
+      ],
+      "see": [
+        { "vi": "Mặt tiền chung cư từ phố đi bộ Nguyễn Huệ, với nhà sách Fahasa ở tầng trệt", "en": "The block's front from the Nguyễn Huệ walking street, with the Fahasa bookstore on the ground floor" },
+        { "vi": "Quán cà phê, quán trà, tiệm đồ cũ và cửa hàng nhỏ ở các tầng 1–8", "en": "Cafés, tea rooms, thrift shops and small stores on floors 1–8" },
+        { "vi": "Hành lang và cầu thang cũ, và cảnh phố đi bộ nhìn từ các ban công", "en": "The old corridors and stairwells, and the walking street seen from the balconies" }
+      ],
+      "tips": [
+        { "vi": "Lối vào nằm ở bên trái nhà sách Fahasa. Trong nhà dễ lạc: nhìn trước từ ngoài phố xem quán mình muốn nằm tầng nào.", "en": "The entrance is to the left of the Fahasa bookstore. It is easy to get lost inside: look from the street first to see which floor your café is on." },
+        { "vi": "Tầng 9 chủ yếu là nhà ở: nói khẽ trong hành lang.", "en": "The ninth floor is mostly residential: keep your voice down in the corridors." },
+        { "vi": "Giờ mở cửa các nguồn ghi khác nhau và các quán thay đổi liên tục: xem trước giờ và địa chỉ của quán mình muốn đến.", "en": "Sources give different opening hours and the businesses change often: check the hours and floor of the place you want before you go." }
+      ],
+      "getting_there": [
+        { "vi": "Nằm trên phố đi bộ Nguyễn Huệ, cách ga metro Nhà hát Thành phố (tuyến số 1) vài phút đi bộ.", "en": "On the Nguyễn Huệ walking street, a few minutes' walk from Opera House metro station (Line 1)." },
+        { "vi": "Cách Bitexco và công viên Lam Sơn đều không xa.", "en": "Not far from Bitexco or Lam Sơn Park." }
+      ],
+      "food": [],
+      "maps": "Chung cư 42 Nguyễn Huệ, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigoneer.com/saigon-heritage/9925-video-trading-places-the-story-of-42-nguyen-hue",
+        "https://vietnamcoracle.com/the-cafe-apartment-on-saigons-walking-street",
+        "https://silverlandhotels.com/cafe-apartment-saigon-guide/"
+      ]
+    },
+    {
+      "place": "ben_bach_dang",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Công viên và bến tàu dọc sông Sài Gòn, trên đường Tôn Đức Thắng: chỗ đi dạo, lên buýt sông và nhìn sang Thủ Thiêm.",
+        "en": "The riverside park and landing on Tôn Đức Thắng: a place to stroll, to board the river bus and to look across at Thủ Thiêm."
+      },
+      "facts": {
+        "built": {
+          "vi": "Công viên chỉnh trang xong tháng 3 năm 2022",
+          "en": "The park was renovated in March 2022"
+        },
+        "hours": {
+          "vi": "Công viên ngoài trời, đông cả ngày lẫn đêm",
+          "en": "An open park, busy by day and by night"
+        },
+        "ticket": {
+          "vi": "Không thu vé vào công viên; buýt sông và tàu du lịch bán vé riêng",
+          "en": "No ticket for the park; the river bus and tourist boats sell their own"
+        }
+      },
+      "history": [
+        {
+          "vi": "Tên bến nhắc tới các trận thắng quân xâm lược trên sông Bạch Đằng năm 938, 981 và 1288. Chỗ này ban đầu là nơi đậu thuyền; từ những năm 1950–1960 nó là nơi giới trẻ Sài Gòn hay tới gặp nhau. Tượng Trần Hưng Đạo ở Công trường Mê Linh, tay chỉ ra sông, đứng ngay đầu bến.",
+          "en": "The wharf is named after the victories over invaders on the Bạch Đằng River in 938, 981 and 1288. It began as a place to moor boats, and from the 1950s and 1960s young people in Saigon came here to meet. The statue of Trần Hưng Đạo on Mê Linh Square, his arm pointing to the river, stands at its head."
+        },
+        {
+          "vi": "Tháng 4 năm 2015 thành phố cho dừng tàu cánh ngầm, tàu du lịch và tàu nhà hàng ở đây để chỉnh trang bến. Ngày 17 tháng 3 năm 2022, công viên Bến Bạch Đằng và công viên Mê Linh được chỉnh trang xong và khánh thành, nối lối đi bộ từ phố đi bộ Nguyễn Huệ dọc sông tới Cột cờ Thủ Ngữ. Công viên chạy từ cầu Khánh Hội, gần Bến Nhà Rồng, tới khu Ba Son.",
+          "en": "In April 2015 the city stopped the hydrofoils, tourist boats and restaurant boats here so the landing could be renovated. On 17 March 2022 the Bến Bạch Đằng and Mê Linh parks were finished and inaugurated, joining a walking route from Nguyễn Huệ walking street along the river to the Thủ Ngữ flagpole. The park runs from Khánh Hội Bridge, near Nhà Rồng Wharf, to the Ba Son area."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Tượng Trần Hưng Đạo ở Công trường Mê Linh",
+          "en": "The Trần Hưng Đạo statue on Mê Linh Square"
+        },
+        {
+          "vi": "Đi dạo dọc bờ sông, nhìn sang bờ Thủ Thiêm",
+          "en": "A walk along the bank, looking across to Thủ Thiêm"
+        },
+        {
+          "vi": "Cầu Ba Son và nhịp vòm của cầu đi bộ lá dừa nước đang xây cạnh bến",
+          "en": "Ba Son Bridge, and the arch of the water-palm footbridge being built beside the landing"
+        },
+        {
+          "vi": "Bến buýt sông Sài Gòn",
+          "en": "The Saigon river bus landing"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Cuối tuần và ngày lễ ở đây hay có chợ phiên và biểu diễn văn hoá.",
+          "en": "On weekends and holidays there are often markets and cultural performances here."
+        },
+        {
+          "vi": "Buổi tối có tàu du lịch đón khách ở bến; đây cũng là chỗ lên buýt sông (xem trang Bến buýt đường sông).",
+          "en": "In the evening tourist boats pick up passengers at the landing; this is also where you board the river bus (see the river bus page)."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Ga Ba Son của tuyến metro số 1 nằm dưới đường Tôn Đức Thắng, đi bộ khoảng 10 phút tới Công trường Mê Linh và bến Bạch Đằng.",
+          "en": "Ba Son station on Metro Line 1 lies under Tôn Đức Thắng, about a 10-minute walk from Mê Linh Square and the Bạch Đằng landing."
+        },
+        {
+          "vi": "Phố đi bộ Nguyễn Huệ nối ra bờ sông ở đây.",
+          "en": "Nguyễn Huệ walking street leads out to the river here."
+        }
+      ],
+      "food": [
+        {
+          "vi": "Buổi tối có hàng ăn vặt như cá viên chiên, bánh tráng nướng, bắp; trên sông có tàu nhà hàng",
+          "en": "In the evening, snack stalls with fried fish balls, grilled rice paper and corn; restaurant boats on the river"
+        }
+      ],
+      "maps": "Bến Bạch Đằng, Tôn Đức Thắng, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://vneconomy.vn/tp-hcm-khanh-thanh-du-an-chinh-trang-cong-vien-me-linh-va-cong-vien-ben-bach-dang.htm",
+        "https://mia.vn/cam-nang-du-lich/ben-bach-dang-sai-gon-12371",
+        "https://www.sggp.org.vn/net-moi-ben-bach-dang-post499084.html",
+        "https://thesmartlocal.com/vietnam/ba-son-metro-station/"
+      ]
+    },
+    {
+      "place": "cau_ba_son",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Cầu dây văng sáu làn xe nối đường Tôn Đức Thắng sang Thủ Thiêm, thông xe ngày 28 tháng 4 năm 2022; tên cũ là cầu Thủ Thiêm 2.",
+        "en": "A six-lane cable-stayed bridge from Tôn Đức Thắng to Thủ Thiêm, opened to traffic on 28 April 2022; its old name was Thủ Thiêm 2 Bridge."
+      },
+      "facts": {
+        "built": {
+          "vi": "Thông xe 28/4/2022",
+          "en": "Opened 28 April 2022"
+        },
+        "hours": {
+          "vi": "Cầu cho xe cơ giới; ngắm từ bờ sông hoặc từ buýt sông",
+          "en": "A road bridge for vehicles; view it from the riverbank or the river bus"
+        },
+        "ticket": {
+          "vi": "Không áp dụng",
+          "en": "Not applicable"
+        }
+      },
+      "history": [
+        {
+          "vi": "Cầu được xây với tên Thủ Thiêm 2 và thông xe ngày 28 tháng 4 năm 2022, tổng vốn gần 3.100 tỷ đồng. Cầu dài hơn 1.400 m với 6 làn xe; riêng phần dây văng dài khoảng 886 m, nhịp chính 200 m. Cầu bắt đầu từ đường Tôn Đức Thắng và nối sang khu đô thị Thủ Thiêm.",
+          "en": "The bridge was built as the Thủ Thiêm 2 Bridge and opened to traffic on 28 April 2022, at a total cost of nearly 3,100 billion đồng. It is over 1,400 m long with 6 lanes; the cable-stayed part alone is about 886 m, with a main span of 200 m. It starts on Tôn Đức Thắng and leads over to the Thủ Thiêm new urban area."
+        },
+        {
+          "vi": "Ngày 14 tháng 6 năm 2023 thành phố công bố đặt tên cầu là Ba Son, theo xưởng đóng tàu Ba Son bên cạnh (nay là khu Ba Son); cầu cũ vẫn giữ tên Thủ Thiêm.",
+          "en": "On 14 June 2023 the city announced the name Ba Son Bridge, after the neighbouring Ba Son shipyard (now the Ba Son complex); the older bridge keeps the name Thủ Thiêm."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Dáng cầu dây văng, thấy rõ nhất từ bờ sông Bạch Đằng",
+          "en": "The cable-stayed bridge, best seen from the Bạch Đằng riverbank"
+        },
+        {
+          "vi": "Cầu từ dưới sông: buýt sông có bến mang tên Ba Son",
+          "en": "The bridge from the water: the river bus has a Ba Son landing"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Nhiều người vẫn gọi cầu là Thủ Thiêm 2; cầu Thủ Thiêm cũ (Thủ Thiêm 1) là cầu khác.",
+          "en": "Many people still say Thủ Thiêm 2; the older Thủ Thiêm Bridge (Thủ Thiêm 1) is a different bridge."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Ga Ba Son của tuyến metro số 1 nằm dưới đường Tôn Đức Thắng, gần đầu cầu phía quận 1.",
+          "en": "Ba Son station on Metro Line 1 lies under Tôn Đức Thắng, near the bridge's city end."
+        },
+        {
+          "vi": "Từ bến Bạch Đằng đi bộ dọc bờ sông tới chân cầu.",
+          "en": "From the Bạch Đằng landing, walk along the riverbank to the foot of the bridge."
+        }
+      ],
+      "food": [],
+      "maps": "Cầu Ba Son, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://tuoitre.vn/cau-thu-thiem-2-chinh-thuc-doi-ten-thanh-cau-ba-son-20230614125208539.htm",
+        "https://en.wikipedia.org/wiki/Ba_Son_Bridge",
+        "https://saigonwaterbus.com"
+      ]
+    },
+    {
+      "place": "cau_di_bo_la_dua",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Cầu đi bộ hình lá dừa nước, dài khoảng 720 m, nối bến Bạch Đằng với Thủ Thiêm. Cầu mới hợp long ngày 21/10/2026 và chưa mở cửa.",
+        "en": "A pedestrian bridge shaped like a water-palm leaf, about 720 m long, from the Bạch Đằng landing to Thủ Thiêm. It was joined on 21 October 2026 and is not yet open."
+      },
+      "facts": {
+        "built": {
+          "vi": "Khởi công 2025; hợp long 21/10/2026",
+          "en": "Started 2025; joined 21 October 2026"
+        },
+        "hours": {
+          "vi": "Chưa mở cửa (tháng 11/2026); dự kiến dịp Tết Nguyên đán 2027",
+          "en": "Not open yet (November 2026); planned for around Lunar New Year 2027"
+        },
+        "ticket": {
+          "vi": "Chưa có thông tin",
+          "en": "Not announced"
+        }
+      },
+      "history": [
+        {
+          "vi": "Cầu dài khoảng 720 m, rộng 6–11 m, vốn gần 1.000 tỷ đồng, do Nutifood tài trợ. Nhịp chính là vòm thép hình lá dừa nước dài 187 m, không có trụ giữa sông. Cầu có làn xe đạp, lối cho người khuyết tật, và sẽ có thang máy, thang cuốn. Một đầu ở công viên Bến Bạch Đằng, đầu kia ở bờ Thủ Thiêm.",
+          "en": "The bridge is about 720 m long and 6–11 m wide, costs nearly 1,000 billion đồng and is sponsored by Nutifood. Its main span is a 187 m steel arch shaped like a water-palm leaf, with no pier in the river. It has a bicycle lane and paths for people with disabilities, and will have lifts and escalators. One end is in Bến Bạch Đằng park, the other on the Thủ Thiêm bank."
+        },
+        {
+          "vi": "Tiến độ bị lùi nhiều lần; báo chí tháng 5 năm 2026 còn nói cố gắng xong dịp 2 tháng 9. Ngày 21 tháng 10 năm 2026, nhịp vòm chính được lai dắt bằng sà lan vào vị trí và hợp long trong khoảng 8 tiếng. Sau đó còn lát mặt cầu, lắp lan can, đèn nghệ thuật, cảnh quan hai đầu và thử tải; dự kiến đưa vào sử dụng dịp Tết Nguyên đán 2027.",
+          "en": "The schedule slipped several times; the press in May 2026 still spoke of aiming for 2 September. On 21 October 2026 the main arch was floated into place by barge and joined in about 8 hours. Still to come are the deck, railings, artistic lighting, landscaping at both ends and load testing; opening is planned around Lunar New Year 2027."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Vòm thép của cầu, nhìn từ công viên Bến Bạch Đằng",
+          "en": "The steel arch, seen from Bến Bạch Đằng park"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Cầu chưa mở, đừng đi tìm lối lên; hỏi lại tin trước khi đi vì ngày mở có thể đổi.",
+          "en": "The bridge is not open, so do not look for a way up; check the news before you go, as the opening date may change."
+        },
+        {
+          "vi": "Để sang Thủ Thiêm lúc này, đi buýt sông hoặc đi qua cầu Ba Son hay cầu Thủ Thiêm.",
+          "en": "To cross to Thủ Thiêm now, take the river bus or cross by Ba Son Bridge or Thủ Thiêm Bridge."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Đầu cầu phía thành phố ở công viên Bến Bạch Đằng, đi bộ từ phố đi bộ Nguyễn Huệ ra sông.",
+          "en": "The city end is in Bến Bạch Đằng park, a walk from Nguyễn Huệ walking street down to the river."
+        }
+      ],
+      "food": [],
+      "maps": "Cầu đi bộ qua sông Sài Gòn, Bến Bạch Đằng, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://vietbao.vn/cau-di-bo-qua-song-sai-gon-du-kien-khai-thac-dip-tet-612194.html",
+        "https://thuonghieucongluan.com.vn/ca-u-di-bo-qua-song-sai-gon-hop-long-thanh-cong-sau-8-gio-thi-cong-a338917.html",
+        "https://tuoitre.vn/nutifood.html",
+        "https://vov.vn/kinh-te/tphcm-thu-tai-thanh-cong-cau-di-bo-qua-song-sai-gon-chuan-bi-hop-long-post1340514.vov"
+      ]
+    },
+    {
+      "place": "ben_buyt_song",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Buýt sông Sài Gòn chạy từ bến Bạch Đằng tới Linh Đông (Thủ Đức) qua 8 bến; vé từ 15.000 đồng một lượt.",
+        "en": "The Saigon river bus runs from the Bạch Đằng landing to Linh Đông (Thủ Đức) through 8 stops; tickets from 15,000 đồng one way."
+      },
+      "facts": {
+        "built": {
+          "vi": "Chạy từ tháng 11/2017",
+          "en": "Running since November 2017"
+        },
+        "hours": {
+          "vi": "Lịch mới từ 1/4/2026, chạy mỗi ngày (có thêm chuyến thứ Bảy, Chủ Nhật, ngày lễ); chuyến đầu từ Bạch Đằng khoảng 8:30",
+          "en": "Timetable from 1 April 2026, every day (extra trips on Saturdays, Sundays and holidays); first trip from Bạch Đằng about 8:30 am"
+        },
+        "ticket": {
+          "vi": "15.000 đồng một lượt, 30.000 đồng khứ hồi; miễn phí từ 70 tuổi, người khuyết tật, thương binh, trẻ dưới 1 tuổi",
+          "en": "15,000 đồng one way, 30,000 đồng return; free from age 70, for people with disabilities, war invalids and children under 1"
+        }
+      },
+      "history": [
+        {
+          "vi": "Thành phố duyệt dự án buýt đường sông ngày 20 tháng 7 năm 2015 cho Công ty Thường Nhật, tự đầu tư và khai thác. Tuyến số 1 dài khoảng 10,8 km, đi từ bến Bạch Đằng theo sông Sài Gòn, qua rạch Thanh Đa rồi ra lại sông tới Linh Đông; tuyến bắt đầu chạy tháng 11 năm 2017.",
+          "en": "The city approved the river bus project on 20 July 2015 for Thường Nhật Co., which invests and operates it itself. Route 1 is about 10.8 km, from the Bạch Đằng landing along the Saigon River, through the Thanh Đa canal and back to the river at Linh Đông; it began running in November 2017."
+        },
+        {
+          "vi": "Các bến hiện nay là Bạch Đằng, Thủ Thiêm, Ba Son, Bình An, Thảo Điền, Thanh Đa, Hiệp Bình Chánh và Linh Đông. Tuyến số 1 là tuyến đang chạy; các tuyến khác chưa có tin xác nhận đã khai thác.",
+          "en": "The stops now are Bạch Đằng, Thủ Thiêm, Ba Son, Bình An, Thảo Điền, Thanh Đa, Hiệp Bình Chánh and Linh Đông. Route 1 is the one running; the other planned routes have not been confirmed as operating."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Cầu Ba Son và bờ Thủ Thiêm nhìn từ dưới sông",
+          "en": "Ba Son Bridge and the Thủ Thiêm bank seen from the water"
+        },
+        {
+          "vi": "Quãng sông Sài Gòn và rạch Thanh Đa phía thượng nguồn",
+          "en": "The upper Saigon River and the Thanh Đa canal"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Chạy cả tuyến Bạch Đằng – Linh Đông mất khoảng một tiếng; đi khứ hồi và chờ thì gần 4 tiếng.",
+          "en": "The whole Bạch Đằng – Linh Đông run takes about an hour; a return trip with the wait is nearly 4 hours."
+        },
+        {
+          "vi": "Mua vé ở quầy Bạch Đằng, trên saigonwaterbus.com (trả bằng mã QR hoặc thẻ), hoặc qua Traveloka. Có mặt trước giờ chạy khoảng 15 phút.",
+          "en": "Buy at the Bạch Đằng office, on saigonwaterbus.com (pay by QR code or card), or through Traveloka. Arrive about 15 minutes before departure."
+        },
+        {
+          "vi": "Giờ từng chuyến chỉ có trong bảng giờ trên trang chính thức, hoặc gọi 1900 636 830; các trang du lịch ghi giờ chuyến cuối khác nhau, nên đừng tin vào chuyến muộn.",
+          "en": "The departure times are only in the timetable on the official site, or call 1900 636 830; travel sites disagree on the last trip, so do not count on a late one."
+        },
+        {
+          "vi": "Gửi xe máy ở Bạch Đằng mất thêm 10.000 đồng.",
+          "en": "Leaving a motorbike at Bạch Đằng costs 10,000 đồng more."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Bến Bạch Đằng ở công viên Bến Bạch Đằng, đầu đường Tôn Đức Thắng, đi bộ ra từ phố đi bộ Nguyễn Huệ.",
+          "en": "The Bạch Đằng landing is in Bến Bạch Đằng park on Tôn Đức Thắng, a walk from Nguyễn Huệ walking street."
+        },
+        {
+          "vi": "Ga Ba Son của tuyến metro số 1 cách khoảng 10 phút đi bộ.",
+          "en": "Ba Son station on Metro Line 1 is about a 10-minute walk away."
+        }
+      ],
+      "food": [],
+      "maps": "Bến tàu Bạch Đằng buýt sông Sài Gòn, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigonwaterbus.com",
+        "https://mia.vn/cam-nang-du-lich/water-bus-saigon-12411",
+        "https://www.traveloka.com/vi-vn/explore/tips/ta-warter-bus-sai-gon/1001846",
+        "https://en.wikipedia.org/wiki/Saigon_Waterbus",
+        "https://tuoitre.vn/saigontimes/tphcm-sap-co-2-tuyen-buyt-duong-song",
+        "https://thesmartlocal.com/vietnam/ba-son-metro-station/"
+      ]
+    },
+    {
+      "place": "ben_nha_rong",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Toà nhà bên sông xây đầu thập niên 1860, nơi Nguyễn Tất Thành rời Sài Gòn ngày 5/6/1911 đi tìm đường cứu nước; nay là Bảo tàng Hồ Chí Minh – chi nhánh TP.HCM, đang đóng cửa để cải tạo.",
+        "en": "The riverside building from the early 1860s where Nguyễn Tất Thành left Saigon on 5 June 1911 to seek a way to save the country; now the Hồ Chí Minh Museum, Ho Chi Minh City branch, closed for renovation."
+      },
+      "facts": {
+        "built": {
+          "vi": "Khoảng 1862–1864 (các nguồn ghi năm khởi công khác nhau)",
+          "en": "About 1862–1864 (sources differ on the start year)"
+        },
+        "hours": {
+          "vi": "Đóng cửa từ 7/5/2026 để cải tạo; trang chính thức vẫn ghi \"Đang đóng cửa\" (xem bennharong.vn)",
+          "en": "Closed since 7 May 2026 for renovation; the official site still says \"closed\" (see bennharong.vn)"
+        },
+        "ticket": {
+          "vi": "Chưa có thông tin chính thức; hỏi bảo tàng khi mở lại",
+          "en": "No official figure; ask the museum when it reopens"
+        }
+      },
+      "history": [
+        {
+          "vi": "Toà nhà được người Pháp xây từ khoảng 1862 đến 1864 làm trụ sở hãng tàu Messageries Maritimes ở Sài Gòn, một trong những công trình đầu tiên họ xây sau khi chiếm Sài Gòn. Mái nhà có hình hai rồng chầu nguyệt.",
+          "en": "The French built it from about 1862 to 1864 as the Saigon headquarters of the Messageries Maritimes shipping company, one of the first buildings they put up after taking Saigon. Its roof carries the two-dragons-facing-the-moon motif."
+        },
+        {
+          "vi": "Ngày 5 tháng 6 năm 1911, thanh niên Nguyễn Tất Thành rời cảng Sài Gòn từ bến này, làm phụ bếp trên một con tàu (các sách ghi là tàu Amiral Latouche-Tréville), để đi tìm đường cứu nước.",
+          "en": "On 5 June 1911 the young Nguyễn Tất Thành left the port of Saigon from this wharf as a kitchen helper on a ship (books name it the Amiral Latouche-Tréville), to seek a way to save the country."
+        },
+        {
+          "vi": "Sau năm 1975 toà nhà thành khu lưu niệm Chủ tịch Hồ Chí Minh, mở cửa đón khách ngày 2 tháng 9 năm 1979; tháng 10 năm 1995 đổi tên là Bảo tàng Hồ Chí Minh – chi nhánh TP.HCM. Dự án cải tạo khởi công ngày 29 tháng 4 năm 2026 nằm trong công viên Bến Nhà Rồng – Khánh Hội, nâng khu bảo tàng từ 1,4 ha lên khoảng 11 ha, và có kế hoạch một cầu đi bộ nối Bến Nhà Rồng với Bến Bạch Đằng. Giai đoạn 1 chưa kịp xong dịp 2/9/2026; ngày mở lại đang chờ cấp lãnh đạo duyệt (tin ngày 1/9).",
+          "en": "After 1975 the building became the Hồ Chí Minh memorial area, opened to visitors on 2 September 1979; in October 1995 it was renamed the Hồ Chí Minh Museum, Ho Chi Minh City branch. The renovation that broke ground on 29 April 2026 is part of the Nhà Rồng – Khánh Hội cultural park, growing the museum grounds from 1.4 ha to about 11 ha, with a planned footbridge from Nhà Rồng Wharf to Bạch Đằng Wharf. Phase 1 was not finished for 2 September 2026; the reopening date was waiting for approval from the leadership (news of 1 September)."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Toà nhà và mái hai rồng chầu nguyệt, ngắm từ ngoài",
+          "en": "The building and its two-dragon roof, from outside"
+        },
+        {
+          "vi": "Bảo tàng ảo trên bennharong.vn khi bảo tàng đóng cửa",
+          "en": "The virtual museum on bennharong.vn while the museum is closed"
+        },
+        {
+          "vi": "Khi mở lại: trưng bày về cuộc đời và sự nghiệp của Chủ tịch Hồ Chí Minh, nhất là chuyến ra đi năm 1911",
+          "en": "When it reopens: the exhibition on Hồ Chí Minh's life and career, above all the 1911 departure"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Trước khi đi, xem bennharong.vn, fanpage của bảo tàng hoặc gọi (028) 38255740 để biết đã mở lại chưa, giờ mở cửa và giá vé; các trang du lịch ghi giờ và giá khác nhau.",
+          "en": "Before you go, check bennharong.vn, the museum's fanpage or call (028) 38255740 to learn whether it has reopened, and its hours and ticket price; travel sites disagree on both."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Địa chỉ: 1 Nguyễn Tất Thành, phường Xóm Chiếu.",
+          "en": "Address: 1 Nguyễn Tất Thành, Xóm Chiếu ward."
+        },
+        {
+          "vi": "Công viên Bến Bạch Đằng bắt đầu từ cầu Khánh Hội, gần Bến Nhà Rồng, nên hai nơi nằm cùng một đoạn bờ sông.",
+          "en": "Bến Bạch Đằng park starts at Khánh Hội Bridge, near Nhà Rồng Wharf, so the two sit on the same stretch of riverbank."
+        }
+      ],
+      "food": [],
+      "maps": "Bảo tàng Hồ Chí Minh chi nhánh Thành phố Hồ Chí Minh, 1 Nguyễn Tất Thành",
+      "sources": [
+        "https://bennharong.vn/",
+        "https://baovanhoa.vn/van-hoa/bao-tang-ho-chi-minh-chi-nhanh-tphcm-chua-mo-cua-phuc-vu-khach-dip-29-261444.html",
+        "https://baovanhoa.vn/du-lich/cong-trinh-giua-trung-tam-tphcm-gan-su-kien-lich-su-hon-100-nam-truoc-234410.html",
+        "https://vi.wikipedia.org/wiki/B%E1%BA%BFn_Nh%C3%A0_R%E1%BB%93ng",
+        "https://lifestyle.zingnews.vn/bao-tang-ho-chi-minh-o-ben-nha-rong-tam-dong-cua-den-thang-9-post1650126.html",
+        "https://nongnghiepmoitruong.vn/ben-nha-rong--khanh-hoi-kien-tao-di-san-ven-song-d819309.html"
+      ]
+    },
+    {
+      "place": "day_nha_pho_le_lai",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Nhà phố, hay nhà ống: kiểu nhà hẹp và sâu, tầng trệt bán hàng, tầng trên để ở, quen thuộc ở khắp Sài Gòn. Đây không phải một toà nhà cụ thể.",
+        "en": "Shophouses, or nhà phố and nhà ống: narrow, deep houses with a shop below and the family above, seen all over Saigon. This is not one specific building."
+      },
+      "facts": {
+        "built": {
+          "vi": "Từ thập niên 1860; nhà phố kiểu hiện đại phổ biến giữa thế kỷ 20",
+          "en": "From the 1860s; the modern kind spread in the mid-20th century"
+        }
+      },
+      "history": [
+        {
+          "vi": "Trong game, dãy nhà ở đường Lê Lai chỉ là một dãy nhà phố tiêu biểu, không phải một địa chỉ có thật. Nhà phố (shophouse) là kiểu nhà lai giữa nhà ở truyền thống châu Á và ảnh hưởng kiến trúc châu Âu thời thuộc địa, thấy ở nhiều nơi Đông Nam Á. Vì thuế tính theo bề rộng mặt tiền nên nhà thường hẹp và sâu, giống nhà ống; một số có giếng trời hoặc sân sau.",
+          "en": "In the game, the row on Lê Lai Street is only a typical row of shophouses, not a real address. The shophouse is a hybrid of traditional Asian housing and European colonial influence, found across Southeast Asia. Because buildings were taxed by the width of their street front, houses are often narrow and deep, like a tube house; some have an inner courtyard or a back yard."
+        },
+        {
+          "vi": "Kiểu nhà phố cổ nhất còn lại ở Sài Gòn – Chợ Lớn là nhà một tầng, cửa hàng ở trước, chỗ ở ở sau. Kiểu phổ biến nhất là nhà hai tầng, tầng trệt làm cửa hàng và kho, tầng trên để ở; kiểu này cũng xuất hiện từ thập niên 1860. Khi giới thương nhân giàu lên, nhà ba tầng mọc thành dãy; một số căn trang trí cầu kỳ từ thập niên 1890 còn ở đường Hải Thượng Lãn Ông.",
+          "en": "The oldest surviving kind in Saigon and Chợ Lớn is a single-storey house with the shop at the front and the living space behind. The most common kind has two storeys, with the shop and storage below and the home above; it also appears from the 1860s. As merchants grew rich, three-storey houses went up in rows; some ornate ones from the 1890s survive on Hải Thượng Lãn Ông Street."
+        },
+        {
+          "vi": "Sau khi người Pháp rời đi, nhà phố mới vẫn xếp thành dãy nhưng theo nhiều kiểu hiện đại. Nhà phố giữa thế kỷ 20 thường có tầng trệt kinh doanh, tối đa ba tầng ở phía trên với lô-gia nhô ra phố, mái là giàn bê tông cách điệu, mặt tiền có lam chắn nắng và chậu cây treo. Trong khoảng 20 năm, đây là kiểu nhà phổ biến nhất ở miền Nam. Nhiều căn cổ đã bị phá hoặc sửa đến mất dạng.",
+          "en": "After the French left, new shophouses kept the terrace layout but took many modern forms. Mid-20th-century ones usually have a business on the ground floor and up to three floors above, each with a loggia facing the street, a stylised concrete pergola for a roof, and sun louvres and hanging planters on the front. For about 20 years this was the most common building type in southern Vietnam. Many of the old ones have been demolished or altered beyond recognition."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Tầng trệt là cửa hàng, tầng trên là nhà: nhìn lên để thấy cách người ta sống trên phố",
+          "en": "A shop below and a home above: look up to see how people live on the street"
+        },
+        {
+          "vi": "Mặt tiền hẹp, hai bên là tường chung với nhà bên cạnh",
+          "en": "The narrow front, with a shared wall on each side"
+        },
+        {
+          "vi": "Lô-gia, lam chắn nắng và chậu cây trên các căn thế kỷ 20",
+          "en": "Loggias, louvres and planters on the 20th-century houses"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Đây là nhà ở và cửa hàng đang dùng: chỉ ngắm từ ngoài phố và đừng vào nhà người ta.",
+          "en": "These are homes and shops in use: look from the street and do not walk into people's houses."
+        },
+        {
+          "vi": "Muốn xem nhà phố cổ ngoài đời, đi bộ dọc đường Hải Thượng Lãn Ông, Trần Hưng Đạo hay Triệu Quang Phục ở khu Quận 5 cũ, hoặc Võ Văn Kiệt và Pasteur ở khu Quận 1 cũ.",
+          "en": "To see old shophouses in real life, walk Hải Thượng Lãn Ông, Trần Hưng Đạo or Triệu Quang Phục in the former District 5, or Võ Văn Kiệt and Pasteur in the former District 1."
+        }
+      ],
+      "getting_there": [],
+      "food": [],
+      "maps": "nhà phố cổ Hải Thượng Lãn Ông Chợ Lớn",
+      "sources": [
+        "https://saigoneer.com/saigon-heritage/4584-icons-of-old-saigon-shophouse-architecture",
+        "https://saigoneer.com/vietnam-architecture/19965-the-beauty-of-saigon-s-mid-century-shophouses-via-street-sketches",
+        "https://en.wikipedia.org/wiki/Shophouse"
+      ]
+    },
+    {
+      "place": "ben_xe_cho_lon",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Bến xe buýt ở Chợ Lớn, ngay cạnh chợ Bình Tây, là điểm đầu và cuối của nhiều tuyến buýt.",
+        "en": "The bus station in Chợ Lớn, right by Bình Tây Market, where many city bus routes begin and end."
+      },
+      "facts": {
+        "hours": {
+          "vi": "Tuỳ tuyến; xem bảng giờ ở bến",
+          "en": "Depends on the route; check the timetable board at the station"
+        },
+        "ticket": {
+          "vi": "Vé buýt tuỳ tuyến; theo báo Tiền Phong, năm 2026 thành phố miễn vé trên 134 tuyến buýt, hỏi tại bến xem tuyến nào",
+          "en": "Fares depend on the route; according to the newspaper Tiền Phong, the city made 134 bus routes fare-free in 2026, so ask at the station which ones"
+        }
+      },
+      "history": [
+        {
+          "vi": "Bến xe buýt Chợ Lớn nằm ở số 46 đường Lê Quang Sung, nay thuộc phường Bình Tây. Đây là điểm đầu hoặc cuối của nhiều tuyến buýt nội thành.",
+          "en": "Chợ Lớn Bus Station is at 46 Lê Quang Sung Street, now in Bình Tây Ward. Many city bus routes begin or end here."
+        },
+        {
+          "vi": "Chợ Bình Tây (57A Tháp Mười) được xây trong khoảng 1928–1930 và có cổng chính quay về phía bến xe. Tháng 11 năm 2026, báo Tiền Phong cho biết bến vừa được nâng cấp, thêm ghế ngồi và mái che lối đi; bảng thông tin điện tử và loa vẫn đang hoàn thiện.",
+          "en": "Bình Tây Market (57A Tháp Mười) was built around 1928–1930 and its main gate faces the station. In November 2026 the newspaper Tiền Phong reported that the station had just been upgraded with more seats and covered walkways; the electronic information board and speakers were still being finished."
+        },
+        {
+          "vi": "Chưa có tuyến metro nào tới Chợ Lớn. Metro số 2 (Bến Thành – Tham Lương) đang được thi công, và từ ngày 10/10/2026 một số tuyến buýt, trong đó có tuyến 5, 6 và 103 của bến này, tạm đổi lộ trình chiều về bến ở khu vực thi công.",
+          "en": "No metro line reaches Chợ Lớn yet. Metro Line 2 (Bến Thành to Tham Lương) is under construction, and from 10 October 2026 a few bus routes, including routes 5, 6 and 103 of this station, were temporarily rerouted on the way back to the station near the works."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Chợ Bình Tây ngay bên cạnh",
+          "en": "Bình Tây Market right next door"
+        },
+        {
+          "vi": "Bảng thông tin các tuyến buýt ở bến",
+          "en": "The route board at the station"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Giờ chạy và lộ trình thay đổi: xem bảng ở bến hoặc ứng dụng buýt trước khi đi.",
+          "en": "Times and routes change: check the board at the station or a bus app before you go."
+        },
+        {
+          "vi": "Chợ ướt ngoài trời ở Bình Tây đông nhất từ khoảng 5:00 đến 9:00; khu chợ trong nhà mở khoảng 6:00–18:00 (giờ có thể khác nhau).",
+          "en": "The outdoor wet market at Bình Tây is busiest from about 5:00 to 9:00; the indoor hall opens around 6:00–18:00 (hours can vary)."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Tuyến buýt số 01 nối Bến Thành với bến xe Chợ Lớn, mất khoảng 30 đến 45 phút tuỳ giao thông.",
+          "en": "Bus route 01 links Bến Thành with Chợ Lớn Station and takes about 30 to 45 minutes depending on traffic."
+        }
+      ],
+      "food": [],
+      "maps": "Bến xe buýt Chợ Lớn",
+      "sources": [
+        "https://tienphong.vn/ngo-ngang-he-thong-ha-tang-xe-buyt-tphcm-sau-4-thang-post1891100.tpo",
+        "https://tienphong.vn/dieu-chinh-hanh-trinh-13-tuyen-xe-buyt-tphcm-phuc-vu-thi-cong-metro-so-2-post1882947.tpo",
+        "https://mia.vn/cam-nang-du-lich/thong-tin-ben-xe-cho-lon-17662",
+        "https://www.vietnamtourism.com/vi/huong-dan-cho-binh-tay-gio-mo-cua-cach-di-chuyen-an-gi-va-co"
+      ]
+    },
+    {
+      "place": "nha_tho_thu_thiem",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Một trong những giáo xứ lâu đời nhất của Sài Gòn, bên bờ sông, cạnh Dòng Mến Thánh Giá Thủ Thiêm; đã được xếp hạng di tích cấp thành phố.",
+        "en": "One of Saigon's oldest parishes, on the river bank beside the Thủ Thiêm convent of the Lovers of the Holy Cross; ranked a city-level heritage site."
+      },
+      "facts": {
+        "built": {
+          "vi": "1859 (nhà thờ gỗ đầu tiên); nhà xứ 1874–1875; tháp chuông 1930",
+          "en": "1859 (the first, wooden church); rectory 1874–1875; bell tower 1930"
+        },
+        "hours": {
+          "vi": "Khoảng 5:00–18:00. Lễ Chủ nhật 5:00, 7:00, 17:00; ngày thường 5:00, 17:00; giờ có thể đã đổi, xem bảng ở nhà thờ",
+          "en": "About 5:00–18:00. Mass on Sunday at 5:00, 7:00 and 17:00; on weekdays at 5:00 and 17:00; times may have changed, so check the board at the church"
+        }
+      },
+      "history": [
+        {
+          "vi": "Dòng Mến Thánh Giá đến Thủ Thiêm vào giữa thập niên 1830 và được lập chính thức năm 1840. Ngay sau khi người Pháp đến năm 1859, cha Gabriel Nguyễn Khắc Thành bắt đầu xây nhà thờ đầu tiên ở đây, cạnh nhà dòng. Căn nhà xứ làm xong năm 1874–1875 được xem là toà nhà có giá trị di sản lớn nhất của khu này.",
+          "en": "The Lovers of the Holy Cross arrived in Thủ Thiêm in the mid-1830s and were formally established in 1840. Right after the French arrived in 1859, Father Gabriel Nguyễn Khắc Thành began the first church here, next to the convent. The rectory, finished in 1874–1875, is regarded as the most valuable heritage building of the site."
+        },
+        {
+          "vi": "Hầu hết toà nhà hiện nay đã được xây lại nhiều lần, từ thập niên 1950 trở về sau. Tháp chuông dựng năm 1930 bên hông nhà thờ, treo 5 quả chuông đúc ở Pháp trong những năm 1889–1892.",
+          "en": "Most of today's buildings were rebuilt several times, from the 1950s on. The bell tower beside the church was built in 1930 and holds five bells cast in France between 1889 and 1892."
+        },
+        {
+          "vi": "Nhà thờ và nhà dòng nằm trong khu đô thị mới Thủ Thiêm nên nhiều năm không biết có được giữ lại không. Đầu năm 2019 thành phố quyết định giữ, và tháng 12 năm 2019 cả hai nơi được xếp hạng di tích cấp thành phố; trong vùng bảo vệ không được xây dựng hay khai thác nếu chưa được phép.",
+          "en": "The church and the convent lie inside the new Thủ Thiêm urban area, and for years it was unclear whether they would stay. In early 2019 the city decided to keep them, and in December 2019 both were ranked as city-level heritage sites; building and development inside the protection zone need permission."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Nhà thờ và tháp chuông",
+          "en": "The church and its bell tower"
+        },
+        {
+          "vi": "Nhà xứ cũ và khu nhà dòng bên cạnh",
+          "en": "The old rectory and the neighbouring convent"
+        },
+        {
+          "vi": "Bờ sông Sài Gòn nhìn sang trung tâm",
+          "en": "The Saigon River bank, looking across to the city centre"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Nên mặc kín đáo, tránh quần áo quá ngắn hoặc hở.",
+          "en": "Dress modestly and avoid very short or revealing clothes."
+        },
+        {
+          "vi": "Đây là nơi thờ tự đang hoạt động: giữ yên lặng, nhất là lúc có lễ. Giờ lễ có thể đổi.",
+          "en": "This is a working place of worship: keep quiet, especially during Mass. Mass times can change."
+        },
+        {
+          "vi": "Địa chỉ ghi trước đây là 58 Khu phố 1, phường Thủ Thiêm, Quận 2 cũ. Đơn vị hành chính đã đổi trong năm 2025, nên hãy tìm theo tên nhà thờ trên bản đồ.",
+          "en": "The address listed before the 2025 reorganisation was 58 Khu phố 1, Thủ Thiêm Ward, former District 2. Administrative units changed in 2025, so search the church by name on a map."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Từ Bến Bạch Đằng theo đường Tôn Đức Thắng, qua cầu Ba Son sang Thủ Thiêm, rồi đi thêm khoảng 500 m. Xe buýt D4 dừng ở đường Mai Chí Thọ, cách nhà thờ khoảng 2 km.",
+          "en": "From Bạch Đằng Wharf follow Tôn Đức Thắng, cross the Ba Son bridge into Thủ Thiêm, then go about 500 m further. Bus D4 stops on Mai Chí Thọ Street, about 2 km from the church."
+        }
+      ],
+      "food": [],
+      "maps": "Nhà thờ Thủ Thiêm",
+      "sources": [
+        "https://www.greensm.com/vn-vi/news/nha-tho-thu-thiem",
+        "https://www.historicvietnam.com/category/uncategorized/page/10/",
+        "https://en.vietnamplus.vn/thu-thiem-catholic-church-to-be-preserved-as-national-relic/163644.vnp",
+        "https://tuoitre.vn/nha-tho-va-tu-vien-hoi-dong-men-thanh-gia-thu-thiem-duoc-xep-hang-di-tich-20191225171444028.htm",
+        "https://www.sggp.org.vn/tp-thu-duc-thanh-lap-dang-bo-phuong-an-khanh-va-phuong-thu-thiem-sau-sap-nhap-post582779.html"
+      ]
+    },
+    {
+      "place": "hai_dang_vung_tau",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Ngọn hải đăng trắng trên đỉnh Núi Nhỏ, xây từ năm 1862, một trong những hải đăng cổ nhất Việt Nam và vẫn còn hoạt động.",
+        "en": "The white lighthouse on top of Núi Nhỏ, first built in 1862, one of Vietnam's oldest and still working."
+      },
+      "facts": {
+        "built": {
+          "vi": "1862; dời hoặc trùng tu khoảng 1910–1913",
+          "en": "1862; moved or restored around 1910–1913"
+        },
+        "hours": {
+          "vi": "Mở ban ngày, từ khoảng 7:00; giờ đóng cửa có thể đổi, hỏi lại tại chỗ",
+          "en": "Open in the daytime, from about 7:00; the closing time can change, so ask on the spot"
+        }
+      },
+      "history": [
+        {
+          "vi": "Hải đăng được khởi công ngày 20/3/1862 và khánh thành ngày 15/8/1862, thời Pháp thuộc. Ngọn núi là Núi Nhỏ (còn gọi là núi Tao Phùng), cao hơn 170 m, gần Bãi Trước ở Vũng Tàu, nay thuộc Thành phố Hồ Chí Minh. Tháp hình trụ, sơn trắng, cao 18 m.",
+          "en": "Work began on 20 March 1862 and the lighthouse was inaugurated on 15 August 1862, under French rule. It stands on Núi Nhỏ (also called Núi Tao Phùng), over 170 m high, near Bãi Trước in Vũng Tàu, now part of Ho Chi Minh City. The tower is a round white column 18 m tall."
+        },
+        {
+          "vi": "Về sau, tháp được dời lên chỗ hiện nay hoặc trùng tu vào khoảng 1910–1913.",
+          "en": "Later, around 1910–1913, the tower was moved to its present spot or restored."
+        },
+        {
+          "vi": "Tháng 7 năm 2026, báo Tuổi Trẻ và Zing đưa tin thành phố đang mở rộng và cải tạo đường Hải Đăng (dài khoảng 2 km), vốn hơn 25 tỷ đồng; 220 m đầu đã làm xong và dự kiến hoàn thành năm 2027. Khách vẫn lên hải đăng được trong lúc thi công.",
+          "en": "In July 2026 the newspapers Tuổi Trẻ and Zing reported that the city is widening and renovating Hải Đăng Road (about 2 km long) at a cost of over 25 billion VND; the first 220 m is done and completion is expected in 2027. Visitors can still reach the lighthouse during the works."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Tháp hải đăng trắng trên đỉnh núi",
+          "en": "The white tower on the hilltop"
+        },
+        {
+          "vi": "Cầu thang xoắn bên trong tháp",
+          "en": "The spiral stairs inside the tower"
+        },
+        {
+          "vi": "Toàn cảnh thành phố Vũng Tàu và biển từ trên núi",
+          "en": "The view of Vũng Tàu and the sea from the hill"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Theo báo Zing (tháng 7/2026), ô tô không được vào đường Hải Đăng từ 5:00 đến 20:00; có xe điện đưa khách lên, 30.000 đồng cả đi lẫn về.",
+          "en": "According to the newspaper Zing (July 2026), cars are not allowed on Hải Đăng Road from 5:00 to 20:00; an electric shuttle takes visitors up for 30,000 VND round trip."
+        },
+        {
+          "vi": "Tránh ngày mưa; bám tay vịn khi đi cầu thang xoắn, và không vào khu vực hạn chế.",
+          "en": "Avoid rainy days; hold the handrail on the spiral stairs and stay out of restricted areas."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Hải đăng và tượng Chúa Kitô Vua cùng nằm trên Núi Nhỏ, nên thường đi thăm cả hai trong một buổi.",
+          "en": "The lighthouse and the Christ the King statue are both on Núi Nhỏ, so many people visit both in one trip."
+        }
+      ],
+      "food": [],
+      "maps": "Hải đăng Vũng Tàu",
+      "sources": [
+        "https://lifestyle.zingnews.vn/mo-rong-duong-len-ngon-hai-dang-song-ao-164-nam-tuoi-o-vung-tau-post1668055.html",
+        "https://tuoitre.vn/hai-dang.html",
+        "https://vinwonders.com/vi/wonderpedia/news/hai-dang-vung-tau/",
+        "https://www.greensm.com/vn-vi/news/ngon-hai-dang-vung-tau"
+      ]
+    },
+    {
+      "place": "tuong_chua_kito_vua",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Tượng Chúa Kitô dang tay cao 32 m trên Núi Nhỏ, nhìn ra biển Vũng Tàu; muốn tới phải leo khoảng 800 bậc đá.",
+        "en": "The 32 m statue of Christ with open arms on Núi Nhỏ, looking over the Vũng Tàu sea; you reach it by climbing about 800 stone steps."
+      },
+      "facts": {
+        "built": {
+          "vi": "Khởi công đầu thập niên 1970, hoàn thành tháng 12/1994",
+          "en": "Begun in the early 1970s, finished in December 1994"
+        },
+        "hours": {
+          "vi": "Khoảng 7:00–17:00, nghỉ trưa khoảng 11:30–13:30; giờ có thể đổi",
+          "en": "About 7:00–17:00, with a lunch break around 11:30 to 13:30; hours can change"
+        },
+        "ticket": {
+          "vi": "Miễn phí; gửi xe ở chân núi \"tuỳ tâm\"",
+          "en": "Free; parking at the foot of the hill is by donation"
+        }
+      },
+      "history": [
+        {
+          "vi": "Tượng cao 32 m trên bệ cao 4 m, hai tay dang rộng khoảng 18,3 m, đứng ở độ cao khoảng 170 m trên Núi Nhỏ ở Vũng Tàu, nay thuộc Thành phố Hồ Chí Minh. Công trình khởi công đầu thập niên 1970, ngưng sau năm 1975 và hoàn thành tháng 12 năm 1994.",
+          "en": "The statue is 32 m tall on a 4 m base, with arms about 18.3 m wide, standing about 170 m up Núi Nhỏ in Vũng Tàu, now part of Ho Chi Minh City. Work began in the early 1970s, stopped after 1975 and was finished in December 1994."
+        },
+        {
+          "vi": "Bên trong tượng có 133 bậc xoắn đi lên vai và hai cánh tay; đứng trên tay tượng chỉ được khoảng 5 đến 10 phút để nhường người sau.",
+          "en": "Inside the statue 133 spiral steps climb to the shoulders and arms; you can stay on the arms for only about 5 to 10 minutes to make room for others."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Toàn cảnh Vũng Tàu và biển từ vai và tay tượng",
+          "en": "The view of Vũng Tàu and the sea from the shoulders and arms"
+        },
+        {
+          "vi": "Con đường đá lên núi",
+          "en": "The stone stairway up the hill"
+        },
+        {
+          "vi": "Hải đăng Vũng Tàu ngay trên cùng Núi Nhỏ",
+          "en": "The Vũng Tàu Lighthouse on the same hill"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Muốn vào trong tượng, mặc áo có tay và quần hoặc váy dài qua gối; không mặc quần short, váy ngắn hay áo hở. Phải cởi giày và gửi đồ ở ngoài, có người giữ hộ.",
+          "en": "To go inside the statue, wear a top with sleeves and trousers or a skirt below the knee; no shorts, short skirts or revealing tops. You take your shoes off and leave your bags outside, where someone minds them."
+        },
+        {
+          "vi": "Đường lên khoảng 800 bậc, tránh giày cao gót. Đi buổi sáng sớm hoặc sau 15:30 cho đỡ nắng.",
+          "en": "The climb is about 800 steps; avoid high heels. Go early in the morning or after 15:30 to avoid the sun."
+        },
+        {
+          "vi": "Mùa mưa từ tháng 5 đến tháng 10, đường đá trơn. Không chạm vào vầng hào quang quanh đầu tượng vì đó là cột thu lôi.",
+          "en": "The rainy season runs from May to October and the stone steps are slippery. Do not touch the halo around the head: it is a lightning rod."
+        },
+        {
+          "vi": "Cổng núi đóng khoảng 17:00, nên xuống trước giờ đó. Giờ và quy định có thể đổi: kiểm tra lại trước khi đi.",
+          "en": "The gate closes around 17:00, so be down by then. Hours and rules can change: check again before you go."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Gửi xe ở bãi dưới chân núi rồi đi bộ lên theo cầu thang đá.",
+          "en": "Leave your vehicle at the car park at the foot of the hill and walk up the stone stairway."
+        }
+      ],
+      "food": [],
+      "maps": "Tượng Chúa Kitô Vua Vũng Tàu",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Christ_of_V%C5%A9ng_T%C3%A0u",
+        "https://vinwonders.com/vi/wonderpedia/news/tuong-dai-chua-kito-vung-tau/",
+        "https://www.greensm.com/news/tuong-dai-chua-kito-vung-tau"
+      ]
+    }
+  ]
+}

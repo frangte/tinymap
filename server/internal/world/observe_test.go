@@ -58,7 +58,7 @@ func placePoint(t *testing.T, id string) (x, z float64) {
 func TestEnteringAPlaceTakesTwoSeconds(t *testing.T) {
 	h, evs := observingHarness(t)
 	x, z := placePoint(t, "nha_tho_duc_ba")
-	x, z, _ = h.grid.NearestFit(x, z+18, bodyRadius, 6)
+	z += 18
 	p, _ := h.join(Arrival{Name: "Lan", Character: "char-lan", Start: &protocol.Pose{X: x, Z: z}})
 	h.drain(p)
 	h.ticks(time.Second)
@@ -90,11 +90,10 @@ func TestARefusedMoveEntersNothing(t *testing.T) {
 	*evs = nil
 	// a tampered client teleports to the Opera House and stays there
 	x, z := placePoint(t, "nha_hat_thanh_pho")
-	x, z, _ = h.grid.NearestFit(x-10, z, bodyRadius, 6)
+	x -= 10
 	for range 30 {
 		h.tick(100 * time.Millisecond)
-		y, _ := h.grid.Floor(x, z)
-		h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: x, Y: y, Z: z, K: m.gait.k})
+		h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: x, Z: z, K: m.gait.k})
 		h.w.tick()
 	}
 	for _, e := range *evs {

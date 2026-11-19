@@ -68,6 +68,14 @@ type StarterLook struct {
 	Hat    string `json:"hat"`
 }
 
+// The phone capabilities (archetypes.json): items give them, never an archetype (docs/design/11-items.md).
+const (
+	// CapPhone: any phone; the phone opens
+	CapPhone = "phone.basic"
+	// CapSmartphone: a smartphone, for every app beyond notifications, calls and messages
+	CapSmartphone = "phone.smart"
+)
+
 type Archetype struct {
 	ID string `json:"id"`
 	// Tags say which quests it is offered (quests.json tags_any)
@@ -100,6 +108,7 @@ type App struct {
 // Catalog is all the game data, every reference between the files checked.
 type Catalog struct {
 	Places       []Place
+	Map          Map
 	Capabilities []Capability
 	Archetypes   []Archetype
 	Restricted   []RestrictedLook
@@ -115,6 +124,8 @@ type Catalog struct {
 	Achievements []Achievement
 	Ridehail     Ridehail
 	Directions   Directions
+	Guide        []GuideEntry
+	Collection   []CollectionEntry
 	byID         map[string]Archetype
 	vehicleByID  map[string]Vehicle
 	questByID    map[string]Quest
@@ -127,15 +138,15 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions []byte
+	places, island, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions, guide, collection []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
 
 func embedded() files {
-	return files{places: placesJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
+	return files{places: placesJSON, island: mapJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
 		emotes: emotesJSON, npcs: npcsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
-		dialogues: dialogueFiles()}
+		guide: guideJSON, collection: collectionJSON, dialogues: dialogueFiles()}
 }
 
 // Load parses and checks the embedded data files.
@@ -145,6 +156,9 @@ func load(f files) (*Catalog, error) {
 	c := &Catalog{byID: map[string]Archetype{}}
 	var err error
 	if c.Places, err = parsePlaces(f.places); err != nil {
+		return nil, err
+	}
+	if err := parseMap(f.island, c); err != nil {
 		return nil, err
 	}
 	var a struct {
@@ -176,6 +190,12 @@ func load(f files) (*Catalog, error) {
 		return nil, err
 	}
 	if err := parseCast(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseGuide(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseCollection(f, c); err != nil {
 		return nil, err
 	}
 	c.Capabilities, c.Archetypes, c.Restricted, c.Apps = a.Capabilities, a.Archetypes, a.Restricted, p.Apps
@@ -279,6 +299,8 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 		return fmt.Errorf("spawn place %q is not in places.json", a.Spawn.Place)
 	case !point(a.Spawn.At) || !point(a.Spawn.Face):
 		return fmt.Errorf("spawn at and face must be [x, y] within ±%d m", coordLimit)
+	case !c.Map.Inside(a.Spawn.At[0], a.Spawn.At[1]):
+		return errors.New("spawn is outside the island's bounds (map.json)")
 	case !protocol.OutfitKnown(a.Look.Outfit) || !protocol.HatKnown(a.Look.Hat):
 		return errors.New("unknown starter outfit or hat")
 	case a.Vehicle != "" && c.vehicleByID[a.Vehicle].ID == "":
@@ -287,6 +309,9 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 	for _, k := range a.Capabilities {
 		if !caps[k] {
 			return fmt.Errorf("unknown capability %q", k)
+		}
+		if k == CapPhone || k == CapSmartphone {
+			return fmt.Errorf("grants %q: a phone is an item, bought in a shop (docs/design/11-items.md)", k)
 		}
 	}
 	for _, t := range a.Tags {

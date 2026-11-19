@@ -12,8 +12,7 @@ server/internal/
   web/               gin: the account API, REST, static files
   ids/               ULIDs for stored ids
   world/             the loop: entities, interest grid, snapshots, mounts, seats  (from hub/hub.go)
-  world/movement/    speed / walkability / height checks
-  nav/               loads saigon_q1_nav.png, the same file the client uses
+  world/movement/    speed checks (walls and floors are the game's, D21)
   content/           loads YAML, cross-checks every id, fails fast with file:line
   identity/          accounts, tokens, characters
   archetype/  capability/  inventory/  achievement/
@@ -112,11 +111,11 @@ The flat `{"t":…}` style stays. Commands that need an answer carry a `rid` and
 
 ## What the server enforces
 
-- **Movement:**
-  - Distance over a sliding 1 s window must stay within the allowed speed × 1.25 (walk 3.1 / run 6.8 m/s from `src/game/player.ts`, 19.8 m/s on a motorbike).
-  - The target cell must be walkable (or drivable when mounted).
-  - Height must stay between the floor and floor + 1.3 m (room for a jump).
+- **Movement** (D21, 2026-11-17: the game collides with the map itself, the server has no map of walls or floors):
+  - Distance over a sliding 1 s window must stay within the allowed speed × 1.25 (walk 3.1 / run 6.8 m/s from `server/content/movement.json`, the vehicle's from `vehicles.json`).
+  - Positions stay on the map (`protocol.WorldHalf`), and a respawn lands within 4 m of home.
   - No teleports except server-issued respawns.
+  - Where a move ends (a wall, the air, a roof) is not checked: a tampered client can walk through walls or fly, though never faster than a player.
   - Anything else gets a `correct` message, and repeated offences are counted.
 - **Interactions:** within reach (3 m for an NPC, 1.5 m for a seat) when starting, and ended once the player is more than reach + 2 m away.
 - **Quests:** progress only comes from events the server itself observed. Social objectives require distinct partners and a daily cap per pair.

@@ -303,7 +303,7 @@ func TestTheCertificateCapabilityIsGivenOnce(t *testing.T) {
 	s.Join("c1", 1, Player{Tags: []string{"traveler"}})
 	w.last(t, "c1")
 	for range 2 {
-		s.Submit(events.Event{Kind: events.Signal, Character: "c1", NPC: "co_ba", Signal: "final_quiz_passed"})
+		s.Submit(events.Event{Kind: events.NPCTalked, Character: "c1", NPC: "co_ba"})
 	}
 	p := w.last(t, "c1")
 	time.Sleep(50 * time.Millisecond)

@@ -11,14 +11,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
-	"saigon-noir/server/internal/nav"
 )
 
 const (
 	walkSpeed  = 3.1
 	reportsPer = 10 // a second
-	bodyRadius = 0.3
 )
 
 var lines = []string{"chào mọi người", "ai đi cà phê không", "đường nào ra Bến Thành vậy", "nắng quá", "hello Sài Gòn", "đẹp ghê"}
@@ -48,7 +45,7 @@ func guestToken(wsURL, origin string) (string, error) {
 }
 
 // run is one bot: hello, then walk until stop while a reader counts what arrives.
-func run(opt options, grid *nav.Grid, s *stats, seed uint64) error {
+func run(opt options, s *stats, seed uint64) error {
 	hdr := http.Header{}
 	if opt.origin != "" {
 		hdr.Set("Origin", opt.origin)
@@ -135,11 +132,14 @@ func run(opt options, grid *nav.Grid, s *stats, seed uint64) error {
 			return fmt.Errorf("the server closed the connection")
 		}
 		mu.Lock()
+		// on in a straight line, a new heading now and then, and back the other way at the edge of the island
+		if rng.Float64() < 0.02 {
+			heading = rng.Float64() * 2 * math.Pi
+		}
 		for try := 0; try < 8; try++ {
 			nx, nz := x+math.Sin(heading)*step, z+math.Cos(heading)*step
-			if grid.Fits(nx, nz, bodyRadius) && grid.Clear(x, z, nx, nz, 0) && smallStep(grid, x, z, nx, nz) {
+			if opt.island.Inside(nx, -nz) {
 				x, z = nx, nz
-				y, _ = grid.Floor(x, z)
 				break
 			}
 			heading = rng.Float64() * 2 * math.Pi
@@ -161,11 +161,4 @@ func run(opt options, grid *nav.Grid, s *stats, seed uint64) error {
 		}
 	}
 	return nil
-}
-
-// smallStep keeps bots off ledges the game would not walk off either.
-func smallStep(grid *nav.Grid, ax, az, bx, bz float64) bool {
-	fa, _ := grid.Floor(ax, az)
-	fb, _ := grid.Floor(bx, bz)
-	return math.Abs(fa-fb) <= 0.4
 }

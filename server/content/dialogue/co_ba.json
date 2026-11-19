@@ -1,6 +1,6 @@
 {
   "id": "co_ba",
-  "about": "Cô Ba sells at Bến Thành's south gate. Her lesson (three phrases: greeting an elder, thanking, asking the price) is the Traveler's first quest, Chào Sài Gòn: it ends with the signal greetings_learned. Her final test (five questions about what the Traveler saw) is offered only while the quest traveler.bai_kiem_tra_cuoi runs, and ends with final_quiz_passed.",
+  "about": "Cô Ba sells at Bến Thành's south gate. Her lesson (three phrases: greeting an elder, thanking, asking the price) sends phrase_xin_chao, phrase_cam_on and last greetings_learned (asking the price); bargaining at the price sends phrase_mac_qua. The Sổ sưu tầm (collection.json) listens for them; no quest listens for greetings_learned since the Traveler's questline was taken out (2026-11-19, docs/design/10-story.md).",
   "start": "greet",
   "nodes": {
     "greet": {
@@ -24,14 +24,6 @@
       },
       "emote": "wave",
       "choices": [
-        {
-          "text": {
-            "vi": "Con sẵn sàng làm bài kiểm tra cuối rồi cô!",
-            "en": "I'm ready for the final test!"
-          },
-          "goto": "quiz_intro",
-          "requires_quest": "traveler.bai_kiem_tra_cuoi"
-        },
         {
           "text": {
             "vi": "Cô dạy con vài câu chào hỏi được không?",
@@ -75,7 +67,8 @@
             "vi": "Dạ, con chào cô!",
             "en": "(politely) Hello, auntie!"
           },
-          "goto": "lesson_thanks"
+          "goto": "lesson_thanks",
+          "emit": "phrase_xin_chao"
         },
         {
           "text": {
@@ -99,7 +92,8 @@
             "vi": "Dạ, con chào cô!",
             "en": "(politely) Hello, auntie!"
           },
-          "goto": "lesson_thanks"
+          "goto": "lesson_thanks",
+          "emit": "phrase_xin_chao"
         }
       ]
     },
@@ -116,7 +110,8 @@
             "vi": "Dạ, con cảm ơn cô!",
             "en": "cảm ơn"
           },
-          "goto": "lesson_price"
+          "goto": "lesson_price",
+          "emit": "phrase_cam_on"
         },
         {
           "text": {
@@ -140,7 +135,8 @@
             "vi": "Dạ, con cảm ơn cô!",
             "en": "Thank you, auntie!"
           },
-          "goto": "lesson_price"
+          "goto": "lesson_price",
+          "emit": "phrase_cam_on"
         }
       ]
     },
@@ -309,8 +305,33 @@
       "choices": [
         {
           "text": {
+            "vi": "Mắc quá cô ơi! Bớt chút nha cô?",
+            "en": "That's pricey, auntie! A little discount?"
+          },
+          "goto": "bargain",
+          "emit": "phrase_mac_qua"
+        },
+        {
+          "text": {
             "vi": "Dạ, để con đi một vòng rồi quay lại nha cô.",
             "en": "I'll walk around and come back."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bargain": {
+      "say": {
+        "default": {
+          "vi": "Ui, “mắc quá” là câu ai cũng nói ở chợ! Thôi cô bớt còn năm chục, giá chót nghen con.",
+          "en": "Ha, “mắc quá” is what everyone says at the market! Fine, fifty thousand, my final price."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn cô!",
+            "en": "Thank you, auntie!"
           },
           "goto": "bye"
         }
@@ -327,273 +348,6 @@
           "en": "Say hello to your mum for me."
         }
       }
-    },
-    "quiz_intro": {
-      "say": {
-        "default": {
-          "vi": "Được! Cô hỏi năm câu về mấy chỗ con đã đi. Trả lời đúng hết là thành người Sài Gòn chính hiệu.",
-          "en": "Alright! Five questions about the places you've been. Get them all right and you're a true Saigonese."
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Cô hỏi đi ạ",
-            "en": "Go ahead"
-          },
-          "goto": "quiz_1"
-        }
-      ]
-    },
-    "quiz_1": {
-      "say": {
-        "default": {
-          "vi": "Câu một: chợ Bến Thành xây năm nào?",
-          "en": "One: when was Bến Thành market built?"
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Năm 1914",
-            "en": "In 1914"
-          },
-          "goto": "quiz_2"
-        },
-        {
-          "text": {
-            "vi": "Năm 1975",
-            "en": "In 1975"
-          },
-          "goto": "quiz_1_wrong"
-        },
-        {
-          "text": {
-            "vi": "Năm 2010",
-            "en": "In 2010"
-          },
-          "goto": "quiz_1_wrong"
-        }
-      ]
-    },
-    "quiz_1_wrong": {
-      "say": {
-        "default": {
-          "vi": "Chưa đúng rồi con, nghĩ lại coi.",
-          "en": "Not quite, dear. Think again."
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Để con trả lời lại",
-            "en": "Let me try again"
-          },
-          "goto": "quiz_1"
-        }
-      ]
-    },
-    "quiz_2": {
-      "say": {
-        "default": {
-          "vi": "Câu hai: Nhà thờ Đức Bà có mấy tháp chuông?",
-          "en": "Two: how many bell towers does the Cathedral have?"
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Một tháp",
-            "en": "One"
-          },
-          "goto": "quiz_2_wrong"
-        },
-        {
-          "text": {
-            "vi": "Hai tháp",
-            "en": "Two"
-          },
-          "goto": "quiz_3"
-        },
-        {
-          "text": {
-            "vi": "Ba tháp",
-            "en": "Three"
-          },
-          "goto": "quiz_2_wrong"
-        }
-      ]
-    },
-    "quiz_2_wrong": {
-      "say": {
-        "default": {
-          "vi": "Chưa đúng rồi con, nghĩ lại coi.",
-          "en": "Not quite, dear. Think again."
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Để con trả lời lại",
-            "en": "Let me try again"
-          },
-          "goto": "quiz_2"
-        }
-      ]
-    },
-    "quiz_3": {
-      "say": {
-        "default": {
-          "vi": "Câu ba: cà phê sữa đá ở quán Chú Tư pha bằng gì?",
-          "en": "Three: how is the iced milk coffee at Chú Tư's made?"
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Pha phin, thêm sữa đặc",
-            "en": "Dripped through a phin, with condensed milk"
-          },
-          "goto": "quiz_4"
-        },
-        {
-          "text": {
-            "vi": "Bằng máy espresso",
-            "en": "With an espresso machine"
-          },
-          "goto": "quiz_3_wrong"
-        },
-        {
-          "text": {
-            "vi": "Pha với trà",
-            "en": "Mixed with tea"
-          },
-          "goto": "quiz_3_wrong"
-        }
-      ]
-    },
-    "quiz_3_wrong": {
-      "say": {
-        "default": {
-          "vi": "Chưa đúng rồi con, nghĩ lại coi.",
-          "en": "Not quite, dear. Think again."
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Để con trả lời lại",
-            "en": "Let me try again"
-          },
-          "goto": "quiz_3"
-        }
-      ]
-    },
-    "quiz_4": {
-      "say": {
-        "default": {
-          "vi": "Câu bốn: ở Hồ Con Rùa con ăn món gì?",
-          "en": "Four: what did you eat at Turtle Lake?"
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Phở",
-            "en": "Phở"
-          },
-          "goto": "quiz_4_wrong"
-        },
-        {
-          "text": {
-            "vi": "Bánh tráng trộn",
-            "en": "Bánh tráng trộn"
-          },
-          "goto": "quiz_5"
-        },
-        {
-          "text": {
-            "vi": "Bánh mì",
-            "en": "Bánh mì"
-          },
-          "goto": "quiz_4_wrong"
-        }
-      ]
-    },
-    "quiz_4_wrong": {
-      "say": {
-        "default": {
-          "vi": "Chưa đúng rồi con, nghĩ lại coi.",
-          "en": "Not quite, dear. Think again."
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Để con trả lời lại",
-            "en": "Let me try again"
-          },
-          "goto": "quiz_4"
-        }
-      ]
-    },
-    "quiz_5": {
-      "say": {
-        "default": {
-          "vi": "Câu cuối: gặp người lớn thì con chào sao?",
-          "en": "Last one: how do you greet an elder?"
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Dạ, con chào cô!",
-            "en": "(politely) Hello, auntie!"
-          },
-          "goto": "quiz_done",
-          "emit": "final_quiz_passed"
-        },
-        {
-          "text": {
-            "vi": "Ê!",
-            "en": "Hey!"
-          },
-          "goto": "quiz_5_wrong"
-        },
-        {
-          "text": {
-            "vi": "Hello!",
-            "en": "Hello!"
-          },
-          "goto": "quiz_5_wrong"
-        }
-      ]
-    },
-    "quiz_5_wrong": {
-      "say": {
-        "default": {
-          "vi": "Chưa đúng rồi con, nghĩ lại coi.",
-          "en": "Not quite, dear. Think again."
-        }
-      },
-      "choices": [
-        {
-          "text": {
-            "vi": "Để con trả lời lại",
-            "en": "Let me try again"
-          },
-          "goto": "quiz_5"
-        }
-      ]
-    },
-    "quiz_done": {
-      "say": {
-        "default": {
-          "vi": "Giỏi quá! Từ giờ con là người Sài Gòn chính hiệu rồi đó. Đi đâu cũng nhớ ghé thăm cô nghen!",
-          "en": "Wonderful! From now on you're a true Saigonese. Wherever you go, come back and visit me!"
-        }
-      },
-      "emote": "bow"
     }
   }
 }

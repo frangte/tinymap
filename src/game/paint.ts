@@ -9,7 +9,7 @@ const PAINT: Record<string, [number, number]> = {
   opWhite: [0.09, 0.2], poYellow: [0.09, 0.25], concreteLight: [0.08, 0.25], towerPale: [0.06, 0.22], turq: [0.07, 0.15],
   bridgeWhite: [0.04, 0.15], glassBlue: [0.05, 0.12], white: [0.04, 0.12], roadLine: [0.03, 0.12], statueW: [0.03, 0.12],
   clockWhite: [0.02, 0.12], ink: [0, 0.12], paving: [0.09, 0.15], wallCream: [0.1, 0.12], wallMint: [0.1, 0.12],
-  wallSky: [0.1, 0.12], glassDark: [0.05, 0.12],
+  wallSky: [0.1, 0.12], glassDark: [0.05, 0.12], steelWhite: [0.04, 0.12], etfe: [0.04, 0.1], cable: [0.02, 0.05],
 };
 const NO_GRIME = new Set(['water', 'waterDeep', 'foam', 'lampGlow', 'grass', 'grassDark', 'leaf', 'leafLight', 'leafDark', 'roadLine', 'asphalt']);
 const UNLIT = new Set(['lampGlow']);
@@ -162,6 +162,7 @@ export function paintWorld(root: THREE.Object3D): PaintStats {
     }
     o.material = mat;
     o.userData.foliage = FOLIAGE_KEYS.has(key);
+    o.userData.paintKey = key;
     const water = key.startsWith('water') || key === 'foam';
     o.castShadow = !water;
     o.receiveShadow = true;

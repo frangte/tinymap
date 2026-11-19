@@ -4,37 +4,38 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 /** keep the offline copy of fonts for a year; the stylesheet that names them is refreshed in the background */
 const FONT_MAX_AGE = 365 * 24 * 60 * 60;
-/** the map GLB is about 3 MB; Workbox skips anything over its 2 MB default */
+/** the map GLB is about 4 MB; Workbox skips anything over its 2 MB default */
 const MAX_PRECACHE_BYTES = 8 * 1024 * 1024;
 
 /**
- * The map files index.html loads (`#stage data-model` and `data-nav`), for the offline copy. Read from the page
- * so a renamed map (saigon_q1_v5.glb → v6) is picked up, and the older maps in public/models are not shipped twice.
+ * The map file index.html loads (`#stage data-model`), for the offline copy. Read from the page so a renamed map
+ * (saigon_mini.glb → the next one) is picked up, and the older maps in public/models are not shipped twice.
  */
-function mapFiles(): string[] {
+function mapFile(): string {
   const html = readFileSync(new URL('index.html', import.meta.url), 'utf8');
   const model = /data-model="([^"]+)"/.exec(html)?.[1];
-  const nav = /data-nav="([^"]+)"/.exec(html)?.[1];
-  if (!model || !nav) throw new Error('index.html: #stage needs data-model and data-nav (the PWA precache lists them)');
-  return [model, `${nav}_nav.json`, `${nav}_nav.png`, `${nav}_roof.png`];
+  if (!model) throw new Error('index.html: #stage needs data-model (the PWA precache lists it)');
+  return model;
 }
 
 // `vite build --mode single` bundles everything into one chunk so scripts/inline.mjs
 // can produce a self-contained HTML file for sharing.
-// In dev, /ws is forwarded to the Go server (`npm run server`, port 8787). The Host header is kept, so the
-// server's same-origin check passes for localhost and for phones on the LAN alike.
+// In dev, /ws is forwarded to the Go server (`npm run server`, port 8787, or SG_SERVER_PORT for a server started
+// with another PORT). The Host header is kept, so the server's same-origin check passes for localhost and for
+// phones on the LAN alike.
 //
 // The production build is an installable app (PWA): a manifest and a service worker that keeps the page, the code
-// and the map on the device (src/pwa.ts registers it). Each file is precached under its content hash, so a re-baked
-// nav map or a new GLB under the same name still reaches every player with the next version. Off in dev and in
-// the single-file build.
+// and the map on the device (src/pwa.ts registers it). Each file is precached under its content hash, so a new GLB
+// under the same name still reaches every player with the next version. Off in dev and in the single-file build.
+const serverPort = process.env.SG_SERVER_PORT ?? '8787';
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: true,
     proxy: {
-      '/ws': { target: 'ws://localhost:8787', ws: true },
+      '/ws': { target: `ws://localhost:${serverPort}`, ws: true },
       // the account API (guest tokens), on the same server
-      '/api': { target: 'http://localhost:8787' },
+      '/api': { target: `http://localhost:${serverPort}` },
     },
   },
   build: {
@@ -52,9 +53,10 @@ export default defineConfig(({ mode }) => ({
       // precached next to the manifest icons (those are added by the plugin)
       includeAssets: ['icons/icon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'Sài Gòn Q1',
-        short_name: 'Sài Gòn Q1',
-        description: 'Quận 1 thu nhỏ: đi bộ, nhận việc, gặp người chơi khác · A walkable miniature of District 1, Saigon',
+        // the page title and the menu's heading (index.html)
+        name: 'Sài Gòn mini',
+        short_name: 'Sài Gòn mini',
+        description: 'Sài Gòn vẽ tay, thu nhỏ giữa biển · A hand-drawn Saigon in miniature, set in the sea',
         lang: 'vi',
         dir: 'ltr',
         categories: ['games'],
@@ -70,7 +72,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html}', ...mapFiles()],
+        globPatterns: ['**/*.{js,css,html}', mapFile()],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,
         cleanupOutdatedCaches: true,
         // any page URL (?lang=en, ?debug, #choi) opens the cached page; the game server's paths stay on the network

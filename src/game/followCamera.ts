@@ -1,8 +1,11 @@
 // Third-person follow camera: orbits a pivot above the player's head (drag / wheel / pinch), drifts back
-// behind the player while walking forward, and pulls in instead of entering a building.
+// behind the player while walking forward, and cranes up over a building behind the player (pulling in only as far
+// as it still has to) instead of entering it. Walls are the map's own shapes (collider.ts); tree crowns, trunks and
+// iron railings do not count (paint.ts fades the crowns in the way), and neither does a pole, which only one of three
+// side by side sight lines runs into.
 import * as THREE from 'three';
 import type { LookDelta } from './input';
-import type { NavGrid } from './nav';
+import type { CityCollider } from './collider';
 import { clamp, damp, wrapAngle } from './coords';
 
 const PIVOT_H = 1.45;
@@ -12,6 +15,28 @@ const MIN_PITCH = 0.06;
 const MAX_PITCH = 1.3;
 /** keep this far in front of an occluding wall */
 const WALL_GAP = 0.55;
+/** with a building behind the player, look down from higher up until the camera has this much room (m) */
+const ROOM = 5;
+/** how much higher each try looks from (rad) */
+const LIFT_STEP = 0.12;
+/** the sight line from the pivot is also tried this far to either side (m): what blocks one of the three only is
+ *  thin (a lamp post, a trunk), and the camera does not jump in for it */
+const SIDE_SIGHT = 0.45;
+/** the camera stays this far over the floor below it (m) */
+const ABOVE_FLOOR = 0.5;
+/** ...easing up to it over a kerb, a parapet or a roof edge passing under it, but never closer than this (m) */
+const MIN_ABOVE_FLOOR = 0.15;
+/** after pulling in for a wall the camera backs out again no faster than this (m/s, or OUT_SHARE of the zoom per
+ *  second when zoomed out): an exponential way back out starts at 30 m/s or more, which reads as a jerk */
+const OUT_SPEED = 4;
+const OUT_SHARE = 0.3;
+/** zoomed out past this (m), the camera is up over the roofs: it keeps KEEP of its distance by craning up (looking
+ *  down more) rather than pulling in for every block it passes, cranes up faster and pulls in softly, so the city
+ *  going by does not yank it in to the player and let it back out */
+const FAR = 14;
+const KEEP = 0.75;
+/** zoomed out, a sight line blocked for less than this (s) is let be: a sign, a corner, a tree going by */
+const BLOCK_WAIT = 0.35;
 
 /** Close framing of the whole body for the dressing panel. */
 export interface Framing {
@@ -35,15 +60,24 @@ export class FollowCamera {
   private readonly pivot = new THREE.Vector3();
   private readonly dir = new THREE.Vector3();
   private readonly probe = new THREE.Vector3();
+  private readonly side = new THREE.Vector3();
+  /** extra pitch while a building behind the player is in the way (eased, on top of the user's pitch) */
+  private lift = 0;
+  /** how far the camera is raised over what passes under it (eased) */
+  private floorLift = 0;
+  /** set while the camera makes its way back out after a wall pulled it in */
+  private backingOut = false;
+  /** how long the sight line has been shorter than the camera's distance (s) */
+  private blockedFor = 0;
 
-  constructor(private readonly camera: THREE.PerspectiveCamera, private readonly nav: NavGrid) {}
+  constructor(private readonly camera: THREE.PerspectiveCamera, private readonly collider: CityCollider) {}
 
   /** Jump straight behind a player at `target` facing `heading`. */
   snapBehind(target: THREE.Vector3, heading: number): void {
     this.yaw = heading + Math.PI;
     this.pivot.set(target.x, target.y + PIVOT_H, target.z);
     this.dist = this.goalDist;
-    this.place();
+    this.place(0);
   }
 
   /**
@@ -76,38 +110,79 @@ export class FollowCamera {
     this.pivot.y += (target.y + (frame ? frame.height : PIVOT_H) - this.pivot.y) * damp(frame ? 5 : 9, dt);
 
     const want = frame ? frame.dist : this.goalDist;
-    const free = this.clearDistance(want);
-    // pull in at once for a wall, glide in for the dressing framing, ease back out
-    const inRate = frame && free >= want ? 5 : 30;
-    this.dist += (free - this.dist) * damp(free < this.dist ? inRate : 3.5, dt);
-    this.place();
-  }
-
-  private setDir(): void {
-    const cp = Math.cos(this.pitch);
-    this.dir.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp);
-  }
-
-  /** How far the camera can back away from the pivot before it would enter a building. */
-  private clearDistance(want: number): number {
-    this.setDir();
-    const step = 0.3;
-    for (let t = 0.5; t <= want; t += step) {
-      this.probe.copy(this.pivot).addScaledVector(this.dir, t);
-      const roof = this.nav.roofAt(this.probe.x, this.probe.z);
-      if (roof > 0 && this.probe.y < roof + 0.3) return Math.max(0.8, t - WALL_GAP);
+    // a wall behind the player: crane up over it rather than pull into the player's back
+    let goal = 0;
+    const far = want > FAR;
+    const room = Math.min(want, far ? Math.max(ROOM, want * KEEP) : ROOM);
+    const level = frame ? want : this.clearDistance(want, this.pitch);
+    if (level < room) {
+      // the lowest pitch that gives the camera its room, else the one that gives it the most (if that helps at all)
+      let best = level + 1;
+      for (let p = this.pitch + LIFT_STEP; p <= MAX_PITCH + 1e-6; p += LIFT_STEP) {
+        const d = this.clearDistance(want, p);
+        if (d >= room) {
+          goal = p - this.pitch;
+          break;
+        }
+        if (d > best) {
+          best = d;
+          goal = p - this.pitch;
+        }
+      }
     }
-    return want;
+    this.lift += (goal - this.lift) * damp(goal > this.lift ? (far ? 16 : 8) : 2, dt);
+    // zoomed out, the distance goes by the pitch the camera is craning to, so it does not dive in while the lift
+    // catches up (the camera is over the roofs: a moment with the sight line clipped does not show)
+    const free = this.clearDistance(want, this.pitch + (far ? Math.max(this.lift, goal) : this.lift));
+    // pull in at once for a wall, glide in for the dressing framing, ease back out (slowly after a wall: OUT_SPEED)
+    // (the wheel zooming in is no wall: free is then the new zoom itself)
+    const blocked = free < want - 1e-3;
+    const inRate = frame && !blocked ? 5 : far && blocked ? 4 : 30;
+    this.blockedFor = blocked && free < this.dist - 0.05 ? this.blockedFor + dt : 0;
+    if (free < this.dist && (!far || frame || !blocked || this.blockedFor > BLOCK_WAIT)) {
+      this.dist += (free - this.dist) * damp(inRate, dt);
+      if (free < want) this.backingOut = true;
+    } else if (free >= this.dist) {
+      const step = (free - this.dist) * damp(3.5, dt);
+      this.dist += this.backingOut ? Math.min(step, Math.max(OUT_SPEED, want * OUT_SHARE) * dt) : step;
+      if (free - this.dist < 0.05) this.backingOut = false;
+    }
+    this.place(dt);
   }
 
-  private place(): void {
+  private setDir(pitch = this.pitch + this.lift): void {
+    const p = Math.min(pitch, MAX_PITCH);
+    const cp = Math.cos(p);
+    this.dir.set(Math.sin(this.yaw) * cp, Math.sin(p), Math.cos(this.yaw) * cp);
+  }
+
+  /** How far the camera can back away from the pivot, looking down at `pitch`, before it would enter a building. */
+  private clearDistance(want: number, pitch: number): number {
+    this.setDir(pitch);
+    const col = this.collider;
+    const mid = col.sightDistance(this.pivot, this.dir, want);
+    if (mid >= want) return want;
+    // the horizontal at right angles to the sight line
+    this.side.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const left = col.sightDistance(this.probe.copy(this.pivot).addScaledVector(this.side, SIDE_SIGHT), this.dir, want);
+    const right = col.sightDistance(this.probe.copy(this.pivot).addScaledVector(this.side, -SIDE_SIGHT), this.dir, want);
+    // the middle one of the three: a wall blocks two or three of them, a pole one
+    const d = Math.max(Math.min(mid, left), Math.min(Math.max(mid, left), right));
+    return d >= want ? want : Math.max(0.8, d - WALL_GAP);
+  }
+
+  /** @param dt 0 snaps (a jump behind the player) */
+  private place(dt: number): void {
     this.setDir();
-    this.camera.position.copy(this.pivot).addScaledVector(this.dir, this.dist);
-    // stay above the ground behind the player (ramps, the bridge)
-    const floor = this.nav.floorAt(this.camera.position.x, this.camera.position.z);
-    if (Number.isFinite(floor) && this.nav.isWalkable(this.camera.position.x, this.camera.position.z)) {
-      this.camera.position.y = Math.max(this.camera.position.y, floor + 0.5);
-    }
+    const cam = this.camera.position;
+    cam.copy(this.pivot).addScaledVector(this.dir, this.dist);
+    // stay above the ground behind the player (slopes, the hill, a bridge); tree crowns do not count
+    const from = Math.max(this.pivot.y, cam.y);
+    const floor = this.collider.cameraFloor(cam.x, from, cam.z, from - cam.y + ABOVE_FLOOR + 3);
+    const need = Number.isFinite(floor) ? Math.max(0, floor + ABOVE_FLOOR - cam.y) : 0;
+    // ease up over what passes under the camera instead of hopping, and back down slowly
+    this.floorLift = dt > 0 ? this.floorLift + (need - this.floorLift) * damp(need > this.floorLift ? 10 : 3, dt) : need;
+    cam.y += Math.max(this.floorLift, need - (ABOVE_FLOOR - MIN_ABOVE_FLOOR));
     this.camera.lookAt(this.pivot);
   }
 

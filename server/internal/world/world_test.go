@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"saigon-noir/server/content"
-	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/protocol"
 )
 
@@ -20,8 +19,9 @@ import (
 type harness struct {
 	t     *testing.T
 	w     *World
-	grid  *nav.Grid
 	clock time.Time
+	// island is the map's frame and spawn (content map.json)
+	island content.Map
 }
 
 func newHarness(t *testing.T) *harness { return newHarnessWith(t, nil) }
@@ -29,17 +29,18 @@ func newHarness(t *testing.T) *harness { return newHarnessWith(t, nil) }
 // newHarnessWith lets a test change the configuration first (place NPCs, say).
 func newHarnessWith(t *testing.T, tune func(*Config)) *harness {
 	t.Helper()
-	grid, err := content.Nav()
+	c, err := content.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 	cfg := DefaultConfig()
 	cfg.SendBuffer = 4096
+	cfg.Spawn[0], cfg.Spawn[1] = c.Map.ThreeSpawn()
 	if tune != nil {
 		tune(&cfg)
 	}
-	h := &harness{t: t, grid: grid, clock: time.Unix(1_700_000_000, 0)}
-	h.w = New(cfg, grid, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	h := &harness{t: t, island: c.Map, clock: time.Unix(1_700_000_000, 0)}
+	h.w = New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	h.w.now = func() time.Time { return h.clock }
 	return h
 }
@@ -58,8 +59,7 @@ func (h *harness) join(a Arrival) (*Peer, *member) {
 }
 
 func (h *harness) state(p *Peer, m *member, x, z float64, s int) {
-	y, _ := h.grid.Floor(x, z)
-	h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: x, Y: y, Z: z, H: 0, S: s, K: m.gait.k})
+	h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: x, Y: m.pose.Y, Z: z, H: 0, S: s, K: m.gait.k})
 }
 
 type frame struct {
@@ -129,40 +129,9 @@ func count(fs []frame, t string) int {
 	return n
 }
 
-// lane finds a straight run of at least `length` metres from near (x, z) that a body can walk all along.
-func (h *harness) lane(x, z, length float64) (x0, z0, dx, dz float64) {
-	h.t.Helper()
-	for r := 0.0; r < 30; r += 0.5 {
-		for a := 0.0; a < 2*math.Pi; a += math.Pi / 16 {
-			sx, sz := x+math.Cos(a)*r, z+math.Sin(a)*r
-			for b := 0.0; b < 2*math.Pi; b += math.Pi / 8 {
-				ex, ez := sx+math.Sin(b)*length, sz+math.Cos(b)*length
-				if h.fitsAlong(sx, sz, ex, ez) {
-					return sx, sz, math.Sin(b), math.Cos(b)
-				}
-			}
-		}
-	}
-	h.t.Fatalf("no straight %v m lane near (%v, %v)", length, x, z)
-	return
-}
-
-func (h *harness) fitsAlong(ax, az, bx, bz float64) bool {
-	n := int(math.Hypot(bx-ax, bz-az) / 0.1)
-	for i := 0; i <= n; i++ {
-		t := float64(i) / float64(n)
-		x, z := ax+(bx-ax)*t, az+(bz-az)*t
-		if !h.grid.Fits(x, z, 0.3) {
-			return false
-		}
-		if f, _ := h.grid.Floor(x, z); i > 0 {
-			if pf, _ := h.grid.Floor(ax+(bx-ax)*(t-1/float64(n)), az+(bz-az)*(t-1/float64(n))); math.Abs(f-pf) > 0.4 {
-				return false
-			}
-		}
-	}
-	return true
-}
+// lane is a straight run of `length` metres from (x, z) to walk up and down: east. The server knows nothing of
+// walls, so any will do.
+func (h *harness) lane(x, z, _ float64) (x0, z0, dx, dz float64) { return x, z, 1, 0 }
 
 // walk moves m up and down a lane of `length` metres at `speed` m/s, reporting ten times a second, and returns
 // how many corrections came.
@@ -184,14 +153,13 @@ func (h *harness) walk(p *Peer, m *member, x0, z0, dx, dz, length, speed, second
 
 // at puts a member at a spot as if it had walked there (tests only).
 func (h *harness) at(p *Peer, m *member, x, z float64) {
-	y, _ := h.grid.Floor(x, z)
-	h.w.place(p, m, protocol.Pose{X: x, Y: y, Z: z})
+	h.w.place(p, m, protocol.Pose{X: x, Z: z})
 }
 
 func TestHonestWalkingAndRunningPass(t *testing.T) {
 	h := newHarness(t)
 	p, m := h.join(Arrival{Name: "Lan"})
-	x0, z0, dx, dz := h.lane(m.pose.X, m.pose.Z, 12)
+	x0, z0, dx, dz := m.pose.X, m.pose.Z, 1.0, 0.0
 	h.at(p, m, x0, z0)
 	h.tick(time.Second)
 	if n := h.walk(p, m, x0, z0, dx, dz, 12, 3.1, 3); n != 0 {
@@ -210,7 +178,7 @@ func TestHonestWalkingAndRunningPass(t *testing.T) {
 func TestSpeedingIsCorrected(t *testing.T) {
 	h := newHarness(t)
 	p, m := h.join(Arrival{Name: "Lan"})
-	x0, z0, dx, dz := h.lane(m.pose.X, m.pose.Z, 12)
+	x0, z0, dx, dz := m.pose.X, m.pose.Z, 1.0, 0.0
 	h.at(p, m, x0, z0)
 	h.drain(p)
 	// twice the running speed for 3 s: the saved-up second lets the first ones through, then the server says no
@@ -245,40 +213,34 @@ func TestSpeedingIsCorrected(t *testing.T) {
 	}
 }
 
-func TestTeleportsWallsAndFlyingAreCorrected(t *testing.T) {
+func TestTeleportsAreCorrected(t *testing.T) {
 	h := newHarness(t)
 	p, m := h.join(Arrival{Name: "Lan"})
 	start := m.pose
-	cases := []struct {
-		name string
-		to   func() (x, y, z float64)
-	}{
-		{"teleport 40 m", func() (float64, float64, float64) {
-			x, z, ok := h.grid.NearestFit(start.X+40, start.Z, 0.3, 10)
-			if !ok {
-				t.Fatal("nowhere to teleport to")
-			}
-			y, _ := h.grid.Floor(x, z)
-			return x, y, z
-		}},
-		{"into a building", func() (float64, float64, float64) {
-			x := start.X
-			for h.grid.Walkable(x, start.Z) {
-				x += 0.1
-			}
-			return x + 0.5, start.Y, start.Z
-		}},
-		{"flying", func() (float64, float64, float64) { return start.X, start.Y + 4, start.Z }},
-		{"under the floor", func() (float64, float64, float64) { return start.X, start.Y - 2, start.Z }},
+	h.tick(2 * time.Second)
+	h.drain(p)
+	h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: start.X + 40, Y: start.Y, Z: start.Z, K: m.gait.k})
+	if fs, _ := h.drain(p); count(fs, protocol.TypeCorrect) != 1 || m.pose.X != start.X || m.pose.Z != start.Z {
+		t.Fatalf("teleport 40 m: frames %+v, pose %+v", fs, m.pose)
 	}
-	for _, c := range cases {
-		h.at(p, m, start.X, start.Z)
-		h.tick(2 * time.Second)
+}
+
+// The server knows nothing of the map's shapes: where a move at a walkable speed ends (up a wall, in the air, on a
+// roof) is the game's to keep right (docs/design/04-backend.md, "What the server enforces").
+func TestTheGameDecidesWhereItsPlayerStands(t *testing.T) {
+	h := newHarness(t)
+	p, m := h.join(Arrival{Name: "Lan"})
+	start := m.pose
+	for i, to := range []protocol.Pose{
+		{X: start.X + 1, Y: start.Y + 4, Z: start.Z},      // up on a ledge, or in a jump
+		{X: start.X + 2, Y: start.Y - 2, Z: start.Z},      // down a step
+		{X: start.X + 2, Y: start.Y + 12, Z: start.Z + 1}, // on the hill
+	} {
+		h.tick(time.Second)
 		h.drain(p)
-		x, y, z := c.to()
-		h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: x, Y: y, Z: z, K: m.gait.k})
-		if fs, _ := h.drain(p); count(fs, protocol.TypeCorrect) != 1 || m.pose.X != start.X || m.pose.Z != start.Z {
-			t.Errorf("%s: frames %+v, pose %+v", c.name, fs, m.pose)
+		h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: to.X, Y: to.Y, Z: to.Z, K: m.gait.k})
+		if fs, _ := h.drain(p); count(fs, protocol.TypeCorrect) != 0 || m.pose.Y != to.Y {
+			t.Errorf("move %d to %+v: frames %+v, pose %+v", i, to, fs, m.pose)
 		}
 	}
 }
@@ -287,11 +249,12 @@ func TestRespawnGoesHomeOnly(t *testing.T) {
 	h := newHarness(t)
 	home := protocol.Pose{X: 8, Z: 19, H: 1}
 	p, m := h.join(Arrival{Name: "Lan", Home: &home})
-	far, fz, _ := h.grid.NearestFit(home.X+30, home.Z, 0.3, 10)
+	far, fz := home.X+30, home.Z
 	h.at(p, m, far, fz)
 	h.drain(p)
-	h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeRespawn, X: m.home.X + 1, Z: m.home.Z, H: 2, K: m.gait.k})
-	if fs, _ := h.drain(p); count(fs, protocol.TypeCorrect) != 0 || math.Abs(m.pose.X-(m.home.X+1)) > 1e-9 {
+	// the game found the floor there: its height is taken as given
+	h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeRespawn, X: m.home.X + 1, Y: 0.18, Z: m.home.Z, H: 2, K: m.gait.k})
+	if fs, _ := h.drain(p); count(fs, protocol.TypeCorrect) != 0 || math.Abs(m.pose.X-(m.home.X+1)) > 1e-9 || m.pose.Y != 0.18 {
 		t.Fatalf("respawn home: frames %+v, pose %+v", fs, m.pose)
 	}
 	h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeRespawn, X: far, Z: fz, K: m.gait.k})
@@ -302,15 +265,16 @@ func TestRespawnGoesHomeOnly(t *testing.T) {
 
 func TestTheLastPoseIsWhereAPlayerStarts(t *testing.T) {
 	h := newHarness(t)
-	x, z, _ := h.grid.NearestFit(20, 30, 0.3, 10)
-	_, m := h.join(Arrival{Name: "Lan", Start: &protocol.Pose{X: x, Y: 99, Z: z, H: 1}})
-	if m.pose.X != x || m.pose.Z != z || m.pose.Y == 99 {
+	// on the hill, 12 m up: the height comes back as saved (the game moves the body to where it fits, if need be)
+	_, m := h.join(Arrival{Name: "Lan", Start: &protocol.Pose{X: 20, Y: 12, Z: 30, H: 1}})
+	if m.pose.X != 20 || m.pose.Z != 30 || m.pose.Y != 12 {
 		t.Fatalf("start = %+v", m.pose)
 	}
-	// a saved spot that is now inside a wall: home instead
+	// a saved spot off the map: home instead
 	_, m2 := h.join(Arrival{Name: "Minh", Start: &protocol.Pose{X: 1000, Z: 0}})
-	if !h.grid.Fits(m2.pose.X, m2.pose.Z, bodyRadius) || m2.pose.X == 1000 {
-		t.Fatalf("start = %+v", m2.pose)
+	sx, sz := h.island.ThreeSpawn()
+	if m2.pose.X == 1000 || math.Hypot(m2.pose.X-sx, m2.pose.Z-sz) > 2*arrivalSpread {
+		t.Fatalf("start = %+v, want near the spawn (%v, %v)", m2.pose, sx, sz)
 	}
 }
 
@@ -318,7 +282,7 @@ func TestArrivingAgainReplacesTheEarlierConnection(t *testing.T) {
 	h := newHarness(t)
 	old, m := h.join(Arrival{Character: "01ABC", Name: "Lan"})
 	other, _ := h.join(Arrival{Name: "Minh"})
-	x, z, _ := h.grid.NearestFit(m.pose.X+5, m.pose.Z, 0.3, 5)
+	x, z := m.pose.X+5, m.pose.Z
 	h.at(old, m, x, z)
 	h.drain(other)
 	p, again := h.join(Arrival{Character: "01ABC", Name: "Lan", Start: &protocol.Pose{X: 0, Z: 0}})
@@ -352,37 +316,6 @@ func TestARespawnGetsOffTheBikeEvenWhenDropped(t *testing.T) {
 	}
 }
 
-func TestHoveringIsCorrected(t *testing.T) {
-	h := newHarness(t)
-	p, m := h.join(Arrival{Name: "Lan"})
-	x0, z0, dx, dz := h.lane(m.pose.X, m.pose.Z, 12)
-	h.at(p, m, x0, z0)
-	h.drain(p)
-	// 1.2 m up, walking along: allowed for a slow jump's length, then put back on the ground
-	for i := 1; i <= 40 && m.gait.refused == 0; i++ {
-		h.tick(100 * time.Millisecond)
-		x, z := x0+dx*0.25*float64(i), z0+dz*0.25*float64(i)
-		f, _ := h.grid.Floor(x, z)
-		h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: x, Y: f + 1.2, Z: z, K: m.gait.k})
-	}
-	floor, _ := h.grid.Floor(m.pose.X, m.pose.Z)
-	if m.gait.refused != 1 || m.pose.Y != floor {
-		t.Fatalf("hovering: refused %d, pose %+v (floor %v)", m.gait.refused, m.pose, floor)
-	}
-	// a jump on a device at 8 fps (the game runs at 0.4 of the clock: 1.5 s up and down) is fine
-	h.at(p, m, x0, z0)
-	for i := 1; i <= 15; i++ {
-		h.tick(100 * time.Millisecond)
-		x, z := x0+dx*0.12*float64(i), z0+dz*0.12*float64(i)
-		f, _ := h.grid.Floor(x, z)
-		up := 0.7 * math.Sin(math.Pi*float64(i)/15)
-		h.w.onMsg(p, protocol.ClientMsg{T: protocol.TypeState, X: x, Y: f + up, Z: z, K: m.gait.k})
-	}
-	if m.gait.refused != 1 {
-		t.Fatalf("a jump was refused: %d", m.gait.refused)
-	}
-}
-
 func TestTheDriverRidesAtBikeSpeed(t *testing.T) {
 	h := newHarness(t)
 	home := protocol.Pose{X: 36, Z: 37}
@@ -411,7 +344,7 @@ func TestTheDriverRidesAtBikeSpeed(t *testing.T) {
 	if fs, _ := h.drain(p); count(fs, protocol.TypeVehicle) != 1 || v.rider != m || m.flags != protocol.FlagRide {
 		t.Fatalf("mounting: %+v", fs)
 	}
-	x0, z0, dx, dz := h.lane(m.pose.X, m.pose.Z, 30)
+	x0, z0, dx, dz := m.pose.X, m.pose.Z, 1.0, 0.0
 	h.at(p, m, x0, z0)
 	h.tick(time.Second)
 	if n := h.walk(p, m, x0, z0, dx, dz, 30, 11, 6); n != 0 {
@@ -446,10 +379,7 @@ func TestPositionsOnlyGoToThoseNearby(t *testing.T) {
 	b, mb := h.join(Arrival{Name: "B"})
 	c, mc := h.join(Arrival{Name: "C"})
 	ax, az := ma.pose.X, ma.pose.Z
-	fx, fz, ok := h.grid.NearestFit(ax+90, az, 0.3, 20)
-	if !ok || math.Hypot(fx-ax, fz-az) < 75 {
-		t.Fatal("no spot far enough away")
-	}
+	fx, fz := ax+90, az
 	h.at(c, mc, fx, fz)
 	h.w.sendSnapshots()
 	rows := func(p *Peer) map[uint32]bool {
@@ -515,20 +445,14 @@ func bandwidth(t *testing.T, within float64) {
 		heading float64
 	}
 	bots := make([]*bot, 150)
-	meta := h.grid.Meta()
+	b := h.island.Bounds
 	for i := range bots {
-		var x, z float64
-		for {
-			x = meta.X0 + rng.Float64()*float64(meta.NX)*meta.Cell
-			z = -(meta.Y0 + rng.Float64()*float64(meta.NY)*meta.Cell)
-			if within > 0 {
-				sx, sz := h.grid.Spawn()
-				a, r := rng.Float64()*2*math.Pi, rng.Float64()*within
-				x, z = sx+math.Cos(a)*r, sz+math.Sin(a)*r
-			}
-			if h.grid.Fits(x, z, 0.3) {
-				break
-			}
+		x := b[0] + rng.Float64()*(b[2]-b[0])
+		z := -(b[1] + rng.Float64()*(b[3]-b[1]))
+		if within > 0 {
+			sx, sz := h.island.ThreeSpawn()
+			a, r := rng.Float64()*2*math.Pi, rng.Float64()*within
+			x, z = sx+math.Cos(a)*r, sz+math.Sin(a)*r
 		}
 		b := &bot{heading: rng.Float64() * 2 * math.Pi}
 		b.p, b.m = h.join(Arrival{Name: "bot", Start: &protocol.Pose{X: x, Z: z}})
@@ -549,7 +473,7 @@ func bandwidth(t *testing.T, within float64) {
 			}
 			for try := 0; try < 8; try++ {
 				x, z := b.m.pose.X+math.Sin(b.heading)*0.31, b.m.pose.Z+math.Cos(b.heading)*0.31
-				if h.grid.Fits(x, z, 0.3) && h.grid.Clear(b.m.pose.X, b.m.pose.Z, x, z, 0) {
+				if h.island.Inside(x, -z) {
 					h.state(b.p, b.m, x, z, 0)
 					break
 				}

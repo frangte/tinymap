@@ -140,14 +140,8 @@ func TestAPassengerRespawningLandsAtHome(t *testing.T) {
 func TestPinnedPlayersSeeEachOtherFromAnywhere(t *testing.T) {
 	h, rec := moduleHarness(t)
 	pa, a := h.join(Arrival{Name: "Lan"})
-	// a walkable spot far past the view's reach
-	var far protocol.Pose
-	for _, try := range [][2]float64{{90, 0}, {-60, -40}, {40, -100}, {60, 70}} {
-		if x, z, ok := h.grid.NearestFit(a.pose.X+try[0], a.pose.Z+try[1], bodyRadius, 15); ok && math.Hypot(x-a.pose.X, z-a.pose.Z) > 90 {
-			far = protocol.Pose{X: x, Z: z}
-			break
-		}
-	}
+	// a spot far past the view's reach
+	far := protocol.Pose{X: a.pose.X + 100, Z: a.pose.Z}
 	pb, b := h.join(Arrival{Name: "Tài", Start: &far})
 	if d := math.Hypot(b.pose.X-a.pose.X, b.pose.Z-a.pose.Z); d < 90 {
 		t.Fatalf("the two stand only %.0f m apart", d)

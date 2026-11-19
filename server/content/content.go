@@ -22,6 +22,9 @@ const (
 	Landmark PlaceKind = "landmark"
 	Street   PlaceKind = "street"
 	Area     PlaceKind = "area"
+	// District names a whole part of the map (Quận 1, Thủ Thiêm, Chợ Lớn…): what the HUD says between the other
+	// places, and never in the way of one (it ranks after areas)
+	District PlaceKind = "district"
 )
 
 // Place is a named spot on the island, in Blender XY metres (three.js x = X, z = -Y).
@@ -32,13 +35,13 @@ type Place struct {
 	Name Text      `json:"name"`
 	Note Text      `json:"note"`
 	Kind PlaceKind `json:"kind"`
-	// Pts is one point, or a polyline for streets and the coast
+	// Pts is one point, or a polyline for streets and the sea front
 	Pts [][]float64 `json:"pts"`
 	// R is the reach in metres from the point or the line
 	R float64 `json:"r"`
 }
 
-// coordLimit bounds Blender X and Y; the island spans about -85…130 m, the server's world bounds are ±400.
+// coordLimit bounds Blender X and Y; the island spans about -246…246 m, the server's world bounds are ±400.
 const coordLimit = 400
 
 var idPattern = regexp.MustCompile(`^[a-z0-9]+(_[a-z0-9]+)*$`)
@@ -79,7 +82,7 @@ func checkPlace(p Place, seen map[string]bool) error {
 		return errors.New("no name in Vietnamese and English")
 	case (p.Note.VI == "") != (p.Note.EN == ""):
 		return errors.New("note needs both Vietnamese and English")
-	case p.Kind != Landmark && p.Kind != Street && p.Kind != Area:
+	case p.Kind != Landmark && p.Kind != Street && p.Kind != Area && p.Kind != District:
 		return fmt.Errorf("unknown kind %q", p.Kind)
 	case len(p.Pts) == 0:
 		return errors.New("no points")

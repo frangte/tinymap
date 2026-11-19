@@ -15,6 +15,10 @@ const (
 // achievementPrefix marks an achievement's record among quests' (they share the engine and the table).
 const achievementPrefix = "achievement:"
 
+// collectionPrefix marks an entry of the Sổ sưu tầm (collection.json): a hidden track with one objective, never shown
+// among the quests or the achievements.
+const collectionPrefix = "collection:"
+
 // Record is one quest's (or achievement's) progress for one character, as it is stored.
 type Record struct {
 	// ID is the quest id, or achievementPrefix + the achievement id

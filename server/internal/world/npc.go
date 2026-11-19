@@ -82,20 +82,11 @@ type npc struct {
 	heardAt time.Time
 }
 
-// addNPC places an NPC on the floor where its spec says, or on the nearest free spot.
+// addNPC places an NPC where its spec says. Its height is the game's to find (on the ground there): the server
+// knows nothing of the map's shapes.
 func (w *World) addNPC(spec NPCSpec) {
-	x, z := spec.X, spec.Z
-	if fx, fz, ok := w.grid.NearestFit(x, z, bodyRadius, settleSearch); ok {
-		if math.Hypot(fx-x, fz-z) > 0.05 {
-			w.log.Warn("npc moved to a free spot", "npc", spec.Key, "dx", fx-x, "dz", fz-z)
-		}
-		x, z = fx, fz
-	} else {
-		w.log.Warn("npc stands where nobody can walk", "npc", spec.Key)
-	}
-	y, _ := w.grid.Floor(x, z)
 	w.nextID++
-	n := &npc{entity: entity{id: w.nextID, pose: protocol.Pose{X: x, Y: y, Z: z, H: spec.H}, poseAt: w.now()}, spec: spec, face: spec.H}
+	n := &npc{entity: entity{id: w.nextID, pose: protocol.Pose{X: spec.X, Z: spec.Z, H: spec.H}, poseAt: w.now()}, spec: spec, face: spec.H}
 	w.npcs = append(w.npcs, n)
 	w.npcByID[n.id] = n
 }

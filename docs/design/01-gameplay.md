@@ -56,6 +56,8 @@ These are for shaping and testing the quest engine, not final content.
 
 ### Traveler: "Officially Recognized as a Saigon Local" (6 quests)
 
+**Taken out of the game on 2026-11-19** (Khoa: to be designed again with the story, [10-story.md](10-story.md)). The six quests are kept only as a test fixture for the quest engine (`server/internal/quest/testdata/traveler_questline.json`); the game keeps the Traveler's "Đi Crab" quest and dailies.
+
 1. **Chào Sài Gòn:** Cô Ba at Bến Thành's south gate teaches 3 phrases (a dialogue quiz).
 2. **Một ly cà phê sữa đá:** order at Chú Tư's café on Lê Lai, sit on a plastic stool for 5 s, drink.
 3. **Ba công trình thời Pháp:** visit Nhà thờ Đức Bà, the Post Office and the Opera House, in any order, staying 2 s at each. Each one gives a stamp.

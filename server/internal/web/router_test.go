@@ -23,7 +23,6 @@ import (
 	"saigon-noir/server/internal/dialogue"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/identity"
-	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/store"
@@ -157,7 +156,9 @@ func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 	var quests *quest.Service
 	cfg.Places, cfg.Emotes = catalog.Places, world.EmoteNames(catalog)
 	cfg.OnEvent = func(ev events.Event) { quests.Submit(ev) }
-	w := world.New(cfg, navGrid(t), log)
+	// the map's spawn, as the server sets it (cmd/server/main.go)
+	cfg.Spawn[0], cfg.Spawn[1] = catalog.Map.ThreeSpawn()
+	w := world.New(cfg, log)
 	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
 	go quests.Run(ctx)
 	go w.Run(ctx)
@@ -177,30 +178,12 @@ func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 	return &testServer{Server: srv, db: db}
 }
 
-func navGrid(t *testing.T) *nav.Grid {
-	t.Helper()
-	g, err := content.Nav()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return g
-}
-
-// stateNear is a state message a short walk from where the welcome placed the player: dist metres along the
-// first heading where the way is clear.
+// stateNear is a state message a short walk from where the welcome placed the player: dist metres east. The
+// server takes the game's word for walls and floors, so any direction will do.
 func stateNear(t *testing.T, welcome msg, dist float64) (state string, x, z float64) {
 	t.Helper()
-	g := navGrid(t)
-	x0, z0 := welcome.Pose[0], welcome.Pose[2]
-	for a := 0.0; a < 2*math.Pi; a += math.Pi / 12 {
-		x, z = x0+math.Sin(a)*dist, z0+math.Cos(a)*dist
-		if g.Fits(x, z, 0.3) && g.Clear(x0, z0, x, z, 0) {
-			y, _ := g.Floor(x, z)
-			return fmt.Sprintf(`{"t":"state","x":%.2f,"y":%.2f,"z":%.2f,"h":0}`, x, y, z), math.Round(x*100) / 100, math.Round(z*100) / 100
-		}
-	}
-	t.Fatalf("nowhere to walk %v m from %v", dist, welcome.Pose)
-	return
+	x, z = welcome.Pose[0]+dist, welcome.Pose[2]
+	return fmt.Sprintf(`{"t":"state","x":%.2f,"y":%.2f,"z":%.2f,"h":0}`, x, welcome.Pose[1], z), math.Round(x*100) / 100, math.Round(z*100) / 100
 }
 
 // snapRows reads snapshots until one has a row for id, and returns that row.
@@ -561,7 +544,8 @@ func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
 	a := dial(t, srv)
 	send(t, a, helloAs(token, "traveler", "thun", "cap"))
 	w := next(t, a, "welcome")
-	if w.Arch != "traveler" || !slices.Contains(w.Apps, "guide") || slices.Contains(w.Apps, "crab_driver") {
+	// no phone yet, so no apps: a phone is an item (docs/design/11-items.md)
+	if w.Arch != "traveler" || len(w.Apps) != 0 {
 		t.Fatalf("traveler welcome: arch %q apps %v", w.Arch, w.Apps)
 	}
 	a.Close()
@@ -580,10 +564,10 @@ func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
 	send(t, b, `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"crab","hat":"helmet"}}`)
 	b.Close()
 
-	// an older client without archetypes: the core apps, no badge
+	// an older client without archetypes: no badge, and no apps without a phone
 	c := dial(t, srv)
 	send(t, c, helloMinh)
-	if w := next(t, c, "welcome"); w.Arch != "" || len(w.Apps) != 7 {
+	if w := next(t, c, "welcome"); w.Arch != "" || len(w.Apps) != 0 {
 		t.Fatalf("no archetype: %q apps %v", w.Arch, w.Apps)
 	}
 	if got, _ := storedCharacter(srv, token); got.Look.Outfit == "crab" {
@@ -596,7 +580,8 @@ func TestDriverWearsTheUniform(t *testing.T) {
 	_, _, token := postGuest(t, srv, "")
 	a := dial(t, srv)
 	send(t, a, helloAs(token, "driver", "crab", "helmet"))
-	if w := next(t, a, "welcome"); w.Arch != "driver" || !slices.Contains(w.Apps, "crab_driver") {
+	// the Crab Driver app needs a smartphone too (bought, docs/design/11-items.md)
+	if w := next(t, a, "welcome"); w.Arch != "driver" || len(w.Apps) != 0 {
 		t.Fatalf("driver welcome: %q %v", w.Arch, w.Apps)
 	}
 	if c, err := storedCharacter(srv, token); err != nil || c.Look.Outfit != "crab" || c.Archetype != "driver" {
@@ -621,7 +606,7 @@ func TestTheArchetypeChangesInGame(t *testing.T) {
 
 	send(t, a, `{"t":"arch","arch":"citizen"}`)
 	ch := next(t, a, "arch")
-	if ch.Arch != "citizen" || !slices.Contains(ch.Apps, "community") || slices.Contains(ch.Apps, "crab_driver") ||
+	if ch.Arch != "citizen" || len(ch.Apps) != 0 ||
 		ch.Look == nil || *ch.Look != (look{Body: "woman", Outfit: "baba", Hat: "nonla"}) {
 		t.Fatalf("the change: arch %q apps %v look %+v", ch.Arch, ch.Apps, ch.Look)
 	}
@@ -791,13 +776,12 @@ func TestTalkingToCoBa(t *testing.T) {
 		t.Helper()
 		// the server lets a player cover a second's worth of walking at once, after standing still that long
 		time.Sleep(time.Second)
-		y, _ := navGrid(t).Floor(x, z)
-		send(t, a, fmt.Sprintf(`{"t":"state","x":%.2f,"y":%.2f,"z":%.2f,"h":0}`, x, y, z))
+		send(t, a, fmt.Sprintf(`{"t":"state","x":%.2f,"y":0,"z":%.2f,"h":0}`, x, z))
 	}
 	// the traveller starts at the roundabout, ~10 m from her: walk up in steps along a clear line
 	from := [2]float64{w.Pose[0], w.Pose[2]}
 	for _, d := range []float64{6, 3, 1.5} {
-		x, z := spotToward(t, coBa.Pose, from, d)
+		x, z := spotToward(coBa.Pose, from, d)
 		walkTo(x, z)
 		from = [2]float64{x, z}
 	}
@@ -814,35 +798,25 @@ func TestTalkingToCoBa(t *testing.T) {
 		t.Fatalf("after the answer = %+v", l)
 	}
 	// walk away: 3 m reach + 2 m slack
-	x, z := spotToward(t, coBa.Pose, from, 6)
+	x, z := spotToward(coBa.Pose, from, 6)
 	walkTo(x, z)
 	if e := next(t, a, "interaction_end"); e.Sid != in.Sid || e.Reason != protocol.EndFar {
 		t.Fatalf("end = %+v", e)
 	}
 }
 
-// spotToward finds a spot `dist` metres from the npc on the side of `from`, where a body fits and the line from
-// `from` is clear.
-func spotToward(t *testing.T, npc [4]float64, from [2]float64, dist float64) (x, z float64) {
-	t.Helper()
-	g := navGrid(t)
-	base := math.Atan2(from[0]-npc[0], from[1]-npc[2])
-	for i := 0; i < 64; i++ {
-		a := base + float64((i+1)/2)*math.Pi/32*float64(1-2*(i%2))
-		x, z = npc[0]+math.Sin(a)*dist, npc[2]+math.Cos(a)*dist
-		if g.Fits(x, z, 0.3) && g.Clear(from[0], from[1], x, z, 0) {
-			return x, z
-		}
-	}
-	t.Fatalf("no clear spot %v m from %v toward %v", dist, npc, from)
-	return
+// spotToward is the spot `dist` metres from the npc on the side of `from`.
+func spotToward(npc [4]float64, from [2]float64, dist float64) (x, z float64) {
+	a := math.Atan2(from[0]-npc[0], from[1]-npc[2])
+	return npc[0] + math.Sin(a)*dist, npc[2] + math.Cos(a)*dist
 }
 
 // ---- quests
 
-// The first Traveler quest over real sockets: a character with an account arrives with it running, takes Cô
-// Ba's lesson, and the server completes it, gives the stamp and opens the next four quests.
-func TestTheFirstQuestOverTheSocket(t *testing.T) {
+// A quest over real sockets: a Citizen with an account arrives with the morning coffee running, walks up to Chú Tư
+// and orders a cà phê sữa đá, and the server moves both the coffee (its order step) and the neighbourhood round
+// (one familiar face talked to).
+func TestAQuestMovesOverTheSocket(t *testing.T) {
 	catalog, err := content.Load()
 	if err != nil {
 		t.Fatal(err)
@@ -852,44 +826,44 @@ func TestTheFirstQuestOverTheSocket(t *testing.T) {
 	srv := startServer(t, cfg)
 	_, _, token := postGuest(t, srv, "")
 	a := dial(t, srv)
-	send(t, a, helloAs(token, "traveler", "thun", "cap"))
+	send(t, a, helloAs(token, "citizen", "baba", "nonla"))
 	w := next(t, a, "welcome")
 	p := next(t, a, "progress")
-	if !hasQuest(p, "traveler.chao_sai_gon", false) || hasQuest(p, "traveler.ca_phe_sua_da", false) {
+	if !hasQuest(p, "citizen.ca_phe_sang", false) || questN(p, "citizen.ca_phe_sang", "order") != 0 {
 		t.Fatalf("arriving: %+v", p.Quests)
 	}
-	var coBa protocol.NPC
+	var chuTu protocol.NPC
 	for _, n := range w.NPCs {
-		if n.Key == "co_ba" {
-			coBa = n
+		if n.Key == "chu_tu" {
+			chuTu = n
 		}
 	}
 	from := [2]float64{w.Pose[0], w.Pose[2]}
 	for _, d := range []float64{6, 3, 1.5} {
 		time.Sleep(time.Second)
-		x, z := spotToward(t, coBa.Pose, from, d)
-		y, _ := navGrid(t).Floor(x, z)
-		send(t, a, fmt.Sprintf(`{"t":"state","x":%.2f,"y":%.2f,"z":%.2f,"h":0}`, x, y, z))
+		x, z := spotToward(chuTu.Pose, from, d)
+		send(t, a, fmt.Sprintf(`{"t":"state","x":%.2f,"y":0,"z":%.2f,"h":0}`, x, z))
 		from = [2]float64{x, z}
 	}
-	send(t, a, fmt.Sprintf(`{"t":"interact","n":%d,"rid":1}`, coBa.ID))
+	send(t, a, fmt.Sprintf(`{"t":"interact","n":%d,"rid":1}`, chuTu.ID))
 	in := next(t, a, "interaction")
-	// the lesson: greet → ask to learn → greet politely → thank → ask the price (which sends greetings_learned)
-	for i := 0; i < 4; i++ {
-		send(t, a, fmt.Sprintf(`{"t":"choose","sid":%d,"c":0,"step":%d,"rid":%d}`, in.Sid, in.Step, i+2))
-		if i < 3 {
-			in = next(t, a, "interaction")
+	// his first answer orders the coffee (which sends order_ca_phe_sua_da)
+	send(t, a, fmt.Sprintf(`{"t":"choose","sid":%d,"c":0,"step":%d,"rid":2}`, in.Sid, in.Step))
+	for p = next(t, a, "progress"); questN(p, "citizen.ca_phe_sang", "order") != 1; p = next(t, a, "progress") {
+	}
+	if hasQuest(p, "citizen.ca_phe_sang", true) || questN(p, "citizen.chuyen_khu_pho", "talk") != 1 {
+		t.Fatalf("after ordering: quests %+v", p.Quests)
+	}
+}
+
+// questN is how far a running quest's objective has got (-1 when the quest is not running).
+func questN(p msg, id, objective string) int {
+	for _, q := range p.Quests {
+		if q.ID == id && !q.Done {
+			return q.N[objective]
 		}
 	}
-	// walking up to her entered the market, which moved an achievement: progress came for that too
-	for p = next(t, a, "progress"); !hasQuest(p, "traveler.chao_sai_gon", true); p = next(t, a, "progress") {
-	}
-	if !hasQuest(p, "traveler.kien_truc_phap", false) || len(p.Stamps) != 1 {
-		t.Fatalf("after the lesson: quests %+v, stamps %v", p.Quests, p.Stamps)
-	}
-	if len(p.News) == 0 {
-		t.Fatal("the progress after the lesson should say what is new")
-	}
+	return -1
 }
 
 func hasQuest(p msg, id string, done bool) bool {

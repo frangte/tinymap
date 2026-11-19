@@ -5,7 +5,7 @@
 // The world never does I/O. Connections (package ws) read the socket, look the account up and hand the world
 // events; the world answers by queueing frames on the peer, which the connection writes out.
 //
-// The files: move.go checks every reported move against the nav grid, view.go decides who sees whom and sends
+// The files: move.go checks how fast every reported move is, view.go decides who sees whom and sends
 // the snapshots, vehicle.go parks and mounts vehicles, npc.go places the NPCs and runs what they do, talk.go
 // runs the conversations players have with them, observe.go publishes what players do (events) for quests.
 package world
@@ -23,7 +23,6 @@ import (
 	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/dialogue"
 	"saigon-noir/server/internal/events"
-	"saigon-noir/server/internal/nav"
 	"saigon-noir/server/internal/protocol"
 )
 
@@ -44,6 +43,8 @@ type Config struct {
 	Move         Movement
 	View         View
 	Talk         Talk
+	// Spawn is where an arrival without a home starts, three.js (x, z): the map's spawn (content map.json)
+	Spawn [2]float64
 	// NPCs are placed when the world starts (server/content/npcs.json). Dialogue runs what they say; without
 	// one they stand there but do not talk.
 	NPCs     []NPCSpec
@@ -111,8 +112,8 @@ type Arrival struct {
 	Caps capability.Set
 	// Title is the title the character carries (quests.json), "" for none
 	Title string
-	// Home is the start that respawns go back to (x, z and the heading; Y is taken from the floor); nil for the
-	// nav grid's spawn, facing the market.
+	// Home is the start that respawns go back to (x, z and the heading; the game finds the floor there); nil for
+	// the map's spawn (Config.Spawn), facing the market.
 	Home *protocol.Pose
 	// Start is where the player stood at the end of their last visit, nil for none (they start at Home).
 	Start *protocol.Pose
@@ -254,7 +255,6 @@ type member struct {
 
 type World struct {
 	cfg    Config
-	grid   *nav.Grid
 	log    *slog.Logger
 	events chan event
 	done   chan struct{}
@@ -285,10 +285,9 @@ type World struct {
 }
 
 // New makes the world and places its NPCs. NPC ids come first, then players'.
-func New(cfg Config, grid *nav.Grid, log *slog.Logger) *World {
+func New(cfg Config, log *slog.Logger) *World {
 	w := &World{
 		cfg:      cfg,
-		grid:     grid,
 		log:      log,
 		events:   make(chan event, 256),
 		done:     make(chan struct{}),
@@ -468,7 +467,7 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	if m.name == "" {
 		m.name = fmt.Sprintf("Khách %d", m.id)
 	}
-	m.home = w.settle(w.homeOf(a), bodyRadius)
+	m.home = w.homeOf(a)
 	w.place(p, m, w.startPose(a, m.home))
 	others := make([]protocol.Player, 0, len(w.members))
 	for _, o := range w.members {

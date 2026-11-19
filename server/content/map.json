@@ -1,0 +1,7 @@
+{
+  "about": "The island as a whole (Sài Gòn mini, layout v8), shared by the game (src/game/mapInfo.ts) and the server (content/map.go). Points are Blender XY in metres (three.js x = X, z = -Y). spawn is where a player without an archetype starts, on the square in front of Chợ Bến Thành; sea_level is the height (Blender Z) the sea is drawn at, which the game also treats as the water a body cannot wade into; island_center is where the gulls and clouds circle; bounds [x0, y0, x1, y1] frame the island and its beach (the server's load bots and tests stay inside it). Walls, floors and steps are the map's own shapes: the game collides with the GLB itself (src/game/collider.ts).",
+  "spawn": [-25.0, 25.0],
+  "sea_level": -0.45,
+  "island_center": [0.0, 0.0],
+  "bounds": [-246.0, -230.0, 246.0, 228.0]
+}

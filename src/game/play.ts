@@ -1,7 +1,8 @@
 // Play mode: input -> player -> follow camera -> place labels. Owns the player for the whole session,
 // so leaving for the map and coming back continues where the player stood.
 import * as THREE from 'three';
-import type { NavGrid } from './nav';
+import type { CityCollider } from './collider';
+import { MAP } from './mapInfo';
 import { Player } from './player';
 import { FollowCamera, type Framing } from './followCamera';
 import { InputController, type LookDelta, type MoveIntent } from './input';
@@ -43,6 +44,8 @@ export class PlayMode {
   private home: Spawn | null = null;
   /** a landmark seen for the first time this visit (the phone notes it) */
   onLandmark: (p: Place) => void = () => {};
+  /** the place the player is in changed (null: none in particular); the Cẩm nang's card follows it */
+  onPlace: (p: Place | null) => void = () => {};
   /** E or the action button: the action at hand (talking to an NPC, getting on or off the bike) */
   onUse: () => void = () => {};
   /** the emote codes keys 1-9 play, in order */
@@ -53,9 +56,9 @@ export class PlayMode {
   private active = false;
   private dressing = false;
 
-  constructor(private readonly nav: NavGrid, private readonly camera: THREE.PerspectiveCamera, private readonly hud: Hud, surface: HTMLElement) {
-    this.player = new Player(nav);
-    this.follow = new FollowCamera(camera, nav);
+  constructor(collider: CityCollider, private readonly camera: THREE.PerspectiveCamera, private readonly hud: Hud, surface: HTMLElement) {
+    this.player = new Player(collider);
+    this.follow = new FollowCamera(camera, collider);
     this.input = new InputController(surface, hud.joystick);
     this.input.enabled = false;
     this.spawnAtHome();
@@ -72,15 +75,16 @@ export class PlayMode {
   }
 
   /**
-   * Back to the start: the archetype's spawn point facing its `face` point, or (without one) the square in front of
-   * the market's south gate, facing the market (Blender +Y = three -Z). A small random offset keeps players who
-   * arrive together from standing inside each other; spawn() snaps it to a walkable cell.
+   * Back to the start: the archetype's spawn point facing its `face` point, or (without one) the map's spawn
+   * (server/content/map.json), on the square in front of the market's main gate, facing the market (Blender -X =
+   * three -X). A small random offset keeps players who arrive together from standing inside each other; spawn()
+   * finds the nearest spot on the ground where the body fits.
    */
   spawnAtHome(): void {
     const jitter = (): number => (Math.random() - 0.5) * 2 * SPAWN_SPREAD;
     if (!this.home) {
-      const [bx, by] = this.nav.meta.spawn;
-      this.player.spawn(bx + jitter(), -by + jitter(), Math.PI);
+      const [bx, by] = MAP.spawn;
+      this.player.spawn(bx + jitter(), -by + jitter(), -Math.PI / 2);
       return;
     }
     const [bx, by] = this.home.at;
@@ -111,6 +115,7 @@ export class PlayMode {
     FOLIAGE.uSee.value = 1;
     this.place = null;
     this.hud.setPlace(null);
+    this.onPlace(null);
   }
 
   exit(): void {
@@ -177,6 +182,7 @@ export class PlayMode {
     if (p !== this.place) {
       this.place = p;
       this.hud.setPlace(p);
+      this.onPlace(p);
       // not while picking an archetype or dressing: the player has not walked anywhere yet
       if (p && p.kind === 'landmark' && !this.seen.has(p) && !this.dressing) {
         this.seen.add(p);

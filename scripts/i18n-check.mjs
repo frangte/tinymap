@@ -14,7 +14,7 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const CATALOGS = join(ROOT, 'src/game/i18n');
 const VIETNAMESE = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i;
 /** text in index.html that is a name, the same in both languages */
-const AS_WRITTEN = new Set(['Sài Gòn Q1', 'Sài Gòn Q1 Diorama', 'Tiếng Việt']);
+const AS_WRITTEN = new Set(['Sài Gòn mini', 'Tiếng Việt']);
 const LITERALS = new Set([
   ts.SyntaxKind.StringLiteral,
   ts.SyntaxKind.NoSubstitutionTemplateLiteral,

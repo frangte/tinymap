@@ -14,6 +14,7 @@ import type { Look } from './outfits';
 import { emoteByCode } from './motion';
 import { emoteOf, FLAG_AIR, FLAG_RIDE, FLAG_SEAT1, type PlayerInfo, type SnapRow } from '../net/protocol';
 import type { RiderView } from './vehicles';
+import type { FloorAt } from './collider';
 
 /**
  * Draw others this far in the past, so the next sample has always arrived (ms). Worst case: the sender's send
@@ -58,7 +59,7 @@ export class RemotePlayer {
   private emoteCode = 0;
 
   /** @param floorAt the ground height under a point, for the shadow of someone jumping */
-  constructor(readonly id: number, public name: string, look: Look, private readonly floorAt: (x: number, z: number) => number) {
+  constructor(readonly id: number, public name: string, look: Look, private readonly floorAt: FloorAt) {
     this.avatar = new Pedestrian(look);
     this.avatar.root.name = `Remote ${id}`;
     this.avatar.root.visible = false;
@@ -132,7 +133,8 @@ export class RemotePlayer {
     root.rotation.y = h;
     root.rotation.z = this.lean;
     if (animate) {
-      this.avatar.setHeight(this.pose.air ? y - this.floorAt(x, z) : 0);
+      const floor = this.pose.air ? this.floorAt(x, z, y) : y;
+      this.avatar.setHeight(Number.isFinite(floor) ? Math.max(0, y - floor) : 0);
       this.avatar.update(dt, this.speed, clock, this.pose);
     }
     return true;
@@ -193,7 +195,7 @@ export class RemotePlayers {
   private readonly players = new Map<number, RemotePlayer>();
   private readonly frustum = new THREE.Frustum();
 
-  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass, private readonly floorAt: (x: number, z: number) => number) {}
+  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass, private readonly floorAt: FloorAt) {}
 
   get count(): number {
     return this.players.size;

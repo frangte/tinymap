@@ -25,7 +25,7 @@ type ArchChange struct {
 	Caps capability.Set
 	// Look is what they wear now: the new archetype's starter clothes on their body
 	Look protocol.Look
-	// Home is the new archetype's start (x, z and heading), nil for the nav grid's spawn
+	// Home is the new archetype's start (x, z and heading), nil for the map's spawn
 	Home *protocol.Pose
 	// Vehicle is the new archetype's starter vehicle, parked beside the player; nil for none
 	Vehicle *VehicleSpec
@@ -119,7 +119,7 @@ func (w *World) changeArch(p *Peer, m *member, c ArchChange) {
 		w.removeVehicle(v)
 	}
 	m.arch, m.caps, m.look = c.Arch, c.Caps, c.Look
-	m.home = w.settle(w.homeAt(c.Home), bodyRadius)
+	m.home = w.homeAt(c.Home)
 	apps := c.Apps
 	if apps == nil {
 		apps = []string{}

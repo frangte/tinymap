@@ -35,7 +35,9 @@ void main(){
   float w1 = n2(p*vec2(0.05, 0.11) + vec2(uTime*0.035, uTime*0.02));
   float w2 = n2(p*vec2(0.13, 0.07) - vec2(uTime*0.05, -uTime*0.03));
   float crest = smoothstep(0.64, 0.68, w1*0.55 + w2*0.45);
-  col = mix(col, mix(uShallow, uFoam, 0.35), crest*0.45*(1.0 - smoothstep(60.0, 260.0, dist)));
+  // looking down from high over the map, haze and streaks start further out
+  float up = max(cameraPosition.y, 0.0);
+  col = mix(col, mix(uShallow, uFoam, 0.35), crest*0.45*(1.0 - smoothstep(60.0 + up, 260.0 + up*1.5, dist)));
   // foam: a line where water meets sand, and bands rolling in over the shallows
   float line = 1.0 - smoothstep(0.03, 0.12 + wob*0.05, depth);
   float roll = fract(depth*2.2 - uTime*0.22 + wob*0.6);
@@ -43,7 +45,7 @@ void main(){
   float foam = max(line, bands*0.8);
   col = mix(col, uFoam, foam);
   // paper haze toward the horizon
-  col = mix(col, uHaze, smoothstep(120.0, 700.0, dist));
+  col = mix(col, uHaze, smoothstep(120.0 + up*1.2, 700.0 + up*1.5, dist));
   float alpha = mix(0.58, 0.97, 1.0 - shallow);
   gl_FragColor = vec4(col, max(alpha, foam));
   #include <colorspace_fragment>

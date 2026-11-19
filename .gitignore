@@ -29,3 +29,6 @@ renders/
 .claude/ecc/install-state.json
 server/cmd/server/app
 
+
+# shapely + mapbox_earcut for Blender's Python (scripts/blender/build_saigon_mini.py)
+.blender-site/

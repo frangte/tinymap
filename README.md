@@ -16,13 +16,13 @@ npm run i18n:check   # fails on interface text typed outside the catalogs (src/g
 
 The game is in Vietnamese and English. The language comes from `?lang=vi|en`, then the player's last choice, then the browser's languages (English when it lists neither); the switch is on the start menu and in the tool buttons, and changes everything on screen at once. NPCs always speak Vietnamese: in English the English goes under each line.
 
-The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so the back button and shared links work. `?debug` exposes the app as `window.sgGame` (player, follow camera, map view, nav grid, `go(mode)`, `step(n)`); `?debug&manual` stops the frame loop so a test can step it.
+The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so the back button and shared links work. `?debug` exposes the app as `window.sgGame` (player, follow camera, map view, the collider and `showCollider()` to draw it, `go(mode)`, `step(n)`); `?debug&manual` stops the frame loop so a test can step it.
 
 ## Installing as an app (PWA)
 
-The production build is a Progressive Web App: on a phone, "Add to Home Screen" (Safari) or "Install app" (Chrome) puts Sài Gòn Q1 on the home screen, where it opens full screen. A service worker ([vite-plugin-pwa](https://vite-pwa-org.netlify.app/), set up in `vite.config.ts`) keeps the page, the code, the fonts and the map on the device, so the game starts at once and opens offline too. Offline it plays alone: walking, NPCs and the map need no server, and multiplayer comes back when the network does.
+The production build is a Progressive Web App: on a phone, "Add to Home Screen" (Safari) or "Install app" (Chrome) puts Sài Gòn mini on the home screen, where it opens full screen. A service worker ([vite-plugin-pwa](https://vite-pwa-org.netlify.app/), set up in `vite.config.ts`) keeps the page, the code, the fonts and the map on the device, so the game starts at once and opens offline too. Offline it plays alone: walking, NPCs and the map need no server, and multiplayer comes back when the network does.
 
-- **What is kept:** the page, the hashed JS/CSS, the icons, and the map files `index.html` names (`#stage data-model`, `data-nav`), about 3.7 MB. Each file is stored under its content hash, so a re-exported GLB or a re-baked nav map under the same name reaches every player with the next version. `/api`, `/ws` and `/healthz` always go to the network.
+- **What is kept:** the page, the hashed JS/CSS, the icons, and the map file `index.html` names (`#stage data-model`), about 4.8 MB. Each file is stored under its content hash, so a re-exported GLB under the same name reaches every player with the next version. `/api`, `/ws` and `/healthz` always go to the network.
 - **Updates** (`src/pwa.ts`): the worker is registered once the map has loaded, so it never slows the first download. It looks for a new version on every return to the app and hourly. The client and the server change together and the socket has no version check, so a new version takes over right away in the menu; in the map or a game a banner offers "Tải lại" / "Reload", and it also takes over on the next return to the menu.
 - **Dev and single file:** no service worker in `npm run dev` or `build:single`. To try it, `npm run build && npx vite preview`; DevTools → Application shows the manifest, the worker and its cache.
 - **Icons:** `node scripts/pwa-icons.mjs` draws the icon (Chợ Bến Thành's clock tower) and writes every size into `public/icons/` (needs `rsvg-convert`: `brew install librsvg`).
@@ -52,6 +52,7 @@ src/game/
   mapView.ts            map mode: orbit controls, landmark stops, menu idle orbit, camera flights
   play.ts               play mode: input -> player -> follow camera -> place labels
   sea.ts                toon sea: depth-based shallows, shore foam, wave streaks, horizon haze
+  water.ts              toon pond water for every `water` mesh (Hồ Con Rùa, fountains): depth tint, ripples, glints
   life.ts               drifting clouds and circling gulls
   sound/                area sound made with WebAudio (no audio files), mute toggle
     ambient.ts          per-area mixer: each area place fades its soundscape in and out by distance
@@ -60,12 +61,26 @@ src/game/
   world.ts              renderer, paper sky, sun/ambient lighting, GLB loader (plain or base64 .txt)
   paint.ts              toon paint material (Blender SD_Paint parameters) + foliage wind and see-through
   ink.ts                normal/depth pass, colour pass and the ink composite
-  nav.ts                walkable heightfield: floor height, walkable flag, building tops
-  player.ts             movement: acceleration, turning, wall sliding, kerbs and ramps
+  collider.ts           what bodies bump into: the map's own triangles in one BVH (three-mesh-bvh), capsule
+                        push-out, floors, water depth, the hill's skirts, the camera's sight lines
+  mapInfo.ts            server/content/map.json: spawn, sea level, island bounds
+  player.ts             movement: acceleration, turning, a capsule sliding along walls, steps, slopes, falls
   character.ts          low-poly pedestrian (nón lá) with procedural idle / walk / run
-  followCamera.ts       third-person orbit camera with building avoidance
+  followCamera.ts       third-person orbit camera that keeps out of walls (poles and crowns do not count)
   input.ts              keyboard, mouse, touch joystick, pinch
   places.ts             named landmarks and streets for the HUD
+  guide.ts              the Cẩm nang's pages about places (server/content/guide.json), pages read kept in the browser
+  tips.ts               the travel tips (server/content/tips.json) and the tips this player has seen, kept in the browser
+  tipCard.ts            the tip card: a tip the first time its situation happens, one at a time, queued behind other panels
+  collection.ts         the Sổ sưu tầm's entries (server/content/collection.json; the server runs each as a hidden quest)
+  placeCard.ts          the info card under the place card: one line about the place and "Đọc thêm" (I)
+  notebook/             the Sổ tay (B): the game's own menu, open with no phone, over the map and in play
+    notebook.ts         the panel and its tabs: Cẩm nang, map, quests, collection, achievements, character
+    guideBook.ts        the Cẩm nang: the landmark list and a place's page (history, tips, getting there, sources)
+    sections.ts         the map, quests, achievements and character (phone apps before)
+    collectionBook.ts   the Sưu tầm tab: phrases, side stories and dishes found, the rest "???" with a hint
+  phone/                the in-game phone: only what a real phone is for (Crab, chat, notices, asking the way)
+    mapLand.json        the map's land and roads (written by scripts/map/move_game_content_v8.py)
   hud.ts                DOM overlay helpers
   storyCard.ts          the arrival card: the archetype's story and first steps, once per visit
   stories.ts            that text per archetype (written in i18n/stories.ts)
@@ -73,17 +88,13 @@ src/game/
   i18n/                 every interface text, Vietnamese and English (see "Adding text")
   coords.ts             Blender <-> three.js axes, small math helpers
 public/models/
-  saigon_q1.glb         the diorama (export of sg.tinymap.blend)
-  saigon_q1_nav.png     floor height + walkable flag, 0.35 m grid
-  saigon_q1_roof.png    building tops on non-walkable cells (camera collision)
-  saigon_q1_nav.json    grid origin, cell size, spawn point
+  saigon_mini.glb       the map, Sài Gòn mini (export of models/saigon_mini.blend); also what bodies collide with
+  saigon_q1_v5.glb      the v4 island, no longer loaded
 public/icons/           app icons for the install (made by scripts/pwa-icons.mjs)
 scripts/
   inline.mjs            inlines the single-chunk build into one HTML file
   pwa-icons.mjs         draws the app icon and writes public/icons/
   blender/export_glb.py exports the diorama GLB from the .blend
-  blender/bake_nav.py   bakes the three nav files from the .blend
-  blender/nav_boxes.py  the walk-map boxes (NAV collection: buildings nobody walks into) in the .blend
 docs/
   PROJECT.md            project brief: style, palette, Blender conventions, landmark sheet
   img/                  renders of each landmark from the current map
@@ -96,21 +107,39 @@ Interface text never goes straight into the code or `index.html`; `npm run i18n:
 - **In a module:** add a key to its catalog in `src/game/i18n/<module>.ts` (`const vi = {…}; const en: typeof vi = {…}`; tsc fails until the English is there), then read it as `L.key`, or `L.key(arg)` for text with values in it.
 - **In `index.html`:** give the element `data-i18n="key"` (its text), `data-i18n-title`, `data-i18n-aria` or `data-i18n-placeholder`, and add the key to `src/game/i18n/page.ts`.
 - **Game content** (quests, dialogue, places, apps, archetypes in `server/content/`) is a `{ "vi": …, "en": … }` pair: show it with `tx()`, place names with `placeTitle()` / `placeNote()`. `go test` fails on a text without its English.
+- **A Cẩm nang page** (`server/content/guide.json`): one entry per place id, every text in both languages, the day the facts were checked and the https sources they come from. Facts that change (hours, prices, works) get a new `checked` day when they are checked again; a fact the sources disagree on is written as a range or a pointer to the official source.
 - **Text that stays on screen** redraws itself on `onLangChange()`; text built each time something opens needs nothing more.
 
-Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z) is three (x, z, -y). The nav files are in Blender XY with row 0 at the southern edge.
+Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z) is three (x, z, -y). Places, NPC spots and `server/content/map.json` are in Blender XY.
 
 ## Changing the map
 
-1. Edit the map. The current island is `models/temp.sg.tinymap.blend` (the v4 island with Bùi Viện and Tôn Đức Thắng): the shipped GLB imported back into Blender (one scene, meshes merged by material). Both scripts run on it. `sg.tinymap.blend` keeps the original objects (scene `SaigonDiorama`) of an older layout. Frozen versions: `versions/sg.tinymap_v1.blend`, `_v2`, `_v3`.
-2. Export with `scripts/blender/export_glb.py`, shrink with the `gltf-transform` chain in its header to `export/saigon_q1.glb`, and copy that to `public/models/` under the name `index.html` loads (`#stage data-model`, now `saigon_q1_v5.glb`).
-3. Re-bake the nav maps (about 15 s) and copy them to the server, which checks every move against its own copy:
-   ```bash
-   blender models/temp.sg.tinymap.blend --background --python scripts/blender/bake_nav.py -- public/models/saigon_q1
-   npm run nav:sync
-   ```
-   Ground (grass, sand, asphalt, kerbs, road lines, rock, water) is told apart by material; anything else at body height blocks. A building nobody should walk into (or under) needs a `NAV_Solid_` box in the file's `NAV` collection: `scripts/blender/nav_boxes.py` makes the current ones, and its header explains the `NAV_Block_` and `NAV_Open_` boxes for fixing single spots. The boxes are hidden from the export.
-4. New landmark or street names go in `src/game/places.ts` (Blender XY).
+1. Edit the map. The current one is Sài Gòn mini, `models/saigon_mini.blend`, built by
+   `scripts/blender/build_saigon_mini.py` from the layout `scripts/map/saigon_mini_layout.json` (made by
+   `scripts/map/relayout_v8.py`, checked by `scripts/map/check_layout.py`; see `docs/map-v8-design.md`). The v4 island
+   (`models/temp.sg.tinymap.blend`, `saigon_q1_*`) is kept but no longer loaded.
+   Trees are scattered before the landmarks and houses round them were modelled: after rebuilding or adding a
+   building, run `blender models/saigon_mini.blend --background --python scripts/blender/mini/clean_trees.py`
+   (`-- --dry-run` to only list them) to remove the trees that grow through buildings, monuments, stairs or the hill
+   road, stand inside or under a building, in a lake or over the river bed, float, have a wall through a crown, or
+   stand on a roundabout island.
+   The detailed landmarks are part scripts in `scripts/blender/mini/` that the build runs (`MINI_SCRIPTS`) and that
+   also run alone on the open file, e.g. `blender models/saigon_mini.blend --background --python
+   scripts/blender/mini/ho_con_rua.py -- --save` (v9: `ho_con_rua.py`, `dinh_grounds.py`, `ben_nha_rong.py`,
+   `cau_di_bo.py` for the "lá dừa nước" footbridge, `tuong.py` for the Trần Hưng Đạo and Đức Mẹ statues and the
+   figure at Bến Nhà Rồng; see `docs/landmarks-v9-design.md`).
+2. Export: `npm run map:export` writes `export/saigon_mini.glb`; copy it to `public/models/saigon_mini.glb` (the name
+   `index.html` loads, `#stage data-model`). That is all collision needs: the game builds it from the GLB as it
+   loads (`src/game/collider.ts`, about half a second). Whatever is in the model stops a body (walls, kerbs,
+   trunks, railings; tree crowns too, below head height), except the lamp glows, lanterns and the footbridge's
+   hangers (`cable`); water stops it where
+   it is deeper than 0.25 m. Open in `?debug` and call `sgGame.showCollider()` to see it (orange: the skirts under
+   the hill's open rim; bridges and other built things get none, the space under them is open). To let players through something, leave it out of the
+   model or give it a pass-through material (`PASS_THROUGH` in `collider.ts`); to stop them, model a wall.
+   The spawn, sea level and island bounds are in `server/content/map.json`.
+3. Places, NPCs and spawns are in `server/content/` (Blender XY). After moving things in the layout, run
+   `python3 scripts/map/move_game_content_v8.py` (needs shapely): it puts them back on their streets and squares and
+   rewrites the phone map.
 
 ## Next
 

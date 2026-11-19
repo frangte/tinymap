@@ -1,7 +1,8 @@
 // The NPCs: Cô Ba at the market gate, Chú Tư at his café and the rest (server/content/npcs.json, the file the Go
 // server places them from). Each is one figure everyone shares. Online the server says where each one is (welcome)
 // and how it turns and gestures (snapshot rows, like a player's); offline they still stand at their spots, they
-// just have nothing to say. An NPC with a vehicle has it parked beside them, for the look of it.
+// just have nothing to say. An NPC with a vehicle has it parked beside them, for the look of it. NPCs stand on the
+// ground under their spot (collider.ts): the server does not know the map's heights.
 import * as THREE from 'three';
 import data from '../../server/content/npcs.json';
 import { RemotePlayer } from './remotePlayers';
@@ -10,6 +11,7 @@ import { parseLook, type Look } from './outfits';
 import type { InkPass } from './ink';
 import type { Text } from './archetypes';
 import type { NpcInfo, SnapRow, TalkMode } from '../net/protocol';
+import type { FloorAt } from './collider';
 
 /** in play mode, NPCs further than this from the camera are hidden, like players (m) */
 const VISIBLE_DIST = 80;
@@ -56,8 +58,13 @@ export class Npc {
   /** the figure, moved like another player's (same smoothing, gestures from the state flags) */
   readonly actor: RemotePlayer;
 
-  constructor(readonly id: number, readonly def: NpcDef, floorAt: (x: number, z: number) => number) {
+  /** the height of the ground the NPC stands on */
+  readonly floorY: number;
+
+  constructor(readonly id: number, readonly def: NpcDef, floorAt: FloorAt, x: number, z: number) {
     this.actor = new RemotePlayer(id, def.name, def.look, floorAt);
+    const y = floorAt(x, z, 0);
+    this.floorY = Number.isFinite(y) ? y : 0;
     this.actor.avatar.root.name = `NPC ${def.id}`;
   }
 
@@ -70,7 +77,7 @@ export class Npcs {
   private readonly all = new Map<number, Npc>();
   private readonly props: Motorbike[] = [];
 
-  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass, private readonly floorAt: (x: number, z: number) => number) {
+  constructor(private readonly scene: THREE.Scene, private readonly ink: InkPass, private readonly floorAt: FloorAt) {
     for (const d of NPC_DEFS) if (d.vehicle) this.park(d);
     this.local();
   }
@@ -90,7 +97,7 @@ export class Npcs {
     NPC_DEFS.forEach((d, i) => {
       const x = d.at[0];
       const z = -d.at[1];
-      this.add(LOCAL_ID - i, d, now, [x, this.floorAt(x, z), z, restHeading(d)]);
+      this.add(LOCAL_ID - i, d, now, [x, 0, z, restHeading(d)]);
     });
   }
 
@@ -106,7 +113,10 @@ export class Npcs {
 
   /** NPC rows of a snapshot: how they turn and gesture. One that leaves our view stays where it was last seen. */
   applySnap(rows: readonly SnapRow[], receivedAt: number): void {
-    for (const [id, x, y, z, h, s, age] of rows) this.all.get(id)?.actor.push(receivedAt - age, x, y, z, h, s);
+    for (const [id, x, , z, h, s, age] of rows) {
+      const n = this.all.get(id);
+      if (n) n.actor.push(receivedAt - age, x, n.floorY, z, h, s);
+    }
   }
 
   /** The NPC to talk to from here: the nearest one we stand within reach of, or null. */
@@ -133,9 +143,9 @@ export class Npcs {
   }
 
   private add(id: number, d: NpcDef, now: number, pose: readonly [number, number, number, number]): void {
-    const n = new Npc(id, d, this.floorAt);
+    const n = new Npc(id, d, this.floorAt, pose[0], pose[2]);
     // a pose from the past is shown at once, and held until the server says otherwise
-    n.actor.push(now - 1000, pose[0], pose[1], pose[2], pose[3]);
+    n.actor.push(now - 1000, pose[0], n.floorY, pose[2], pose[3]);
     this.all.set(id, n);
     this.scene.add(n.actor.avatar.root);
     this.ink.track(n.actor.avatar.root);
@@ -157,7 +167,8 @@ export class Npcs {
     const x = d.at[0] - Math.cos(h) * PARK_SIDE;
     const z = -d.at[1] + Math.sin(h) * PARK_SIDE;
     bike.root.name = `NPC ${d.id} bike`;
-    bike.root.position.set(x, this.floorAt(x, z), z);
+    const y = this.floorAt(x, z, 0);
+    bike.root.position.set(x, Number.isFinite(y) ? y : 0, z);
     bike.root.rotation.y = h;
     bike.update(0, 0, 0.35, 0);
     this.scene.add(bike.root);

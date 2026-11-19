@@ -1,0 +1,212 @@
+{
+  "about": "Sổ sưu tầm, a hidden collection (docs/design/10-story.md): phrase, place and food entries, shown in this order in the Sổ tay. Each entry has a title (the phrase itself for a phrase), a text shown once found (in the English, a pronunciation hint), a hint shown while it is ???, and an objective in the shape of a quest objective, with no id. The server runs each entry as the track collection:<id> (server/internal/quest). Place and food entries wait for the designer's content.",
+  "entries": [
+    {
+      "id": "xin_chao",
+      "kind": "phrase",
+      "title": {
+        "vi": "Xin chào",
+        "en": "Xin chào"
+      },
+      "text": {
+        "vi": "Câu chào thông dụng nhất. Với người lớn tuổi, nói “Dạ, con chào cô/chú” cho lễ phép.",
+        "en": "The everyday hello. To an older person, say “Dạ, con chào cô/chú” (Hello, auntie/uncle) to be polite. Say: sin chow."
+      },
+      "hint": {
+        "vi": "Cô Ba ở cổng Nam chợ Bến Thành dạy chào hỏi.",
+        "en": "Cô Ba at Bến Thành market's south gate teaches greetings."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "co_ba",
+          "signal": "phrase_xin_chao"
+        }
+      }
+    },
+    {
+      "id": "da",
+      "kind": "phrase",
+      "title": {
+        "vi": "Dạ",
+        "en": "Dạ"
+      },
+      "text": {
+        "vi": "Từ lễ phép của miền Nam: trả lời “có/vâng”, hoặc thêm vào đầu câu khi nói với người lớn: “Dạ có”, “Dạ được”.",
+        "en": "The polite particle of the South: “yes”, or a softener at the start of a sentence to an elder: “Dạ có”, “Dạ được”. Say: yah (soft, close to “zah”)."
+      },
+      "hint": {
+        "vi": "Chú Tư ở quán cà phê trên Lê Lai thích người chào lễ phép.",
+        "en": "Chú Tư at the café on Lê Lai likes a polite greeting."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "chu_tu",
+          "signal": "phrase_da"
+        }
+      }
+    },
+    {
+      "id": "cam_on",
+      "kind": "phrase",
+      "title": {
+        "vi": "Cảm ơn",
+        "en": "Cảm ơn"
+      },
+      "text": {
+        "vi": "Cảm ơn. Thêm “dạ” và người nhận cho thân: “Dạ, con cảm ơn cô.”",
+        "en": "Thank you. Add “dạ” and who you thank to be warm: “Dạ, con cảm ơn cô.” Say: gahm uhn."
+      },
+      "hint": {
+        "vi": "Cô Ba tặng con một món quà ở chợ Bến Thành. Con nói sao?",
+        "en": "Cô Ba gives you a gift at Bến Thành market. What do you say?"
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "co_ba",
+          "signal": "phrase_cam_on"
+        }
+      }
+    },
+    {
+      "id": "xin_loi",
+      "kind": "phrase",
+      "title": {
+        "vi": "Xin lỗi",
+        "en": "Xin lỗi"
+      },
+      "text": {
+        "vi": "Vừa là “xin lỗi” vừa là “làm phiền cho hỏi”: mở đầu khi nhờ ai chỉ đường hay gọi người lạ.",
+        "en": "Both “sorry” and “excuse me”: use it to open a question or get a stranger's attention. Say: sin loy."
+      },
+      "hint": {
+        "vi": "Một tài xế xe ôm ở bùng binh biết chỉ đường.",
+        "en": "A xe ôm driver at the roundabout knows the way."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "chu_sau",
+          "signal": "phrase_xin_loi"
+        }
+      }
+    },
+    {
+      "id": "bao_nhieu_tien",
+      "kind": "phrase",
+      "title": {
+        "vi": "Bao nhiêu tiền?",
+        "en": "Bao nhiêu tiền?"
+      },
+      "text": {
+        "vi": "Hỏi giá: “Cái này bao nhiêu tiền?” Hỏi trước khi lấy hàng, kẻo bị nói thách.",
+        "en": "Asking the price: “Cái này bao nhiêu tiền?” (How much is this?) Ask before you take anything. Say: bow nyew tee-en."
+      },
+      "hint": {
+        "vi": "Học cho hết bài chào hỏi của Cô Ba ở chợ Bến Thành.",
+        "en": "Finish Cô Ba's lesson at Bến Thành market."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "co_ba",
+          "signal": "greetings_learned"
+        }
+      }
+    },
+    {
+      "id": "mac_qua",
+      "kind": "phrase",
+      "title": {
+        "vi": "Mắc quá!",
+        "en": "Mắc quá!"
+      },
+      "text": {
+        "vi": "“Đắt quá!” theo giọng Nam. Nói khi mặc cả, thường kèm “bớt chút nha?”.",
+        "en": "“Too expensive!” in the Southern way. Use it when haggling, often with “bớt chút nha?” (a little discount?). Say: mak gwah."
+      },
+      "hint": {
+        "vi": "Ở chợ, nghe Cô Ba nói giá thì con có thể than.",
+        "en": "At the market, you can complain when Cô Ba tells you the price."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "co_ba",
+          "signal": "phrase_mac_qua"
+        }
+      }
+    },
+    {
+      "id": "ngon_qua",
+      "kind": "phrase",
+      "title": {
+        "vi": "Ngon quá!",
+        "en": "Ngon quá!"
+      },
+      "text": {
+        "vi": "Khen món ăn ngon. Người bán nào cũng thích nghe.",
+        "en": "Praising food: “So delicious!” Every vendor loves to hear it. Say: ngon gwah."
+      },
+      "hint": {
+        "vi": "Ăn thử món của dì bán ở Hồ Con Rùa.",
+        "en": "Taste what the auntie sells by Turtle Lake."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "di_nam",
+          "signal": "phrase_ngon_qua"
+        }
+      }
+    },
+    {
+      "id": "khong",
+      "kind": "phrase",
+      "title": {
+        "vi": "Không",
+        "en": "Không"
+      },
+      "text": {
+        "vi": "“Không”: từ chối. Lịch sự hơn thì “Không, cảm ơn.” Rất hữu ích khi bị mời xe hay mời mua.",
+        "en": "“No”. More polite: “Không, cảm ơn” (No, thank you). Very useful when offered rides or goods. Say: kohm (a long, flat “o”)."
+      },
+      "hint": {
+        "vi": "Một tài xế xe ôm mời con đi xe.",
+        "en": "A xe ôm driver offers you a ride."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "chu_sau",
+          "signal": "phrase_khong"
+        }
+      }
+    },
+    {
+      "id": "mot_hai",
+      "kind": "phrase",
+      "title": {
+        "vi": "Một, hai",
+        "en": "Một, hai"
+      },
+      "text": {
+        "vi": "Số đếm khi gọi món: “một” là 1, “hai” là 2. “Hai ly” là hai ly.",
+        "en": "Numbers for ordering: một = 1, hai = 2. “Hai ly” means two glasses. Say: moht, hi."
+      },
+      "hint": {
+        "vi": "Gọi nhiều hơn một ly ở quán cà phê của chú Tư.",
+        "en": "Order more than one glass at Chú Tư's café."
+      },
+      "objective": {
+        "type": "dialogue_signal",
+        "params": {
+          "npc": "chu_tu",
+          "signal": "phrase_mot_hai"
+        }
+      }
+    }
+  ]
+}
