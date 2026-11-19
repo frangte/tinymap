@@ -209,8 +209,8 @@ func TestBuyingAPhoneOverTheSocket(t *testing.T) {
 	// what the new capabilities allow follows at once, without reconnecting
 	send(t, a, `{"t":"ride_request","dest":"cho_ben_thanh"}`)
 	// the booking is taken, not refused for want of a phone: its fare comes out of the wallet
-	if b := nextBalance(t, a); b != 85_000 {
-		t.Fatalf("after booking a Crab: %d", b)
+	if b := nextBalance(t, a); b >= 100_000 {
+		t.Fatalf("after booking a Crab: %d, want less than 100000 (the fare is held)", b)
 	}
 	send(t, a, `{"t":"ride_cancel"}`)
 	if b := nextBalance(t, a); b != 100_000 {

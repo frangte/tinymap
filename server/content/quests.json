@@ -103,6 +103,7 @@
       "title": { "vi": "Thổ địa", "en": "Local guide" },
       "about": { "vi": "Khi có du khách hỏi đường, điện thoại sẽ báo. Đi tới chỗ họ và bấm Chỉ đường.", "en": "When a traveller asks the way, your phone rings. Walk up to them and press Show the way." },
       "tags_any": ["citizen"],
+      "requires_caps": ["phone.smart"],
       "flow": "sequence",
       "objectives": [
         { "id": "help", "type": "give_way", "params": {}, "text": { "vi": "Chỉ đường cho một du khách", "en": "Show a traveller the way" } }
@@ -145,6 +146,7 @@
       "title": { "vi": "Chuyến đầu tiên", "en": "Your first trip" },
       "about": { "vi": "Bật nhận cuốc trong app Crab Driver, nhận một cuốc xe, đón khách và chở tới nơi.", "en": "Go on duty in the Crab Driver app, accept a ride, pick the passenger up and drop them off." },
       "tags_any": ["driver"],
+      "requires_caps": ["phone.smart"],
       "requires": ["driver.nhan_xe"],
       "flow": "sequence",
       "objectives": [
@@ -159,6 +161,7 @@
       "title": { "vi": "Đi Crab", "en": "Take a Crab" },
       "about": { "vi": "Mở app Crab, đặt xe tới một công trình, lên xe tài xế và đi một vòng Quận 1.", "en": "Open the Crab app, book a ride to a landmark, hop on behind the driver and see District 1." },
       "tags_any": ["traveler"],
+      "requires_caps": ["phone.smart"],
       "flow": "sequence",
       "objectives": [
         { "id": "ride", "type": "trip", "params": { "role": "passenger" }, "text": { "vi": "Đi một cuốc Crab tới nơi", "en": "Ride a Crab to your destination" } }
@@ -309,6 +312,7 @@
       "title": { "vi": "Một cuốc xe", "en": "One fare" },
       "about": { "vi": "Chở một khách Crab, hoặc chạy 3 cây số nếu phố vắng khách.", "en": "Take one Crab passenger, or ride 3 km if the streets are quiet." },
       "tags_any": ["driver"],
+      "requires_caps": ["phone.smart"],
       "repeat": "daily",
       "pool": "driver_daily",
       "flow": "any",

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 )
 
 // Quests and achievements (quests.json, shared with the game, which shows their text). This file checks their
@@ -86,6 +87,9 @@ type Quest struct {
 	// UnlessCaps: not offered to a character that has any of these capabilities (the phone quest is not offered
 	// to someone who already has a phone); a quest already running keeps running
 	UnlessCaps []string `json:"unless_caps,omitempty"`
+	// RequiresCaps: offered only to characters that have every one of these capabilities (a quest that needs a
+	// smartphone waits for one); a quest already running keeps running
+	RequiresCaps []string `json:"requires_caps,omitempty"`
 	// Requires are quests to have completed first (never a daily: being done with one only lasts a day)
 	Requires []string `json:"requires,omitempty"`
 	// Repeat is RepeatOnce, or RepeatDaily: it starts over every day (Saigon time, server/internal/gameday)
@@ -225,6 +229,14 @@ func (r questRefs) quest(q Quest) error {
 	for _, k := range q.UnlessCaps {
 		if !r.caps[k] {
 			return fmt.Errorf("unless_caps names unknown capability %q (archetypes.json)", k)
+		}
+	}
+	for _, k := range q.RequiresCaps {
+		if !r.caps[k] {
+			return fmt.Errorf("requires_caps names unknown capability %q (archetypes.json)", k)
+		}
+		if slices.Contains(q.UnlessCaps, k) {
+			return fmt.Errorf("requires_caps and unless_caps both name %q: it could never be offered", k)
 		}
 	}
 	for _, id := range q.Requires {

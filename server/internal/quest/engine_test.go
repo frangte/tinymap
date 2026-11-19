@@ -125,8 +125,13 @@ type run struct {
 	completed []string
 }
 
+// newRun is a character with a smartphone (what most quests assume); newRunWith picks its capabilities.
 func newRun(t *testing.T, tags ...string) *run {
-	r := &run{t: t, e: engine(t), who: Player{Tags: tags}, book: NewBook(Saved{}), now: 1}
+	return newRunWith(t, capability.Of(content.CapPhone, content.CapSmartphone), tags...)
+}
+
+func newRunWith(t *testing.T, caps capability.Set, tags ...string) *run {
+	r := &run{t: t, e: engine(t), who: Player{Tags: tags, Caps: caps}, book: NewBook(Saved{}), now: 1}
 	r.collect(r.e.Refresh(r.who, r.book, r.now))
 	return r
 }
@@ -464,7 +469,7 @@ const phoneQuest = "story.dien_thoai_dau_tien"
 func TestBuyingAPhoneCompletesThePhoneQuest(t *testing.T) {
 	for _, arch := range []string{"citizen", "traveler", "driver"} {
 		t.Run(arch, func(t *testing.T) {
-			r := newRun(t, arch)
+			r := newRunWith(t, nil, arch)
 			if r.state(phoneQuest) != StateActive {
 				t.Fatalf("the phone quest is %q for a character without a phone", r.state(phoneQuest))
 			}
@@ -475,7 +480,7 @@ func TestBuyingAPhoneCompletesThePhoneQuest(t *testing.T) {
 		})
 	}
 	// an item of another kind does not count
-	r := newRun(t, "citizen")
+	r := newRunWith(t, nil, "citizen")
 	r.do(bought("jar", "pottery"))
 	if r.state(phoneQuest) != StateActive {
 		t.Fatal("a jar is no phone")
@@ -507,5 +512,37 @@ func TestUnlessCapsHidesAQuestFromThoseWhoHaveOne(t *testing.T) {
 	e.Refresh(basic, other, 1)
 	if other.Records[phoneQuest] != nil {
 		t.Fatal("a basic phone was offered the phone quest")
+	}
+}
+
+// requires_caps: the Crab quests wait for a smartphone, and open the moment the character has one.
+func TestRequiresCapsHoldsAQuestBackUntilTheCharacterHasThem(t *testing.T) {
+	e := engine(t)
+	const crab = "traveler.di_crab"
+	book := NewBook(Saved{})
+	none := Player{Tags: []string{"traveler"}}
+	e.Refresh(none, book, 1)
+	if book.Records[crab] != nil {
+		t.Fatal("a character without a phone was offered a Crab quest")
+	}
+	brick := Player{Tags: []string{"traveler"}, Caps: capability.Of(content.CapPhone)}
+	e.Refresh(brick, book, 2)
+	if book.Records[crab] != nil {
+		t.Fatal("a basic phone was offered a Crab quest")
+	}
+	smart := Player{Tags: []string{"traveler"}, Caps: capability.Of(content.CapPhone, content.CapSmartphone)}
+	if out := e.Refresh(smart, book, 3); out.Changed[crab] == nil || book.Records[crab] == nil {
+		t.Fatal("a smartphone did not open the Crab quest")
+	}
+}
+
+func TestEveryQuestThatNeedsASmartphoneSaysSo(t *testing.T) {
+	c := catalog(t)
+	want := map[string]bool{"traveler.di_crab": true, "driver.chuyen_dau_tien": true, "daily.mot_cuoc_xe": true, "citizen.tho_dia": true}
+	for _, q := range c.Quests {
+		has := slices.Contains(q.RequiresCaps, content.CapSmartphone)
+		if has != want[q.ID] {
+			t.Errorf("%s: requires_caps %v, want smartphone %v", q.ID, q.RequiresCaps, want[q.ID])
+		}
 	}
 }

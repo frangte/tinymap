@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"saigon-noir/server/content"
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/protocol"
 )
@@ -270,6 +272,24 @@ func TestARetagOpensTheNewArchetypesQuests(t *testing.T) {
 	if _, ok := questState(w.last(t, "c1"), "traveler.chao_sai_gon"); ok {
 		t.Fatal("a retag from another visit was applied")
 	}
+}
+
+// A capability that arrives while the character plays (a purchase, a reward) opens the quests that need it at once.
+func TestACapabilityEarnedWhilePlayingOpensItsQuests(t *testing.T) {
+	s, w, _ := startService(t, newMemStore())
+	s.Join("c1", 1, Player{Tags: []string{"traveler"}})
+	if _, ok := questState(w.last(t, "c1"), "traveler.di_crab"); ok {
+		t.Fatal("the Crab quest is offered without a smartphone")
+	}
+	s.Capabilities("c1", capability.Of(content.CapPhone))
+	// a basic phone changes nothing: nothing new to show, so no progress message; the smartphone does
+	s.Capabilities("c1", capability.Of(content.CapPhone, content.CapSmartphone))
+	p := w.last(t, "c1")
+	if q, ok := questState(p, "traveler.di_crab"); !ok || q.Done {
+		t.Fatalf("after buying a smartphone %+v", p)
+	}
+	// a character not playing is ignored
+	s.Capabilities("nobody", capability.Of(content.CapSmartphone))
 }
 
 func TestOnlyAnEarnedTitleCanBeCarried(t *testing.T) {

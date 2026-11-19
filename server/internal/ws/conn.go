@@ -91,6 +91,8 @@ type Quests interface {
 	ChooseTitle(character, title string)
 	// Retag: the character changed archetype during the visit
 	Retag(character string, session uint64, who quest.Player)
+	// Capabilities: the character's capabilities changed during the visit (a purchase, a reward)
+	Capabilities(character string, caps capability.Set)
 }
 
 type Server struct {
@@ -148,6 +150,10 @@ func (s *Server) Grant(character, capability string) {
 	caps := c.capsOf(c.arch)
 	c.caps.Store(&caps)
 	s.world.SetCaps(c.peer, caps)
+	// the quests that need it open now, not on the next visit
+	if s.Quests != nil {
+		s.Quests.Capabilities(character, caps)
+	}
 }
 
 func (s *Server) play(c *client) {
