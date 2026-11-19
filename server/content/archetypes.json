@@ -9,8 +9,7 @@
     { "id": "moderation.act", "about": "moderators: mute, ban, kick and read chat reports with chat commands; given by `sg-server mod add` to an account, never by an archetype" },
     { "id": "uniform.crab", "about": "may wear the yellow Crab Bike jacket and helmet" },
     { "id": "vehicle.motorbike.ride", "about": "may ride a motorbike (vehicles.json); later also bought as an item" },
-    { "id": "ridehail.drive", "about": "may go on duty in the Crab Driver app and take ride requests (ridehail.json)" },
-    { "id": "local.certified", "about": "a true Saigonese: earned by finishing the Traveler's questline (quests.json); later unlocks a hidden spot" }
+    { "id": "ridehail.drive", "about": "may go on duty in the Crab Driver app and take ride requests (ridehail.json)" }
   ],
   "archetypes": [
     {
@@ -18,8 +17,8 @@
       "tags": ["traveler"],
       "name": { "vi": "Du khách", "en": "Traveler" },
       "pitch": {
-        "vi": "Lần đầu tới Sài Gòn. Đi khắp Quận 1, gặp người địa phương, ghé từng công trình và trở thành người Sài Gòn chính hiệu.",
-        "en": "First time in Saigon. Walk all of District 1, meet the locals, visit every landmark and become a true Saigonese."
+        "vi": "Lần đầu tới Sài Gòn. Đi khắp phố, gặp người địa phương, ghé từng công trình và đọc chuyện của nó trong Sổ tay.",
+        "en": "First time in Saigon. Walk the streets, meet the locals, visit every landmark and read its story in the notebook."
       },
       "badge": { "short": { "vi": "Du khách", "en": "Traveler" }, "color": "#4E7CA6", "text": "#F3EBDD" },
       "spawn": { "place": "bung_binh_quach_thi_trang", "at": [-27, 25], "face": [-51, 25], "button": { "vi": "Về bùng binh", "en": "Back to the roundabout" } },

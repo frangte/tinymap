@@ -27,7 +27,7 @@ const vi = {
   newTitleBody: (title: string) => `${title}. Đổi danh hiệu trong app Hồ sơ.`,
   newStamp: 'Nhận tem',
   stampInDaily: 'mục Hằng ngày (app Nhiệm vụ)',
-  stampInBook: 'Sổ tem (app Cẩm nang)',
+  stampInBook: 'Sổ tem (Sổ tay, mục Thành tích)',
   stampBody: (stamp: string, where: string) => `${stamp}: xem trong ${where}.`,
   newQuest: 'Nhiệm vụ mới',
   // arriving, and the people around
@@ -64,7 +64,7 @@ const en: typeof vi = {
   newTitleBody: (title) => `${title}. Change your title in the Profile app.`,
   newStamp: 'New stamp',
   stampInDaily: 'the Daily section (Quests app)',
-  stampInBook: 'the Stamp book (Guidebook app)',
+  stampInBook: 'the stamp book (Notebook, Achievements)',
   stampBody: (stamp, where) => `${stamp}: see it in ${where}.`,
   newQuest: 'New quest',
   welcome: 'Welcome to District 1',

@@ -187,7 +187,7 @@ export const quests: AppFactory = (root, ctx) => {
   return { dispose: log.onChange(draw) };
 };
 
-/** The stamp book: one stamp per quest of the Traveler's questline. */
+/** The stamp book, when quests.json has stamps for it (none since the Traveler's questline left, 2026-11-19). */
 function stampBook(log: QuestLog): HTMLElement | null {
   if (BOOK_STAMPS.length === 0) return null;
   const earned = new Set(log.stamps);

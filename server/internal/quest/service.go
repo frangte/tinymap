@@ -333,8 +333,8 @@ func (s *Service) save(ctx context.Context, character string, c Commit) (Stored,
 }
 
 func (s *Service) chooseTitle(ctx context.Context, character string, p *player, title string) {
-	if title == p.book.Title || (title != "" && !p.book.Titles[title]) {
-		return // the same one, or one it has not earned (a tampered client): nothing happens
+	if title == p.book.Title || (title != "" && (!p.book.Titles[title] || !s.engine.titles[title])) {
+		return // the same one, one it has not earned (a tampered client) or one taken out of quests.json: nothing happens
 	}
 	s.apply(ctx, character, p, func(b *Book, now int64) Outcome {
 		b.Title = title

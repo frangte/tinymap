@@ -91,7 +91,7 @@ const stampSet = (s: (typeof data.stamps)[number]): string => ('set' in s && typ
 
 /** every stamp, any set (news can name any) */
 export const STAMPS: readonly StampDef[] = data.stamps;
-/** the Traveler's stamp book (Sổ tem): one per quest of the questline */
+/** the stamp book (Sổ tem): stamps outside any set; empty since the Traveler's questline left the game (2026-11-19) */
 export const BOOK_STAMPS: readonly StampDef[] = data.stamps.filter((s) => stampSet(s) === '');
 /** stamps for days of dailies in a row */
 export const STREAK_STAMPS: readonly StampDef[] = data.stamps.filter((s) => stampSet(s) === 'streak');

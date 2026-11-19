@@ -1,6 +1,6 @@
 {
   "id": "chu_tu",
-  "about": "Chú Tư's café on Lê Lai. Ordering a cà phê sữa đá sends order_ca_phe_sua_da, the first step of the Traveler's quest Một ly cà phê sữa đá.",
+  "about": "Chú Tư's café on Lê Lai. Ordering a cà phê sữa đá sends order_ca_phe_sua_da (the Citizen's morning coffee and the dailies listen for it).",
   "start": "greet",
   "nodes": {
     "greet": {

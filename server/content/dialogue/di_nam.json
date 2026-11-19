@@ -1,6 +1,6 @@
 {
   "id": "di_nam",
-  "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the Traveler's quest Ăn vặt Hồ Con Rùa).",
+  "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the dailies listen for it).",
   "start": "greet",
   "nodes": {
     "greet": {

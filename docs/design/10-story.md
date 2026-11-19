@@ -17,7 +17,7 @@ Viết theo hướng Khoa đưa ra ngày 2026-11-19 ([R10](../requirements.md#r1
 
 - Có một câu chuyện với mục tiêu rõ (từ tay trắng tới tài xế Crab) thay vì chọn một tấm thẻ lúc đầu. Thành tài xế là phần thưởng phải kiếm, nên nó có giá trị.
 - "Lên Sài Gòn lập nghiệp rồi chạy xe công nghệ" là chuyện thật của rất nhiều người. Người Sài Gòn chơi sẽ thấy quen, người nước ngoài chơi sẽ hiểu thêm về thành phố.
-- Phần lớn thứ đã làm vẫn dùng được: ví xu, Crab Bike, quest engine, quyền (capability) kiếm thêm được, 5 NPC, chuỗi quest Du khách. Xem [mục 13](#13-so-với-design-hiện-tại).
+- Phần lớn thứ đã làm vẫn dùng được: ví xu, Crab Bike, quest engine, quyền (capability) kiếm thêm được, 5 NPC, quest Citizen và tài xế. Xem [mục 13](#13-so-với-design-hiện-tại).
 
 Bốn chỗ phải tính thêm thì ý này mới chạy được:
 
@@ -77,7 +77,7 @@ Xuất hiện ở **Phố đi bộ Bùi Viện**, vừa xuống xe buýt từ s�
 2. **Đổi tiền ở tiệm vàng của cô Kim** (đường Lê Thánh Tôn). 20 đô thành khoảng 500.000đ (tỷ giá trong game cố định, ghi trong content).
    - Mini game: cô Kim đếm tiền, người chơi chỉ ra tờ nào là 20.000, tờ nào là 500.000 (cùng màu xanh, dễ nhầm). Đúng thì được tem "Biết tiền Việt".
 3. **Mua điện thoại và SIM** ([chương 1](#chương-1-cái-điện-thoại-đầu-tiên)).
-4. Đi tiếp chuỗi **"Người Sài Gòn chính hiệu"** đang có (`quests.json`): Cô Ba dạy chào hỏi, cà phê sữa đá ở quán Chú Tư, ba công trình thời Pháp, bánh tráng trộn, hỏi đường người Sài Gòn, bài kiểm tra cuối. Mỗi quest thêm phần thưởng tiền.
+4. Chuỗi nhiệm vụ riêng cho người nước ngoài: **thiết kế sau.** Chuỗi "Người Sài Gòn chính hiệu" cũ (Cô Ba dạy chào, cà phê, ba công trình, bánh tráng, hỏi đường, bài kiểm tra cuối) đã gỡ khỏi game ngày 2026-11-19 theo ý Khoa; nó chỉ còn làm dữ liệu mẫu cho test của quest engine (`server/internal/quest/testdata/traveler_questline.json`).
 
 ## 6. Điện thoại và Sổ tay
 
@@ -147,7 +147,7 @@ Chung cho cả hai. Tiệm **"Dế Yêu"** của anh Bảy trên đường Lê L
 **Quest: cuốc Crab đầu tiên** (dựa trên `traveler.di_crab` đang có):
 
 - Người Việt đặt Crab tới bùng binh gặp Chú Sáu. Chú Sáu: "Trời đất, đi Crab tới kiếm xe ôm, thời buổi gì kỳ vậy con!"
-- Người nước ngoài đặt Crab tới chợ Bến Thành gặp Cô Ba, đầu chuỗi "Người Sài Gòn chính hiệu".
+- Người nước ngoài đặt Crab tới chợ Bến Thành gặp Cô Ba (chuỗi nhiệm vụ sau đó thiết kế sau).
 - Lên xe thì hiện mẹo: kiểm tra biển số trên app, đội mũ bảo hiểm tài xế đưa.
 - Không có tài xế nào nhận trong 60 giây: lần đầu thì Chú Sáu chở (xe ôm, giá thoả thuận trước); sau này là tài xế NPC.
 
@@ -168,7 +168,7 @@ Chung cho cả hai. Tiệm **"Dế Yêu"** của anh Bảy trên đường Lê L
 
 - Người Việt, **"Xin việc quán Chú Tư":** chạy bàn ca sáng. Chú Tư: "Bưng cho vững, ly của khách quen đó, đổ là chú trừ lương!" Dùng lại `citizen.ca_phe_sang`, `citizen.chuyen_khu_pho`.
 - Người Việt, **"Chú Sáu kể chuyện":** hồi xưa Chú Sáu chạy xe ôm nuôi cả nhà, giờ khách đặt app hết. "Con còn trẻ, đi chạy Crab đi. Có bằng, có xe, có điện thoại là chạy được." Mở chương 3.
-- Người nước ngoài: chuỗi "Người Sài Gòn chính hiệu" trả tiền ở từng bước. Nhận chứng nhận xong thì anh Tony: "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi, Sài Gòn ai cũng chạy." Mở chương 3 ([câu hỏi 5](#15-cần-khoa-chốt)).
+- Người nước ngoài: chuỗi nhiệm vụ thiết kế sau (chuỗi "Người Sài Gòn chính hiệu" cũ đã gỡ). Cuối chuỗi, anh Tony: "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi, Sài Gòn ai cũng chạy." Mở chương 3 ([câu hỏi 5](#15-cần-khoa-chốt)).
 
 ## 8. Chương 3: thành tài xế Crab
 
@@ -319,7 +319,7 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
 
 - Ví xu và sổ cái, công thức giá Crab, phần chia cho nền tảng, tip, chấm sao (D11, D12, D15).
 - Quest engine: quest tự bắt đầu (D14); thưởng xu, tem, danh hiệu, quyền. D1 đã cho quyền "kiếm thêm được", nên thành tài xế chỉ là phần thưởng của một quest.
-- Chuỗi quest Du khách cho người nước ngoài, quest Citizen cho người Việt, quest tài xế (nhận xe, thuộc đường, cuốc đầu) cho chương 3.
+- Quest Citizen cho người Việt, quest tài xế (nhận xe, thuộc đường, cuốc đầu) cho chương 3, quest "Đi Crab" cho người nước ngoài. Chuỗi Du khách "Người Sài Gòn chính hiệu" đã gỡ (2026-11-19), chuỗi mới cho người nước ngoài thiết kế sau.
 - Hỏi và đáp (D18): người nước ngoài hỏi đường, người Việt trả lời.
 - Tag `traveler` và `citizen` vẫn dùng để chọn quest, chỉ đổi nghĩa thành "xuất phát".
 

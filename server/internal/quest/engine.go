@@ -24,6 +24,9 @@ type Engine struct {
 	byID   map[string]*track
 	// pools are the dailies that take turns, by pool, in file order
 	pools map[string][]string
+	// titles and stamps are the ones quests.json still has: one earned before it was taken out stays stored but
+	// is no longer shown or carried
+	titles, stamps map[string]bool
 }
 
 // track is a quest or an achievement: objectives to do, in a flow, for a reward.
@@ -60,10 +63,26 @@ func (r catalogRefs) Emote(id string) (content.Emote, bool) {
 }
 func (r catalogRefs) Vehicle(id string) (content.Vehicle, bool) { return r.Catalog.Vehicle(id) }
 
+// Quest looks the id up in the catalog's list (not its index), so a test can hand the engine extra quests.
+func (r catalogRefs) Quest(id string) (content.Quest, bool) {
+	for _, q := range r.Catalog.Quests {
+		if q.ID == id {
+			return q, true
+		}
+	}
+	return content.Quest{}, false
+}
+
 // NewEngine compiles the game data's quests and achievements; an objective whose params do not check out is an
 // error naming it.
 func NewEngine(c *content.Catalog) (*Engine, error) {
-	e := &Engine{byID: map[string]*track{}, pools: map[string][]string{}}
+	e := &Engine{byID: map[string]*track{}, pools: map[string][]string{}, titles: map[string]bool{}, stamps: map[string]bool{}}
+	for _, t := range c.Titles {
+		e.titles[t.ID] = true
+	}
+	for _, st := range c.Stamps {
+		e.stamps[st.ID] = true
+	}
 	refs := catalogRefs{c}
 	for _, q := range c.Quests {
 		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, requires: q.Requires, flow: q.Flow,

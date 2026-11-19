@@ -13,11 +13,6 @@ func TestQuestsLoad(t *testing.T) {
 	if len(c.Quests) == 0 || len(c.Achievements) == 0 {
 		t.Fatal("no quests or achievements")
 	}
-	// the Traveler's questline ends in the certificate
-	final, ok := c.Quest("traveler.bai_kiem_tra_cuoi")
-	if !ok || final.Rewards.Capability != "local.certified" || len(final.Requires) < 4 {
-		t.Fatalf("final quest %+v", final)
-	}
 	// every tag a quest asks for belongs to some archetype, and every archetype is offered something
 	for _, a := range c.Archetypes {
 		offered := false
@@ -97,9 +92,23 @@ func TestQuestsRejects(t *testing.T) {
 
 func TestADialogueAnswerCanRequireAQuest(t *testing.T) {
 	f := embedded()
-	f.quests = noQuests
-	_, err := load(f)
-	if err == nil || !strings.Contains(err.Error(), "requires quest") {
-		t.Fatalf("the shipped dialogue without its quest: err = %v", err)
+	shipped := f.dialogues
+	// one of Cô Ba's answers offered only while a quest runs: a quest that exists loads, one that does not fails
+	gate := func(quest string) map[string][]byte {
+		out := map[string][]byte{}
+		for name, b := range shipped {
+			out[name] = b
+		}
+		co := strings.Replace(string(shipped["co_ba.json"]), `"goto": "lesson_intro"`, `"goto": "lesson_intro", "requires_quest": "`+quest+`"`, 1)
+		out["co_ba.json"] = []byte(co)
+		return out
+	}
+	f.dialogues = gate("traveler.di_crab")
+	if _, err := load(f); err != nil {
+		t.Fatalf("an answer gated on a shipped quest: %v", err)
+	}
+	f.dialogues = gate("traveler.nowhere")
+	if _, err := load(f); err == nil || !strings.Contains(err.Error(), "requires quest") {
+		t.Fatalf("an answer gated on a quest that does not exist: err = %v", err)
 	}
 }

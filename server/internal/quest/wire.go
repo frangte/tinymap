@@ -19,8 +19,12 @@ type News = protocol.News
 
 // progress is the whole of a character's quests as the game shows them on day, with what just happened.
 func (e *Engine) progress(b *Book, news []News, day string) []byte {
+	title := b.Title
+	if !e.titles[title] {
+		title = ""
+	}
 	msg := protocol.Progress{T: protocol.TypeProgress, Quests: []protocol.QuestState{}, Achievements: []protocol.AchievementState{},
-		Titles: keys(b.Titles), Stamps: keys(b.Stamps), Title: b.Title, Streak: b.StreakNow(day), News: news}
+		Titles: known(b.Titles, e.titles), Stamps: known(b.Stamps, e.stamps), Title: title, Streak: b.StreakNow(day), News: news}
 	for _, t := range e.tracks {
 		r := b.Records[t.id]
 		if r == nil {
@@ -49,10 +53,13 @@ func (e *Engine) progress(b *Book, news []News, day string) []byte {
 	return protocol.Encode(msg)
 }
 
-func keys(m map[string]bool) []string {
+// known is the ids in m that are still in the catalog (in), sorted.
+func known(m, in map[string]bool) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
-		out = append(out, k)
+		if in[k] {
+			out = append(out, k)
+		}
 	}
 	sort.Strings(out)
 	return out

@@ -811,9 +811,10 @@ func spotToward(npc [4]float64, from [2]float64, dist float64) (x, z float64) {
 
 // ---- quests
 
-// The first Traveler quest over real sockets: a character with an account arrives with it running, takes Cô
-// Ba's lesson, and the server completes it, gives the stamp and opens the next four quests.
-func TestTheFirstQuestOverTheSocket(t *testing.T) {
+// A quest over real sockets: a Citizen with an account arrives with the morning coffee running, walks up to Chú Tư
+// and orders a cà phê sữa đá, and the server moves both the coffee (its order step) and the neighbourhood round
+// (one familiar face talked to).
+func TestAQuestMovesOverTheSocket(t *testing.T) {
 	catalog, err := content.Load()
 	if err != nil {
 		t.Fatal(err)
@@ -823,43 +824,44 @@ func TestTheFirstQuestOverTheSocket(t *testing.T) {
 	srv := startServer(t, cfg)
 	_, _, token := postGuest(t, srv, "")
 	a := dial(t, srv)
-	send(t, a, helloAs(token, "traveler", "thun", "cap"))
+	send(t, a, helloAs(token, "citizen", "baba", "nonla"))
 	w := next(t, a, "welcome")
 	p := next(t, a, "progress")
-	if !hasQuest(p, "traveler.chao_sai_gon", false) || hasQuest(p, "traveler.ca_phe_sua_da", false) {
+	if !hasQuest(p, "citizen.ca_phe_sang", false) || questN(p, "citizen.ca_phe_sang", "order") != 0 {
 		t.Fatalf("arriving: %+v", p.Quests)
 	}
-	var coBa protocol.NPC
+	var chuTu protocol.NPC
 	for _, n := range w.NPCs {
-		if n.Key == "co_ba" {
-			coBa = n
+		if n.Key == "chu_tu" {
+			chuTu = n
 		}
 	}
 	from := [2]float64{w.Pose[0], w.Pose[2]}
 	for _, d := range []float64{6, 3, 1.5} {
 		time.Sleep(time.Second)
-		x, z := spotToward(coBa.Pose, from, d)
+		x, z := spotToward(chuTu.Pose, from, d)
 		send(t, a, fmt.Sprintf(`{"t":"state","x":%.2f,"y":0,"z":%.2f,"h":0}`, x, z))
 		from = [2]float64{x, z}
 	}
-	send(t, a, fmt.Sprintf(`{"t":"interact","n":%d,"rid":1}`, coBa.ID))
+	send(t, a, fmt.Sprintf(`{"t":"interact","n":%d,"rid":1}`, chuTu.ID))
 	in := next(t, a, "interaction")
-	// the lesson: greet → ask to learn → greet politely → thank → ask the price (which sends greetings_learned)
-	for i := 0; i < 4; i++ {
-		send(t, a, fmt.Sprintf(`{"t":"choose","sid":%d,"c":0,"step":%d,"rid":%d}`, in.Sid, in.Step, i+2))
-		if i < 3 {
-			in = next(t, a, "interaction")
+	// his first answer orders the coffee (which sends order_ca_phe_sua_da)
+	send(t, a, fmt.Sprintf(`{"t":"choose","sid":%d,"c":0,"step":%d,"rid":2}`, in.Sid, in.Step))
+	for p = next(t, a, "progress"); questN(p, "citizen.ca_phe_sang", "order") != 1; p = next(t, a, "progress") {
+	}
+	if hasQuest(p, "citizen.ca_phe_sang", true) || questN(p, "citizen.chuyen_khu_pho", "talk") != 1 {
+		t.Fatalf("after ordering: quests %+v", p.Quests)
+	}
+}
+
+// questN is how far a running quest's objective has got (-1 when the quest is not running).
+func questN(p msg, id, objective string) int {
+	for _, q := range p.Quests {
+		if q.ID == id && !q.Done {
+			return q.N[objective]
 		}
 	}
-	// walking up to her entered the market, which moved an achievement: progress came for that too
-	for p = next(t, a, "progress"); !hasQuest(p, "traveler.chao_sai_gon", true); p = next(t, a, "progress") {
-	}
-	if !hasQuest(p, "traveler.kien_truc_phap", false) || len(p.Stamps) != 1 {
-		t.Fatalf("after the lesson: quests %+v, stamps %v", p.Quests, p.Stamps)
-	}
-	if len(p.News) == 0 {
-		t.Fatal("the progress after the lesson should say what is new")
-	}
+	return -1
 }
 
 func hasQuest(p msg, id string, done bool) bool {

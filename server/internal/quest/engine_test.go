@@ -1,22 +1,48 @@
 package quest
 
 import (
+	"bytes"
 	"encoding/json"
+	"os"
 	"slices"
 	"strings"
 	"testing"
 
 	"saigon-noir/server/content"
 	"saigon-noir/server/internal/events"
+	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/quest/objective"
 )
 
+// catalog is the game data plus the Traveler's old questline (testdata/traveler_questline.json): it left the game
+// on 2026-11-19 but still exercises every part of the engine the shipped quests may not (requires, sequences,
+// distinct places, asking the way, a capability).
 func catalog(t *testing.T) *content.Catalog {
 	t.Helper()
 	c, err := content.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
+	raw, err := os.ReadFile("testdata/traveler_questline.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fx struct {
+		About        string                `json:"about"`
+		Titles       []content.Title       `json:"titles"`
+		Stamps       []content.Stamp       `json:"stamps"`
+		Quests       []content.Quest       `json:"quests"`
+		Achievements []content.Achievement `json:"achievements"`
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&fx); err != nil {
+		t.Fatalf("testdata/traveler_questline.json: %v", err)
+	}
+	c.Titles = append(c.Titles, fx.Titles...)
+	c.Stamps = append(c.Stamps, fx.Stamps...)
+	c.Quests = append(c.Quests, fx.Quests...)
+	c.Achievements = append(c.Achievements, fx.Achievements...)
 	return c
 }
 
@@ -132,6 +158,10 @@ func entered(place, kind string) events.Event {
 	return events.Event{Kind: events.PlaceEntered, Place: place, PlaceKind: kind}
 }
 
+func talked(npc string) events.Event {
+	return events.Event{Kind: events.NPCTalked, NPC: npc}
+}
+
 func stayed(place string, seconds int) events.Event {
 	return events.Event{Kind: events.PlaceTime, Place: place, Seconds: seconds}
 }
@@ -197,7 +227,7 @@ func TestTheTravelerQuestline(t *testing.T) {
 	}
 
 	// 6. the final test: the certificate, the title (carried at once: the first one) and the achievement
-	out := r.do(signal("co_ba", "final_quiz_passed"))
+	out := r.do(talked("co_ba"))
 	if r.state("traveler.bai_kiem_tra_cuoi") != StateDone || r.state("achievement:nguoi_sai_gon_chinh_hieu") != StateDone {
 		t.Fatalf("after the test: %v, completed %v", r.book.Active(), out.Completed)
 	}
@@ -211,11 +241,11 @@ func TestTheTravelerQuestline(t *testing.T) {
 		}
 	}
 	stamps := []string{"banh_trang_tron", "ca_phe_sua_da", "chao_sai_gon", "chung_nhan", "hoi_duong", "kien_truc_phap"}
-	if caps != 1 || !slices.Equal(keys(r.book.Stamps), stamps) {
-		t.Fatalf("certificate %d times, stamps %v", caps, keys(r.book.Stamps))
+	if caps != 1 || !slices.Equal(known(r.book.Stamps, r.e.stamps), stamps) {
+		t.Fatalf("certificate %d times, stamps %v", caps, known(r.book.Stamps, r.e.stamps))
 	}
 	// the same signals again change nothing: rewards are given once
-	if out := r.do(signal("co_ba", "final_quiz_passed")); !out.Empty() {
+	if out := r.do(talked("co_ba")); !out.Empty() {
 		t.Fatalf("a finished quest moved again: %+v", out)
 	}
 }
@@ -333,5 +363,24 @@ func TestACitizenAnsweringFinishesTheAskAndCountsForThemOnce(t *testing.T) {
 	given("traveler2")
 	if n := citizen.n(achievementPrefix+"nguoi_chi_duong", ""); n != 2 {
 		t.Fatalf("pathfinder at %d, want 2 distinct travellers", n)
+	}
+}
+
+func TestProgressLeavesOutWhatQuestsJSONNoLongerHas(t *testing.T) {
+	e := engine(t)
+	// earned before they were taken out of quests.json: stored, but no longer shown or carried
+	b := NewBook(Saved{Titles: []string{"gone_title", "tho_dia"}, Stamps: []string{"gone_stamp", "ba_ngay_lien"}, Title: "gone_title",
+		Records: []Record{{ID: "gone.quest", Version: 1, State: StateActive}}})
+	var p protocol.Progress
+	if err := json.Unmarshal(e.progress(b, nil, "2026-11-19"), &p); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(p.Titles, []string{"tho_dia"}) || !slices.Equal(p.Stamps, []string{"ba_ngay_lien"}) || p.Title != "" {
+		t.Fatalf("titles %v, stamps %v, carried %q", p.Titles, p.Stamps, p.Title)
+	}
+	for _, q := range p.Quests {
+		if q.ID == "gone.quest" {
+			t.Fatal("a quest taken out of quests.json is still shown")
+		}
 	}
 }

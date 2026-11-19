@@ -1,6 +1,6 @@
 {
   "id": "chu_sau",
-  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions: the NPC fallback of the Traveler's quest Hỏi đường người Sài Gòn when no Citizen player answers in time.",
+  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions; he is who a Traveler asks when no Citizen player answers an ask for the way in time (D18).",
   "start": "greet",
   "nodes": {
     "greet": {

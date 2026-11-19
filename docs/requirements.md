@@ -131,6 +131,8 @@ Khoa quyết định đổi cách vào game:
   điện thoại (Khoa chốt cùng ngày).
 - Không làm nút "Dạo phố" riêng: ai vào game cũng đi dạo, đọc thông tin được, cốt truyện chỉ là phần chơi thêm (Khoa
   chốt cùng ngày).
+- Bỏ chuỗi nhiệm vụ "Người Sài Gòn chính hiệu", thiết kế lại sau (Khoa, cùng ngày). Đã gỡ khỏi game: 6 quest, tem, danh
+  hiệu, thành tích, bài kiểm tra của Cô Ba; chuỗi chỉ còn làm dữ liệu mẫu cho test.
 
 Bản nháp kịch bản: [design/10-story.md](design/10-story.md) (hai chương mở đầu, điện thoại, kiếm tiền, thi bằng, đăng
 ký Crab, thẻ thông tin công trình, mẹo theo tình huống, bảng giá, NPC mới, thứ tự làm). Quyết định D22 (thay D1) ghi
