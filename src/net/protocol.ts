@@ -324,6 +324,16 @@ const NEWS_MAX = 16;
 const STREAK_MAX = 9999;
 const OBJECTIVES_MAX = 8;
 
+/** the seconds left of each running errand objective: -1 for no time limit, otherwise 0 or more; none when nothing runs */
+function lefts(v: unknown): Record<string, number> | undefined {
+  if (!isObj(v)) return undefined;
+  const out: Record<string, number> = Object.create(null) as Record<string, number>;
+  for (const [k, n] of Object.entries(v).slice(0, OBJECTIVES_MAX)) {
+    if ((k === '' || ID_RE.test(k)) && Number.isInteger(n) && (n as number) >= -1) out[k] = n as number;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function counts(v: unknown): Record<string, number> {
   // no prototype: an objective id can never find an inherited property
   const out: Record<string, number> = Object.create(null) as Record<string, number>;
@@ -341,7 +351,7 @@ function distinct<T extends { id: string }>(items: T[], max: number): T[] {
 }
 
 function progress(m: Obj): Progress | null {
-  const quests = list(m.quests, (q) => (isObj(q) && questId(q.id) ? { id: questId(q.id), done: q.done === true, n: counts(q.n) } : null));
+  const quests = list(m.quests, (q) => (isObj(q) && questId(q.id) ? { id: questId(q.id), done: q.done === true, n: counts(q.n), left: lefts(q.left) } : null));
   const achievements = list(m.achievements, (a) =>
     isObj(a) && idOf(a.id) && Number.isInteger(a.n) && (a.n as number) >= 0 ? { id: idOf(a.id), n: a.n as number, done: a.done === true } : null,
   );

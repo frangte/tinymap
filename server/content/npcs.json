@@ -136,9 +136,9 @@
       "name": "Anh Hai",
       "role": { "vi": "lái xe tải chở hàng vô chợ", "en": "drives the delivery truck to the market" },
       "look": { "body": "man", "outfit": "thun", "hat": "cap" },
-      "place": "cho_ben_thanh",
-      "at": [-34, 40],
-      "face": [-30, 35],
+      "place": "bung_binh_quach_thi_trang",
+      "at": [-21, 37],
+      "face": [-25, 32],
       "mode": "private",
       "dialogue": "anh_hai",
       "reach": 3
