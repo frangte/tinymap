@@ -26,9 +26,17 @@ const SIDE_SIGHT = 0.45;
 const ABOVE_FLOOR = 0.5;
 /** ...easing up to it over a kerb, a parapet or a roof edge passing under it, but never closer than this (m) */
 const MIN_ABOVE_FLOOR = 0.15;
-/** after pulling in for a wall the camera backs out again no faster than this (m/s): an exponential way back out
- *  starts at 30 m/s or more, which reads as the camera jerking away from the player */
+/** after pulling in for a wall the camera backs out again no faster than this (m/s, or OUT_SHARE of the zoom per
+ *  second when zoomed out): an exponential way back out starts at 30 m/s or more, which reads as a jerk */
 const OUT_SPEED = 4;
+const OUT_SHARE = 0.3;
+/** zoomed out past this (m), the camera is up over the roofs: it keeps KEEP of its distance by craning up (looking
+ *  down more) rather than pulling in for every block it passes, cranes up faster and pulls in softly, so the city
+ *  going by does not yank it in to the player and let it back out */
+const FAR = 14;
+const KEEP = 0.75;
+/** zoomed out, a sight line blocked for less than this (s) is let be: a sign, a corner, a tree going by */
+const BLOCK_WAIT = 0.35;
 
 /** Close framing of the whole body for the dressing panel. */
 export interface Framing {
@@ -59,6 +67,8 @@ export class FollowCamera {
   private floorLift = 0;
   /** set while the camera makes its way back out after a wall pulled it in */
   private backingOut = false;
+  /** how long the sight line has been shorter than the camera's distance (s) */
+  private blockedFor = 0;
 
   constructor(private readonly camera: THREE.PerspectiveCamera, private readonly collider: CityCollider) {}
 
@@ -102,7 +112,8 @@ export class FollowCamera {
     const want = frame ? frame.dist : this.goalDist;
     // a wall behind the player: crane up over it rather than pull into the player's back
     let goal = 0;
-    const room = Math.min(want, ROOM);
+    const far = want > FAR;
+    const room = Math.min(want, far ? Math.max(ROOM, want * KEEP) : ROOM);
     const level = frame ? want : this.clearDistance(want, this.pitch);
     if (level < room) {
       // the lowest pitch that gives the camera its room, else the one that gives it the most (if that helps at all)
@@ -119,16 +130,21 @@ export class FollowCamera {
         }
       }
     }
-    this.lift += (goal - this.lift) * damp(goal > this.lift ? 8 : 2, dt);
-    const free = this.clearDistance(want, this.pitch + this.lift);
+    this.lift += (goal - this.lift) * damp(goal > this.lift ? (far ? 16 : 8) : 2, dt);
+    // zoomed out, the distance goes by the pitch the camera is craning to, so it does not dive in while the lift
+    // catches up (the camera is over the roofs: a moment with the sight line clipped does not show)
+    const free = this.clearDistance(want, this.pitch + (far ? Math.max(this.lift, goal) : this.lift));
     // pull in at once for a wall, glide in for the dressing framing, ease back out (slowly after a wall: OUT_SPEED)
-    const inRate = frame && free >= want ? 5 : 30;
-    if (free < this.dist) {
+    // (the wheel zooming in is no wall: free is then the new zoom itself)
+    const blocked = free < want - 1e-3;
+    const inRate = frame && !blocked ? 5 : far && blocked ? 4 : 30;
+    this.blockedFor = blocked && free < this.dist - 0.05 ? this.blockedFor + dt : 0;
+    if (free < this.dist && (!far || frame || !blocked || this.blockedFor > BLOCK_WAIT)) {
       this.dist += (free - this.dist) * damp(inRate, dt);
       if (free < want) this.backingOut = true;
-    } else {
+    } else if (free >= this.dist) {
       const step = (free - this.dist) * damp(3.5, dt);
-      this.dist += this.backingOut ? Math.min(step, OUT_SPEED * dt) : step;
+      this.dist += this.backingOut ? Math.min(step, Math.max(OUT_SPEED, want * OUT_SHARE) * dt) : step;
       if (free - this.dist < 0.05) this.backingOut = false;
     }
     this.place(dt);
