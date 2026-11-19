@@ -49,7 +49,7 @@
       "questline": "song_o_pho",
       "title": { "vi": "Cà phê sáng", "en": "Morning coffee" },
       "about": { "vi": "Sáng nào cũng vậy: một ly ở quán Chú Tư, ngồi ngó phố một chút rồi mới đi đâu thì đi.", "en": "Every morning: a coffee at Chú Tư's and a moment watching the street before anything else." },
-      "tags_any": ["citizen"],
+      "tags_any": ["native"],
       "flow": "sequence",
       "objectives": [
         { "id": "order", "type": "dialogue_signal", "params": { "npc": "chu_tu", "signal": "order_ca_phe_sua_da" }, "text": { "vi": "Gọi một ly ở quán Chú Tư", "en": "Order a coffee at Chú Tư's" }, "at": "chu_tu" },
@@ -102,7 +102,7 @@
       "questline": "song_o_pho",
       "title": { "vi": "Thổ địa", "en": "Local guide" },
       "about": { "vi": "Khi có du khách hỏi đường, điện thoại sẽ báo. Đi tới chỗ họ và bấm Chỉ đường.", "en": "When a traveller asks the way, your phone rings. Walk up to them and press Show the way." },
-      "tags_any": ["citizen"],
+      "tags_any": ["native"],
       "requires_caps": ["phone.smart"],
       "flow": "sequence",
       "objectives": [
@@ -370,7 +370,7 @@
       "id": "nguoi_chi_duong",
       "title": { "vi": "Người chỉ đường", "en": "Pathfinder" },
       "about": { "vi": "Chỉ đường cho 5 du khách khác nhau.", "en": "Show 5 different travellers the way." },
-      "tags_any": ["citizen"],
+      "tags_any": ["native"],
       "objective": { "type": "give_way", "params": {}, "count": 5 },
       "rewards": { "titles": ["nguoi_chi_duong"] }
     },

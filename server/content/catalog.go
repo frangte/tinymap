@@ -79,7 +79,10 @@ const (
 type Archetype struct {
 	ID string `json:"id"`
 	// Tags say which quests it is offered (quests.json tags_any)
-	Tags  []string    `json:"tags"`
+	Tags []string `json:"tags"`
+	// Job marks a role earned in play rather than picked at the start: the first pick leaves it out, Đổi vai shows
+	// it (docs/design/11-items.md)
+	Job   bool        `json:"job,omitempty"`
 	Name  Text        `json:"name"`
 	Pitch Text        `json:"pitch"`
 	Badge Badge       `json:"badge"`
@@ -241,11 +244,18 @@ func (c *Catalog) check() error {
 	if len(c.Archetypes) == 0 {
 		return errors.New("archetypes.json: no archetypes")
 	}
+	origins := 0
 	for _, a := range c.Archetypes {
 		if err := c.checkArchetype(a, caps, places); err != nil {
 			return fmt.Errorf("archetypes.json: archetype %q: %w", a.ID, err)
 		}
 		c.byID[a.ID] = a
+		if !a.Job {
+			origins++
+		}
+	}
+	if origins == 0 {
+		return errors.New("archetypes.json: every archetype is a job, so a new character has nothing to start as")
 	}
 	seen := map[string]bool{}
 	for _, app := range c.Apps {

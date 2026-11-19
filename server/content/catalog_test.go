@@ -237,3 +237,33 @@ func TestNoArchetypeIDsInCode(t *testing.T) {
 		}
 	}
 }
+
+// The first pick offers three origins and Đổi vai adds the driver, a job (docs/design/11-items.md).
+func TestOriginsAndJobs(t *testing.T) {
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	starts := map[string]string{"newcomer": "ben_xe_cho_lon", "citizen": "day_nha_pho_le_lai", "traveler": "pho_di_bo_bui_vien"}
+	var origins, jobs []string
+	for _, a := range c.Archetypes {
+		if a.Job {
+			jobs = append(jobs, a.ID)
+			continue
+		}
+		origins = append(origins, a.ID)
+		if a.Spawn.Place != starts[a.ID] {
+			t.Errorf("%s starts at %q, want %q", a.ID, a.Spawn.Place, starts[a.ID])
+		}
+		// everybody arrives in ordinary clothes: no nón lá, bà ba or uniform
+		if a.Look.Outfit != "thun" && a.Look.Outfit != "somi" || a.Look.Hat == "nonla" || a.Look.Hat == "helmet" {
+			t.Errorf("%s starts in %s and %s, not plain clothes", a.ID, a.Look.Outfit, a.Look.Hat)
+		}
+	}
+	if !slices.Equal(origins, []string{"newcomer", "citizen", "traveler"}) || !slices.Equal(jobs, []string{"driver"}) {
+		t.Errorf("origins %v, jobs %v", origins, jobs)
+	}
+	if n, _ := c.Archetype("newcomer"); !slices.Contains(n.Tags, "citizen") || !slices.Contains(n.Tags, "newcomer") {
+		t.Errorf("a newcomer has tags %v", n.Tags)
+	}
+}

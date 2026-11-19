@@ -258,7 +258,7 @@ func TestARetagOpensTheNewArchetypesQuests(t *testing.T) {
 	if _, ok := questState(w.last(t, "c1"), "citizen.ca_phe_sang"); ok {
 		t.Fatal("a driver has no Citizen quests")
 	}
-	s.Retag("c1", 1, Player{Tags: []string{"citizen"}})
+	s.Retag("c1", 1, Player{Tags: []string{"citizen", "native"}})
 	p := w.last(t, "c1")
 	if _, ok := questState(p, "citizen.ca_phe_sang"); !ok {
 		t.Fatalf("after the change to Citizen %+v", p)
@@ -268,7 +268,7 @@ func TestARetagOpensTheNewArchetypesQuests(t *testing.T) {
 	}
 	// a retag from a visit that ended changes nothing: the next one still finds a Citizen
 	s.Retag("c1", 7, Player{Tags: []string{"traveler"}})
-	s.Retag("c1", 1, Player{Tags: []string{"citizen"}})
+	s.Retag("c1", 1, Player{Tags: []string{"citizen", "native"}})
 	if _, ok := questState(w.last(t, "c1"), "traveler.chao_sai_gon"); ok {
 		t.Fatal("a retag from another visit was applied")
 	}
@@ -295,7 +295,7 @@ func TestACapabilityEarnedWhilePlayingOpensItsQuests(t *testing.T) {
 func TestOnlyAnEarnedTitleCanBeCarried(t *testing.T) {
 	store := newMemStore()
 	s, w, _ := startService(t, store)
-	s.Join("c1", 1, Player{Tags: []string{"citizen"}})
+	s.Join("c1", 1, Player{Tags: []string{"citizen", "native"}})
 	w.last(t, "c1")
 	s.ChooseTitle("c1", "nguoi_sai_gon_chinh_hieu") // not earned: nothing happens
 	s.Submit(events.Event{Kind: events.Emote, Character: "c1", Emote: "exercise", Place: "cong_vien_23_9"})

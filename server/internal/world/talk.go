@@ -26,7 +26,7 @@ type session struct {
 }
 
 func (m *member) speaker() dialogue.Speaker {
-	return dialogue.Speaker{Name: m.name, Arch: m.arch, Caps: m.caps, Quests: m.quests}
+	return dialogue.Speaker{Name: m.name, Arch: m.arch, Body: m.look.Body, Caps: m.caps, Quests: m.quests}
 }
 
 // onInteract starts a conversation with an NPC, or joins its group one.

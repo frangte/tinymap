@@ -105,6 +105,8 @@ func TestCastRejects(t *testing.T) {
 		{"no default line", npcs(""), dialogue(`"a": {"say": {"traveler": {"vi": "Chào", "en": "Chào"}}}`), "default"},
 		{"a line for an archetype that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}, "tourist": {"vi": "Hi", "en": "Hi"}}}`), "not an archetype"},
 		{"a placeholder other than {name}", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {player}", "en": "Chào {player}"}}}`), "placeholder"},
+		{"{anh_chi} in an English line", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {anh_chi}", "en": "Hello {anh_chi}"}}}`), "Vietnamese"},
+		{"{anh_chi} in a Vietnamese choice is fine, in a bark it is not", npcs(`, "barks": [{"vi": "Ê {anh_chi}", "en": "Hey"}]`), dialogue(okNodes), "Vietnamese"},
 		{"an emote that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "emote": "dance"}`), "emote"},
 		{"an answer needing an unknown capability", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "end", "requires": ["no.such"]}]}`), "unknown capability"},
 		{"a signal that is not an id", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "end", "emit": "Bought It"}]}`), "signal"},

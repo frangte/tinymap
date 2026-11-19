@@ -119,6 +119,14 @@ const (
 	BarkMax    = protocol.ChatMax
 )
 
+// The placeholders a dialogue line may hold (dialogue.fill replaces them).
+const (
+	// PlaceholderName becomes the player's name
+	PlaceholderName = "{name}"
+	// PlaceholderAnhChi becomes "anh" for a man's body and "chị" for a woman's, in Vietnamese lines only
+	PlaceholderAnhChi = "{anh_chi}"
+)
+
 var (
 	signalPattern = regexp.MustCompile(`^[a-z0-9]+(_[a-z0-9]+)*$`)
 	// the only placeholder a line may hold
@@ -314,7 +322,7 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 }
 
 // checkText checks a line: Vietnamese required, both languages within max characters, clean of control
-// characters, and (where allowed) no placeholder but {name}.
+// characters, and (where allowed) no placeholder but {name} and, in Vietnamese only, {anh_chi}.
 func checkText(t Text, max int, placeholders bool) error {
 	if t.VI == "" {
 		return errors.New("needs Vietnamese")
@@ -340,8 +348,13 @@ func checkText(t Text, max int, placeholders bool) error {
 			return errors.New("no double, leading or trailing spaces")
 		}
 		for _, p := range placeholder.FindAllString(s, -1) {
-			if !placeholders || p != "{name}" {
-				return fmt.Errorf("unknown placeholder %s (only {name})", p)
+			switch {
+			case placeholders && p == PlaceholderName:
+			case placeholders && p == PlaceholderAnhChi && s == t.VI && s != t.EN:
+			case p == PlaceholderAnhChi:
+				return fmt.Errorf("%s is for Vietnamese dialogue lines only: English has no word that changes with the body", p)
+			default:
+				return fmt.Errorf("unknown placeholder %s (only %s, and %s in Vietnamese)", p, PlaceholderName, PlaceholderAnhChi)
 			}
 		}
 	}

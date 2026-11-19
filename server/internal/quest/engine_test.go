@@ -363,7 +363,7 @@ func TestACitizenAnsweringFinishesTheAskAndCountsForThemOnce(t *testing.T) {
 	if traveler.state("traveler.hoi_duong") != StateDone {
 		t.Fatal("a Citizen's answer did not finish the ask")
 	}
-	citizen := newRun(t, "citizen")
+	citizen := newRun(t, "citizen", "native")
 	given := func(asker string) {
 		citizen.do(events.Event{Kind: events.DirectionsGiven, Place: "bitexco", Partners: []string{asker}})
 	}
@@ -543,6 +543,22 @@ func TestEveryQuestThatNeedsASmartphoneSaysSo(t *testing.T) {
 		has := slices.Contains(q.RequiresCaps, content.CapSmartphone)
 		if has != want[q.ID] {
 			t.Errorf("%s: requires_caps %v, want smartphone %v", q.ID, q.RequiresCaps, want[q.ID])
+		}
+	}
+}
+
+// A newcomer shares the citizen tag with a native Saigonese, but the quests that need a local's habits and a
+// local's knowledge of the streets (the morning coffee, showing the way) are the native's alone.
+func TestANewcomerGetsTheNeighbourhoodQuestsButNotTheNativesOwn(t *testing.T) {
+	r := newRun(t, "citizen", "newcomer")
+	for _, id := range []string{"citizen.chuyen_khu_pho", "citizen.chao_hang_xom", "citizen.tap_the_duc"} {
+		if r.state(id) != StateActive {
+			t.Errorf("a newcomer should be offered %s, state %q", id, r.state(id))
+		}
+	}
+	for _, id := range []string{"citizen.ca_phe_sang", "citizen.tho_dia"} {
+		if r.book.Records[id] != nil {
+			t.Errorf("%s is for a native Saigonese only", id)
 		}
 	}
 }

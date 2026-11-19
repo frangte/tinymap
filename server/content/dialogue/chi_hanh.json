@@ -8,7 +8,7 @@
         "default": { "vi": "Xin chào mọi người! Mình là Hạnh, hướng dẫn viên. Ai muốn nghe chuyện quảng trường Lam Sơn thì lại gần nha!", "en": "Hello everyone! I'm Hạnh, a guide. Come closer if you'd like to hear about Lam Sơn square!" },
         "traveler": { "vi": "Chào bạn! Đi tour với nhóm mình hông? Miễn phí nha!", "en": "Hi! Want to join our tour? It's free!" },
         "citizen": { "vi": "Ủa, dân Sài Gòn mà cũng nghe tour hả? Vô đi, biết đâu có chuyện bạn chưa nghe!", "en": "A local on a tour? Join in, maybe there's a story you haven't heard!" },
-        "driver": { "vi": "Anh tài xế ơi, nghe xong nhớ chở khách đi tham quan giùm em nha!", "en": "Hey driver, listen in, then take your passengers sightseeing!" }
+        "driver": { "vi": "Chào {anh_chi} tài xế! Nghe xong nhớ chở khách đi tham quan giùm em nha!", "en": "Hey driver, listen in, then take your passengers sightseeing!" }
       },
       "emote": "wave",
       "choices": [

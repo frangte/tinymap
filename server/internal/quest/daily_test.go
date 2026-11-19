@@ -56,7 +56,7 @@ type citizenDaily struct {
 }
 
 func newCitizen(t *testing.T, now int64) citizenDaily {
-	r := &run{t: t, e: engine(t), who: Player{Tags: []string{"citizen"}}, book: NewBook(Saved{}), now: now}
+	r := &run{t: t, e: engine(t), who: Player{Tags: []string{"citizen", "native"}}, book: NewBook(Saved{}), now: now}
 	r.collect(r.e.Refresh(r.who, r.book, r.now))
 	return citizenDaily{r}
 }
@@ -228,7 +228,7 @@ func TestAPlayerOnlineAtMidnightGetsTheNewDaysDailies(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	go s.Run(ctx)
-	s.Join("c1", 1, Player{Tags: []string{"citizen"}})
+	s.Join("c1", 1, Player{Tags: []string{"citizen", "native"}})
 	w.last(t, "c1")
 	for _, npc := range []string{"co_ba", "chu_tu"} {
 		s.Submit(events.Event{Kind: events.NPCTalked, Character: "c1", NPC: npc})
@@ -283,7 +283,7 @@ func todaysDailies(e *Engine, b *Book, tag string) []string {
 
 func TestChangingArchetypeDealsNoSecondSetOfDailies(t *testing.T) {
 	e := engine(t)
-	traveler, citizen := Player{Tags: []string{"traveler"}}, Player{Tags: []string{"citizen"}}
+	traveler, citizen := Player{Tags: []string{"traveler"}}, Player{Tags: []string{"citizen", "native"}}
 	b := NewBook(Saved{})
 	e.Refresh(traveler, b, noon(10))
 	dealt := todaysDailies(e, b, "traveler")

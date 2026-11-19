@@ -17,10 +17,12 @@ import (
 )
 
 // Speaker is who a line is for: the variant of a line follows the archetype, the answers offered follow the
-// capabilities and the quests running, and {name} in a line becomes Name.
+// capabilities and the quests running, {name} in a line becomes Name and {anh_chi} (Vietnamese) follows Body.
 type Speaker struct {
 	Name string
 	Arch string
+	// Body is the look's body, "man" or "woman" (protocol.Look): anything else is taken as a man's
+	Body string
 	Caps capability.Set
 	// Quests are the ids of the quests the speaker has running
 	Quests map[string]bool
@@ -95,7 +97,7 @@ func (s *Script) Line(graph, node string, who Speaker) (Line, error) {
 	if !ok {
 		say = n.Say[content.DefaultVariant]
 	}
-	l := Line{Say: fill(say, who.Name), Shop: n.Shop, Choices: []protocol.Text{}}
+	l := Line{Say: fill(say, who), Shop: n.Shop, Choices: []protocol.Text{}}
 	if e, ok := s.catalog.Emote(n.Emote); ok {
 		l.Emote, l.EmoteFor = e.Code, time.Duration(e.Seconds*float64(time.Second))
 		if l.EmoteFor <= 0 {
@@ -103,7 +105,7 @@ func (s *Script) Line(graph, node string, who Speaker) (Line, error) {
 		}
 	}
 	for _, ch := range offered(n, who) {
-		l.Choices = append(l.Choices, fill(ch.Text, who.Name))
+		l.Choices = append(l.Choices, fill(ch.Text, who))
 	}
 	return l, nil
 }
@@ -135,6 +137,13 @@ func offered(n content.DialogueNode, who Speaker) []content.Choice {
 	return out
 }
 
-func fill(t protocol.Text, name string) protocol.Text {
-	return protocol.Text{VI: strings.ReplaceAll(t.VI, "{name}", name), EN: strings.ReplaceAll(t.EN, "{name}", name)}
+// fill puts the speaker into a line. {anh_chi} is only for Vietnamese (content validation keeps it out of English
+// lines), where a peer says "anh" to a man and "chị" to a woman.
+func fill(t protocol.Text, who Speaker) protocol.Text {
+	anhChi := "anh"
+	if who.Body == "woman" {
+		anhChi = "chị"
+	}
+	vi := strings.NewReplacer(content.PlaceholderName, who.Name, content.PlaceholderAnhChi, anhChi).Replace(t.VI)
+	return protocol.Text{VI: vi, EN: strings.ReplaceAll(t.EN, content.PlaceholderName, who.Name)}
 }
