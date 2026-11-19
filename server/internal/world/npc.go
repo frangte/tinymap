@@ -80,6 +80,10 @@ type npc struct {
 	nextBark int
 	// heardAt is when a line of a public conversation with it was last heard nearby
 	heardAt time.Time
+	// guest: a module brought it in (guest.go); it does nothing on its own and is not in byKey or npcByID. seat is
+	// the vehicle it sits on, nil for none
+	guest bool
+	seat  *vehicle
 }
 
 // addNPC places an NPC where its spec says. Its height is the game's to find (on the ground there): the server
@@ -127,6 +131,9 @@ func (w *World) tick() {
 }
 
 func (w *World) behave(n *npc, now time.Time, dt float64) {
+	if n.guest {
+		return
+	}
 	if n.talks == 0 && !now.Before(n.lookUntil) {
 		n.face = n.spec.H
 	}

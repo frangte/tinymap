@@ -1,0 +1,217 @@
+{
+  "about": "NPC passengers for Crab Bike drivers (docs/design/08-ride-hailing.md, \"NPC passengers\"), read by the server (server/internal/ridehail) and drawn by the game (src/game/npcs.ts). rules: how often one asks and how they rate. Times are seconds, distances metres, speeds m/s. cast: who they are (look as in npcs.json; lines greet on boarding, thanks at the end, grumble after a bad trip, left when they give up waiting); every line is said out loud, so at most 140 characters. spots: where they wait, as Blender XY on a pavement (checked with the game's collider), facing the point face.",
+  "rules": {
+    "idle_seconds": 30,
+    "cooldown_seconds": 40,
+    "real_radius": 150,
+    "pickup_min": 25,
+    "pickup_max": 140,
+    "trip_min": 120,
+    "trip_max": 380,
+    "board_reach": 4,
+    "patience_seconds": 150,
+    "daily_trips": 8,
+    "linger_seconds": 8,
+    "rating": {
+      "wait_ok": 40,
+      "wait_bad": 80,
+      "detour_ok": 1.6,
+      "detour_bad": 2.4,
+      "pace_ok": 5,
+      "pace_bad": 2.5,
+      "scary_speed": 17,
+      "scary_share": 0.35
+    }
+  },
+  "cast": [
+    {
+      "id": "chi_thao",
+      "name": "Chị Thảo",
+      "role": { "vi": "nhân viên văn phòng", "en": "office worker" },
+      "look": { "body": "woman", "outfit": "somi", "hat": "none" },
+      "greet": [
+        { "vi": "Bác tài ơi, đi giùm em nha, em hơi trễ giờ.", "en": "Hi driver, I'm a bit late, could we get going?" },
+        { "vi": "Dạ em lên rồi nha bác tài.", "en": "Okay, I'm on. Let's go!" }
+      ],
+      "thanks": [
+        { "vi": "Cảm ơn bác tài nha, chạy êm ghê!", "en": "Thanks, driver, such a smooth ride!" },
+        { "vi": "Tới rồi, cảm ơn bác tài. Chúc bác nhiều khách nha!", "en": "Here already, thank you! Wishing you lots of rides." }
+      ],
+      "grumble": [
+        { "vi": "Trời ơi, chạy gì mà lâu quá bác tài.", "en": "Goodness, that took forever, driver." },
+        { "vi": "Em trễ giờ rồi nè bác tài ơi...", "en": "Now I'm late, driver..." }
+      ],
+      "left": [
+        { "vi": "Thôi em đi xe khác nha, chờ hoài.", "en": "I'll take another ride, I've waited too long." }
+      ]
+    },
+    {
+      "id": "anh_hung",
+      "name": "Anh Hùng",
+      "role": { "vi": "thợ sửa máy lạnh", "en": "air-con repairman" },
+      "look": { "body": "man", "outfit": "thun", "hat": "cap" },
+      "greet": [
+        { "vi": "Chào bác tài, cho tui tới chỗ đó nha.", "en": "Hey driver, take me there, will you?" },
+        { "vi": "Ê, chạy từ từ thôi nghe, tui cầm đồ nghề nè.", "en": "Easy does it, I'm holding my tools." }
+      ],
+      "thanks": [
+        { "vi": "Được đó bác tài, lần sau tui gọi nữa.", "en": "Nice one, driver. I'll call you again." },
+        { "vi": "Ok, cảm ơn nha. Tay lái vững ghê!", "en": "Thanks! Steady hands." }
+      ],
+      "grumble": [
+        { "vi": "Chạy gì mà đường vòng vòng vậy ông tài?", "en": "Why the long way round, man?" },
+        { "vi": "Lần sau coi đường cho kỹ nghe.", "en": "Check the route better next time." }
+      ],
+      "left": [
+        { "vi": "Chờ nãy giờ hổng thấy ai, tui đi bộ cho rồi.", "en": "Nobody came, I'll just walk." }
+      ]
+    },
+    {
+      "id": "co_lan",
+      "name": "Cô Lan",
+      "role": { "vi": "đi chợ về", "en": "back from the market" },
+      "look": { "body": "woman", "outfit": "baba", "hat": "nonla" },
+      "greet": [
+        { "vi": "Con ơi, chở cô về nghe, chạy chậm chậm thôi.", "en": "Dear, take me home, and go slowly now." },
+        { "vi": "Cô lên rồi nè, con nhớ đội nón nghe.", "en": "I'm on, dear. Mind your helmet." }
+      ],
+      "thanks": [
+        { "vi": "Cảm ơn con nha, ngoan quá!", "en": "Thank you, dear, what a good kid!" },
+        { "vi": "Tới nơi rồi, con chạy giỏi lắm.", "en": "We're here. You ride very well." }
+      ],
+      "grumble": [
+        { "vi": "Chạy gì mà hồi hộp quá con ơi.", "en": "That made my heart race, dear." },
+        { "vi": "Lần sau chạy chậm lại nghe con.", "en": "Slow down next time, dear." }
+      ],
+      "left": [
+        { "vi": "Cô đợi hoài, thôi cô đón xe khác.", "en": "I waited and waited. I'll get another ride." }
+      ]
+    },
+    {
+      "id": "em_khoa",
+      "name": "Em Khoa",
+      "role": { "vi": "sinh viên", "en": "student" },
+      "look": { "body": "man", "outfit": "somi", "hat": "none" },
+      "greet": [
+        { "vi": "Dạ anh chở em tới đó nha, em có hẹn.", "en": "Hi, can you take me there? I have a meeting." },
+        { "vi": "Em lên rồi nha anh tài.", "en": "Okay, I'm on." }
+      ],
+      "thanks": [
+        { "vi": "Dạ cảm ơn anh, em năm sao liền!", "en": "Thanks a lot, five stars from me!" },
+        { "vi": "Tuyệt vời, cảm ơn anh tài.", "en": "Awesome, thank you." }
+      ],
+      "grumble": [
+        { "vi": "Hơi lâu đó anh, em trễ hẹn rồi.", "en": "That was slow, I'm late now." },
+        { "vi": "Dạ, lần sau anh chạy nhanh hơn xíu nha.", "en": "Please be a bit quicker next time." }
+      ],
+      "left": [
+        { "vi": "Em chờ lâu quá, em đặt xe khác nha.", "en": "Too long a wait, I'll book another." }
+      ]
+    },
+    {
+      "id": "ba_nam",
+      "name": "Bà Năm",
+      "role": { "vi": "bán vé số", "en": "lottery seller" },
+      "look": { "body": "woman", "outfit": "hoa", "hat": "nonla" },
+      "greet": [
+        { "vi": "Cho bà đi nhờ một đoạn nghe cậu tài.", "en": "Give an old lady a ride, young man." },
+        { "vi": "Bà lên rồi, chạy cẩn thận nghe.", "en": "I'm up. Ride carefully." }
+      ],
+      "thanks": [
+        { "vi": "Cảm ơn cậu, trời phù hộ cậu nha.", "en": "Thank you, may heaven bless you." },
+        { "vi": "Tới rồi hả, cậu tài đàng hoàng quá.", "en": "Already here, you're a fine driver." }
+      ],
+      "grumble": [
+        { "vi": "Trời đất, chạy kiểu gì vậy trời.", "en": "Heavens, what kind of riding is that?" },
+        { "vi": "Bà già rồi, đừng chạy vậy chứ.", "en": "I'm old, don't ride like that." }
+      ],
+      "left": [
+        { "vi": "Bà chờ mỏi chân rồi, thôi bà đi bộ.", "en": "My legs are tired from waiting, I'll walk." }
+      ]
+    },
+    {
+      "id": "anh_tuan",
+      "name": "Anh Tuấn",
+      "role": { "vi": "du khách Hà Nội", "en": "tourist from Hà Nội" },
+      "look": { "body": "man", "outfit": "hoa", "hat": "bucket" },
+      "greet": [
+        { "vi": "Chào bạn, mình đi tới đó nhé, mình mới vào Sài Gòn.", "en": "Hello, to that place please, I just got to Saigon." },
+        { "vi": "Mình lên rồi nhé, bạn chạy chậm cho mình ngắm phố.", "en": "I'm on. Ride slowly so I can see the streets." }
+      ],
+      "thanks": [
+        { "vi": "Cảm ơn bạn, Sài Gòn đẹp quá!", "en": "Thanks, Saigon is lovely!" },
+        { "vi": "Hay lắm, mình sẽ chấm năm sao nhé.", "en": "Great ride, five stars from me." }
+      ],
+      "grumble": [
+        { "vi": "Hơi lâu nhỉ, mình tưởng gần hơn.", "en": "That was long, I thought it was closer." },
+        { "vi": "Bạn đi vòng hơi nhiều đấy.", "en": "You took quite a detour." }
+      ],
+      "left": [
+        { "vi": "Mình đợi lâu quá, mình đi xe khác nhé.", "en": "Waited too long, I'll take another ride." }
+      ]
+    },
+    {
+      "id": "chi_mai",
+      "name": "Chị Mai",
+      "role": { "vi": "đi làm tóc", "en": "off to the salon" },
+      "look": { "body": "woman", "outfit": "aodai", "hat": "none" },
+      "greet": [
+        { "vi": "Anh tài ơi, chạy êm êm giùm em, em mới làm tóc.", "en": "Driver, ride smoothly please, my hair's just done." },
+        { "vi": "Em lên rồi, mình đi nha anh.", "en": "I'm on, let's go." }
+      ],
+      "thanks": [
+        { "vi": "Cảm ơn anh, em tới nơi tóc vẫn còn nguyên.", "en": "Thanks, my hair survived!" },
+        { "vi": "Dễ thương ghê, em cho anh năm sao.", "en": "You're sweet, five stars." }
+      ],
+      "grumble": [
+        { "vi": "Trời, tóc em bay hết rồi nè anh.", "en": "Oh no, my hair is wrecked." },
+        { "vi": "Anh chạy mạnh tay quá à.", "en": "You rode too hard." }
+      ],
+      "left": [
+        { "vi": "Em chờ hoài, thôi em kêu xe khác.", "en": "I've waited ages, I'll call another." }
+      ]
+    },
+    {
+      "id": "chu_bay",
+      "name": "Chú Bảy",
+      "role": { "vi": "thợ hồ nghỉ trưa", "en": "builder on his break" },
+      "look": { "body": "man", "outfit": "thun", "hat": "nonla" },
+      "greet": [
+        { "vi": "Cậu chở chú ra chỗ đó giùm nha, chú hổng rành đường.", "en": "Take me over there, son, I don't know the way." },
+        { "vi": "Rồi, chú ngồi vững rồi, đi đi cậu.", "en": "Alright, I'm settled. Off we go." }
+      ],
+      "thanks": [
+        { "vi": "Cảm ơn cậu nghen, giỏi lắm.", "en": "Thank you, son, well done." },
+        { "vi": "Tới rồi, nè chạy vậy là được đó.", "en": "Here we are, that's how it's done." }
+      ],
+      "grumble": [
+        { "vi": "Chú nói cậu rồi, chạy chậm quá trời.", "en": "Slow as a snail, son." },
+        { "vi": "Đi vòng vòng hoài, mất thời gian chú.", "en": "All that circling wastes my time." }
+      ],
+      "left": [
+        { "vi": "Chờ hoài, thôi chú đi xe ôm đầu hẻm.", "en": "Never mind, I'll find a xe ôm at the corner." }
+      ]
+    }
+  ],
+  "spots": [
+    { "id": "cho_ben_thanh_nam", "place": "cho_ben_thanh", "at": [-58, 14], "face": [-51, 25] },
+    { "id": "cho_ben_thanh_dong", "place": "cho_ben_thanh", "at": [-29, 34], "face": [-51, 25] },
+    { "id": "nha_hat", "place": "nha_hat_thanh_pho", "at": [-14, 157], "face": [-11, 146] },
+    { "id": "lam_son", "place": "quang_truong_lam_son", "at": [0, 135], "face": [-11, 132] },
+    { "id": "duc_ba", "place": "nha_tho_duc_ba", "at": [-142, 117], "face": [-143, 127] },
+    { "id": "buu_dien", "place": "buu_dien_thanh_pho", "at": [-81, 138], "face": [-79, 146] },
+    { "id": "cong_xa_paris", "place": "cong_xa_paris", "at": [-114, 116], "face": [-111, 127] },
+    { "id": "ho_con_rua", "place": "ho_con_rua", "at": [-118, 157], "face": [-111, 165] },
+    { "id": "bitexco_bac", "place": "bitexco", "at": [3, 60], "face": [12, 57] },
+    { "id": "bitexco_nam", "place": "bitexco", "at": [8, 44], "face": [12, 57] },
+    { "id": "le_lai", "place": "day_nha_pho_le_lai", "at": [-46, -23], "face": [-41, -18] },
+    { "id": "nguyen_hue_42", "place": "chung_cu_42_nguyen_hue", "at": [10, 97], "face": [12, 105] },
+    { "id": "dinh_doc_lap", "place": "dinh_doc_lap", "at": [-113, 12], "face": [-111, 26] },
+    { "id": "bach_dang", "place": "ben_bach_dang", "at": [45, 50], "face": [50, 55] },
+    { "id": "ba_son", "place": "cau_ba_son", "at": [20, 173], "face": [29, 165] },
+    { "id": "cho_lon", "place": "ben_xe_cho_lon", "at": [-181, -79], "face": [-185, -66] },
+    { "id": "thu_thiem", "place": "nha_tho_thu_thiem", "at": [162, -12], "face": [154, -10] },
+    { "id": "ben_buyt", "place": "ben_buyt_song", "at": [93, 35], "face": [82, 41] },
+    { "id": "nha_rong", "place": "ben_nha_rong", "at": [57, -42], "face": [60, -33] }
+  ]
+}

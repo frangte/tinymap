@@ -189,15 +189,20 @@ func (db *DB) Rate(ctx context.Context, r ridehail.Rating) (int64, int64, error)
 	return p, d, commit(tx, "rate")
 }
 
-// DriverStats is a driver's completed trips and their average stars (0 before any rating).
+// DriverStats is a driver's completed trips (with real and NPC passengers alike) and their average stars (0
+// before any rating).
 func (db *DB) DriverStats(ctx context.Context, driver string) (int, float64, error) {
-	var trips int
-	var stars sql.NullFloat64
-	if err := db.sql.QueryRowContext(ctx, `select count(*), avg(stars) from rides where driver_id = ? and state = 'completed'`,
-		driver).Scan(&trips, &stars); err != nil {
+	var trips, rated int
+	var sum sql.NullFloat64
+	if err := db.sql.QueryRowContext(ctx, `select count(*), count(stars), sum(stars) from (
+		select stars from rides where driver_id = ? and state = 'completed'
+		union all select stars from npc_rides where driver_id = ?)`, driver, driver).Scan(&trips, &rated, &sum); err != nil {
 		return 0, 0, fmt.Errorf("store: driver stats: %w", err)
 	}
-	return trips, stars.Float64, nil
+	if rated == 0 {
+		return trips, 0, nil
+	}
+	return trips, sum.Float64 / float64(rated), nil
 }
 
 // ReturnOpenHolds ends the rides a stopped server left open (trips live in the world's memory, so none survives a

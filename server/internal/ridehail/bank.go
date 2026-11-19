@@ -42,6 +42,20 @@ type Rating struct {
 	At                      int64
 }
 
+// NPCTrip is a completed trip with an NPC passenger: nobody's wallet pays it, the game does. Paid is what the
+// driver gets (the fare minus the platform's cut, the same as from a real passenger); the store gives 0 instead
+// once the driver has done DailyTrips paid NPC trips on Day.
+type NPCTrip struct {
+	Ride, Driver, Passenger, Dest string
+	PickupX, PickupZ              float64
+	Fare, Paid                    int64
+	Stars                         int
+	Day                           string
+	DailyTrips                    int
+	AcceptedAt, BoardedAt         int64
+	FinishedAt                    int64
+}
+
 // Bank keeps wallets, the ledger and rides.
 type Bank interface {
 	Hold(ctx context.Context, h Hold) (balance int64, err error)
@@ -49,6 +63,10 @@ type Bank interface {
 	Rate(ctx context.Context, r Rating) (passenger, driver int64, err error)
 	// DriverStats is a driver's completed trips and average stars (0 before any rating).
 	DriverStats(ctx context.Context, driver string) (trips int, stars float64, err error)
+	// SettleNPC pays a driver for a completed NPC trip and stores it, once (a retry returns what the first paid).
+	SettleNPC(ctx context.Context, t NPCTrip) (paid, balance int64, err error)
+	// NPCTripsToday is how many paid NPC trips a driver has done on a Saigon day (the daily cap).
+	NPCTripsToday(ctx context.Context, driver, day string) (int, error)
 }
 
 // Today is the day (in Saigon) of t, as the wallet's daily top-up counts it.

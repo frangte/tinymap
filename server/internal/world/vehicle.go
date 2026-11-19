@@ -20,8 +20,10 @@ type vehicle struct {
 	// rider sits in seat 0, nil while parked; pose follows the rider and is where the vehicle stays once they
 	// get off
 	rider *member
-	// passenger sits in seat 1 behind the rider, nil for none
+	// passenger sits in seat 1 behind the rider, nil for none; guest is an NPC there instead (a module's, such as an
+	// NPC passenger), nil for none. Seat 1 holds one of them at most.
 	passenger *member
+	guest     *npc
 	pose      protocol.Pose
 }
 
@@ -35,6 +37,8 @@ func (v *vehicle) wire() protocol.Vehicle {
 	}
 	if v.passenger != nil {
 		out.Passenger = v.passenger.id
+	} else if v.guest != nil {
+		out.Passenger = v.guest.id
 	}
 	return out
 }
@@ -65,6 +69,9 @@ func (w *World) parkBeside(v *vehicle, p protocol.Pose) {
 func (w *World) removeVehicle(v *vehicle) {
 	if v.passenger != nil {
 		w.unseat(v.passenger)
+	}
+	if v.guest != nil {
+		w.putDownGuest(v.guest)
 	}
 	if v.rider != nil {
 		v.rider.riding = nil
@@ -113,6 +120,9 @@ func (w *World) dismount(m *member) {
 	if v.passenger != nil {
 		w.unseat(v.passenger)
 	}
+	if v.guest != nil {
+		w.putDownGuest(v.guest)
+	}
 	v.pose, v.rider, m.riding = m.pose, nil, nil
 	m.flags &^= protocol.FlagRide
 	m.view.moved = true
@@ -122,7 +132,7 @@ func (w *World) dismount(m *member) {
 // seat puts a passenger in seat 1 of a ridden vehicle: from now on its pose follows the vehicle and its own
 // reports are ignored.
 func (w *World) seat(p *member, v *vehicle) bool {
-	if v.rider == nil || v.rider == p || v.passenger != nil || p.riding != nil || p.seated != nil {
+	if v.rider == nil || v.rider == p || v.passenger != nil || v.guest != nil || p.riding != nil || p.seated != nil {
 		return false
 	}
 	v.passenger, p.seated = p, v
@@ -160,6 +170,10 @@ func (w *World) putDown(p *member, correct bool) {
 
 // carry moves a vehicle's passenger with it (after each accepted move of the rider).
 func (w *World) carry(v *vehicle) {
+	if g := v.guest; g != nil && v.rider != nil {
+		g.pose, g.poseAt, g.flags = v.rider.pose, w.now(), protocol.FlagSeat1
+		g.view.moved = true
+	}
 	p := v.passenger
 	if p == nil || v.rider == nil {
 		return

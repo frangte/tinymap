@@ -157,8 +157,15 @@ func run() error {
 
 	w := world.New(cfg, log)
 	// Crab Bike trips run inside the world loop; their money moves in the database (docs/design/08-ride-hailing.md)
+	// and NPC passengers ask idle drivers for rides (passengers.json)
+	passengers, err := content.LoadPassengers()
+	if err != nil {
+		return fmt.Errorf("content: %w", err)
+	}
 	w.Use(func(h world.Host) world.Module {
-		return ridehail.New(h, ridehail.ConfigFrom(catalog.Ridehail), catalog.Places, db, log)
+		rides := ridehail.New(h, ridehail.ConfigFrom(catalog.Ridehail), catalog.Places, db, log)
+		rides.UsePassengers(passengers)
+		return rides
 	})
 	// asking the way, the co-op quest: a Traveler asks, the Citizens online are called (D18)
 	w.Use(func(h world.Host) world.Module { return directions.New(h, catalog, log) })

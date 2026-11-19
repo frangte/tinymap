@@ -18,6 +18,8 @@ type Person struct {
 	Name  string  `json:"name"`
 	Stars float64 `json:"stars,omitempty"`
 	Trips int     `json:"trips,omitempty"`
+	// NPC: an NPC passenger (its ID is the NPC's id, in the world's NPC list)
+	NPC bool `json:"npc,omitempty"`
 }
 
 type rideMsg struct {
@@ -36,6 +38,8 @@ type rideMsg struct {
 	// End says how it ended (completed, alighted, cancelled_by_passenger, …) and Paid what the driver got
 	End  string `json:"end,omitempty"`
 	Paid int64  `json:"paid,omitempty"`
+	// Stars is what an NPC passenger rated the trip (to its driver, on the last message of a completed trip)
+	Stars int `json:"stars,omitempty"`
 }
 
 type offerMsg struct {

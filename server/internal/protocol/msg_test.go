@@ -291,6 +291,20 @@ func TestThePhoneEncodes(t *testing.T) {
 	}
 }
 
+func TestAGuestNPCEncodesLikeAnNPCOfTheWelcome(t *testing.T) {
+	join := string(Encode(NPCJoin{T: TypeNPCJoin, NPC: NPC{ID: 7, Key: "chi_thao", Pose: [4]float64{1, 0, 2, 0.5}}}))
+	if join != `{"t":"npc_join","id":7,"npc":"chi_thao","pose":[1,0,2,0.5]}` {
+		t.Fatalf("npc_join = %s", join)
+	}
+	if got := string(Encode(NPCLeave{T: TypeNPCLeave, ID: 7})); got != `{"t":"npc_leave","id":7}` {
+		t.Fatalf("npc_leave = %s", got)
+	}
+	// a vehicle names a guest in seat 1 like a player
+	if got := string(Encode(Vehicle{T: TypeVehicle, ID: 3, Kind: "xe_so_110", Owner: 1, Rider: 1, Passenger: 7})); !strings.Contains(got, `"passenger":7`) {
+		t.Fatalf("vehicle = %s", got)
+	}
+}
+
 func TestDecodeRejectsMalformedJSON(t *testing.T) {
 	if _, err := Decode([]byte(`{"t":`)); err == nil {
 		t.Fatal("want an error for truncated JSON")

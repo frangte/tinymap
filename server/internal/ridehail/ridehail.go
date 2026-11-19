@@ -86,6 +86,8 @@ type ride struct {
 	settlement *Settlement
 	tries      int
 	retryAt    time.Time
+	// npc is the NPC passenger of a trip with one (npc.go), nil for a real passenger
+	npc *guest
 }
 
 type offer struct {
@@ -118,6 +120,17 @@ type Service struct {
 	pairsDay string
 	// booked is when each character last booked (the request gap); pruned once a gap is over
 	booked map[string]time.Time
+
+	// NPC passengers (npc.go); guests is nil while they are off
+	guests     world.GuestHost
+	pas        content.Passengers
+	landmarks  []content.Place
+	pickN      func(n int) int
+	npcFor     map[uint32]*ride // a driver's NPC request, until they accept it
+	nextNPC    map[uint32]time.Time
+	npcToday   map[string]dailyCount
+	npcLoading map[string]bool
+	leaving    []leaver
 }
 
 // New makes the module; hand it to world.Use.
@@ -178,6 +191,9 @@ func (s *Service) onDuty(m world.Member, on bool) {
 		return
 	}
 	s.duty[m.ID()] = true
+	if s.npcOn() {
+		s.nextNPC[m.ID()] = s.h.Now().Add(secs(s.rules().IdleSeconds))
+	}
 	s.h.Send(m.ID(), encode(dutyMsg{T: "duty", On: true}))
 	if _, known := s.stats[m.Character()]; !known {
 		s.loadStats(m.Character())
@@ -196,6 +212,12 @@ func (s *Service) offDuty(id uint32, tell bool) {
 		return
 	}
 	delete(s.duty, id)
+	if s.npcOn() {
+		delete(s.nextNPC, id)
+		if r := s.npcFor[id]; r != nil {
+			s.npcEnd(r, StateCancelled, "off_duty", nil)
+		}
+	}
 	if tell {
 		s.h.Send(id, encode(dutyMsg{T: "duty", On: false}))
 	}
@@ -319,6 +341,9 @@ func (s *Service) offerAll(r *ride) {
 // offer sends a request to a driver who may take it: on duty, on their own bike, free, near enough, not the
 // passenger, not one who dropped this trip, under the pair limit.
 func (s *Service) offer(r *ride, d world.Member) {
+	if r.npc != nil {
+		return // an NPC request goes to the one driver it asked (npcSpawn)
+	}
 	if _, sent := r.offers[d.ID()]; sent || !s.duty[d.ID()] || !onOwnBike(d) || s.of[d.ID()] != nil || d.ID() == r.passenger ||
 		r.declined[d.ID()] || s.pairCount(d.Character(), r.pChar) >= s.cfg.PairLimit {
 		return
@@ -326,6 +351,13 @@ func (s *Service) offer(r *ride, d world.Member) {
 	p := d.Pose()
 	if math.Hypot(p.X-r.pickupX, p.Z-r.pickupZ) > s.cfg.OfferRadius {
 		return
+	}
+	// real passengers come first: an NPC request this driver was offered gives way, and no new one comes for a while
+	if s.npcOn() {
+		if n := s.npcFor[d.ID()]; n != nil {
+			s.npcEnd(n, StateCancelled, "real_request", nil)
+		}
+		s.postpone(d.ID(), secs(s.rules().IdleSeconds))
 	}
 	o := offer{id: ids.New(), expires: s.h.Now().Add(s.cfg.Offer)}
 	r.offers[d.ID()] = o
@@ -359,13 +391,22 @@ func (s *Service) onAccept(d world.Member, offerID string) {
 		if o, ok := x.offers[d.ID()]; ok {
 			delete(x.offers, d.ID())
 			s.h.Send(d.ID(), encode(offerGoneMsg{T: "ride_offer_gone", Offer: o.id, Why: "busy"}))
+			if x.npc != nil && x != r {
+				s.npcEnd(x, StateCancelled, "busy", nil)
+			}
 		}
 	}
 	r.driver, r.dChar, r.dName = d.ID(), d.Character(), d.Name()
 	r.state, r.accepted = StateAccepted, s.h.Now()
 	r.deadline = r.accepted.Add(s.cfg.Pickup)
+	if r.npc != nil {
+		delete(s.npcFor, d.ID())
+		r.deadline = r.accepted.Add(secs(s.rules().PatienceSeconds))
+	}
 	s.of[d.ID()] = r
-	s.h.Pin(r.passenger, r.driver, true)
+	if r.npc == nil {
+		s.h.Pin(r.passenger, r.driver, true)
+	}
 	s.sendRide(r)
 }
 
@@ -394,6 +435,15 @@ func (s *Service) onCancel(m world.Member) {
 // driverDropped puts a trip whose driver cancelled (or left) before pickup back to finding a driver, for the time
 // a request has, and offers it to the others.
 func (s *Service) driverDropped(r *ride, tell bool) {
+	if r.npc != nil {
+		// an NPC does not wait for another driver: it goes
+		if tell {
+			s.npcEnd(r, StateCancelled, "cancelled_by_driver", nil)
+		} else {
+			s.npcFinished(r, s.rules().CooldownSeconds)
+		}
+		return
+	}
 	if tell {
 		m := s.rideMsg(r, RoleRider, "cancelled_by_driver")
 		m.State = StateCancelled
@@ -436,7 +486,7 @@ func (s *Service) sendRide(r *ride) {
 }
 
 func (s *Service) rideMsg(r *ride, role, end string) rideMsg {
-	m := rideMsg{T: "ride", ID: r.id, State: r.state, Role: role, Dest: r.dest, Fare: r.fare, Pass: Person{ID: r.passenger, Name: r.pName},
+	m := rideMsg{T: "ride", ID: r.id, State: r.state, Role: role, Dest: r.dest, Fare: r.fare, Pass: Person{ID: r.passenger, Name: r.pName, NPC: r.npc != nil},
 		Pickup: [2]float64{r.pickupX, r.pickupZ}, Deadline: milli(r.deadline), End: end}
 	if r.driver != 0 {
 		st := s.stats[r.dChar]

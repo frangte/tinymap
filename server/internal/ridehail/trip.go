@@ -106,6 +106,10 @@ func (s *Service) refund(r *ride, state, end string) {
 // cut). Everything about it in the world ends at once (the seat, the pin, the offers); the money follows, and
 // both sides hear how it ended once it is written.
 func (s *Service) settle(r *ride, state, end string, paid, refund int64) {
+	if r.npc != nil {
+		s.settleNPC(r, state, end)
+		return
+	}
 	if r.state == stateSettling {
 		return
 	}
@@ -246,12 +250,20 @@ func (s *Service) Tick(now time.Time) {
 			s.offDuty(id, ok) // got off the bike: off duty
 		}
 	}
+	if s.npcOn() {
+		s.npcLeavers(now)
+		s.npcSpawn(now)
+	}
 	for _, r := range s.rides {
 		for id, o := range r.offers {
 			if now.After(o.expires) {
 				delete(r.offers, id)
 				s.h.Send(id, encode(offerGoneMsg{T: "ride_offer_gone", Offer: o.id, Why: "expired"}))
 			}
+		}
+		if r.npc != nil {
+			s.npcTick(r, now)
+			continue
 		}
 		if r.state == stateSettling && r.settlement != nil && !r.retryAt.IsZero() && !now.Before(r.retryAt) {
 			s.pay(r)
@@ -319,6 +331,16 @@ func (s *Service) ArchChanged(m world.Member) { s.offDuty(m.ID(), true) }
 
 func (s *Service) Left(m world.Member) {
 	s.offDuty(m.ID(), false)
+	if s.npcOn() {
+		delete(s.nextNPC, m.ID())
+		if r := s.npcRideOf(m.ID()); r != nil {
+			// the driver is gone: the NPC (put down beside the bike, with no pay) goes its way
+			if r.state != stateSettling {
+				s.npcEnd(r, StateEnded, "driver_left", nil)
+			}
+			return
+		}
+	}
 	r := s.of[m.ID()]
 	if r == nil {
 		return

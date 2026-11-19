@@ -80,6 +80,10 @@ const (
 	TypeVehicle = "vehicle"
 	// TypeVehicleGone: a vehicle left the world (its owner did)
 	TypeVehicleGone = "vehicle_gone"
+	// TypeNPCJoin: an NPC came into the world after the welcome (an NPC passenger waiting for a Crab Bike);
+	// TypeNPCLeave: it is gone. Like vehicles, they go to everyone.
+	TypeNPCJoin  = "npc_join"
+	TypeNPCLeave = "npc_leave"
 	// TypeInteraction shows a conversation's current line; TypeInteractionEnd closes it
 	TypeInteraction    = "interaction"
 	TypeInteractionEnd = "interaction_end"
@@ -707,6 +711,18 @@ type Vehicle struct {
 }
 
 type VehicleGone struct {
+	T  string `json:"t"`
+	ID uint32 `json:"id"`
+}
+
+// NPCJoin is an NPC that came into the world after the welcome: the same fields as an NPC of the welcome.
+type NPCJoin struct {
+	T string `json:"t"`
+	NPC
+}
+
+// NPCLeave says an NPC of NPCJoin is gone.
+type NPCLeave struct {
 	T  string `json:"t"`
 	ID uint32 `json:"id"`
 }
