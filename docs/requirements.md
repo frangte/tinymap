@@ -122,7 +122,7 @@ Thêm (2026-11-19): vẽ lại cầu đi bộ cho giống thật (vòm lá dừa
 và ba bức tượng chi tiết hơn (Trần Hưng Đạo trên bệ lăng trụ tam giác có chữ, Đức Mẹ Hòa Bình cầm quả địa cầu, Bác Hồ
 ở Bến Nhà Rồng mặc vest xách va li). Đã dựng, xuất map, thử vật lý: xem [landmarks-v9-design.md](landmarks-v9-design.md).
 
-## R10. Design lại game: từ tay trắng tới tài xế Crab (2026-11-19, bản nháp, chờ duyệt)
+## R10. Design lại game: từ tay trắng tới tài xế Crab (2026-11-19, đã duyệt)
 
 Khoa quyết định đổi cách vào game:
 - Vào game là người bình thường, mặc đồ thường: chọn nam/nữ, người Việt hay người nước ngoài; có sẵn một ít tiền.
@@ -135,6 +135,12 @@ Khoa quyết định đổi cách vào game:
   điện thoại (Khoa chốt cùng ngày).
 - Không làm nút "Dạo phố" riêng: ai vào game cũng đi dạo, đọc thông tin được, cốt truyện chỉ là phần chơi thêm (Khoa
   chốt cùng ngày).
+- Chạy Crab không phải mục tiêu chung: người Việt lập nghiệp thành tài xế; người nước ngoài làm được nếu muốn, nhưng
+  mục tiêu của họ là nhiệm vụ ngầm "Sổ sưu tầm": chuyện ngoài lề về địa điểm, món ăn (Khoa đưa nội dung sau), học
+  xin chào, cảm ơn bằng tiếng Việt (Khoa, cùng ngày).
+- Người Việt có cả hai kiểu: người từ quê lên lập nghiệp và người Sài Gòn gốc. Sổ sưu tầm cho mọi người (người nước
+  ngoài: mục tiêu chính), phần Tiếng Việt (xin chào, cảm ơn, bao nhiêu tiền, mắc quá, ngon quá) đứng đầu (Khoa, cùng
+  ngày). Khoa duyệt kịch bản: "ok ổn rồi".
 - Bỏ chuỗi nhiệm vụ "Người Sài Gòn chính hiệu", thiết kế lại sau (Khoa, cùng ngày). Đã gỡ khỏi game: 6 quest, tem, danh
   hiệu, thành tích, bài kiểm tra của Cô Ba; chuỗi chỉ còn làm dữ liệu mẫu cho test.
 

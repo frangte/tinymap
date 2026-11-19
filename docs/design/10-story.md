@@ -1,6 +1,6 @@
-# Kịch bản game (bản nháp 2026-11-19)
+# Kịch bản game (duyệt 2026-11-19)
 
-Viết theo hướng Khoa đưa ra ngày 2026-11-19 ([R10](../requirements.md#r10-design-lại-game-từ-tay-trắng-tới-tài-xế-crab-2026-11-19-bản-nháp-chờ-duyệt)). Đây là bản nháp để Khoa duyệt, **chưa làm gì trong code**. Nếu được duyệt thì quyết định D22 thay cho D1 (chọn vai lúc vào game), xem [README.md](README.md#decisions). Các câu cần Khoa chốt ở [cuối file](#15-cần-khoa-chốt).
+Viết theo hướng Khoa đưa ra ngày 2026-11-19 ([R10](../requirements.md#r10-design-lại-game-từ-tay-trắng-tới-tài-xế-crab-2026-11-19-đã-duyệt)). **Khoa duyệt hướng chính cùng ngày** ("ok ổn rồi"): quyết định D22 thay cho D1 (chọn vai lúc vào game), xem [README.md](README.md#decisions). Đã làm trong code: Sổ tay và thẻ thông tin ([mục 14](#14-thứ-tự-đề-xuất)); phần còn lại chưa làm. Các câu còn mở ở [cuối file](#15-cần-khoa-chốt).
 
 ## 1. Ý của Khoa
 
@@ -44,10 +44,20 @@ Khoa chốt (2026-11-19): **không làm nút "Dạo phố" riêng.** Ai cũng v�
 
 Cốt truyện (mua điện thoại, kiếm tiền, chạy Crab) là phần chơi thêm: nhiệm vụ chỉ gợi ý, không chặn ai. Người chỉ muốn dạo phố, tìm hiểu Sài Gòn thì cứ đi, không phải làm nhiệm vụ nào. Mọi người cùng một thế giới, cùng chat, thấy nhau như bây giờ (nguyên tắc cốt lõi của design không đổi).
 
+### Mục tiêu dài theo xuất phát
+
+Khoa chốt (2026-11-19): các xuất phát không cùng một mục tiêu. Người Việt có cả hai kiểu: người từ quê lên và người Sài Gòn gốc.
+
+| | Người từ quê lên | Người Sài Gòn gốc | Người nước ngoài |
+|---|---|---|---|
+| Mục tiêu dài | Lập nghiệp: thành tài xế Crab ([chương 3](#8-chương-3-thành-tài-xế-crab)), rồi các nghề khác | Thổ địa của khu phố: chỉ đường cho du khách, uy tín khu phố; chạy Crab nếu muốn | Nhiệm vụ ngầm: [Sổ sưu tầm](#nhiệm-vụ-ngầm-sổ-sưu-tầm) |
+| Chạy Crab | Mục tiêu chính | Làm được nếu muốn | Làm được nếu muốn |
+| Sổ sưu tầm | Sưu tầm được | Sưu tầm được | Mục tiêu chính |
+
 ## 4. Tạo nhân vật
 
 - **Nam hay nữ:** đã có (`man`, `woman` trong `src/game/outfits.ts`).
-- **Xuất phát:** Người Việt (từ quê lên) hoặc Người nước ngoài (du khách ba lô). Chọn một lần.
+- **Xuất phát:** Người từ quê lên (lập nghiệp), Người Sài Gòn gốc, hoặc Người nước ngoài (du khách ba lô). Chọn một lần. Hai kiểu người Việt đều mang tag `citizen` cho quest; người từ quê lên thêm một tag riêng cho chuỗi lập nghiệp.
 - Tên, rồi bảng thay đồ đang có, chỉ với đồ thường (áo thun, sơ mi). Đồng phục Crab chỉ có khi đăng ký.
 - Người nước ngoài cần thêm màu da và màu tóc (vàng, nâu, đỏ). Hiện chỉ có một màu da `#C68D66`; màu mới phải được duyệt theo bảng PAL.
 - Ngôn ngữ giao diện vẫn là cài đặt riêng (D19), không theo xuất phát: người Việt chơi nhân vật nước ngoài được, và ngược lại.
@@ -68,16 +78,49 @@ Xuất hiện ở **Bến xe Chợ Lớn**, ba lô trên vai, trong túi 500.000
    - Má: "Tới nơi rồi hả con? Ăn uống đàng hoàng nghe. Có gì khó thì kiếm chú Sáu, bạn ba hồi xưa, chạy xe ôm ở bùng binh Quách Thị Trang."
    - Mở quest đi gặp Chú Sáu: quest đặt Crab đầu tiên.
 
+### Người Sài Gòn gốc: "Con của khu phố Lê Lai" (đề xuất)
+
+Sinh ra và lớn lên ở dãy nhà phố Lê Lai, nhà ở ngay đó (chỗ "Về nhà"), hàng xóm ai cũng quen. Điện thoại cũ vừa hư; má cho ít tiền mua cái mới. Dùng lại các quest Người Sài Gòn đang có:
+
+1. **Má sai mua ly cà phê ở quán Chú Tư** (`citizen.ca_phe_sang`). Dạy cách đi và nói chuyện với NPC.
+2. **Chào hàng xóm** (`citizen.chao_hang_xom`). Dạy điệu bộ (vẫy tay).
+3. **Mua điện thoại ở tiệm anh Bảy** ([chương 1](#chương-1-cái-điện-thoại-đầu-tiên)).
+4. **Chuyện khu phố** (`citizen.chuyen_khu_pho`): nghe ba người hàng xóm kể chuyện.
+5. **Thổ địa** (`citizen.tho_dia`): du khách hỏi đường, điện thoại báo; đi tới chỉ cho họ. Mỗi lần giúp, uy tín khu phố tăng.
+6. Sau đó: làm thổ địa (chỉ đường cho người chơi nước ngoài thật, sau này dẫn tour), sưu tầm, hoặc đi thi bằng chạy Crab nếu muốn.
+
 ### Người nước ngoài: "Ba lô tới Bùi Viện"
 
 Xuất hiện ở **Phố đi bộ Bùi Viện**, vừa xuống xe buýt từ sân bay, trong túi 20 đô. Điện thoại rớt vỡ màn hình lúc xuống xe (hay lý do khác, xem [câu hỏi 2](#15-cần-khoa-chốt)).
 
-1. **Hostel của anh Tony.** Nhận giường: đây là chỗ "Về nhà".
+1. **Hostel của anh Tony.** Nhận giường: đây là chỗ "Về nhà". Tony dạy hai câu đầu tiên, "Xin chào" và "Cảm ơn": hai ô đầu tiên trong [Sổ sưu tầm](#nhiệm-vụ-ngầm-sổ-sưu-tầm), phần Tiếng Việt.
    - Tony nói tiếng Việt pha tiếng Anh: "Welcome, welcome! Phòng sạch, wifi mạnh, bia rẻ! Đổi tiền hả? Đừng đổi ở sân bay, ra tiệm vàng gần chợ Bến Thành, giá better!"
 2. **Đổi tiền ở tiệm vàng của cô Kim** (đường Lê Thánh Tôn). 20 đô thành khoảng 500.000đ (tỷ giá trong game cố định, ghi trong content).
    - Mini game: cô Kim đếm tiền, người chơi chỉ ra tờ nào là 20.000, tờ nào là 500.000 (cùng màu xanh, dễ nhầm). Đúng thì được tem "Biết tiền Việt".
 3. **Mua điện thoại và SIM** ([chương 1](#chương-1-cái-điện-thoại-đầu-tiên)).
-4. Chuỗi nhiệm vụ riêng cho người nước ngoài: **thiết kế sau.** Chuỗi "Người Sài Gòn chính hiệu" cũ (Cô Ba dạy chào, cà phê, ba công trình, bánh tráng, hỏi đường, bài kiểm tra cuối) đã gỡ khỏi game ngày 2026-11-19 theo ý Khoa; nó chỉ còn làm dữ liệu mẫu cho test của quest engine (`server/internal/quest/testdata/traveler_questline.json`).
+
+Sau đó (đề xuất 2026-11-19): **mỗi bước là một việc thật mà du khách tới Sài Gòn phải làm, kèm một mẹo thật**, không phải việc làm cho có. Chuỗi "Người Sài Gòn chính hiệu" cũ (ngồi ghế 5 giây, bài kiểm tra) đã gỡ khỏi game ngày 2026-11-19; nó chỉ còn làm dữ liệu mẫu cho test (`server/internal/quest/testdata/traveler_questline.json`).
+
+4. **Cuốc Crab đầu tiên** tới chợ Bến Thành. Mẹo: kiểm tra biển số, đội mũ bảo hiểm tài xế đưa.
+5. **Cô Ba dạy trả giá:** mua một cái nón lá: hỏi giá, trả giá, cảm ơn (dùng lại bài học chào hỏi có sẵn của Cô Ba). Mẹo: hỏi giá trước, trả giá vui vẻ.
+6. **Qua đường với Chú Sáu:** Chú Sáu dẫn qua bùng binh. Mẹo: đi chậm, đều, đừng chạy.
+7. **Ăn như người Sài Gòn:** gọi cà phê sữa đá ở quán Chú Tư, bánh tráng trộn của Dì Năm bằng câu tiếng Việt. Biết giá thật ngoài đời.
+8. **Một ngày ở Sài Gòn:** đi theo một tour trong Cẩm nang (Sài Gòn thời Pháp, bờ sông…), đọc trang từng chỗ.
+
+Xong chuỗi này thì người chơi tự đi khám phá, theo nhiệm vụ ngầm bên dưới. Muốn ở lâu thì anh Tony gợi ý đi chạy Crab, nhưng không bắt buộc.
+
+### Nhiệm vụ ngầm: Sổ sưu tầm
+
+Khoa (2026-11-19): **sưu tầm những thông tin ngoài lề** mà sách hướng dẫn ít khi ghi, trong lúc đi chơi. Ai cũng sưu tầm được; với người nước ngoài đây là mục tiêu chính. Nội dung các chuyện ngoài lề về địa điểm và món ăn Khoa sẽ đưa sau.
+
+- **Ba loại, Tiếng Việt trước** (Khoa: "cái này lên đầu tiên"; cũng là phần làm được trước, không phải chờ nội dung):
+  - Tiếng Việt: xin chào, cảm ơn, bao nhiêu tiền, mắc quá, ngon quá… Học qua lời thoại (Tony, Cô Ba, người bán hàng), rồi dùng lại với NPC khác.
+  - Chuyện ngoài lề về địa điểm: một chuyện nhỏ, một chi tiết ít người để ý.
+  - Món ăn: món đó là gì, ăn sao, giá bao nhiêu, ăn ở đâu trong game và ngoài đời.
+- **"Ngầm":** không hiện ở khung nhiệm vụ, không báo trước. Tìm được món nào thì hiện một dòng nhỏ "Bạn vừa sưu tầm: …" và ghi vào sổ. Ô chưa có hiện "???" kèm một gợi ý mờ (ví dụ "ở gần cổng Nam chợ Bến Thành").
+- **Tìm ở đâu:** hỏi chuyện NPC (nhánh hỏi chuyện ở mục 10), đứng ở một góc đặc biệt, ăn món của NPC bán hàng, chọn đúng câu tiếng Việt trong lời thoại (bài học của Cô Ba đã gửi tín hiệu `greetings_learned`), rồi dùng câu đó với NPC khác.
+- **Thưởng theo mốc:** danh hiệu, đồ mặc, tem.
+- **Nằm ở đâu:** một mục mới trong Sổ tay. Kỹ thuật dùng lại quest engine (thành tích ẩn đã có sẵn: `hidden`); nội dung trong một file content riêng.
 
 ## 6. Điện thoại và Sổ tay
 
@@ -123,10 +166,8 @@ Không hiện trên màn hình chính cho tới khi mở được. Server đã c
 | Ứng dụng | Hiện khi |
 |---|---|
 | Crab Driver | Đăng ký xong ở văn phòng Crab |
-| Hàng Xóm (ai đang ở ngoài phố) | Quen đủ 3 hàng xóm (quest `citizen.chuyen_khu_pho` đang có) |
-| Rắn săn mồi | Chỉ có trên Nokla |
-| App tìm được ngoài phố (ý tưởng) | Quét mã QR dán trên tường bằng camera. Ví dụ: mã ở Bùi Viện cài app "Đêm Bùi Viện" (sự kiện buổi tối); mã ở sạp Cô Ba cài app đặt hàng của chợ |
 | Crab Food, ví điện tử… | Các chương sau |
+| Tindeo (giong nhu tinder) | Các chương sau |
 
 ### Chương 1: cái điện thoại đầu tiên
 
@@ -168,9 +209,11 @@ Chung cho cả hai. Tiệm **"Dế Yêu"** của anh Bảy trên đường Lê L
 
 - Người Việt, **"Xin việc quán Chú Tư":** chạy bàn ca sáng. Chú Tư: "Bưng cho vững, ly của khách quen đó, đổ là chú trừ lương!" Dùng lại `citizen.ca_phe_sang`, `citizen.chuyen_khu_pho`.
 - Người Việt, **"Chú Sáu kể chuyện":** hồi xưa Chú Sáu chạy xe ôm nuôi cả nhà, giờ khách đặt app hết. "Con còn trẻ, đi chạy Crab đi. Có bằng, có xe, có điện thoại là chạy được." Mở chương 3.
-- Người nước ngoài: chuỗi nhiệm vụ thiết kế sau (chuỗi "Người Sài Gòn chính hiệu" cũ đã gỡ). Cuối chuỗi, anh Tony: "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi, Sài Gòn ai cũng chạy." Mở chương 3 ([câu hỏi 5](#15-cần-khoa-chốt)).
+- Người nước ngoài: không bị cốt truyện đẩy đi kiếm tiền (mục tiêu chính là [Sổ sưu tầm](#nhiệm-vụ-ngầm-sổ-sưu-tầm)). Ai muốn thì anh Tony gợi ý: "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi, Sài Gòn ai cũng chạy.", và việc vặt mở cho mọi người.
 
 ## 8. Chương 3: thành tài xế Crab
+
+Mục tiêu chính của người Việt. Người nước ngoài cũng làm được nếu muốn, nhưng không phải mục tiêu chung (Khoa, 2026-11-19).
 
 Bốn bước, theo thủ tục ngoài đời nhưng đơn giản hơn:
 
@@ -350,7 +393,7 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
 
 1. **Sổ tay, thẻ thông tin, nội dung 5 công trình đầu, mẹo theo tình huống.** Đây là phần chính của trang web, không phụ thuộc phần nào khác, và làm được trên map hiện tại.
    - **Làm xong 2026-11-19 (chưa deploy):** Sổ tay (nút trên cùng bên phải, phím B; mở được cả ở chế độ xem bản đồ) với 5 mục Cẩm nang, Bản đồ, Nhiệm vụ, Thành tích, Nhân vật; Hồ sơ, Nhiệm vụ, Thành tích, Bản đồ đã rời khỏi điện thoại, app Cẩm nang trong máy chỉ còn phần "Hỏi đường". Thẻ thông tin dưới khung tên địa điểm (phím I mở trang), trang chi tiết có nút "Dẫn đường tới đây" (mũi tên của tracker) hoặc "Bay tới đây" khi đang xem bản đồ, và link Google Maps. Nội dung 5 trang (Chợ Bến Thành, Nhà thờ Đức Bà, Bưu điện, Nhà hát, Dinh Độc Lập) trong `server/content/guide.json`, tra cứu ngày 2026-11-19 và ghi nguồn; chỗ các nguồn nói khác nhau (giá vé Dinh Độc Lập, giờ mở cửa Nhà hát) ghi khoảng hoặc chỉ tới trang chính thức. Trang đã đọc chỉ lưu trên trình duyệt.
-   - Còn lại của bước này: mẹo theo tình huống và Sổ mẹo; trang cho 15 công trình còn lại. Cài đặt (ngôn ngữ, âm thanh) vẫn ở hàng nút công cụ.
+   - Còn lại của bước này: mẹo theo tình huống và Sổ mẹo; trang cho 15 công trình còn lại; Sổ sưu tầm, phần Tiếng Việt trước (phần địa điểm và món ăn chờ nội dung của Khoa). Cài đặt (ngôn ngữ, âm thanh) vẫn ở hàng nút công cụ.
 2. Tạo nhân vật mới, hai chương mở đầu, đồ và cửa hàng, điện thoại thành món đồ thật (danh bạ, tin nhắn, ứng dụng ẩn).
 3. Đặt Crab có chỗ thay thế khi không có tài xế: Chú Sáu xe ôm trước, tài xế NPC sau.
 4. Việc vặt, thi bằng, mua xe, đăng ký Crab, khách NPC.
@@ -362,7 +405,10 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
 2. Vì sao người nước ngoài không có điện thoại? Rớt vỡ màn hình (đề xuất, nhẹ nhàng); bị giật (nhớ lâu và dạy được mẹo an toàn, nhưng ấn tượng đầu tiên về Sài Gòn lại xấu); hay không cần lý do?
 3. Tiền hiển thị là "đồng" với giá thật cho đồ nhỏ (đề xuất), hay giữ "xu"?
 4. Xuất phát cố định (đề xuất, bỏ "Đổi vai"), hay vẫn cho đổi?
-5. Người nước ngoài có được chạy Crab không? Đề xuất: được, vì đây là game; nghề riêng cho người nước ngoài (hướng dẫn viên, dạy tiếng Anh) để sau.
+5. ~~Người nước ngoài có được chạy Crab không?~~ Khoa chốt 2026-11-19: được, nhưng không phải mục tiêu chung; mục tiêu của người nước ngoài là [Sổ sưu tầm](#nhiệm-vụ-ngầm-sổ-sưu-tầm).
 6. Tên điện thoại Nokla, Ifone (sau đó Samsun, Oppa) được chưa?
 7. Làm theo thứ tự ở [mục 14](#14-thứ-tự-đề-xuất), Sổ tay và thẻ thông tin trước?
-8. Ứng dụng ẩn: ngoài những app mở theo tiến trình (Crab Driver, Hàng Xóm), có làm app tìm được bằng cách quét mã QR ngoài phố không ([mục 6](#ứng-dụng-ẩn))?
+8. ~~Ứng dụng ẩn: có làm app tìm được bằng cách quét mã QR ngoài phố không?~~ Khoa bỏ ý này (và Hàng Xóm, Rắn săn mồi) khỏi bảng [ứng dụng ẩn](#ứng-dụng-ẩn), thêm Tindeo cho các chương sau (2026-11-19).
+9. ~~Người Việt từ quê lên hay Sài Gòn gốc?~~ Khoa chốt 2026-11-19: cả hai ([mục 5](#người-sài-gòn-gốc-con-của-khu-phố-lê-lai-đề-xuất)).
+10. ~~Sổ sưu tầm cho ai?~~ Khoa chốt 2026-11-19: cả hai; với người nước ngoài là mục tiêu chính, phần Tiếng Việt đứng đầu.
+11. ~~Chuỗi 8 bước của người nước ngoài?~~ Khoa duyệt 2026-11-19 ("ok ổn rồi").
