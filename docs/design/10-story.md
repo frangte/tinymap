@@ -227,6 +227,13 @@ Chung cho cả hai. Tiệm **"Dế Yêu"** của anh Bảy trên đường Lê L
 - Người Việt, **"Chú Sáu kể chuyện":** hồi xưa Chú Sáu chạy xe ôm nuôi cả nhà, giờ khách đặt app hết. "Con còn trẻ, đi chạy Crab đi. Có bằng, có xe, có điện thoại là chạy được." Mở chương 3.
 - Người nước ngoài: không bị cốt truyện đẩy đi kiếm tiền (mục tiêu chính là [Sổ sưu tầm](#nhiệm-vụ-ngầm-sổ-sưu-tầm)). Ai muốn thì anh Tony gợi ý: "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi, Sài Gòn ai cũng chạy.", và việc vặt mở cho mọi người.
 
+**Đã làm (chương 2, 2026-11-20, chưa deploy):** chi tiết ở [13-jobs.md](13-jobs.md).
+- Bốn việc vặt (bưng cà phê, giao bánh tráng, phát tờ rơi, khuân hàng) là quest `job.*` trong `quests.json`: một nhiệm vụ hằng ngày (`"job": true`) nên **mỗi việc làm được một lần mỗi ngày**, bốn việc tối đa 140.000đ một ngày; không ghi vào chuỗi ngày liền. Ai có điện thoại (kể cả cục gạch) cũng được mời, người Việt hay người nước ngoài. Trần thưởng riêng cho việc vặt là 40.000đ (`XuJobRewardMax`); nhiệm vụ hằng ngày khác vẫn tối đa 20.000đ.
+- Loại objective mới `errand`: nhận việc ở một NPC (câu trả lời gửi tín hiệu), rồi tới từng điểm (một chỗ, một NPC, hay một câu trả lời với NPC), theo thứ tự hoặc tuỳ ý, có thể có giờ: hết giờ thì lần làm đó hỏng và nhận lại được. Tracker ghi "Nhận việc: nói chuyện với Chú Tư", rồi việc cần làm kèm đồng hồ, rồi "Hết giờ!".
+- Hai thay đổi nhỏ khác: thêm Anh Hai (xe tải ở chợ) và 5 người đi dạo phố đi bộ Nguyễn Huệ làm "người nhận tờ rơi"; lời thoại mỗi người giao việc có thêm một câu "có việc gì cho con làm không?". Việc "Chụp ảnh giùm" và "Chỉ đường" như đã nói ở trên chưa làm.
+- **Xin việc quán Chú Tư** (`story.xin_viec_chu_tu`, một lần, 100.000đ và danh hiệu): ca sáng có giờ (300 giây), bưng ra công viên 23/9 và phố Bùi Viện rồi về báo Chú Tư. Dành cho người Việt (cả hai xuất phát); việc bưng cà phê vẫn mở cho người nước ngoài.
+- Anh Tony: sau khi xong chương 0 của người nước ngoài (nhận quyền `traveler.settled`), thêm một câu trả lời "Em muốn ở Sài Gòn lâu..." với lời khuyên "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi...".
+
 ## 8. Chương 3: thành tài xế Crab
 
 Mục tiêu chính của người Việt. Người nước ngoài cũng làm được nếu muốn, nhưng không phải mục tiêu chung (Khoa, 2026-11-19).
@@ -425,6 +432,7 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
    - Còn lại của bước 2: danh bạ, cuộc gọi và tin nhắn trong điện thoại, cuộc gọi về cho Má và quest đi gặp Chú Sáu sau đó; bước 8 của người nước ngoài (tour đi bộ); "Về nhà" ở nhà trọ bà Chín và hostel anh Tony.
 3. Đặt Crab có chỗ thay thế khi không có tài xế: Chú Sáu xe ôm trước, tài xế NPC sau.
 4. Việc vặt, thi bằng, mua xe, đăng ký Crab, khách NPC.
+   - **Việc vặt: làm xong 2026-11-20 (chưa deploy)**, xem "Đã làm" ở [mục 7](#7-chương-2-kiếm-tiền) và [13-jobs.md](13-jobs.md). Còn lại của bước này: thi bằng, mua xe, đăng ký Crab, khách NPC.
 5. Các chương sau ([mục 9](#9-sau-chương-3-ý-tưởng-chưa-viết)).
 
 ## 15. Cần Khoa chốt
