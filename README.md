@@ -90,7 +90,9 @@ src/game/
     guideBook.ts        the Cẩm nang: the landmark list and a place's page (history, tips, getting there, sources)
     sections.ts         the map, quests, achievements and character (phone apps before)
     collectionBook.ts   the Sưu tầm tab: phrases, side stories and dishes found, the rest "???" with a hint
-  phone/                the in-game phone: only what a real phone is for (Crab, chat, notices, asking the way)
+  phone/                the in-game phone: only what a real phone is for (calls, messages, Crab, chat, notices, asking the way)
+    callApps.ts         the Danh bạ (a number is a button that rings it) and Tin nhắn (the texts NPCs sent)
+  contacts.ts           the phone's numbers and texts (server/content/contacts.json): who is on the line, the book the apps read
     mapLand.json        the map's land and roads (written by scripts/map/move_game_content_v8.py)
   hud.ts                DOM overlay helpers
   storyCard.ts          the arrival card: the archetype's story and first steps, once per visit
