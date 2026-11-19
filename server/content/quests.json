@@ -24,8 +24,8 @@
       "questline": "chuong_1",
       "title": { "vi": "Cái điện thoại đầu tiên", "en": "The first phone" },
       "about": {
-        "vi": "Ở Sài Gòn mini, không ai tới nơi mà đã có sẵn điện thoại. Có smartphone là đặt được Crab, nhắn tin, hỏi đường.",
-        "en": "Nobody arrives in Sài Gòn mini with a phone. With a smartphone you can book a Crab, chat and ask the way."
+        "vi": "Ai vào game cũng chưa có điện thoại, nên đây là nhiệm vụ đầu tiên. Có smartphone là đặt được Crab, trò chuyện, hỏi đường.",
+        "en": "Everyone starts the game without a phone, so this is the first quest. With a smartphone you can book a Crab, chat and ask the way."
       },
       "unless_caps": ["phone.basic"],
       "flow": "sequence",
