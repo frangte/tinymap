@@ -1,0 +1,225 @@
+{
+  "id": "anh_tony",
+  "about": "Anh Tony runs a hostel on Bùi Viện walking street and speaks Vietnamese mixed with English (docs/design/10-story.md, chapter 0, the foreigner's opening). He teaches xin chào and cảm ơn: picking the right answers sends phrase_xin_chao and phrase_cam_on, the same signals Cô Ba sends (collection.json and the quest traveler.hostel_anh_tony listen for both NPCs). He tells the foreigner to change money at Cô Kim's gold shop, not at the airport.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": {
+          "vi": "Welcome, welcome! Phòng sạch, wifi mạnh, bia rẻ!",
+          "en": "Welcome, welcome! Clean rooms, strong wifi, cheap beer!"
+        },
+        "traveler": {
+          "vi": "Hello my friend! Mới tới Sài Gòn hả? Welcome, welcome! Phòng sạch, wifi mạnh, bia rẻ!",
+          "en": "Hello my friend! Just got to Saigon? Welcome, welcome! Clean rooms, strong wifi, cheap beer!"
+        },
+        "citizen": {
+          "vi": "Ê, người Việt mà ghé hostel chi vậy? Uống bia hả? Welcome anyway!",
+          "en": "Hey, a Vietnamese guest at a hostel? Here for a beer? Welcome anyway!"
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Anh Tony dạy em vài câu tiếng Việt được không?",
+            "en": "Could you teach me a few Vietnamese phrases?"
+          },
+          "goto": "lesson_hello"
+        },
+        {
+          "text": {
+            "vi": "Em đổi tiền ở đâu vậy anh?",
+            "en": "Where do I change money?"
+          },
+          "goto": "money"
+        },
+        {
+          "text": {
+            "vi": "Hostel của anh có gì vậy?",
+            "en": "What does your hostel have?"
+          },
+          "goto": "hostel"
+        },
+        {
+          "text": {
+            "vi": "Thôi, em đi dạo tiếp.",
+            "en": "No thanks, I'll keep walking."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "lesson_hello": {
+      "say": {
+        "default": {
+          "vi": "OK, no problem! Câu một: “Xin chào” nghĩa là hello. Em thử đi: chào anh một câu coi.",
+          "en": "OK, no problem! Phrase one: “Xin chào” means hello. Try it: say hello to me."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Xin chào anh Tony!",
+            "en": "Xin chào, Tony!"
+          },
+          "goto": "lesson_thanks",
+          "emit": "phrase_xin_chao"
+        },
+        {
+          "text": {
+            "vi": "Hey, beer!",
+            "en": "Hey, beer!"
+          },
+          "goto": "lesson_hello_again"
+        }
+      ]
+    },
+    "lesson_hello_again": {
+      "say": {
+        "default": {
+          "vi": "Haha, beer đợi chút! Chào người ta trước đã: “Xin chào”. Say it again!",
+          "en": "Haha, the beer can wait! Greet people first: “Xin chào”. Say it again!"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Xin chào anh Tony!",
+            "en": "Xin chào, Tony!"
+          },
+          "goto": "lesson_thanks",
+          "emit": "phrase_xin_chao"
+        }
+      ]
+    },
+    "lesson_thanks": {
+      "say": {
+        "default": {
+          "vi": "Very good! Câu hai: anh đưa em ly nước mát nè. Người ta cho thứ gì thì em nói “cảm ơn” nghe.",
+          "en": "Very good! Phrase two: here, a cold drink for you. When someone gives you something, say “cảm ơn”."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Cảm ơn anh!",
+            "en": "Cảm ơn!"
+          },
+          "goto": "lesson_done",
+          "emit": "phrase_cam_on"
+        },
+        {
+          "text": {
+            "vi": "Cho thêm ly nữa!",
+            "en": "One more, please!"
+          },
+          "goto": "lesson_thanks_again"
+        }
+      ]
+    },
+    "lesson_thanks_again": {
+      "say": {
+        "default": {
+          "vi": "Haha, được, nhưng nói “cảm ơn” trước nha! Thank you in Vietnamese: “cảm ơn”.",
+          "en": "Haha, sure, but say “cảm ơn” first! Thank you in Vietnamese is “cảm ơn”."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Cảm ơn anh!",
+            "en": "Cảm ơn!"
+          },
+          "goto": "lesson_done",
+          "emit": "phrase_cam_on"
+        }
+      ]
+    },
+    "lesson_done": {
+      "say": {
+        "default": {
+          "vi": "Perfect! “Xin chào” với “cảm ơn”: hai câu là đủ sống ở Sài Gòn rồi. Ra chợ Bến Thành gặp Cô Ba, cô dạy thêm cho.",
+          "en": "Perfect! “Xin chào” and “cảm ơn”: two phrases and you can live in Saigon. Go to Bến Thành market and meet Cô Ba, she'll teach you more."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Em đổi tiền ở đâu vậy anh?",
+            "en": "Where do I change money?"
+          },
+          "goto": "money"
+        },
+        {
+          "text": {
+            "vi": "Cảm ơn anh Tony!",
+            "en": "Cảm ơn, Tony!"
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "money": {
+      "say": {
+        "default": {
+          "vi": "Đổi tiền hả? Đừng đổi ở sân bay, tỷ giá tệ lắm. Ra tiệm vàng của cô Kim trên đường Lê Thánh Tôn, gần chợ Bến Thành, giá better!",
+          "en": "Changing money? Don't do it at the airport, the rate is bad. Go to Cô Kim's gold shop on Lê Thánh Tôn near Bến Thành market, much better!"
+        },
+        "traveler": {
+          "vi": "Đổi tiền hả? Đừng đổi ở sân bay, tỷ giá tệ lắm. Ra tiệm vàng của cô Kim trên Lê Thánh Tôn, giá better! Mà em có sẵn tiền đồng trong túi rồi, ghé cô Kim học nhận tiền Việt thôi.",
+          "en": "Changing money? Don't do it at the airport, the rate is bad. Cô Kim's gold shop on Lê Thánh Tôn is better! But you already have đồng in your pocket, so just visit her to learn the Vietnamese notes."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, em cảm ơn anh.",
+            "en": "Thanks, Tony."
+          },
+          "goto": "bye"
+        },
+        {
+          "text": {
+            "vi": "Anh dạy em vài câu tiếng Việt nha?",
+            "en": "Could you teach me a few Vietnamese phrases?"
+          },
+          "goto": "lesson_hello"
+        }
+      ]
+    },
+    "hostel": {
+      "say": {
+        "default": {
+          "vi": "Giường tầng sạch, máy lạnh, wifi mạnh, ăn sáng free. Một đêm khoảng một hai trăm ngàn thôi. Em coi đây như nhà nha!",
+          "en": "Clean bunk beds, air-con, strong wifi, free breakfast. Around one to two hundred thousand a night. Make yourself at home!"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Anh dạy em vài câu tiếng Việt nha?",
+            "en": "Could you teach me a few Vietnamese phrases?"
+          },
+          "goto": "lesson_hello"
+        },
+        {
+          "text": {
+            "vi": "Dạ, em cảm ơn anh.",
+            "en": "Thank you."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "See you! Đi chơi vui, nhớ uống nước nghe!",
+          "en": "See you! Have fun, and drink water!"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "id": "ba_chin",
+  "about": "Bà Chín keeps the guesthouse on the Lê Lai shophouse row (docs/design/10-story.md, chapter 0, the newcomer's opening). The answer gated by the quest newcomer.nha_tro_ba_chin sends nhan_phong: she takes the newcomer in and points to Anh Bảy's phone shop. For everyone else she is a neighbour or a landlady with a room.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": {
+          "vi": "Kiếm phòng trọ hả con? Nhà bà sạch sẽ, giá mềm, có quạt có chỗ để xe.",
+          "en": "Looking for a room, dear? My house is clean, cheap, with a fan and room for your bike."
+        },
+        "newcomer": {
+          "vi": "Ủa, con của con Hai dưới Bến Tre phải hôn? Má con có nhắn bà rồi. Lại đây coi!",
+          "en": "Oh, are you Hai's child from Bến Tre? Your mum sent word. Come here and let me look at you!"
+        },
+        "citizen": {
+          "vi": "Ê {name}, ghé thăm bà hả con? Khu mình dạo này đông khách trọ lắm.",
+          "en": "Hey {name}, dropping by to see me? The street has so many lodgers these days."
+        },
+        "traveler": {
+          "vi": "Khách nước ngoài hả? Bùi Viện có hostel, còn nhà bà là phòng trọ kiểu Sài Gòn nghen.",
+          "en": "A foreign visitor? Bùi Viện has hostels; mine is a Saigon-style rented room."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ bà Chín, má kêu con tới đây. Con có tờ giấy ghi địa chỉ nè.",
+            "en": "Auntie Chín, my mum told me to come. I have the paper with the address."
+          },
+          "goto": "check_in",
+          "emit": "nhan_phong",
+          "requires_quest": "newcomer.nha_tro_ba_chin"
+        },
+        {
+          "text": {
+            "vi": "Phòng trọ ở đây thuê sao vậy bà?",
+            "en": "How does renting a room here work?"
+          },
+          "goto": "rent"
+        },
+        {
+          "text": {
+            "vi": "Dãy phố này có gì hay vậy bà?",
+            "en": "What is this street like?"
+          },
+          "goto": "street"
+        },
+        {
+          "text": {
+            "vi": "Dạ thôi, con đi dạo tiếp.",
+            "en": "No thanks, I'll keep walking."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "check_in": {
+      "say": {
+        "default": {
+          "vi": "Con của con Hai dưới Bến Tre phải hôn? Lớn dữ vậy! Phòng trên lầu nghen, tiền phòng tháng này bà cho thiếu, kiếm được việc rồi đưa.",
+          "en": "So you are Hai's child from Bến Tre! How you've grown! Your room is upstairs. This month's rent can wait: pay me once you find work."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn bà nhiều lắm!",
+            "en": "Thank you so much, auntie!"
+          },
+          "goto": "phone"
+        }
+      ]
+    },
+    "phone": {
+      "say": {
+        "default": {
+          "vi": "Mà con muốn gọi về cho má thì phải có điện thoại. Đi thẳng ra đường Lê Lợi, tiệm Dế Yêu của thằng Bảy, nó bán máy zin, bao test bảy ngày.",
+          "en": "And to phone your mum you need a phone. Go straight out to Lê Lợi: Bảy's Dế Yêu shop sells genuine phones with a seven-day trial."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con đi liền!",
+            "en": "Yes, I'll go right now!"
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "rent": {
+      "say": {
+        "default": {
+          "vi": "Phòng trên lầu, cuối tháng tính tiền một lần. Người quen, người ở quê gửi lên thì bà dễ lắm, có khó chi đâu.",
+          "en": "Rooms are upstairs and you pay once at the end of the month. If you come from someone I know, I'm easy to deal with."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn bà.",
+            "en": "Thank you, auntie."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "street": {
+      "say": {
+        "default": {
+          "vi": "Dãy nhà ống này ở lâu đời rồi, tầng trệt bán hàng, tầng trên để ở. Muốn cà phê thì ghé quán chú Tư, ổng pha ngon.",
+          "en": "These tube houses have stood here for ages: shop on the ground floor, family upstairs. For coffee, try Chú Tư's, he brews a good one."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn bà.",
+            "en": "Thank you, auntie."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "Ừ, đi đâu thì đi, nhớ về ăn cơm nghen con!",
+          "en": "Alright, go where you like, but come home for dinner!"
+        },
+        "traveler": {
+          "vi": "Ừ, đi chơi vui nghen!",
+          "en": "Alright, have fun!"
+        }
+      }
+    }
+  }
+}

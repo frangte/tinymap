@@ -1,6 +1,6 @@
 {
   "id": "chu_sau",
-  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions; he is who a Traveler asks when no Citizen player answers an ask for the way in time (D18). The Sổ sưu tầm (collection.json) listens for phrase_xin_loi (opening with “xin lỗi”) and phrase_khong (refusing a ride politely).",
+  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions; he is who a Traveler asks when no Citizen player answers an ask for the way in time (D18). The answer gated by the quest traveler.qua_duong (crossing the roundabout) sends crossing_advice. The Sổ sưu tầm (collection.json) listens for phrase_xin_loi (opening with “xin lỗi”) and phrase_khong (refusing a ride politely).",
   "start": "greet",
   "nodes": {
     "greet": {
@@ -15,7 +15,8 @@
         { "text": { "vi": "Xin lỗi chú, chỉ đường giúp con được không?", "en": "Excuse me, could you give me directions?" }, "goto": "where", "emit": "phrase_xin_loi" },
         { "text": { "vi": "Chạy xe ôm có vui không chú?", "en": "Do you like driving a xe ôm?" }, "goto": "life" },
         { "text": { "vi": "Chú chở con đi một vòng nha?", "en": "Could you give me a ride?" }, "goto": "ride" },
-        { "text": { "vi": "Không, cảm ơn chú. Con đi bộ.", "en": "No, thank you. I'll walk." }, "goto": "bye", "emit": "phrase_khong" }
+        { "text": { "vi": "Không, cảm ơn chú. Con đi bộ.", "en": "No, thank you. I'll walk." }, "goto": "bye", "emit": "phrase_khong" },
+        { "text": { "vi": "Chú ơi, qua bùng binh sao cho an toàn vậy?", "en": "Uncle, how do I cross the roundabout safely?" }, "goto": "crossing", "requires_quest": "traveler.qua_duong" }
       ]
     },
     "where": {
@@ -63,6 +64,15 @@
       "choices": [
         { "text": { "vi": "Dạ, con cảm ơn chú!", "en": "Thank you!" }, "goto": "bye_road" },
         { "text": { "vi": "Còn chỗ khác thì sao chú?", "en": "And somewhere else?" }, "goto": "where" }
+      ]
+    },
+    "crossing": {
+      "say": {
+        "default": { "vi": "Qua đường ở Sài Gòn hả? Đừng chạy, đừng đứng khựng giữa đường. Cứ đi chậm, đều, tay giơ ra cho người ta thấy, xe nó chạy vòng qua mình. Mắt ngó xe, đừng ngó điện thoại!", "en": "Crossing a Saigon street? Don't run, don't freeze in the middle. Walk slowly and steadily, hold a hand out so they see you, and the bikes flow around you. Eyes on the traffic, not your phone!" }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Đi chậm, đều, đừng chạy. Dạ, con cảm ơn chú!", "en": "Slow, steady, no running. Thank you, uncle!" }, "goto": "bye_road", "emit": "crossing_advice" }
       ]
     },
     "life": {

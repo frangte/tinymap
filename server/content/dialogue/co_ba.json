@@ -1,6 +1,6 @@
 {
   "id": "co_ba",
-  "about": "Cô Ba sells at Bến Thành's south gate. Her lesson (three phrases: greeting an elder, thanking, asking the price) sends phrase_xin_chao, phrase_cam_on and last greetings_learned (asking the price); bargaining at the price sends phrase_mac_qua. The Sổ sưu tầm (collection.json) listens for them; no quest listens for greetings_learned since the Traveler's questline was taken out (2026-11-19, docs/design/10-story.md).",
+  "about": "Cô Ba sells at Bến Thành's south gate. Her lesson (three phrases: greeting an elder, thanking, asking the price) sends phrase_xin_chao, phrase_cam_on and last greetings_learned (asking the price); bargaining at the price sends phrase_mac_qua. The foreigner's quest traveler.tra_gia_cho also listens for asked_price_hat (asking the hat's price), phrase_mac_qua and thanked_after_bargain (thanking her after the discount), in that order. The Sổ sưu tầm (collection.json) listens for them; no quest listens for greetings_learned since the Traveler's questline was taken out (2026-11-19, docs/design/10-story.md).",
   "start": "greet",
   "nodes": {
     "greet": {
@@ -284,7 +284,8 @@
             "vi": "Cái nón lá bao nhiêu vậy cô?",
             "en": "How much is the conical hat?"
           },
-          "goto": "price"
+          "goto": "price",
+          "emit": "asked_price_hat"
         },
         {
           "text": {
@@ -333,7 +334,8 @@
             "vi": "Dạ, con cảm ơn cô!",
             "en": "Thank you, auntie!"
           },
-          "goto": "bye"
+          "goto": "bye",
+          "emit": "thanked_after_bargain"
         }
       ]
     },

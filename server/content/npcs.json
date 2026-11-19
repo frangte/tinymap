@@ -86,6 +86,50 @@
         { "vi": "Điện thoại zin, bao test bảy ngày! Vô coi đi em!", "en": "Original phones, seven days to test! Come have a look!" },
         { "vi": "Dế Yêu đây! Máy mới về, giá mềm nha!", "en": "Dế Yêu here! New stock, soft prices!" }
       ]
+    },
+    {
+      "id": "ba_chin",
+      "name": "Bà Chín",
+      "role": { "vi": "chủ nhà trọ dãy Lê Lai", "en": "runs the guesthouse on Lê Lai" },
+      "look": { "body": "woman", "outfit": "baba", "hat": "bun" },
+      "place": "day_nha_pho_le_lai",
+      "at": [-31, -10.5],
+      "face": [-31, -5],
+      "mode": "private",
+      "dialogue": "ba_chin",
+      "reach": 3,
+      "barks": [
+        { "vi": "Nhà trọ sạch sẽ, có quạt, có chỗ để xe nè!", "en": "Clean rooms, a fan, and room for your bike!" },
+        { "vi": "Ai tìm phòng trọ hông? Bà còn một phòng trên lầu!", "en": "Anyone looking for a room? I have one left upstairs!" }
+      ]
+    },
+    {
+      "id": "anh_tony",
+      "name": "Anh Tony",
+      "role": { "vi": "chủ hostel phố Bùi Viện", "en": "runs a hostel on Bùi Viện" },
+      "look": { "body": "man", "outfit": "hoa", "hat": "bucket" },
+      "place": "pho_di_bo_bui_vien",
+      "at": [-90, -36],
+      "face": [-90, -39],
+      "mode": "private",
+      "dialogue": "anh_tony",
+      "reach": 3,
+      "barks": [
+        { "vi": "Welcome, welcome! Phòng sạch, wifi mạnh, bia rẻ!", "en": "Welcome, welcome! Clean rooms, strong wifi, cheap beer!" },
+        { "vi": "Hello my friend! Hostel đây, giường mềm lắm!", "en": "Hello my friend! Hostel right here, very soft beds!" }
+      ]
+    },
+    {
+      "id": "co_kim",
+      "name": "Cô Kim",
+      "role": { "vi": "chủ tiệm vàng Lê Thánh Tôn", "en": "runs the gold shop on Lê Thánh Tôn" },
+      "look": { "body": "woman", "outfit": "aodai", "hat": "none" },
+      "place": "duong_le_thanh_ton",
+      "at": [-48.6, 111.5],
+      "face": [-55, 111.5],
+      "mode": "private",
+      "dialogue": "co_kim",
+      "reach": 3
     }
   ]
 }

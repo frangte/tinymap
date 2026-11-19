@@ -1,5 +1,5 @@
 {
-  "about": "Sổ sưu tầm, a hidden collection (docs/design/10-story.md): phrase, place and food entries, shown in this order in the Sổ tay. Each entry has a title (the phrase itself for a phrase), a text shown once found (in the English, a pronunciation hint), a hint shown while it is ???, and an objective in the shape of a quest objective, with no id. The server runs each entry as the track collection:<id> (server/internal/quest). Place and food entries wait for the designer's content.",
+  "about": "Sổ sưu tầm, a hidden collection (docs/design/10-story.md): phrase, place and food entries, shown in this order in the Sổ tay. Each entry has a title (the phrase itself for a phrase), a text shown once found (in the English, a pronunciation hint), a hint shown while it is ???, and an objective in the shape of a quest objective, with no id. The server runs each entry as the track collection:<id> (server/internal/quest). An entry's dialogue_signal may list more teachers in \"also\" (Anh Tony teaches xin chào and cảm ơn like Cô Ba). Place and food entries wait for the designer's content.",
   "entries": [
     {
       "id": "xin_chao",
@@ -20,6 +20,7 @@
         "type": "dialogue_signal",
         "params": {
           "npc": "co_ba",
+          "also": ["anh_tony"],
           "signal": "phrase_xin_chao"
         }
       }
@@ -66,6 +67,7 @@
         "type": "dialogue_signal",
         "params": {
           "npc": "co_ba",
+          "also": ["anh_tony"],
           "signal": "phrase_cam_on"
         }
       }
