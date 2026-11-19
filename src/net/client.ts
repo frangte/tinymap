@@ -43,6 +43,11 @@ export interface NetEvents {
   /** a conversation with an NPC started or moved on (or, in a group, someone joined or left it) */
   interaction(i: Interaction): void;
   interactionEnd(sid: number, reason: EndReason): void;
+  /**
+   * what we own: on joining (apps null: the welcome's own list stands) and after each purchase (the phone apps we
+   * have now); never for a guest without an account
+   */
+  items(items: string[], apps: string[] | null): void;
   /** our quests and achievements, on joining and whenever they change (only for a character with an account) */
   progress(p: Progress): void;
   /** the last chat line was refused for being too fast */
@@ -220,6 +225,11 @@ export class NetClient {
     return true;
   }
 
+  /** Buy an item from the shop of the NPC we stand next to; the result says why not (far, target, owned, balance). */
+  buy(item: string): Promise<Result> {
+    return this.request((rid) => ({ t: 'buy', rid, item }));
+  }
+
   /** Close a conversation; the server answers with `interactionEnd`. */
   leaveTalk(sid: number): void {
     if (this.online) this.send({ t: 'interact_leave', sid });
@@ -332,6 +342,7 @@ export class NetClient {
         this.skewKnown = false;
         this.on.welcome(m.players, m.chat, m.arch, m.apps, m.pose, m.vehicles, m.npcs);
         if (m.wallet !== null) this.on.ride({ t: 'wallet', balance: m.wallet });
+        if (m.items) this.on.items(m.items, null);
         this.on.status('online');
         break;
       case 'join':
@@ -377,6 +388,9 @@ export class NetClient {
       }
       case 'interaction_end':
         this.on.interactionEnd(m.sid, m.reason);
+        break;
+      case 'items':
+        this.on.items(m.items, m.apps);
         break;
       case 'result':
         this.settle(m.rid, { ok: m.ok, code: m.code });
