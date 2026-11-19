@@ -59,8 +59,8 @@
     "check_in": {
       "say": {
         "default": {
-          "vi": "Con của con Hai dưới Bến Tre phải hôn? Lớn dữ vậy! Phòng trên lầu nghen, tiền phòng tháng này bà cho thiếu, kiếm được việc rồi đưa.",
-          "en": "So you are Hai's child from Bến Tre! How you've grown! Your room is upstairs. This month's rent can wait: pay me once you find work."
+          "vi": "Trời, lớn dữ vậy! Phòng trên lầu nghen, tiền phòng tháng này bà cho thiếu, kiếm được việc rồi đưa.",
+          "en": "My, how you've grown! Your room is upstairs. This month's rent can wait: pay me once you find work."
         }
       },
       "emote": "wave",
