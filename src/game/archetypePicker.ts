@@ -1,8 +1,8 @@
-// "Bạn là ai?": the archetype cards. Shown before the first dressing (and once to players from before archetypes),
-// and again from the phone's Hồ sơ app to change archetype, with the current one marked and a way back. Hovering
-// or focusing a card previews that archetype's starter look on the player.
+// "Bạn từ đâu tới?": the origin cards. Shown before the first dressing (and once to players from before archetypes)
+// with the three origins, and again from the phone's Hồ sơ app to change role, with the jobs (the Crab driver) too,
+// the current one marked and a way back. Hovering or focusing a card previews that archetype's starter look.
 import { el } from './hud';
-import { ARCHETYPES, type Archetype } from './archetypes';
+import { ARCHETYPES, archetypeById, type Archetype } from './archetypes';
 import { onLangChange, tx } from './i18n';
 import { L } from './i18n/archetypePicker';
 
@@ -99,6 +99,8 @@ export class ArchetypePicker {
     this.label();
     this.cancelButton.hidden = !current;
     for (const [id, b] of this.cards) {
+      // a job is not an origin: only a player who changes role is offered it
+      b.hidden = !current && (archetypeById(id)?.job ?? false);
       const mine = id === current;
       b.classList.toggle('is-current', mine);
       if (mine) b.setAttribute('aria-current', 'true');

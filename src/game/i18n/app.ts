@@ -15,7 +15,7 @@ const vi = {
   archBusy: 'Xong chuyến xe, lời hỏi đường hay cuộc trò chuyện rồi đổi nhé.',
   archWait: 'Vừa đổi vai xong. Đợi một phút rồi đổi tiếp nhé.',
   roleChanged: 'Đổi vai',
-  roleChangedBody: (role: string, button: string) => `Bạn là ${role} từ giờ. Nút "${button}" đưa bạn về chỗ xuất phát mới.`,
+  roleChangedBody: (role: string, button: string) => `Vai mới của bạn: ${role}. Nút "${button}" đưa bạn về chỗ xuất phát mới.`,
   roleOfflineNotSaved: 'Vai đổi lúc mất mạng chưa được lưu',
   roleNotChanged: 'Chưa đổi vai được',
   // quest news
@@ -55,7 +55,7 @@ const en: typeof vi = {
   archBusy: 'Finish your ride, your ask for the way or your conversation first, then change.',
   archWait: 'You just changed role. Wait a minute before changing again.',
   roleChanged: 'Role changed',
-  roleChangedBody: (role, button) => `You are a ${role} now. The "${button}" button takes you back to your new starting point.`,
+  roleChangedBody: (role, button) => `Your new role: ${role}. The "${button}" button takes you back to your new starting point.`,
   roleOfflineNotSaved: 'The role you changed while offline was not saved',
   roleNotChanged: 'Could not change role',
   dailyDone: 'Daily quest done',

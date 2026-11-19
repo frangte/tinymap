@@ -1,6 +1,6 @@
 // Dressing panel: display name, body (Nam / Nữ), outfit and hat, previewed live on the player.
 // Opens by itself the first time someone enters play, and again from the "Đổi đồ" button.
-import { BODIES, BODY_NAMES, DEFAULT_OUTFIT, HATS, HAT_NAMES, OUTFITS, outfitStyle, type Body, type HatId, type Look, type OutfitId } from './outfits';
+import { BODIES, BODY_NAMES, DEFAULT_OUTFIT, HATS, HAT_NAMES, OUTFITS, outfitStyle, STARTER_HATS, STARTER_OUTFITS, type Body, type HatId, type Look, type OutfitId } from './outfits';
 import { NAME_MAX, cleanName, randomName, type Profile } from './profile';
 import { el } from './hud';
 import { hatAllowed, outfitAllowed } from './archetypes';
@@ -148,12 +148,12 @@ export class DressPanel {
     for (const [k, b] of this.bodyButtons) b.setAttribute('aria-pressed', String(k === body));
     for (const [k, b] of this.hatButtons) {
       b.setAttribute('aria-pressed', String(k === hat));
-      b.hidden = !hatAllowed(k, this.caps);
+      b.hidden = !hatAllowed(k, this.caps) || (this.first && !STARTER_HATS.includes(k));
     }
     for (const [k, o] of this.outfitButtons) {
       const s = outfitStyle(k, body);
       o.button.setAttribute('aria-pressed', String(k === outfit));
-      o.button.hidden = !outfitAllowed(k, this.caps);
+      o.button.hidden = !outfitAllowed(k, this.caps) || (this.first && !STARTER_OUTFITS.includes(k));
       o.top.style.background = s.top;
       o.bottom.style.background = s.bottom;
       // some outfits are named per body (Bikini / Quần bơi)

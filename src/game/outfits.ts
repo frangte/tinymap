@@ -9,6 +9,10 @@ export const OUTFITS = ['thun', 'aodai', 'baba', 'somi', 'xeom', 'hoa', 'bikini'
 // bun is a hairstyle rather than a hat, but it takes the same place on the head
 export const HATS = ['nonla', 'cap', 'bucket', 'helmet', 'bun', 'none'] as const;
 
+/** what a new character may put on in the dress panel: ordinary clothes (the rest is for Đổi đồ later) */
+export const STARTER_OUTFITS: readonly OutfitId[] = ['thun', 'somi'];
+export const STARTER_HATS: readonly HatId[] = ['none', 'cap', 'bucket', 'bun'];
+
 export type Body = (typeof BODIES)[number];
 export type OutfitId = (typeof OUTFITS)[number];
 export type HatId = (typeof HATS)[number];
