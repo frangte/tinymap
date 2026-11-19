@@ -29,6 +29,11 @@ export class TipCard {
     onLangChange(() => this.fill());
   }
 
+  /** a tip is on screen */
+  get isShowing(): boolean {
+    return this.shown !== null;
+  }
+
   /** Something happened in play: queue the tips it shows that this player has not seen. */
   happened(ev: TipEvent): void {
     for (const tip of TIPS) {

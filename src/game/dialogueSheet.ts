@@ -8,6 +8,7 @@ import { el } from './hud';
 import type { TalkMode, Text } from '../net/protocol';
 import { lang, onLangChange, tx, type Bilingual } from './i18n';
 import { GOODBYE, L } from './i18n/dialogueSheet';
+import { L as ITEMS_L } from './i18n/items';
 
 export interface SheetView {
   name: string;
@@ -19,11 +20,15 @@ export interface SheetView {
   size: number;
   say: Text;
   choices: readonly Bilingual[];
+  /** the shop this line opens (items.json), '' for none */
+  shop: string;
 }
 
 export interface SheetEvents {
   /** an answer was picked: its index among the choices */
   choose(index: number): void;
+  /** the shop button was pressed: the shop's id */
+  shop(id: string): void;
   /** closed (×, goodbye, Esc) */
   close(): void;
   /** a button was pressed: give the keyboard back to the game */
@@ -87,6 +92,8 @@ export class DialogueSheet {
     this.wait.hidden = v.lead || this.final;
     this.buttons = this.final ? [this.button(0, GOODBYE, true)] : v.choices.map((c, i) => this.button(i, c, v.lead));
     this.choices.replaceChildren(...this.buttons);
+    // a line that names a shop also offers its wares, above the answers
+    if (v.shop !== '') this.choices.prepend(this.shopButton(v.shop));
   }
 
   hide(): void {
@@ -111,6 +118,15 @@ export class DialogueSheet {
     if (!this.isOpen || !b) return false;
     if (!b.disabled) b.click();
     return true;
+  }
+
+  private shopButton(shop: string): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'talk-choice talk-shop btn-primary';
+    b.textContent = ITEMS_L.seeWares;
+    b.addEventListener('click', () => this.on.shop(shop));
+    return b;
   }
 
   private button(i: number, t: Bilingual, enabled: boolean): HTMLButtonElement {
