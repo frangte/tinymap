@@ -21,7 +21,7 @@ cd server && go build -o bin/server ./cmd/server
 STATIC_DIR=../dist ./bin/server
 ```
 
-Deploying to the server (nginx + systemd, `npm run deploy`): see [DEPLOY.md](DEPLOY.md).
+Deploying: `sh deploy/remote.sh` builds the server for linux/amd64 (`server/cmd/server/app`) and copies it to the server; nginx and the systemd unit live on the server itself (the old `scripts/deploy.sh` pipeline, its templates and DEPLOY.md were removed).
 
 ## Configuration (environment)
 
@@ -107,7 +107,7 @@ internal/ids/ids.go              ULIDs for stored ids
 internal/protocol/msg.go         message types and validation (the rules below)
 ```
 
-Schema changes are new numbered files in `internal/store/migrations/`. They only add (tables, nullable columns), so `npm run deploy:rollback` to an older server still works on the newer database.
+Schema changes are new numbered files in `internal/store/migrations/`. They only add (tables, nullable columns), so an older server binary still works on the newer database.
 
 ## Protocol
 

@@ -1,5 +1,7 @@
 # Sài Gòn mini: các task vẽ lại sau khi rà map (2026-11-12)
 
+> **Dọn dẹp 2026-11-20:** đã xóa khỏi repo (lấy lại từ git, commit `6ad7668` trở về trước): ảnh của map v5–v7 (layout đã đổi hẳn ở v8), hai mục nhật ký "Đã làm ngày 2026-11-12" và "Layout v7", các layout cũ (`saigon_mini_layout_v1.json`, `_v2.json`, `_proposal.json`, `_v8_proposal.json`) và hai script đã chạy xong (`reshape_coast.py`, `relayout_v7.py`). Layout v7 và `relayout_v8.py` vẫn giữ. Các task chưa làm (T7–T14) còn nguyên, nhưng chữ "hiện tại" trong đó là map v5, chưa cập nhật theo v8. Lưu ý từ nhật ký cũ: `models/bui_vien_v4.blend` (khối phố Bùi Viện, tách từ map v4 bằng `extract_bui_vien.py`) phải giữ cùng `saigon_mini.blend`, vì `bui_vien.py` đọc nó khi dựng map.
+
 Khoa duyệt cầu Ba Son mới ("đẹp rồi") và yêu cầu rà lại toàn bộ map v5. Những chỗ cần sửa được chia thành các task nhỏ dưới đây. Mỗi task đứng riêng được: đọc phần **Bối cảnh chung** rồi đọc task đó là đủ để vẽ, không cần đọc lại cả cuộc trao đổi.
 
 Yêu cầu gốc của Khoa (2026-11-12):
@@ -94,17 +96,11 @@ Làm theo thứ tự này vì: T1 đặt ngân sách trước khi vẽ thêm (fi
   --python scripts/blender/mini/review_shots.py -- renders/review vung_tau nui_nho_w tuong_chua
 ```
 
-Ảnh rà map ngày 2026-11-12 nằm trong `docs/img/v5r_*.jpg`, được nhắc tới trong từng task.
-
-![Nhìn từ trên](img/v5r_00_top.jpg)
-![Toàn cảnh](img/v5r_01_overview.jpg)
+Ảnh rà map ngày 2026-11-12 (`docs/img/v5r_*.jpg`) đã xóa 2026-11-20 (map v5 cũ, xem git).
 
 ---
 
 ## T0. Cầu Ba Son: đưa vào file chính (đã duyệt design)
-
-![Cầu Ba Son](img/v5_cau_ba_son_side.jpg)
-![Cầu Ba Son, góc ba phần tư](img/v5_cau_ba_son_34.jpg)
 
 - **Design đã duyệt (2026-11-12):** trụ trắng hai chân cao 32 m trên bờ Thủ Thiêm, nghiêng ra sông 8.5 m, đỉnh bo tròn, có xà ngang ở 19.5 m. Hai mặt dây `finSilver`: mỗi bên 10 dây xoè ra phía sông và 4 dây néo sau. Mặt cầu vồng lên giữa sông (đỉnh 3.07 m, mép dưới cách mặt nước khoảng 2.8 m), hai làn xe 8 m, vạch giữa, bó vỉa, vỉa hè 2 m, lan can trắng với tay vịn bạc, 10 đèn cột vàng trên bó vỉa, 4 trụ đầu cầu. Đầu tây bắt đầu ở mép đông Tôn Đức Thắng, không đè lên ngã tư. Không méo tay.
 - **Script:** `scripts/blender/mini/cau_ba_son.py` (thông số ở đầu file). Script tạo `LM_CauBaSon` trong `SM_Landmarks` và xoá nửa Ba Son của khối thô `LM_Bridges`.
@@ -189,18 +185,12 @@ Còn lại: chữ bảng hiệu, song sắt, bóng đèn và nhà (T9, T10); ins
 
 ## T2. Dọn: bỏ khối Cổng Trời
 
-![Khối Cổng Trời](img/v5r_05_cong_troi.jpg)
-
 - **Hiện tại:** ba hộp `rock` (hai chân và một xà) tại (−31, −224), nằm trong `LM_Blockout`. Đó là khối thô "Mũi Nghinh Phong, Cổng Trời" (#27), dựng trong `build_new_landmarks` (`if lm['id'] == 'mui_nghinh_phong'`).
 - **Việc:** xoá ba hộp này khỏi `LM_Blockout` và bỏ đoạn code đó. Mũi Nghinh Phong sau này chỉ là ghềnh đá tự nhiên, làm trong T3. Không có cổng hay khối vuông.
 - **Xong khi:** góc `mui_nghinh_phong` không còn khối đó.
 - **Đã xong 2026-11-12:** xoá 18 mặt `rock` khỏi `LM_Blockout` trong file chính, bỏ đoạn code trong `build_new_landmarks`.
 
 ## T3. Núi Nhỏ thoải hơn
-
-![Núi Nhỏ nhìn từ tây](img/v5r_02_nui_nho.jpg)
-![Núi Nhỏ nhìn từ đông](img/v5r_03_nui_nho_dong.jpg)
-![Vũng Tàu](img/v5r_10_vung_tau.jpg)
 
 **Hiện tại** (`IS_nui_nho`, `build_mountains`, `mountain_height`):
 - Núi là một vòm tròn cao 24 m. Phía tây có một mặt dốc đứng màu đá: chân núi bị cắt gắt (`smoothstep(0, 14, inside)` và `smoothstep(1.5, 9, distance(road))`) chỗ đường Hạ Long ôm sát chân núi.
@@ -232,9 +222,6 @@ Còn lại: chữ bảng hiệu, song sắt, bóng đèn và nhà (T9, T10); ins
 
 **Bản nháp 2026-11-12** (`scripts/blender/mini/nui_nho.py`; thông số ở đầu file):
 
-![Núi Nhỏ nhìn từ tây](img/v5_t3_nui_nho_w.jpg)
-![Núi Nhỏ nhìn từ thành phố](img/v5_t3_nui_nho_city.jpg)
-
 - **Đỉnh bắc (hải đăng):** (−30, −151), cao 14 m. **Đỉnh nam (tượng):** (−26, −186), cao 12 m. Yên ngựa 8.5 m. Cả hai đỉnh là sân lát đá có tường thấp.
 - **Vì sao thấp hơn bản thô (24 m):** núi thật cao 170 m trên chân khoảng 1 km; theo tỉ lệ chân núi trong map thì chỉ khoảng 14 m. Hải đăng và tượng phóng lớn hơn thật, đúng luật style.
 - **Chân núi:** khởi từ mép đường Hạ Long, bằng mặt đường, không còn mặt cắt. Về phía bắc chân núi nới ra bãi cỏ trống (x −39…9, y −128…−104), nên sườn bắc thoải dần về phía thành phố. Chân núi không bao giờ thấp hơn mặt cỏ của đảo.
@@ -259,16 +246,12 @@ Còn lại: chữ bảng hiệu, song sắt, bóng đèn và nhà (T9, T10); ins
 
 **Bản nháp 2026-11-12** (`scripts/blender/mini/hai_dang.py`, object `LM_HaiDang`, 1,060 tam giác):
 
-![Hải đăng](img/v5_t4_hai_dang.jpg)
-
 - **Tháp:** trụ trắng thuôn cao 8.6 m trên bệ đá; cửa sổ nhỏ chạy vòng theo cầu thang xoắn; cửa nhìn về phía đường lên.
 - **Đầu tháp:** ban công có lan can tối, buồng đèn kính 8 cạnh có bóng `lampGlow`, mái vòm tối, quả cầu và cột thu lôi.
 - **Nhà gác đèn:** nhà trắng một tầng mái ngói đỏ, cửa chớp xanh `poGreen`; hoa giấy trên tường sân.
 - Gỡ khối hải đăng thô khỏi `LM_Blockout`.
 
 ## T5. Tượng Chúa Kitô Vua
-
-![Tượng hiện tại](img/v5r_04_tuong_chua.jpg)
 
 - **Hiện tại:** một khối bệ vuông, một trụ, một thanh ngang. Không ra dáng người.
 - **Thật:** tượng cao 32 m, sải tay 18.3 m, trên bệ 4 m (tổng 36 m), xây năm 1974, đứng trên đỉnh thấp của Núi Nhỏ, nhìn ra biển. Bên trong có 133 bậc xoắn lên tới vai.
@@ -285,9 +268,6 @@ Còn lại: chữ bảng hiệu, song sắt, bóng đèn và nhà (T9, T10); ins
 
 **Bản nháp 2026-11-12** (`scripts/blender/mini/tuong_chua.py`, object `LM_TuongChua`, 1,144 tam giác):
 
-![Tượng Chúa, gần](img/v5_t5_tuong_chua.jpg)
-![Tượng Chúa, xa](img/v5_t5_tuong_chua_xa.jpg)
-
 - **Tượng:** cao 11.3 m trên bệ 4 m, đỉnh tượng ở 27.5 m so với mặt biển.
   - Áo dài có nếp gấp dọc (sâu ở gấu, nhạt dần lên ngực), dải thắt lưng.
   - Hai tay dang thẳng hơi chếch xuống, sải 7.4 m. Tay áo rộng rủ thành hai mảng dưới cánh tay.
@@ -298,15 +278,11 @@ Còn lại: chữ bảng hiệu, song sắt, bóng đèn và nhà (T9, T10); ins
 
 ## T6. Núi Lớn thoải hơn
 
-![Núi Lớn](img/v5r_12_nui_lon.jpg)
-
 - **Hiện tại:** vòm thấp 11 m, đỉnh có một mảng lát đá trống (code đặt mặt `stone` ở mọi đỉnh, kể cả khi không có công trình), sườn có mặt cắt gắt như Núi Nhỏ.
 - **Design:** đồi thấp 10–12 m, thoải hơn, dùng chung hàm của T3. Đỉnh phủ cây, không lát đá. Vài mỏm đá về phía Bãi Dâu. Bạch Dinh (#29, T12) nằm dưới chân phía đông, nhìn ra Bãi Trước.
 - **Xong khi:** ảnh `nui_lon` không còn mảng đá trống trên đỉnh.
 
 ## T7. Cầu Mống ở cuối Hàm Nghi
-
-![Cầu Hàm Nghi hiện tại](img/v5r_11_cau_ham_nghi.jpg)
 
 - **Hiện tại:** phần còn lại của `LM_Bridges`: một tấm phẳng 8 m có cọc lan can. Đầu tây dốc ngay trên ngã tư Tôn Đức Thắng (như lỗi cũ của cầu Ba Son); đầu đông đáp xuống lối đi bộ và bãi cỏ Thủ Thiêm, không nối vào đường nào.
 - **Thật:**
@@ -326,8 +302,6 @@ Còn lại: chữ bảng hiệu, song sắt, bóng đèn và nhà (T9, T10); ins
 - **Xong khi:** ảnh `cau_ham_nghi` và render nháp được duyệt. Không quá 6k tam giác.
 
 ## T8. Thủ Thiêm
-
-![Thủ Thiêm hiện tại](img/v5r_06_thu_thiem.jpg)
 
 - **Hiện tại:**
   - Một vòng đường như trường đua (x 105…233, y −53…127), bên trong là bãi cỏ với khoảng 140 cây rải ngẫu nhiên và hai ao nhỏ.
@@ -354,10 +328,6 @@ Còn lại: chữ bảng hiệu, song sắt, bóng đèn và nhà (T9, T10); ins
 - **Xong khi:** sơ đồ được duyệt, rồi ảnh `thu_thiem` được duyệt. Không quá 60k tam giác cho cả khu (tháp kính đơn giản, cây instancing).
 
 ## T9. Bộ nhà Sài Gòn (kit)
-
-![Nhà phố hiện tại](img/v5r_07_nha_pho.jpg)
-![Khu hẻm hiện tại](img/v5r_08_nha_hem.jpg)
-![Bùi Viện hiện tại](img/v5r_09_bui_vien.jpg)
 
 **Hiện tại** (`build_houses`, `build_house`): mọi căn đều dựng bằng `house_plain` của map v4 nên nhà kề nhau trông giống nhau.
 - Cùng độ sâu (11 m nhà phố, 9 m nhà hẻm), cùng mặt tiền thẳng hàng.
@@ -429,8 +399,6 @@ Luật trộn để một dãy nhìn như phố thật:
 
 ## T11. Khách sạn mini Bãi Sau, Bãi Trước
 
-![Vũng Tàu](img/v5r_10_vung_tau.jpg)
-
 - **Hiện tại:** dãy `SH_ks` dọc Bãi Sau (x 11…141, y −159…−146) là một bức tường liền gồm các khối `modern_block` giống nhau, cao gần bằng nhau. Dãy nhỏ hơn ở Bãi Trước (x −123…−61, y −123…−109) cũng vậy.
 - **Design:**
   - Kiểu KS của kit: khách sạn mini 6–9 tầng, ngang 6–8 m, ban công kính nhìn ra biển, bảng tên dọc, bồn nước trên mái, màu sáng.
@@ -481,9 +449,7 @@ Vẽ sơ đồ trước khi dựng.
 
 Khoa (2026-11-12): "viền của thành phố đang vuông ko giống một cái đảo lắm, restruct lại cho nhỏ hơn tí rồi cong tự nhiên hơn, bên khu thủ thiêm đang trống".
 
-![Đề xuất viền đảo mới; nét đứt đỏ là viền cũ](img/v5_coast_proposal.jpg)
-
-**Đề xuất** (`scripts/map/reshape_coast.py` tạo `scripts/map/saigon_mini_layout_proposal.json` từ layout hiện tại; sơ đồ `docs/img/saigon_mini_layout_proposal.svg`):
+**Đề xuất** (đã duyệt và dựng; script, layout và sơ đồ của đề xuất này đã xóa 2026-11-20, xem git):
 
 - **Viền đảo:** một đường cong khép kín qua các điểm đặt tay, không còn cạnh thẳng hay góc vuông.
   - Góc tây bắc cắt vát.
@@ -515,57 +481,6 @@ Khoa (2026-11-12): "viền của thành phố đang vuông ko giống một cái
   - bỏ các khối thô còn lại theo layout mới.
 - Các công trình mới ở Thủ Thiêm (#32–#36) sau đó cần model và duyệt riêng (như T12).
 - Xong thì layout đề xuất thay `saigon_mini_layout.json`.
-
-## Đã làm ngày 2026-11-12 (sau khi Khoa duyệt viền đảo)
-
-![Map sau khi dựng lại](img/v6_overview.jpg)
-![Nhìn từ trên](img/v6_top.jpg)
-
-- **Layout mới:** `scripts/map/saigon_mini_layout.json` là layout đã duyệt; bản đảo vuông cũ là `saigon_mini_layout_v1.json`. `reshape_coast.py` giữ cách làm, chạy lại được từ v1 nếu đổi điểm bờ.
-- **Dựng lại cả map:** `models/saigon_mini.blend`; bản trước lưu ở `versions/saigon_mini_v2.blend`. Map gồm viền mới, đường ven biển, Thủ Thiêm mới, cầu Ba Son, Núi Nhỏ, hải đăng, tượng Chúa và Dinh Thống Nhất.
-  - 512 căn nhà (trước 593).
-  - GLB qua `map:export`: 3.5 MB (gzip 1.07 MB).
-  - 1.26 triệu tam giác (nhà vẫn là phần lớn: T9, T10).
-- **`build_saigon_mini.py` thêm:**
-  - Nhà chỉ dựng trong `inland`.
-  - Công viên loại `flowers` (đồng hoa: luống xanh, đầu vàng) trong `CX_Flowers`.
-  - Đường xe đạp (promenade `kind: cycle`, mặt xanh `poGreen`).
-  - Đài phun giữa hồ (`fountain`).
-  - Mặt đất phẳng dưới hồ, đồng hoa và các vòng tròn `flats` (sân trước dinh), để cỏ nhấp nhô không phủ lên.
-  - `MODELLED_LANDMARKS` cũng bỏ hộp thô của các công trình đã có model.
-- **Dinh Thống Nhất:** `scripts/blender/mini/dinh_thong_nhat.py`, object `LM_DinhThongNhat` (3,736 tam giác) và `LF_DinhThongNhat` (đài phun, vòng sân, lối vào ra phố).
-
-![Dinh Thống Nhất](img/v6_dinh_34.jpg)
-![Dinh Thống Nhất, mặt tiền](img/v6_dinh.jpg)
-![Thủ Thiêm](img/v6_thu_thiem.jpg)
-
-## Layout v7 (2026-11-12): Vũng Tàu sang bờ đông, Bùi Viện về, không xe không người
-
-![Sơ đồ v7](img/v7_plan.jpg)
-![Toàn cảnh v7](img/v7_overview.jpg)
-
-Lý do (rà map theo góc nhìn game): đảo quá to cho game đi bộ, nhiều bãi cỏ chết (Thủ Thiêm, quanh Núi Lớn), Vũng Tàu nằm tận cuối map, thiếu phố Bùi Viện của bản trước.
-
-- **Layout:** `scripts/map/relayout_v7.py` làm `saigon_mini_layout.json` từ `saigon_mini_layout_v2.json` (bản trước, giữ lại). Đảo nhỏ hơn 9% (156 nghìn m², trước 172 nghìn m²).
-  - Sông chảy thẳng ra biển phía nam. Bờ tây (thành phố) dừng ở bờ biển phía nam; đường ven biển chạy vòng bắc, tây, nam, nối Tôn Đức Thắng dọc sông.
-  - Bỏ: Núi Lớn, Bãi Dâu, Bạch Dinh, phố Vũng Tàu cũ và các bãi cỏ giữa chúng. Giữ Chợ Lớn, bến xe.
-  - Bờ đông: Thủ Thiêm ở nửa bắc như cũ; Vũng Tàu ở nửa nam thành một mũi đất như thật: Núi Nhỏ ở mũi (tượng, hải đăng), Bãi Sau dọc bờ đông (Thùy Vân, khách sạn, dù), Bãi Trước ở bờ tây cạnh cửa sông (Quang Trung, ghe neo), Hòn Bà ngoài khơi, một khu phố nhỏ và hai công viên.
-  - Núi Nhỏ, đường Hạ Long, bậc thang, tượng Chúa, hải đăng được dời nguyên khối +189 m theo x (`designMove` của núi trong layout). `nui_nho.py`, `hai_dang.py`, `tuong_chua.py` vẫn dựng theo số đã duyệt rồi dời mesh, nên hình dáng không đổi.
-  - Thủ Thiêm: nhà thờ Thủ Thiêm dời lên (405, 243); rừng dừa nước bên sông; một dải cây ven biển phía đông Mai Chí Thọ.
-- **Phố Bùi Viện:** khối phố v4 Khoa thích (hai dãy nhà, quán bar, bảng hiệu, mái hiên, ghế nhựa, đèn dây, lồng đèn, cổng PHỐ ĐI BỘ BÙI VIỆN) đem về nguyên khối, chỉ dời, không xoay.
-  - Đặt ở đầu đông của phố, cổng mở ra Tôn Đức Thắng và sông. Phố đi bộ dời xuống y 270, rộng 15 m; đoạn phía tây vẫn là dãy bar dựng bằng kit.
-  - `scripts/blender/mini/extract_bui_vien.py` tách khối phố một lần từ `models/temp.sg.tinymap.blend` sang `models/bui_vien_v4.blend` (bỏ người, xe máy, xe van). `bui_vien.py` (MINI_SCRIPTS) đặt nó vào map: `SH_BuiVien` 85 nghìn tam giác, `SH_BuiVien_Lights` 7 nghìn.
-  - Lưu ý: `*.blend` đang bị `.gitignore`, nên `models/bui_vien_v4.blend` cần được giữ cùng `saigon_mini.blend`.
-- **Không xe, không người** (để làm NPC bằng code): `build_props` không dựng xe máy đậu nữa (trước 181 chiếc); `no_figures.py` gỡ người ngồi ở Hồ Con Rùa; khối Bùi Viện đã bỏ người và xe. Còn giữ: đèn đường, ghế nhựa, dù bãi biển, ghe neo ở Bãi Trước (cảnh). `kit.strip_figures` dùng chung: người nhận ra từ đầu màu da, xe máy từ cặp bánh.
-- **Dựng lại:** `models/saigon_mini.blend` (bản v6 lưu ở `versions/saigon_mini_v3.blend`). 505 căn nhà, 403 cây đường phố. GLB qua `map:export`: 3.65 MB (gzip 1.12 MB), 1.33 triệu tam giác, đã thử nạp bằng three.js với MeshoptDecoder.
-- **Góc review mới** trong `review_shots.py`: `vung_tau`, `bui_vien`, `bui_vien_34`, `bai_sau`, `bai_truoc`, `bo_nam`, `ho_con_rua`; các góc núi, tượng, hải đăng đã dời theo.
-
-![Vũng Tàu](img/v7_vung_tau.jpg)
-![Bãi Sau](img/v7_bai_sau.jpg)
-![Phố Bùi Viện](img/v7_bui_vien.jpg)
-![Bùi Viện nhìn chéo](img/v7_bui_vien_34.jpg)
-![Bờ nam thành phố](img/v7_bo_nam.jpg)
-![Hồ Con Rùa không còn người](img/v7_ho_con_rua.jpg)
 
 ## Layout v8 (2026-11-12): map chính hiện tại
 

@@ -75,7 +75,7 @@ PAL = {
     'earthDark': '#5F4735', 'leaf': '#6E9B4C', 'leafLight': '#93B85F', 'leafDark': '#4D7539', 'bark': '#6B4C36',
     'lampGlow': '#FFE6A8', 'signRed': '#B83A2B', 'signGold': '#D9B45A', 'clothBlue': '#4D6E9A', 'shopDark': '#40342D',
     'sigRed': '#C8553D', 'sigAmber': '#E3A33B', 'sigGreen': '#5FA77A', 'sea': '#3F8399', 'foam': '#F1F3EE',
-    # other keys the kept landmark models use (saigon_diorama_01_setup.py / edit_v4_buivien.py)
+    # other keys the kept landmark models use (saigon_diorama_01_setup.py / the v4 edits, edit_v4_buivien.py in git history)
     'lotusTop': '#E6D29C', 'clockWhite': '#F3EEE2', 'creamShade': '#D9C394', 'roofRedLight': '#C0613F', 'brownText': '#5E3F26',
     'pavingDark': '#A69D8A', 'earth': '#8E6D4E', 'tinWhite': '#DDE4E7', 'lantern': '#C8372D', 'wood': '#8A5E3C', 'metal': '#6B6F73',
     'pipeYellow': '#C9A03D', 'clothRed': '#B84A3A', 'clothYellow': '#E0B648', 'skin': '#E7B897', 'hair': '#2E2622',

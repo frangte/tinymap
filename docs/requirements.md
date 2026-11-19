@@ -102,7 +102,7 @@ Khoa yêu cầu sau khi duyệt cầu Ba Son:
 - Bỏ khối Cổng Trời ở mũi nam.
 - Chia thành task nhỏ nhưng giữ bối cảnh.
 
-Đã rà map (ảnh `docs/img/v5r_*.jpg`), đo GLB (1.39 triệu tam giác, 19 MB qua pipeline hiện tại, 3.7 MB khi nén meshopt) và chia thành T0–T14 trong [map-v5-tasks.md](map-v5-tasks.md). Mỗi task ghi hiện trạng, tư liệu thật, design đề xuất, cách dựng và điều kiện xong. Chờ Khoa duyệt thứ tự và 5 câu hỏi cuối file đó.
+Đã rà map (ảnh `docs/img/v5r_*.jpg`, đã xóa 2026-11-20, xem git), đo GLB (1.39 triệu tam giác, 19 MB qua pipeline hiện tại, 3.7 MB khi nén meshopt) và chia thành T0–T14 trong [map-v5-tasks.md](map-v5-tasks.md). Mỗi task ghi hiện trạng, tư liệu thật, design đề xuất, cách dựng và điều kiện xong. Chờ Khoa duyệt thứ tự và 5 câu hỏi cuối file đó.
 
 ## R9. Vẽ lại chi tiết Hồ Con Rùa, Bến Nhà Rồng, Dinh Độc Lập (2026-11-18, đã dựng, chờ Khoa xem)
 
@@ -181,6 +181,12 @@ thực hành bằng xe của trường trên đường Thủ Thiêm vì chưa c�
 10%), đăng ký ở văn phòng Crab với Chị Vy; vai tài xế bỏ, tài xế cũ giữ xe, đồng phục, bằng. Khách NPC đặt xe khi không
 có khách thật. Chưa làm: tài xế NPC và Chú Sáu chở xe ôm khi không ai nhận cuốc (cần đồ thị đường, cùng R4), sân tập
 lái (chờ duyệt model).
+
+## R11. Truyện có tình tiết bất ngờ và Xưởng truyện để Khoa tự design (2026-11-20, chờ chốt)
+
+Khoa: truyện hiện quá dễ đoán; cần một UI hay flow để design truyện trên đó, và thêm nhiều tình tiết "không nhặt được
+mồm". Đề xuất (cờ truyện, nhiều kết cục, sự kiện trễ, manh mối, biến thể riêng mỗi người, quest ẩn; trang Xưởng truyện
+chạy cùng `npm run dev`) và các câu cần chốt: [design/14-story-tools.md](design/14-story-tools.md). Chưa làm gì.
 
 ## Thứ tự đề xuất
 

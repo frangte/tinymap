@@ -1,0 +1,79 @@
+# Xưởng truyện và tình tiết bất ngờ (đề xuất 2026-11-20, chờ Khoa chốt)
+
+## Ý của Khoa
+
+> "các câu chuyện bây giờ vẫn rất dễ đoán, tao cần một UI hay flow story có thể design trên đó luôn. m nghĩ thử xem
+> làm cách nào để dễ cho tao design story. tao muốn thêm nhiều yếu tố tình tiết kiểu ko nhặt được mồm ấy"
+
+Hai việc: (1) engine cho phép truyện có twist, rẽ nhánh, hậu quả; (2) một giao diện để Khoa tự design truyện trên đó.
+
+## Vì sao truyện hiện dễ đoán
+
+- **Lựa chọn không để lại gì.** Engine chỉ nhớ ba thứ: quyền (capabilities, `archetypes.json`, cấp bởi đồ, phí và
+  thưởng quest), quest đã xong, và `Marks` (điểm tạm trong một cuộc nói chuyện, `server/internal/dialogue`, mất khi
+  nói xong). Một câu trả lời chỉ gửi được tín hiệu (`emit`) để xong một mục tiêu; nó không ghi lại được "người chơi đã
+  chọn gì", nên truyện sau đó vẫn đi một đường.
+- **Quest nào cũng thẳng một mạch:** `requires` → mục tiêu theo thứ tự → thưởng. Có mũi tên (`at`) chỉ tới đích, không
+  có thất bại, không có kết cục khác.
+- **NPC luôn nói thật**, nói gì thì đúng y vậy.
+- **Một chương nằm rải trong 3–4 file JSON** (`quests.json`, `dialogue/*.json`, `contacts.json`, `items.json`), nên
+  khó nhìn thấy cả mạch truyện.
+
+## Phần 1: engine thêm 6 thứ để có tình tiết
+
+1. **Cờ truyện.** Câu trả lời, nút thoại hay quest xong ghi một cờ cho nhân vật (`set: {"tra_xe_chu_sau": true}`, hoặc
+   số: `than_chu_sau: +1`), lưu trong DB (bảng mới, theo nhân vật). Lời thoại, lựa chọn, quest và tin nhắn đọc cờ
+   (`if`) để đổi theo. Là nền cho mọi thứ dưới đây. Câu thoại hiện đã có biến thể theo xuất phát và capability
+   (`say` theo key); cờ là thêm một loại key nữa.
+2. **Nhiều kết cục.** Một quest kết thúc theo một trong vài kết cục (`outcomes`); quest sau cần một kết cục cụ thể
+   (`requires: ["chuong_4.chiec_xe:tra_xe"]`) thay vì chỉ cần quest đã xong.
+3. **Sự kiện trễ.** "Khi X xảy ra, sau N cuốc / N việc / qua ngày mới (giờ Sài Gòn) thì: một tin nhắn, cuộc gọi từ số
+   lạ, NPC xuất hiện chỗ khác." Chuyện cũ quay lại lúc người chơi đã quên. Chạy trong quest service như các mục tiêu,
+   không cần đồng hồ riêng của server (như việc vặt: hết giờ thì lần làm tiếp theo mới xóa).
+4. **Manh mối trong Sổ tay.** Gom những điều nghe được (một tab mới, như Sổ sưu tầm). Có lựa chọn chỉ hiện khi đang giữ
+   đúng manh mối (kiểu "đưa bằng chứng ra").
+5. **Biến thể riêng mỗi người.** Truyện bốc A hoặc B một lần cho mỗi nhân vật (theo id nhân vật, cố định), nên người
+   chơi trước không spoil được người sau.
+6. **Quest ẩn.** Không có mũi tên, tên là "???" cho tới khi phát hiện.
+
+Đề xuất làm trước: 1, 2, 3.
+
+### Ví dụ twist dùng nhân vật có sẵn (mẫu, Khoa là tác giả)
+
+- **Chiếc xe của Chú Tám.** Chú Sáu nhìn xe mình mới mua rồi im lặng: đó là chiếc xe ông bị mất trộm mấy năm trước.
+  Câu "xe zin, chục năm chưa hư" và "Đừng nói với ai nghen!" của Chú Tám (`dialogue/chu_tam.json`) đã có sẵn từ đầu,
+  giờ mới hiểu nghĩa. Lựa chọn: trả xe, giữ xe, hay đi hỏi Chú Tám; mỗi kết cục mở một chương 5 khác. Dùng 1, 2, 4.
+- **Tiền của Má.** Má nhắn nhầm vào máy mình: "Anh Sáu ơi, tháng này em chưa gửi tiền cho thằng nhỏ được, anh ứng giùm
+  em…". Hóa ra 100.000đ lúc đầu (`story.goi_ve_cho_ma`) là tiền của Chú Sáu. Dùng 3.
+- **Vị khách nửa đêm.** Khách NPC đi Bùi Viện lúc khuya, bỏ quên gói đồ trên xe. Mở ra, trả lại, hay báo công an? Gói
+  đồ vô hại (quà sinh nhật) hay mờ ám là do mục 5 bốc cho từng người. Dùng 1, 2, 5.
+
+## Phần 2: Xưởng truyện, trang design trong repo
+
+Chạy cùng `npm run dev` (một trang riêng, chỉ trên máy dev, không vào bản production), đọc và ghi thẳng vào
+`server/content/*.json`, nên thay đổi xem được bằng git diff và server đọc như bây giờ.
+
+- **Bản đồ truyện:** chương là cột, quest là thẻ, mũi tên là "cần quest nào xong" hoặc "kết cục nào dẫn đi đâu", màu theo
+  xuất phát. Nhìn một lần thấy đoạn nào thẳng tuột, đoạn nào rẽ nhánh.
+- **Bấm vào quest hay NPC** thì thấy lời thoại dạng sơ đồ (ô lời nói, mũi tên lựa chọn). Sửa chữ vi/en ngay trên ô, kéo
+  mũi tên để nối lại, gắn cờ, manh mối, kết cục bằng menu.
+- **Bảng cờ và manh mối:** mỗi cờ bật ở đâu, đọc ở đâu.
+- **Kiểm lỗi:** đánh dấu đỏ chỗ nối hỏng, cờ được đọc mà không ai bật, nút không tới được, câu thiếu tiếng Anh (cùng
+  luật với kiểm tra nội dung của server, `server/content/*_test.go`).
+- **Chơi thử từ đây:** chọn một điểm trong truyện, bật sẵn các cờ, mở game với một nhân vật test ở đúng trạng thái đó.
+
+Không dùng Twine, Ink hay articy: chúng không biết NPC, địa điểm, đồ trong game, phải chuyển qua lại và mất thông tin.
+
+## Thứ tự đề xuất
+
+1. **Bản đồ truyện chỉ xem**, vẽ từ JSON hiện có. Nhỏ, làm nhanh, thấy ngay chỗ truyện thẳng.
+2. **Engine:** cờ, kết cục, sự kiện trễ, manh mối, có test Go. Làm song song với bước 1.
+3. **Xưởng truyện sửa được**, có kiểm lỗi và chơi thử. Phần lớn nhất.
+4. Viết thử chương "Chiếc xe của Chú Tám" bằng Xưởng truyện để thử công cụ; sau đó Khoa viết tiếp.
+
+## Cần Khoa chốt
+
+1. **Kiểu design:** kéo thả sơ đồ (đề xuất), gõ kịch bản dạng chữ rồi trang tự vẽ sơ đồ, hay cả hai?
+2. **Cơ chế:** làm hết 6, hay chọn vài cái trước (đề xuất 1, 2, 3)?
+3. **Tông truyện:** ba twist mẫu có hợp không, hay tông khác (hài, cảm động, noir)?
+4. Có muốn một mockup Xưởng truyện bấm thử được trước khi code thật không?
