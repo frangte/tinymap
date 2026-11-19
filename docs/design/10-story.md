@@ -58,10 +58,11 @@ Khoa chốt (2026-11-19): các xuất phát không cùng một mục tiêu. Ngư
 
 - **Nam hay nữ:** đã có (`man`, `woman` trong `src/game/outfits.ts`).
 - **Xuất phát:** Người từ quê lên (lập nghiệp), Người Sài Gòn gốc, hoặc Người nước ngoài (du khách ba lô). Đổi được trong game bằng nút "Đổi vai" như bây giờ (Khoa chốt 2026-11-19). Hai kiểu người Việt đều mang tag `citizen` cho quest; người từ quê lên thêm một tag riêng cho chuỗi lập nghiệp.
-- Tên, rồi bảng thay đồ đang có, chỉ với đồ thường (áo thun, sơ mi). Đồng phục Crab chỉ có khi đăng ký.
+  - **Đã làm (2026-11-19):** ba xuất phát là `newcomer`, `citizen` (Người Sài Gòn gốc) và `traveler` (Người nước ngoài) trong `archetypes.json`; lần chọn đầu chỉ hiện ba xuất phát, "Đổi vai" hiện thêm tài xế Crab (`"job": true`) cho tới chương 3. Người từ quê lên có tag `citizen` và `newcomer`, người Sài Gòn gốc có `citizen` và `native`. Quest cần thói quen hay hiểu biết của dân gốc (Cà phê sáng, Thổ địa, thành tích Người chỉ đường) chuyển sang tag `native`; Chuyện khu phố, Chào hàng xóm, Tập thể dục và các nhiệm vụ hằng ngày của `citizen` giữ nguyên cho cả người từ quê lên. Quyền chỉ đường (`directions.give`) chỉ người gốc có.
+- Tên, rồi bảng thay đồ đang có, chỉ với đồ thường (áo thun, sơ mi). (Đã làm: lần đầu bảng chỉ hiện áo thun, sơ mi và các mũ thường: nón kết, mũ tai bèo, tóc búi, không nón; ai cũng bắt đầu bằng áo thun hoặc sơ mi, không còn nón lá hay áo bà ba.) Đồng phục Crab chỉ có khi đăng ký.
 - Người nước ngoài cần thêm màu da và màu tóc (vàng, nâu, đỏ). Hiện chỉ có một màu da `#C68D66`; màu mới phải được duyệt theo bảng PAL.
 - Ngôn ngữ giao diện vẫn là cài đặt riêng (D19), không theo xuất phát: người Việt chơi nhân vật nước ngoài được, và ngược lại.
-- **Xưng hô:** NPC lớn tuổi gọi người chơi là "con", không theo giới; người ngang tuổi gọi "anh" hay "chị" theo giới. Lời thoại cần thêm một biến xưng hô (ví dụ `{anh_chi}`), như `{name}` đang có.
+- **Xưng hô:** NPC lớn tuổi gọi người chơi là "con", không theo giới; người ngang tuổi gọi "anh" hay "chị" theo giới. Lời thoại cần thêm một biến xưng hô (ví dụ `{anh_chi}`), như `{name}` đang có. (Đã làm: `{anh_chi}` thành "anh" hay "chị" theo thân hình, chỉ trong lời Việt; phần kiểm tra nội dung từ chối nó trong lời Anh.)
 
 ## 5. Chương 0: tới Sài Gòn
 

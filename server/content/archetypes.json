@@ -23,7 +23,7 @@
         "en": "Just off the bus at Chợ Lớn station with a backpack and a few hundred thousand đồng. Everyone can walk around and read the Notebook from the first minute; yours is to find a place to stay, buy a phone to call home, and make a living in Saigon."
       },
       "badge": { "short": { "vi": "Từ quê lên", "en": "Newcomer" }, "color": "#B5523B", "text": "#F3EBDD" },
-      "spawn": { "place": "ben_xe_cho_lon", "at": [-185, -82], "face": [-185, -60], "button": { "vi": "Về bến xe", "en": "Back to the bus station" } },
+      "spawn": { "place": "ben_xe_cho_lon", "at": [-177, -77.5], "face": [-177, -60], "button": { "vi": "Về bến xe", "en": "Back to the bus station" } },
       "look": { "outfit": "thun", "hat": "none" },
       "capabilities": ["citizen.community_app"]
     },

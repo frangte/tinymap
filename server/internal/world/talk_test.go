@@ -510,3 +510,44 @@ func TestTheWelcomeCarriesItems(t *testing.T) {
 		}
 	}
 }
+
+// Every NPC greets a newcomer with its default line (no variant is written for one), and the line reads right for
+// someone who just arrived: no placeholder left over, and nothing meant only for a neighbour or a native.
+func TestEveryNPCGreetsANewcomerWithItsDefaultLine(t *testing.T) {
+	h, _ := castHarness(t, nil)
+	for i, key := range []string{"co_ba", "chu_tu", "di_nam", "chi_hanh", "chu_sau"} {
+		n := h.npc(key)
+		p, _ := h.joinNear("Tay"+strconv.Itoa(i), "newcomer", n, 1.5, 0)
+		h.interact(p, n, 1)
+		fs, _ := h.drain(p)
+		in := only(t, fs, protocol.TypeInteraction)
+		if in.Say.VI == "" || in.Say.EN == "" || strings.ContainsAny(in.Say.VI+in.Say.EN, "{}") {
+			t.Errorf("%s greets a newcomer with %+v", key, in.Say)
+		}
+		// the line a native hears ("Ủa {name}...", "Như cũ hả con?") must not reach a newcomer
+		pc, _ := h.joinNear("Minh"+strconv.Itoa(i), "citizen", n, 1.5, 1)
+		h.interact(pc, n, 2)
+		natFrames, _ := h.drain(pc)
+		if nat := only(t, natFrames, protocol.TypeInteraction); nat.Say.VI == in.Say.VI {
+			t.Errorf("%s: the native's own greeting %q is the newcomer's too", key, nat.Say.VI)
+		}
+	}
+}
+
+// {anh_chi} follows the body of the player: Chị Hạnh greets a Crab driver as "anh" or "chị".
+func TestAnhChiInAGreetingFollowsTheBody(t *testing.T) {
+	h, _ := castHarness(t, nil)
+	hanh := h.npc("chi_hanh")
+	for _, tc := range []struct{ body, want, not string }{{"man", "Chào anh tài xế", "chị"}, {"woman", "Chào chị tài xế", "anh tài"}} {
+		x, z := h.near(hanh, 1.5, 0)
+		p, _ := h.join(Arrival{Name: "Tài", Arch: "driver", Character: "char-" + tc.body, Start: &protocol.Pose{X: x, Z: z},
+			Look: protocol.Look{Body: tc.body, Outfit: "crab", Hat: "helmet"}})
+		h.drain(p)
+		h.interact(p, hanh, 3)
+		fs, _ := h.drain(p)
+		in := only(t, fs, protocol.TypeInteraction)
+		if !strings.Contains(in.Say.VI, tc.want) || strings.Contains(in.Say.VI, tc.not) || strings.Contains(in.Say.EN, "{") {
+			t.Errorf("%s: %+v", tc.body, in.Say)
+		}
+	}
+}
