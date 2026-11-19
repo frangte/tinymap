@@ -72,6 +72,11 @@ func TestQuestsRejects(t *testing.T) {
 		{"an objective without text", file(quest(`objectives=[{"id": "go", "type": "reach_place", "params": {}}]`)), "text"},
 		{"a title reward that does not exist", file(quest(`rewards={"titles": ["nope"]}`)), "reward title"},
 		{"a capability reward that does not exist", file(quest(`rewards={"capability": "no.such"}`)), "reward capability"},
+		{"a job that is not a daily", file(quest("job=true")), "job is a daily"},
+		{"a job in a pool", file(quest("job=true;repeat=\"daily\";pool=\"p\"")), "no pool and no tags"},
+		{"a job for one origin", file(quest("job=true;repeat=\"daily\";tags_any=[\"traveler\"]")), "no pool and no tags"},
+		{"a job paying over the job cap", file(quest("job=true;repeat=\"daily\";rewards={\"xu\": 40001}")), "reward xu"},
+		{"a daily that is no job paying over the daily cap", file(quest("repeat=\"daily\";rewards={\"xu\": 20001}")), "reward xu"},
 		{"a title too long for a name tag", []byte(`{"titles": [{"id": "t", "name": {"vi": "` + strings.Repeat("a", TitleMax+1) + `"}}], "stamps": [], "achievements": [], "quests": []}`), "title"},
 	}
 	for _, c := range cases {
@@ -91,6 +96,13 @@ func TestQuestsRejects(t *testing.T) {
 	f.contacts = noContacts
 	if _, err := load(f); err != nil {
 		t.Fatalf("the base case: %v", err)
+	}
+	// a job may pay what a daily may not, and what the story quests may pay, but not more than the job cap
+	f = embedded()
+	f.quests, f.dialogues, f.npcs, f.items = file(quest(`job=true;repeat="daily";rewards={"xu": 40000}`)), map[string][]byte{}, []byte(`{"npcs": []}`), noItems
+	f.contacts = noContacts
+	if _, err := load(f); err != nil {
+		t.Fatalf("a job paying the job cap: %v", err)
 	}
 }
 

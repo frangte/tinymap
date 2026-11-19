@@ -1,0 +1,36 @@
+{
+  "id": "nguoi_di_duong",
+  "about": "Five people strolling on Nguyễn Huệ walking street (Anh Khôi, Chị Lan, Cô Hoa, Bạn Minh, Chú Hùng) share this dialogue. For the odd job job.phat_to_roi (Chị Hạnh's flyers, docs/design/13-jobs.md), the answer gated by the quest sends nhan_to_roi: the errand counts each of them once.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": { "vi": "Phố đi bộ Nguyễn Huệ hôm nay đông vui ghê ha!", "en": "Nguyễn Huệ walking street is lively today!" }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Mời bạn xem tờ rơi tour đi bộ miễn phí nè!", "en": "Would you like a flyer for a free walking tour?" }, "goto": "flyer", "emit": "nhan_to_roi", "requires_quest": "job.phat_to_roi" },
+        { "text": { "vi": "Phố đi bộ này có gì hay vậy?", "en": "What's good about this street?" }, "goto": "street" },
+        { "text": { "vi": "Dạ, chào bạn.", "en": "Nice to meet you." }, "goto": "bye" }
+      ]
+    },
+    "flyer": {
+      "say": {
+        "default": { "vi": "Ủa, tour đi bộ miễn phí hả? Hay đó, để mình coi. Cảm ơn bạn nghen!", "en": "A free walking tour? Nice, let me have a look. Thanks!" }
+      }
+    },
+    "street": {
+      "say": {
+        "default": { "vi": "Chiều tối người ta ra đây đi dạo, ngồi nghỉ, coi biểu diễn. Cuối tuần thường đông hơn nữa.", "en": "In the evening people come to stroll, sit and watch performances. Weekends are usually busier." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, cảm ơn bạn.", "en": "Thanks." }, "goto": "bye" }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": { "vi": "Ừ, đi chơi vui nha!", "en": "Have fun!" }
+      }
+    }
+  }
+}

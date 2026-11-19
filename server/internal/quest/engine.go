@@ -53,6 +53,8 @@ type track struct {
 	// daily: it starts over every day; pool, when set, is the pool it takes turns in
 	daily bool
 	pool  string
+	// job: an odd job (a daily that does not count toward the streak)
+	job bool
 }
 
 type goal struct {
@@ -94,7 +96,7 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 	refs := catalogRefs{c}
 	for _, q := range c.Quests {
 		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, unlessCaps: q.UnlessCaps, requiresCaps: q.RequiresCaps, requires: q.Requires, flow: q.Flow,
-			rewards: q.Rewards, texts: q.Texts, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool}
+			rewards: q.Rewards, texts: q.Texts, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool, job: q.Job}
 		if t.pool != "" {
 			e.pools[t.pool] = append(e.pools[t.pool], t.id)
 		}
@@ -360,12 +362,13 @@ func (e *Engine) Apply(p Player, b *Book, ev events.Event, now int64) Outcome {
 	queue := []events.Event{ev}
 	for steps := 0; len(queue) > 0 && steps < maxChain; steps++ {
 		ev, queue = queue[0], queue[1:]
+		ev.At = now
 		for _, id := range e.step(b, ev, now, &out) {
 			if isAchievement(id) || isCollection(id) {
 				continue
 			}
 			queue = append(queue, events.Event{Kind: events.QuestDone, Character: ev.Character, Quest: id})
-			if e.byID[id].daily && b.streakUp(day) {
+			if t := e.byID[id]; t.daily && !t.job && b.streakUp(day) {
 				s := b.Streak
 				out.Streak = &s
 				queue = append(queue, events.Event{Kind: events.DailyStreak, Character: ev.Character, Days: s.Days})

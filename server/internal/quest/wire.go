@@ -3,7 +3,9 @@ package quest
 import (
 	"sort"
 
+	"saigon-noir/server/internal/gameday"
 	"saigon-noir/server/internal/protocol"
+	"saigon-noir/server/internal/quest/objective"
 )
 
 // News kinds: what just happened, for the game to celebrate.
@@ -19,7 +21,8 @@ const (
 type News = protocol.News
 
 // progress is the whole of a character's quests as the game shows them on day, with what just happened.
-func (e *Engine) progress(b *Book, news []News, day string) []byte {
+func (e *Engine) progress(b *Book, news []News, now int64) []byte {
+	day := gameday.OfMilli(now)
 	title := b.Title
 	if !e.titles[title] {
 		title = ""
@@ -50,8 +53,18 @@ func (e *Engine) progress(b *Book, news []News, day string) []byte {
 		if !done {
 			q.N = map[string]int{}
 			for _, g := range t.goals {
-				if p := r.Objectives[g.id]; p != nil {
-					q.N[g.id] = p.N
+				p := r.Objectives[g.id]
+				if p == nil {
+					continue
+				}
+				q.N[g.id] = p.N
+				if run, ok := g.match.(objective.Runner); ok {
+					if left, on := run.Left(p, now); on {
+						if q.Left == nil {
+							q.Left = map[string]int{}
+						}
+						q.Left[g.id] = left
+					}
 				}
 			}
 		}

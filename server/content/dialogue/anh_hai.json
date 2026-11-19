@@ -1,0 +1,36 @@
+{
+  "id": "anh_hai",
+  "about": "Anh Hai drives the truck that brings goods to Bến Thành market. For the odd job job.khuan_hang (Cô Ba's parcels, docs/design/13-jobs.md), the answer gated by the quest sends lay_kien: he hands over a parcel to carry to Cô Ba's stall.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": { "vi": "Hàng mới về nè! Vải, nón lá, đồ lưu niệm, nặng muốn gãy lưng.", "en": "New goods! Fabric, nón lá, souvenirs, heavy enough to break your back." }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Cho con khuân một kiện vô sạp Cô Ba.", "en": "Let me carry a parcel to Cô Ba's stall." }, "goto": "load", "emit": "lay_kien", "requires_quest": "job.khuan_hang" },
+        { "text": { "vi": "Xe chở gì vậy anh Hai?", "en": "What's on the truck, Anh Hai?" }, "goto": "cargo" },
+        { "text": { "vi": "Dạ thôi, con đi nha.", "en": "I'll be off now." }, "goto": "bye" }
+      ]
+    },
+    "load": {
+      "say": {
+        "default": { "vi": "Đây, kiện này, ôm cho chắc! Đưa vô sạp Cô Ba rồi quay lại lấy kiện khác.", "en": "Here, this one, hold it tight! Take it to Cô Ba's stall, then come back for the next." }
+      }
+    },
+    "cargo": {
+      "say": {
+        "default": { "vi": "Hàng cho mấy sạp trong chợ: vải, nón lá, đồ lưu niệm. Sáng nào cũng có xe hàng về.", "en": "Goods for the stalls in the market: fabric, nón lá, souvenirs. A truck comes every morning." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con cảm ơn anh.", "en": "Thank you." }, "goto": "bye" }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": { "vi": "Ừ, rảnh thì ghé khuân phụ tui một tay!", "en": "Sure, lend me a hand when you have time!" }
+      }
+    }
+  }
+}

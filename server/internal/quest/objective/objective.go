@@ -21,6 +21,8 @@ type Progress struct {
 	N int `json:"n"`
 	// Seen are the distinct things already counted (places, NPCs, players), so the same one never counts twice
 	Seen []string `json:"seen,omitempty"`
+	// T is when a run began (unix milliseconds), for an objective that is taken and then timed (errand); 0: not taken
+	T int64 `json:"t,omitempty"`
 }
 
 func (p *Progress) Clone() *Progress {
@@ -53,6 +55,12 @@ type Matcher interface {
 	Listens() []events.Kind
 	// Advance applies an event; true when the progress changed. max is the objective's count.
 	Advance(ev events.Event, p *Progress, max int) bool
+}
+
+// Runner is a matcher that is taken before it counts (errand): Left says whether a run is on and, for one with a
+// time limit, how many seconds are left (-1 for no limit).
+type Runner interface {
+	Left(p *Progress, now int64) (seconds int, running bool)
 }
 
 // Type is a kind of objective.

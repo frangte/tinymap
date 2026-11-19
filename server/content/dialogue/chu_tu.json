@@ -16,8 +16,8 @@
         { "text": { "vi": "Cho con một ly cà phê sữa đá.", "en": "One iced milk coffee, please." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
         { "text": { "vi": "Dạ, con chào chú!", "en": "Hello, uncle! (polite “dạ”)" }, "goto": "hello", "emit": "phrase_da" },
         { "text": { "vi": "Cho con hỏi, ly cà phê sữa đá bao nhiêu tiền vậy chú?", "en": "Excuse me, how much is an iced milk coffee?" }, "goto": "coffee_price", "emit": "hoi_gia_ca_phe", "requires_quest": "traveler.an_nhu_nguoi_sai_gon" },
-        { "text": { "vi": "Cà phê sữa đá là sao chú?", "en": "What is cà phê sữa đá?" }, "goto": "explain" },
-        { "text": { "vi": "Quán mở lâu chưa chú?", "en": "How long has the café been here?" }, "goto": "history" },
+        { "text": { "vi": "Chú có việc gì cho con làm không?", "en": "Do you have any work for me?" }, "goto": "work" },
+        { "text": { "vi": "Con muốn hỏi chú vài chuyện.", "en": "I'd like to ask you a few things." }, "goto": "ask" },
         { "text": { "vi": "Dạ thôi, lát con ghé.", "en": "Not now, I'll come back later." }, "goto": "bye" }
       ]
     },
@@ -73,6 +73,42 @@
       "choices": [
         { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "enjoy" }
       ]
+    },
+    "ask": {
+      "say": {
+        "default": { "vi": "Hỏi gì chú cũng kể, con cứ hỏi.", "en": "Ask away, I'll tell you anything." }
+      },
+      "choices": [
+        { "text": { "vi": "Cà phê sữa đá là sao chú?", "en": "What is cà phê sữa đá?" }, "goto": "explain" },
+        { "text": { "vi": "Quán mở lâu chưa chú?", "en": "How long has the café been here?" }, "goto": "history" },
+        { "text": { "vi": "Dạ thôi, lát con ghé.", "en": "Not now, I'll come back later." }, "goto": "bye" }
+      ]
+    },
+    "work": {
+      "say": {
+        "default": { "vi": "Việc hả? Ca sáng thì chú nhận người ở lâu trong khu. Còn bưng ba ly cho khách ngoài phố thì ngày nào cũng có, mà chú chỉ nhờ mỗi người một chuyến một ngày nghen. Đá tan là hết ngon, bưng cho vững đó!", "en": "Work? The morning shift goes to people who stay in the neighbourhood. Carrying three coffees to customers on the street is there every day, but I only ask each person once a day. Ice melts and the coffee's ruined, so carry them steady!" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ chú, cho con xin làm ca sáng.", "en": "Please, may I work the morning shift?" }, "goto": "shift", "emit": "xin_viec_ca_sang", "requires_quest": "story.xin_viec_chu_tu" },
+        { "text": { "vi": "Chú ơi, con bưng xong rồi.", "en": "I've delivered them, uncle." }, "goto": "shift_done", "emit": "het_ca", "requires_quest": "story.xin_viec_chu_tu" },
+        { "text": { "vi": "Cho con bưng ba ly cà phê đi chú.", "en": "Let me carry the three coffees." }, "goto": "run", "emit": "nhan_viec_bung_ca_phe", "requires_quest": "job.bung_ca_phe" },
+        { "text": { "vi": "Dạ, để con coi lại.", "en": "I'll think about it." }, "goto": "bye" }
+      ]
+    },
+    "shift": {
+      "say": {
+        "default": { "vi": "Được, ca sáng chú nhận con! Hai ly này, một ly cho cô ở công viên 23/9, một ly cho khách ở phố Bùi Viện. Bưng cho vững, ly của khách quen đó, đổ là chú trừ lương! Xong thì về báo chú.", "en": "All right, you're on the morning shift! Two glasses: one for a lady at 23/9 Park, one for a customer on Bùi Viện. Carry them steady, they're for regulars, and if you spill I'll dock your pay! Report back when you're done." }
+      }
+    },
+    "shift_done": {
+      "say": {
+        "default": { "vi": "Giỏi! Ly nào cũng còn lạnh, không đổ giọt nào. Chú trả công con liền nghen.", "en": "Well done! Every glass still cold, not a drop spilled. I'll pay you right away." }
+      }
+    },
+    "run": {
+      "say": {
+        "default": { "vi": "Ba ly cà phê sữa đá nè, giao khách ở bùng binh, đường Hàm Nghi rồi đường Lê Lợi. Hai phút thôi, đá tan là khách chê. Lẹ chân lên con!", "en": "Three iced milk coffees: customers at the roundabout, on Hàm Nghi, then on Lê Lợi. Two minutes only, melted ice and they'll complain. Hurry!" }
+      }
     },
     "enjoy": {
       "say": {

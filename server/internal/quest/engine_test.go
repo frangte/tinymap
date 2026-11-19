@@ -98,6 +98,15 @@ func TestObjectiveParamsAreChecked(t *testing.T) {
 		{"buying a kind that does not exist", "buy_item", `{"kind": "car"}`, 1, "unknown item kind"},
 		{"buying one item twice", "buy_item", `{"item": "ifone_x"}`, 2, "count must be 1"},
 		{"buying more phones than there are", "buy_item", `{"kind": "phone"}`, 9, "only"},
+		{"an errand taken where nobody gives it", "errand", `{"npc": "co_ba", "signal": "free_money", "stops": [{"place": "ho_con_rua"}, {"place": "cho_ben_thanh"}]}`, 2, "no answer"},
+		{"an errand with one stop", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "stops": [{"place": "ho_con_rua"}]}`, 1, "at least 2"},
+		{"an errand whose count is not its stops", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "stops": [{"place": "ho_con_rua"}, {"place": "cho_ben_thanh"}]}`, 3, "number of stops"},
+		{"an errand with a stop that is a place and an NPC", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "stops": [{"place": "ho_con_rua", "npc": "co_ba"}, {"place": "cho_ben_thanh"}]}`, 2, "exactly one"},
+		{"an errand with a stop at an unknown place", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "stops": [{"place": "nowhere"}, {"place": "cho_ben_thanh"}]}`, 2, "unknown place"},
+		{"an errand with a stop signal nobody sends", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "stops": [{"npc": "co_ba", "signal": "free_money"}, {"place": "cho_ben_thanh"}]}`, 2, "no answer"},
+		{"an errand with a time limit too short", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "stops": [{"place": "ho_con_rua"}, {"place": "cho_ben_thanh"}], "seconds": 5}`, 2, "seconds"},
+		{"an errand in free order that repeats a stop", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "order": "free", "stops": [{"place": "ho_con_rua"}, {"place": "ho_con_rua"}]}`, 2, "duplicate"},
+		{"an errand in an order nobody knows", "errand", `{"npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "order": "random", "stops": [{"place": "ho_con_rua"}, {"place": "cho_ben_thanh"}]}`, 2, "order"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -384,7 +393,7 @@ func TestProgressLeavesOutWhatQuestsJSONNoLongerHas(t *testing.T) {
 	b := NewBook(Saved{Titles: []string{"gone_title", "tho_dia"}, Stamps: []string{"gone_stamp", "ba_ngay_lien"}, Title: "gone_title",
 		Records: []Record{{ID: "gone.quest", Version: 1, State: StateActive}}})
 	var p protocol.Progress
-	if err := json.Unmarshal(e.progress(b, nil, "2026-11-19"), &p); err != nil {
+	if err := json.Unmarshal(e.progress(b, nil, noon(19)), &p); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(p.Titles, []string{"tho_dia"}) || !slices.Equal(p.Stamps, []string{"ba_ngay_lien"}) || p.Title != "" {
@@ -422,7 +431,7 @@ func TestACollectionEntryIsFoundOnceAndStaysHidden(t *testing.T) {
 		t.Fatalf("collected twice: %+v", again)
 	}
 	var p protocol.Progress
-	if err := json.Unmarshal(r.e.progress(r.book, nil, "2026-11-19"), &p); err != nil {
+	if err := json.Unmarshal(r.e.progress(r.book, nil, noon(19)), &p); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(p.Collection, []string{"xin_chao"}) {
@@ -451,7 +460,7 @@ func TestProgressLeavesOutCollectionEntriesNoLongerInTheFile(t *testing.T) {
 		{ID: collectionPrefix + "da", Version: 1, State: StateActive},
 	}})
 	var p protocol.Progress
-	if err := json.Unmarshal(e.progress(b, nil, "2026-11-19"), &p); err != nil {
+	if err := json.Unmarshal(e.progress(b, nil, noon(19)), &p); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(p.Collection, []string{"xin_chao"}) {

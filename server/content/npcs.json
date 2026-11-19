@@ -130,6 +130,78 @@
       "mode": "private",
       "dialogue": "co_kim",
       "reach": 3
+    },
+    {
+      "id": "anh_hai",
+      "name": "Anh Hai",
+      "role": { "vi": "lái xe tải chở hàng vô chợ", "en": "drives the delivery truck to the market" },
+      "look": { "body": "man", "outfit": "thun", "hat": "cap" },
+      "place": "cho_ben_thanh",
+      "at": [-34, 40],
+      "face": [-30, 35],
+      "mode": "private",
+      "dialogue": "anh_hai",
+      "reach": 3
+    },
+    {
+      "id": "anh_khoi",
+      "name": "Anh Khôi",
+      "role": { "vi": "đi dạo phố đi bộ Nguyễn Huệ", "en": "strolling on Nguyễn Huệ" },
+      "look": { "body": "man", "outfit": "thun", "hat": "cap" },
+      "place": "pho_di_bo_nguyen_hue",
+      "at": [-50, 94],
+      "face": [-50, 88],
+      "mode": "private",
+      "dialogue": "nguoi_di_duong",
+      "reach": 3
+    },
+    {
+      "id": "chi_lan",
+      "name": "Chị Lan",
+      "role": { "vi": "đi dạo phố đi bộ Nguyễn Huệ", "en": "strolling on Nguyễn Huệ" },
+      "look": { "body": "woman", "outfit": "somi", "hat": "none" },
+      "place": "pho_di_bo_nguyen_hue",
+      "at": [-32, 88],
+      "face": [-32, 94],
+      "mode": "private",
+      "dialogue": "nguoi_di_duong",
+      "reach": 3
+    },
+    {
+      "id": "co_hoa",
+      "name": "Cô Hoa",
+      "role": { "vi": "du khách dạo phố đi bộ", "en": "a visitor on the walking street" },
+      "look": { "body": "woman", "outfit": "hoa", "hat": "bucket" },
+      "place": "pho_di_bo_nguyen_hue",
+      "at": [-14, 94],
+      "face": [-14, 88],
+      "mode": "private",
+      "dialogue": "nguoi_di_duong",
+      "reach": 3
+    },
+    {
+      "id": "ban_minh",
+      "name": "Bạn Minh",
+      "role": { "vi": "đi dạo phố đi bộ Nguyễn Huệ", "en": "strolling on Nguyễn Huệ" },
+      "look": { "body": "man", "outfit": "somi", "hat": "bucket" },
+      "place": "pho_di_bo_nguyen_hue",
+      "at": [4, 88],
+      "face": [4, 94],
+      "mode": "private",
+      "dialogue": "nguoi_di_duong",
+      "reach": 3
+    },
+    {
+      "id": "chu_hung",
+      "name": "Chú Hùng",
+      "role": { "vi": "du khách dạo phố đi bộ", "en": "a visitor on the walking street" },
+      "look": { "body": "man", "outfit": "hoa", "hat": "nonla" },
+      "place": "pho_di_bo_nguyen_hue",
+      "at": [22, 94],
+      "face": [22, 88],
+      "mode": "private",
+      "dialogue": "nguoi_di_duong",
+      "reach": 3
     }
   ]
 }

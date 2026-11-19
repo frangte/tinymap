@@ -381,7 +381,7 @@ func (s *Service) chooseTitle(ctx context.Context, character string, p *player, 
 }
 
 func (s *Service) send(character string, b *Book, news []News, now int64) {
-	s.world.Deliver(character, s.engine.progress(b, news, gameday.OfMilli(now)))
+	s.world.Deliver(character, s.engine.progress(b, news, now))
 	s.world.SetQuests(character, b.Active())
 }
 

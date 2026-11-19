@@ -16,6 +16,7 @@
         { "text": { "vi": "Kể về Nhà hát Thành phố đi chị.", "en": "Tell us about the Opera House." }, "goto": "opera" },
         { "text": { "vi": "Quảng trường này có gì hay?", "en": "What's special about this square?" }, "goto": "square" },
         { "text": { "vi": "Nên đi đâu tiếp theo chị?", "en": "Where should we go next?" }, "goto": "next" },
+        { "text": { "vi": "Chị có việc gì cho em làm không?", "en": "Do you have any work for me?" }, "goto": "work" },
         { "text": { "vi": "Cảm ơn chị, để bữa khác.", "en": "Thanks, another time." }, "goto": "bye" }
       ]
     },
@@ -51,6 +52,20 @@
         "default": { "vi": "Cảm ơn cả nhóm nha! Đi chơi vui, nhớ chụp hình thật nhiều!", "en": "Thank you all! Have fun, and take lots of photos!" }
       },
       "emote": "bow"
+    },
+    "work": {
+      "say": {
+        "default": { "vi": "Có đó! Chị cần người phát tờ rơi tour đi bộ trên phố Nguyễn Huệ. Mỗi ngày một đợt thôi, đâu ai bắt phát hoài.", "en": "Yes! I need someone to hand out walking-tour flyers on Nguyễn Huệ. One round a day, nobody expects you to hand out flyers forever." }
+      },
+      "choices": [
+        { "text": { "vi": "Em nhận phát tờ rơi cho chị.", "en": "I'll hand out the flyers." }, "goto": "flyers", "emit": "nhan_viec_phat_to_roi", "requires_quest": "job.phat_to_roi" },
+        { "text": { "vi": "Dạ, để em coi lại.", "en": "I'll think about it." }, "goto": "bye" }
+      ]
+    },
+    "flyers": {
+      "say": {
+        "default": { "vi": "Đây xấp tờ rơi, phát cho 5 người đang đi dạo trên phố đi bộ Nguyễn Huệ nha. Nhớ cười tươi, nói “mời bạn xem tour” cho lịch sự!", "en": "Here are the flyers: give them to 5 people strolling on Nguyễn Huệ walking street. Smile, and say \"come and see our tour\" nicely!" }
+      }
     },
     "bye": {
       "say": {

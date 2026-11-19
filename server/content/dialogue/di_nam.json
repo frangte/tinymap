@@ -17,6 +17,7 @@
         { "text": { "vi": "Một bịch bao nhiêu tiền vậy dì?", "en": "How much is one bag, auntie?" }, "goto": "price", "emit": "hoi_gia_banh_trang", "requires_quest": "traveler.an_nhu_nguoi_sai_gon" },
         { "text": { "vi": "Trong đó có gì vậy dì?", "en": "What's in it?" }, "goto": "what" },
         { "text": { "vi": "Sao gọi là Hồ Con Rùa vậy dì?", "en": "Why is it called Turtle Lake?" }, "goto": "lake" },
+        { "text": { "vi": "Dì có việc gì cho con làm không?", "en": "Do you have any work for me?" }, "goto": "work" },
         { "text": { "vi": "Dạ thôi dì.", "en": "No thanks." }, "goto": "bye" }
       ]
     },
@@ -81,6 +82,20 @@
       "choices": [
         { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you!" }, "goto": "bye" }
       ]
+    },
+    "work": {
+      "say": {
+        "default": { "vi": "Giao bánh tráng hả? Có chứ! Dì chỉ nhờ mỗi người một chuyến một ngày thôi nghen.", "en": "Delivering bánh tráng? Sure! I only ask each person for one run a day." }
+      },
+      "choices": [
+        { "text": { "vi": "Cho con giao bánh tráng giùm dì.", "en": "Let me deliver them for you." }, "goto": "deliver", "emit": "nhan_viec_giao_banh_trang", "requires_quest": "job.giao_banh_trang" },
+        { "text": { "vi": "Dạ, để con coi lại.", "en": "I'll think about it." }, "goto": "bye" }
+      ]
+    },
+    "deliver": {
+      "say": {
+        "default": { "vi": "Hai bịch nè: một cho công viên 30/4, một cho Nhà thờ Đức Bà. Bốn phút thôi, kẻo bánh nhão!", "en": "Two bags: one for April 30 Park, one for Notre-Dame. Four minutes, or they go soggy!" }
+      }
     },
     "bye": {
       "say": {

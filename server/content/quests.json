@@ -1,6 +1,7 @@
 {
   "about": "Quests, achievements, titles and stamps (docs/design/03-domain-model.md, Quest). Shared by the server (server/internal/quest runs them) and the game (src/game/quests.ts shows them). A quest starts by itself once it is available: the character has one of tags_any (archetypes.json) and has completed every quest in requires. flow: sequence (objectives in order), all, or any. An objective's type is one of the objective types in server/internal/quest/objective (each checks its params); count is how many times it must happen (distinct places, NPCs or players where that makes sense; seconds for stay_place, metres for ride_distance). at is where the tracker points: a place or an NPC id. Rewards: titles, stamps, a capability, xu. repeat: \"daily\" starts a quest over every day (Saigon time); dailies in one pool take turns, one a day (picked by the date), and a daily without a pool runs every day. Dailies give xu and stamps, never titles or capabilities. Stamps in the set \"streak\" are for days of dailies in a row (daily_streak). An achievement is a passive quest with one objective, open to everyone with one of its tags (or everyone without tags). Ids are stable: progress is stored by quest and objective id, so rename text freely but never an id.",
   "titles": [
+    { "id": "phuc_vu_chu_tu", "name": { "vi": "Phục vụ quán Chú Tư", "en": "Chú Tư's waiter" } },
     { "id": "khach_quen", "name": { "vi": "Khách quen quán Chú Tư", "en": "Regular at Chú Tư's" } },
     { "id": "nguoi_trong_xom", "name": { "vi": "Người trong xóm", "en": "One of the neighbourhood" } },
     { "id": "nguoi_day_som", "name": { "vi": "Người dậy sớm", "en": "Early riser" } },
@@ -421,7 +422,8 @@
         }
       ],
       "rewards": {
-        "xu": 100000
+        "xu": 100000,
+        "capability": "traveler.settled"
       }
     },
     {
@@ -557,6 +559,25 @@
         { "id": "ride", "type": "trip", "params": { "role": "passenger" }, "text": { "vi": "Đi một cuốc Crab tới nơi", "en": "Ride a Crab to your destination" } }
       ],
       "rewards": { "titles": ["khach_crab"] }
+    },
+    {
+      "id": "story.xin_viec_chu_tu",
+      "version": 1,
+      "questline": "viec_vat",
+      "title": { "vi": "Xin việc quán Chú Tư", "en": "A job at Chú Tư's" },
+      "about": { "vi": "Quán Chú Tư thiếu người bưng ca sáng. Xin việc, bưng cà phê cho khách trong khu phố cho vững tay rồi về báo Chú Tư.", "en": "Chú Tư's café needs someone for the morning shift. Ask for the job, carry coffee to customers around the neighbourhood with a steady hand, then report back." },
+      "tags_any": ["citizen"],
+      "requires_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "shift", "type": "errand", "params": { "npc": "chu_tu", "signal": "xin_viec_ca_sang", "stops": [{ "place": "cong_vien_23_9" }, { "place": "pho_di_bo_bui_vien" }, { "npc": "chu_tu", "signal": "het_ca" }], "seconds": 300 }, "count": 3, "text": { "vi": "Làm ca sáng quán Chú Tư: bưng cà phê ra công viên 23/9 và phố Bùi Viện, rồi về báo Chú Tư", "en": "Work the morning shift at Chú Tư's: carry coffee to 23/9 Park and Bùi Viện, then report back to him" }, "at": "chu_tu" }
+      ],
+      "rewards": { "titles": ["phuc_vu_chu_tu"], "xu": 100000 },
+      "texts": {
+        "on_done": [
+          { "from": "chu_tu", "text": { "vi": "Bưng vững lắm con! Ngày nào rảnh cứ ghé nhận một chuyến, chú trả công liền.", "en": "A steady pair of hands! Any day you're free, take a run and I'll pay you right away." } }
+        ]
+      }
     },
     {
       "id": "daily.ghe_nguoi_quen",
@@ -727,6 +748,66 @@
         { "id": "ham_nghi", "type": "ride_through", "params": { "place": "duong_ham_nghi" }, "text": { "vi": "Chạy qua đường Hàm Nghi", "en": "Ride down Hàm Nghi" }, "at": "duong_ham_nghi" }
       ],
       "rewards": { "xu": 5000 }
+    },
+    {
+      "id": "job.bung_ca_phe",
+      "version": 1,
+      "questline": "viec_vat",
+      "title": { "vi": "Bưng cà phê", "en": "Coffee run" },
+      "about": { "vi": "Chú Tư nhờ bưng ba ly cà phê sữa đá cho khách ở các góc phố, trước khi đá tan. Mỗi ngày một chuyến.", "en": "Chú Tư needs three iced coffees carried to customers at street corners before the ice melts. One run a day." },
+      "repeat": "daily",
+      "job": true,
+      "requires_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "run", "type": "errand", "params": { "npc": "chu_tu", "signal": "nhan_viec_bung_ca_phe", "stops": [{ "place": "bung_binh_quach_thi_trang" }, { "place": "duong_ham_nghi" }, { "place": "duong_le_loi" }], "seconds": 120 }, "count": 3, "text": { "vi": "Bưng 3 ly cho khách ở bùng binh Quách Thị Trang, đường Hàm Nghi và đường Lê Lợi", "en": "Carry 3 coffees to customers at the Quách Thị Trang roundabout, Hàm Nghi and Lê Lợi" }, "at": "chu_tu" }
+      ],
+      "rewards": { "xu": 40000 }
+    },
+    {
+      "id": "job.giao_banh_trang",
+      "version": 1,
+      "questline": "viec_vat",
+      "title": { "vi": "Giao bánh tráng", "en": "Bánh tráng delivery" },
+      "about": { "vi": "Dì Năm nhờ giao hai bịch bánh tráng trộn tới công viên 30/4 và Nhà thờ Đức Bà, trước khi bánh nhão. Mỗi ngày một chuyến.", "en": "Dì Năm needs two bags of bánh tráng trộn delivered to April 30 Park and Notre-Dame Cathedral before they go soggy. One run a day." },
+      "repeat": "daily",
+      "job": true,
+      "requires_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "run", "type": "errand", "params": { "npc": "di_nam", "signal": "nhan_viec_giao_banh_trang", "stops": [{ "place": "cong_vien_30_4" }, { "place": "nha_tho_duc_ba" }], "seconds": 240 }, "count": 2, "text": { "vi": "Giao bánh tráng ở công viên 30/4, rồi Nhà thờ Đức Bà", "en": "Deliver the bánh tráng to April 30 Park, then Notre-Dame Cathedral" }, "at": "di_nam" }
+      ],
+      "rewards": { "xu": 30000 }
+    },
+    {
+      "id": "job.phat_to_roi",
+      "version": 1,
+      "questline": "viec_vat",
+      "title": { "vi": "Phát tờ rơi", "en": "Handing out flyers" },
+      "about": { "vi": "Chị Hạnh nhờ phát tờ rơi tour đi bộ cho 5 người đang dạo trên phố đi bộ Nguyễn Huệ. Mỗi ngày một đợt.", "en": "Chị Hạnh needs her walking-tour flyers handed to 5 people strolling on Nguyễn Huệ walking street. One round a day." },
+      "repeat": "daily",
+      "job": true,
+      "requires_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "run", "type": "errand", "params": { "npc": "chi_hanh", "signal": "nhan_viec_phat_to_roi", "stops": [{ "npc": "anh_khoi", "signal": "nhan_to_roi" }, { "npc": "chi_lan", "signal": "nhan_to_roi" }, { "npc": "co_hoa", "signal": "nhan_to_roi" }, { "npc": "ban_minh", "signal": "nhan_to_roi" }, { "npc": "chu_hung", "signal": "nhan_to_roi" }], "order": "free" }, "count": 5, "text": { "vi": "Phát tờ rơi cho 5 người trên phố đi bộ Nguyễn Huệ", "en": "Hand flyers to 5 people on Nguyễn Huệ walking street" }, "at": "pho_di_bo_nguyen_hue" }
+      ],
+      "rewards": { "xu": 30000 }
+    },
+    {
+      "id": "job.khuan_hang",
+      "version": 1,
+      "questline": "viec_vat",
+      "title": { "vi": "Khuân hàng", "en": "Hauling parcels" },
+      "about": { "vi": "Cô Ba nhờ khuân 3 kiện hàng từ xe tải của anh Hai vào sạp ở chợ Bến Thành. Mỗi ngày một lần.", "en": "Cô Ba needs 3 parcels carried from Anh Hai's truck into her stall at Bến Thành Market. Once a day." },
+      "repeat": "daily",
+      "job": true,
+      "requires_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        { "id": "run", "type": "errand", "params": { "npc": "co_ba", "signal": "nhan_viec_khuan_hang", "stops": [{ "npc": "anh_hai", "signal": "lay_kien" }, { "npc": "co_ba", "signal": "giao_kien" }, { "npc": "anh_hai", "signal": "lay_kien" }, { "npc": "co_ba", "signal": "giao_kien" }, { "npc": "anh_hai", "signal": "lay_kien" }, { "npc": "co_ba", "signal": "giao_kien" }] }, "count": 6, "text": { "vi": "Khuân 3 kiện từ xe anh Hai vào sạp Cô Ba", "en": "Carry 3 parcels from Anh Hai's truck to Cô Ba's stall" }, "at": "co_ba" }
+      ],
+      "rewards": { "xu": 40000 }
     }
   ],
   "achievements": [

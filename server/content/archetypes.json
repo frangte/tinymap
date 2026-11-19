@@ -10,6 +10,7 @@
     { "id": "uniform.crab", "about": "may wear the yellow Crab Bike jacket and helmet" },
     { "id": "vehicle.motorbike.ride", "about": "may ride a motorbike (vehicles.json); later also bought as an item" },
     { "id": "ridehail.drive", "about": "may go on duty in the Crab Driver app and take ride requests (ridehail.json)" },
+    { "id": "traveler.settled", "about": "has finished the foreigner's chapter 0 (quest traveler.an_nhu_nguoi_sai_gon): Anh Tony then suggests ways to earn money; used only to gate that line, never by an archetype" },
     { "id": "phone.basic", "about": "has a phone (any phone, items.json): the phone opens, with notifications, calls, contacts and messages; given by items, never by an archetype" },
     { "id": "phone.smart", "about": "has a smartphone (items.json): every other phone app (Crab, chat, Hỏi đường, Hàng Xóm, Crab Driver); given by items, never by an archetype" }
   ],

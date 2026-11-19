@@ -61,6 +61,8 @@ type Event struct {
 	Seconds   int
 	Metres    int
 	Days      int
+	// At is when it happened (unix milliseconds); the quest engine stamps it, the world need not
+	At int64
 	// Partners are the other characters of a greeting, in id order (distinct, never the character itself)
 	Partners []string
 }

@@ -29,6 +29,14 @@
         },
         {
           "text": {
+            "vi": "Em muốn ở Sài Gòn lâu. Anh có lời khuyên gì không?",
+            "en": "I'd like to stay in Saigon a while. Any advice?"
+          },
+          "goto": "stay",
+          "requires": ["traveler.settled"]
+        },
+        {
+          "text": {
             "vi": "Em đổi tiền ở đâu vậy anh?",
             "en": "Where do I change money?"
           },
@@ -212,6 +220,11 @@
           "goto": "bye"
         }
       ]
+    },
+    "stay": {
+      "say": {
+        "default": { "vi": "Muốn ở lâu hả? Phải kiếm tiền! Đi chạy Crab đi, Sài Gòn ai cũng chạy. Chưa có bằng, có xe thì làm việc vặt: Chú Tư bưng cà phê, Cô Ba khuân hàng. Không nhiều tiền, mà đủ sống!", "en": "Want to stay long? You need money! Go drive Crab, everybody in Saigon does. No licence or bike yet? Do odd jobs: carry coffee for Chú Tư, haul parcels for Cô Ba. Not much money, but enough to live on!" }
+      }
     },
     "bye": {
       "say": {

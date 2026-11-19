@@ -109,7 +109,10 @@ type Quest struct {
 	Repeat string `json:"repeat,omitempty"`
 	// Pool makes dailies take turns: each day one quest of each pool is on (picked by the date, the same for
 	// everyone); a daily without a pool is on every day
-	Pool       string      `json:"pool,omitempty"`
+	Pool string `json:"pool,omitempty"`
+	// Job marks an odd job (docs/design/13-jobs.md): a daily, done at most once a day, that pays up to XuJobRewardMax
+	// and does not count toward the streak of dailies. Jobs are not tied to an origin: they ask for no tag
+	Job        bool        `json:"job,omitempty"`
 	Flow       string      `json:"flow"`
 	Objectives []Objective `json:"objectives"`
 	Rewards    Rewards     `json:"rewards"`
@@ -134,6 +137,9 @@ const (
 	textMax       = 200
 	// XuRewardMax keeps a reward well under a day's top-up (ridehail.json)
 	XuRewardMax = 20_000
+	// XuJobRewardMax is the most an odd job may give: it is a daily (once a day each) but a few minutes of real
+	// work, and the few jobs there are keep a day's total small (4 jobs, 140.000đ at most)
+	XuJobRewardMax = 40_000
 	// XuStoryRewardMax is the most a quest done once may give (Má's 100.000đ): it is paid once, not every day
 	XuStoryRewardMax = 200_000
 	// textsMax bounds the messages one quest sends at one moment; TextMax is a message's length (characters)
@@ -274,6 +280,10 @@ func (r questRefs) quest(q Quest) error {
 		return errors.New("only a daily has a pool")
 	case q.Pool != "" && !idPattern.MatchString(q.Pool):
 		return errors.New("pool must be lower_snake_case")
+	case q.Job && q.Repeat != RepeatDaily:
+		return errors.New("a job is a daily (repeat: daily): each job is done once a day")
+	case q.Job && (q.Pool != "" || len(q.TagsAny) > 0):
+		return errors.New("a job has no pool and no tags: it is open to every character with the capabilities it asks for")
 	case q.Repeat == RepeatDaily && (len(q.Rewards.Titles) > 0 || q.Rewards.Capability != ""):
 		return errors.New("a daily gives xu and stamps, not titles or capabilities (those are earned once)")
 	}
@@ -291,8 +301,11 @@ func (r questRefs) quest(q Quest) error {
 		return err
 	}
 	limit := int64(XuRewardMax)
-	if q.Repeat == RepeatOnce {
+	switch {
+	case q.Repeat == RepeatOnce:
 		limit = XuStoryRewardMax
+	case q.Job:
+		limit = XuJobRewardMax
 	}
 	return r.rewards(q.Rewards, limit)
 }

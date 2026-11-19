@@ -654,6 +654,9 @@ type QuestState struct {
 	ID   string         `json:"id"`
 	Done bool           `json:"done,omitempty"`
 	N    map[string]int `json:"n,omitempty"`
+	// Left, for an objective that is taken and then timed (an odd job): the seconds left of a run that is on, -1 when
+	// it has no time limit; missing while the job is not taken. The game counts down from when it got this.
+	Left map[string]int `json:"left,omitempty"`
 }
 
 type AchievementState struct {

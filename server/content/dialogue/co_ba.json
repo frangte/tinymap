@@ -47,6 +47,16 @@
           "goto": "wares"
         },
         {
+          "text": { "vi": "Cô có việc gì cho con làm không?", "en": "Do you have any work for me?" },
+          "goto": "work"
+        },
+        {
+          "text": { "vi": "Cô ơi, kiện hàng nè!", "en": "Here's a parcel, Cô!" },
+          "goto": "received",
+          "emit": "giao_kien",
+          "requires_quest": "job.khuan_hang"
+        },
+        {
           "text": {
             "vi": "Dạ thôi, con đi dạo tiếp.",
             "en": "No thanks, I'll keep walking."
@@ -339,6 +349,25 @@
           "emit": "thanked_after_bargain"
         }
       ]
+    },
+    "work": {
+      "say": {
+        "default": { "vi": "Khuân hàng hả? Có chứ! Xe tải mới tới, con khuân ba kiện từ xe vô sạp giùm cô. Cô chỉ nhờ mỗi người một lần một ngày nghen.", "en": "Hauling? Of course! The truck just arrived: carry three parcels from it to my stall. I only ask each person once a day." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con khuân giùm cô.", "en": "Yes, I'll carry them." }, "goto": "haul", "emit": "nhan_viec_khuan_hang", "requires_quest": "job.khuan_hang" },
+        { "text": { "vi": "Dạ, để con coi lại.", "en": "I'll think about it." }, "goto": "bye" }
+      ]
+    },
+    "haul": {
+      "say": {
+        "default": { "vi": "Xe tải ở bên kia, anh Hai coi hàng. Lấy một kiện, đem về sạp cho cô, ba lần nghen. Cẩn thận, hàng dễ vỡ!", "en": "The truck is over there, Anh Hai minds the load. Take one parcel to my stall, three times. Careful, it's fragile!" }
+      }
+    },
+    "received": {
+      "say": {
+        "default": { "vi": "Ừ, để đó cô coi! Còn kiện nào thì lẹ lẹ nghen con.", "en": "Good, put it there! If there are more parcels, be quick, dear." }
+      }
     },
     "bye": {
       "say": {

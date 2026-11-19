@@ -309,7 +309,10 @@ func TestACapabilityEarnedWhilePlayingOpensItsQuests(t *testing.T) {
 		t.Fatal("the Crab quest is offered without a smartphone")
 	}
 	s.Capabilities("c1", capability.Of(content.CapPhone))
-	// a basic phone changes nothing: nothing new to show, so no progress message; the smartphone does
+	// a basic phone opens the odd jobs (and not the Crab quest); the smartphone then opens the Crab quest
+	if _, ok := questState(w.last(t, "c1"), "job.bung_ca_phe"); !ok {
+		t.Fatal("a basic phone does not open the odd jobs")
+	}
 	s.Capabilities("c1", capability.Of(content.CapPhone, content.CapSmartphone))
 	p := w.last(t, "c1")
 	if q, ok := questState(p, "citizen.tho_dia"); !ok || q.Done {
