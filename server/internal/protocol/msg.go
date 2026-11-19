@@ -62,6 +62,9 @@ const (
 	TypeWayAsk    = "way_ask"
 	TypeWayCancel = "way_cancel"
 	TypeWayAnswer = "way_answer"
+	// TypeBuy buys an item (item) in the shop of the NPC the player stands next to (server/internal/shop); the server
+	// answers with a result for the rid, and on success a wallet and an items first
+	TypeBuy = "buy"
 	// TypeReport reports a player (n) to the moderators, with the last lines of the two
 	TypeReport  = "report"
 	TypeWelcome = "welcome"
@@ -81,7 +84,9 @@ const (
 	TypeProgress = "progress"
 	// TypeWallet is a character's balance in xu, after every change (fares, tips, quest rewards)
 	TypeWallet = "wallet"
-	TypeError  = "error"
+	// TypeItems is every item a character owns and the phone apps it has now, after a purchase
+	TypeItems = "items"
+	TypeError = "error"
 )
 
 // State flags (the "s" field of a state, and of every snapshot row).
@@ -149,6 +154,10 @@ const (
 	ResLead = "lead"
 	// ResChoice: no such answer to the line shown
 	ResChoice = "choice"
+	// ResOwned: a buy of an item the character already has
+	ResOwned = "owned"
+	// ResBalance: a buy the wallet cannot pay
+	ResBalance = "balance"
 )
 
 // Conversation modes (the "mode" of an interaction, server/content/npcs.json): private is between one player and
@@ -240,7 +249,9 @@ type ClientMsg struct {
 	Sid  uint32 `json:"sid"`
 	C    int    `json:"c"`
 	Step uint32 `json:"step"`
-	// Rid is a request id, in interact and choose: the server answers {"t":"result","rid":…} (0: no answer wanted)
+	// Item is the item to buy, in buy (an id from server/content/items.json)
+	Item string `json:"item"`
+	// Rid is a request id, in interact, choose and buy: the server answers {"t":"result","rid":…} (0: no answer wanted)
 	Rid uint32 `json:"rid"`
 	// Title is the title to carry, in title only ("" for none)
 	Title string `json:"title"`
@@ -272,6 +283,7 @@ var (
 	ErrBadChoice   = errors.New("choice out of range")
 	ErrBadTitle    = errors.New("not a title id")
 	ErrBadRide     = errors.New("bad ride message")
+	ErrBadItem     = errors.New("not an item id")
 	ErrEmptyChat   = errors.New("empty chat")
 )
 
@@ -308,8 +320,11 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeChoose {
 		m.C, m.Step = 0, 0
 	}
-	if m.T != TypeInteract && m.T != TypeChoose {
+	if m.T != TypeInteract && m.T != TypeChoose && m.T != TypeBuy {
 		m.Rid = 0
+	}
+	if m.T != TypeBuy {
+		m.Item = ""
 	}
 	if m.T != TypeTitle {
 		m.Title = ""
@@ -370,6 +385,10 @@ func Decode(data []byte) (ClientMsg, error) {
 	case TypeRideRequest, TypeWayAsk:
 		if m.Dest == "" || len(m.Dest) > ArchMax || !titlePattern.MatchString(m.Dest) {
 			return m, ErrBadRide
+		}
+	case TypeBuy:
+		if m.Item == "" || len(m.Item) > ArchMax || !titlePattern.MatchString(m.Item) {
+			return m, ErrBadItem
 		}
 	case TypeReport:
 		if m.N == 0 {
@@ -561,6 +580,14 @@ type Wallet struct {
 	Balance int64  `json:"balance"`
 }
 
+// Items is every item a character owns (server/content/items.json), in the order it got them, and the phone
+// apps its capabilities give now (in phone order).
+type Items struct {
+	T     string   `json:"t"`
+	Items []string `json:"items"`
+	Apps  []string `json:"apps"`
+}
+
 // QuestState is a started quest: done, or how far each objective got (by objective id).
 type QuestState struct {
 	ID   string         `json:"id"`
@@ -605,6 +632,8 @@ type Welcome struct {
 	Chat     []ChatLine `json:"chat"`
 	// Wallet is the character's balance in xu (absent for a guest without an account)
 	Wallet *int64 `json:"wallet,omitempty"`
+	// Items are the ids of the items the character owns (absent for a guest without an account)
+	Items *[]string `json:"items,omitempty"`
 }
 
 // Vehicle is a vehicle in the world, sent to everyone on welcome and whenever it changes. While Rider is set it
