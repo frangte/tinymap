@@ -40,8 +40,8 @@ func TestCatalogLoads(t *testing.T) {
 			t.Errorf("%s without a phone has apps %v", a.ID, apps)
 		}
 	}
-	// a basic phone: notifications, nothing that needs a smartphone
-	if apps := c.AppsFor(capability.Of(CapPhone)); !slices.Equal(apps, []string{"notices"}) {
+	// a basic phone: calls, messages and notifications (in that order), nothing that needs a smartphone
+	if apps := c.AppsFor(capability.Of(CapPhone)); !slices.Equal(apps, []string{"calls", "messages", "notices"}) {
 		t.Errorf("apps on a basic phone = %v", apps)
 	}
 	// every app needs a phone

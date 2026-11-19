@@ -79,9 +79,12 @@ const DefaultVariant = "default"
 // Dialogue is a conversation graph. It moves from node to node by the answers players pick; an answer may send a
 // signal (quests listen for them, phase 4). Dialogue never hands out anything itself.
 type Dialogue struct {
-	ID    string                  `json:"id"`
-	About string                  `json:"about,omitempty"`
-	Start string                  `json:"start"`
+	ID    string `json:"id"`
+	About string `json:"about,omitempty"`
+	Start string `json:"start"`
+	// Call is the node a phone call starts at (contacts.json): a call is a short conversation of its own in the
+	// same graph, so it can send signals like any other. "" for a graph nobody can call.
+	Call  string                  `json:"call,omitempty"`
 	Nodes map[string]DialogueNode `json:"nodes"`
 }
 
@@ -177,6 +180,9 @@ func (c *Catalog) checkCast(caps, places map[string]bool) error {
 		seen[n.ID] = true
 		used[n.Dialogue] = true
 	}
+	for _, k := range c.Contacts {
+		used[k.Dialogue] = true
+	}
 	for _, id := range sortedKeys(c.Dialogues) {
 		if err := c.checkDialogue(c.Dialogues[id], caps); err != nil {
 			return fmt.Errorf("dialogue/%s.json: %w", id, err)
@@ -257,9 +263,16 @@ func (c *Catalog) checkDialogue(d Dialogue, caps map[string]bool) error {
 			return fmt.Errorf("node %q: %w", id, err)
 		}
 	}
-	// every node can be reached from the start: an unreachable one is a typo in some goto
+	if _, ok := d.Nodes[d.Call]; d.Call != "" && !ok {
+		return fmt.Errorf("call node %q does not exist", d.Call)
+	}
+	// every node can be reached from the start or the call node: an unreachable one is a typo in some goto
 	reached := map[string]bool{d.Start: true}
 	queue := []string{d.Start}
+	if d.Call != "" && !reached[d.Call] {
+		reached[d.Call] = true
+		queue = append(queue, d.Call)
+	}
 	for len(queue) > 0 {
 		n := d.Nodes[queue[0]]
 		queue = queue[1:]

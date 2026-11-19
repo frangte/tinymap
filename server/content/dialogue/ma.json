@@ -1,0 +1,64 @@
+{
+  "id": "ma",
+  "about": "Má, on the phone: she has no body on the island, only this call (contacts.json, start_for newcomer). It is the newcomer's first call home (docs/design/10-story.md, chapter 0 step 4); the answer that sends ma_gui_tien completes the quest story.goi_ve_cho_ma, whose reward is the 100.000đ Má sends. Má calls everyone \"con\".",
+  "start": "call",
+  "call": "call",
+  "nodes": {
+    "call": {
+      "say": {
+        "default": {
+          "vi": "Tới nơi rồi hả con? Ăn uống đàng hoàng nghe. Có gì khó thì kiếm chú Sáu, bạn ba hồi xưa, chạy xe ôm ở bùng binh Quách Thị Trang.",
+          "en": "You got there all right, dear? Eat properly, you hear? If anything's hard, find Chú Sáu, your dad's old friend, who drives a xe ôm at the Quách Thị Trang roundabout."
+        }
+      },
+      "choices": [
+        {
+          "text": { "vi": "Dạ, con tới rồi má. Con mới mua được cái điện thoại.", "en": "Yes, Mum, I'm here. I just bought a phone." },
+          "goto": "money",
+          "emit": "ma_gui_tien"
+        },
+        {
+          "text": { "vi": "Bùng binh đó ở đâu vậy má?", "en": "Where's that roundabout, Mum?" },
+          "goto": "where"
+        }
+      ]
+    },
+    "where": {
+      "say": {
+        "default": {
+          "vi": "Ngay gần chợ Bến Thành đó con, ra tới là thấy mấy chú chạy xe ôm đứng đầy. Hỏi tên chú Sáu là người ta chỉ liền.",
+          "en": "Right by Bến Thành market, dear. You'll see the xe ôm drivers all standing there. Ask for Chú Sáu and they'll point him out."
+        }
+      },
+      "choices": [
+        {
+          "text": { "vi": "Dạ, con nhớ rồi. Con mới mua được cái điện thoại má ơi.", "en": "Okay, I remember. Mum, I just bought a phone." },
+          "goto": "money",
+          "emit": "ma_gui_tien"
+        }
+      ]
+    },
+    "money": {
+      "say": {
+        "default": {
+          "vi": "Giỏi quá, có điện thoại rồi má đỡ lo. Má gửi lên cho con một trăm ngàn nghen, đừng ăn mì gói hoài.",
+          "en": "Good, now that you have a phone I worry less. I'm sending you a hundred thousand, and don't live on instant noodles."
+        }
+      },
+      "choices": [
+        {
+          "text": { "vi": "Dạ, con cảm ơn má.", "en": "Thank you, Mum." },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "Ừa. Thôi cúp máy nghen, tốn tiền điện thoại lắm. Thương con.",
+          "en": "Okay. I'll hang up now, calls are expensive. Love you."
+        }
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@
   "id": "di_nam",
   "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the dailies listen for it); asking the price in Vietnamese, gated by the quest traveler.an_nhu_nguoi_sai_gon, sends hoi_gia_banh_trang; praising the food sends phrase_ngon_qua (the Sổ sưu tầm, collection.json, listens for it).",
   "start": "greet",
+  "call": "call",
   "nodes": {
     "greet": {
       "say": {
@@ -85,6 +86,20 @@
       "say": {
         "default": { "vi": "Ừ, đi chơi vui nha! Thèm thì quay lại dì trộn cho.", "en": "Have fun! Come back when you're hungry." }
       }
+    },
+    "call": {
+      "say": {
+        "default": { "vi": "Alô, Dì Năm nghe. Thèm bánh tráng trộn hả con? Ra Hồ Con Rùa, dì trộn liền!", "en": "Hello, Dì Năm here. Craving bánh tráng trộn? Come to Turtle Lake, I'll mix it right away!" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con hỏi thăm dì thôi.", "en": "I just wanted to say hi." }, "goto": "call_bye" }
+      ]
+    },
+    "call_bye": {
+      "say": {
+        "default": { "vi": "Ừ, ghé ăn nghen con!", "en": "Good. Come and eat!" }
+      }
     }
+
   }
 }

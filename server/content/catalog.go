@@ -120,6 +120,7 @@ type Catalog struct {
 	Vehicles     []Vehicle
 	Emotes       []Emote
 	NPCs         []NPC
+	Contacts     []Contact
 	Dialogues    map[string]Dialogue
 	Titles       []Title
 	Stamps       []Stamp
@@ -145,14 +146,14 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, island, archetypes, apps, movement, vehicles, emotes, npcs, items, quests, ridehail, directions, guide, collection []byte
+	places, island, archetypes, apps, movement, vehicles, emotes, npcs, contacts, items, quests, ridehail, directions, guide, collection []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
 
 func embedded() files {
 	return files{places: placesJSON, island: mapJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
-		emotes: emotesJSON, npcs: npcsJSON, items: itemsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
+		emotes: emotesJSON, npcs: npcsJSON, contacts: contactsJSON, items: itemsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
 		guide: guideJSON, collection: collectionJSON, dialogues: dialogueFiles()}
 }
 
@@ -185,6 +186,9 @@ func load(f files) (*Catalog, error) {
 		return nil, fmt.Errorf("apps.json: %w", err)
 	}
 	if err := parseMotion(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseContacts(f, c); err != nil {
 		return nil, err
 	}
 	if err := parseItems(f, c); err != nil {
@@ -275,6 +279,9 @@ func (c *Catalog) check() error {
 		}
 	}
 	if err := c.checkCast(caps, places); err != nil {
+		return err
+	}
+	if err := c.checkContacts(); err != nil {
 		return err
 	}
 	if err := c.checkItems(caps); err != nil {

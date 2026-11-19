@@ -45,6 +45,59 @@
       "rewards": {}
     },
     {
+      "id": "story.goi_ve_cho_ma",
+      "version": 1,
+      "questline": "chuong_1",
+      "title": { "vi": "Gọi về cho má", "en": "Call home" },
+      "about": {
+        "vi": "Má dặn lên tới nơi, có điện thoại rồi thì gọi về. Mở điện thoại, vào Danh bạ và gọi Má.",
+        "en": "Mum said to call once you arrived and got a phone. Open the phone, go to Contacts and call Mum."
+      },
+      "tags_any": ["newcomer"],
+      "requires_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "call",
+          "type": "dialogue_signal",
+          "params": { "npc": "ma", "signal": "ma_gui_tien" },
+          "text": { "vi": "Gọi về cho Má bằng điện thoại (Danh bạ)", "en": "Call Mum on your phone (Contacts)" }
+        }
+      ],
+      "rewards": { "xu": 100000 },
+      "texts": {
+        "on_done": [
+          {
+            "from": "ma",
+            "text": { "vi": "Má gửi cho con một trăm ngàn rồi nghen. Ăn cơm đàng hoàng, có gì khó kiếm chú Sáu.", "en": "I sent you a hundred thousand. Eat properly, and if anything's hard, find Chú Sáu." }
+          }
+        ]
+      }
+    },
+    {
+      "id": "story.gap_chu_sau",
+      "version": 1,
+      "questline": "chuong_1",
+      "title": { "vi": "Đi gặp chú Sáu", "en": "Go and meet Chú Sáu" },
+      "about": {
+        "vi": "Chú Sáu là bạn của ba, chạy xe ôm ở bùng binh Quách Thị Trang. Má dặn có gì khó thì kiếm chú.",
+        "en": "Chú Sáu is your dad's old friend and drives a xe ôm at the Quách Thị Trang roundabout. Mum said to find him if anything is hard."
+      },
+      "tags_any": ["newcomer"],
+      "requires": ["story.goi_ve_cho_ma"],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "meet",
+          "type": "talk_npc",
+          "params": { "npc": "chu_sau" },
+          "text": { "vi": "Nói chuyện với chú Sáu ở bùng binh", "en": "Talk to Chú Sáu at the roundabout" },
+          "at": "chu_sau"
+        }
+      ],
+      "rewards": {}
+    },
+    {
       "id": "newcomer.to_giay_dia_chi",
       "version": 1,
       "questline": "chuong_0_que",
@@ -383,7 +436,15 @@
         { "id": "order", "type": "dialogue_signal", "params": { "npc": "chu_tu", "signal": "order_ca_phe_sua_da" }, "text": { "vi": "Gọi một ly ở quán Chú Tư", "en": "Order a coffee at Chú Tư's" }, "at": "chu_tu" },
         { "id": "sit", "type": "stay_place", "params": { "place": "day_nha_pho_le_lai" }, "count": 20, "text": { "vi": "Ngồi ngó phố", "en": "Sit and watch the street" }, "at": "chu_tu" }
       ],
-      "rewards": { "titles": ["khach_quen"] }
+      "rewards": { "titles": ["khach_quen"] },
+      "texts": {
+        "on_start": [
+          { "from": "chu_tu", "text": { "vi": "Sáng mai con ghé quán sớm nha, chú để dành cái bàn sát cửa sổ cho.", "en": "Come by the café early tomorrow, dear. I'll keep the table by the window for you." } }
+        ],
+        "on_done": [
+          { "from": "chu_tu", "text": { "vi": "Cảm ơn con ghé quán. Mai nhớ ghé nữa nghen!", "en": "Thanks for stopping by. Come again tomorrow!" } }
+        ]
+      }
     },
     {
       "id": "citizen.chuyen_khu_pho",

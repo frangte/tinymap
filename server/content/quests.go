@@ -75,6 +75,19 @@ const (
 	FlowAny      = "any"
 )
 
+// QuestText is a text message a quest sends: From is a contact (contacts.json).
+type QuestText struct {
+	From string `json:"from"`
+	Text Text   `json:"text"`
+}
+
+// QuestTexts are the messages a quest sends the character: when it starts, and when it is done (kept in the
+// Tin nhắn app; docs/design/12-phone.md).
+type QuestTexts struct {
+	OnStart []QuestText `json:"on_start,omitempty"`
+	OnDone  []QuestText `json:"on_done,omitempty"`
+}
+
 type Quest struct {
 	ID string `json:"id"`
 	// Version goes up when objectives change meaning; progress records which version it was made under
@@ -100,6 +113,7 @@ type Quest struct {
 	Flow       string      `json:"flow"`
 	Objectives []Objective `json:"objectives"`
 	Rewards    Rewards     `json:"rewards"`
+	Texts      QuestTexts  `json:"texts,omitempty"`
 }
 
 // Achievement is a passive quest: one objective, always running for those it is open to.
@@ -118,8 +132,13 @@ const (
 	TitleMax      = 32
 	objectivesMax = 8
 	textMax       = 200
-	// XuRewardMax: a story quest pays 50.000 to 200.000 xu (docs/design/10-story.md, section 11); dailies pay far less
-	XuRewardMax = 200_000
+	// XuRewardMax keeps a reward well under a day's top-up (ridehail.json)
+	XuRewardMax = 20_000
+	// XuStoryRewardMax is the most a quest done once may give (Má's 100.000đ): it is paid once, not every day
+	XuStoryRewardMax = 200_000
+	// textsMax bounds the messages one quest sends at one moment; TextMax is a message's length (characters)
+	textsMax = 3
+	TextMax  = 160
 )
 
 var (
@@ -268,7 +287,32 @@ func (r questRefs) quest(q Quest) error {
 			return fmt.Errorf("objective %q: %w", o.ID, err)
 		}
 	}
-	return r.rewards(q.Rewards)
+	if err := r.sentTexts(q.Texts); err != nil {
+		return err
+	}
+	limit := int64(XuRewardMax)
+	if q.Repeat == RepeatOnce {
+		limit = XuStoryRewardMax
+	}
+	return r.rewards(q.Rewards, limit)
+}
+
+// sentTexts checks the messages a quest sends: every sender is a contact.
+func (r questRefs) sentTexts(t QuestTexts) error {
+	for phase, list := range map[string][]QuestText{"on_start": t.OnStart, "on_done": t.OnDone} {
+		if len(list) > textsMax {
+			return fmt.Errorf("texts.%s: at most %d messages", phase, textsMax)
+		}
+		for i, m := range list {
+			if _, ok := r.c.Contact(m.From); !ok {
+				return fmt.Errorf("texts.%s[%d]: from %q is not in contacts.json", phase, i, m.From)
+			}
+			if err := checkText(m.Text, TextMax, false); err != nil {
+				return fmt.Errorf("texts.%s[%d]: %w", phase, i, err)
+			}
+		}
+	}
+	return nil
 }
 
 func (r questRefs) achievement(a Achievement, seen map[string]bool) error {
@@ -287,7 +331,7 @@ func (r questRefs) achievement(a Achievement, seen map[string]bool) error {
 	if err := r.objective(a.Objective, false); err != nil {
 		return fmt.Errorf("objective: %w", err)
 	}
-	return r.rewards(a.Rewards)
+	return r.rewards(a.Rewards, XuRewardMax)
 }
 
 func (r questRefs) texts(title, about Text) error {
@@ -328,7 +372,7 @@ func (r questRefs) objective(o Objective, needsText bool) error {
 	return nil
 }
 
-func (r questRefs) rewards(w Rewards) error {
+func (r questRefs) rewards(w Rewards, xuMax int64) error {
 	for _, t := range w.Titles {
 		if !r.titles[t] {
 			return fmt.Errorf("reward title %q is not in titles", t)
@@ -342,8 +386,8 @@ func (r questRefs) rewards(w Rewards) error {
 	if w.Capability != "" && !r.caps[w.Capability] {
 		return fmt.Errorf("reward capability %q is unknown (archetypes.json)", w.Capability)
 	}
-	if w.Xu < 0 || w.Xu > XuRewardMax {
-		return fmt.Errorf("reward xu must be 0 to %d", XuRewardMax)
+	if w.Xu < 0 || w.Xu > xuMax {
+		return fmt.Errorf("reward xu must be 0 to %d", xuMax)
 	}
 	return nil
 }
@@ -412,11 +456,14 @@ func (c *Catalog) NPCByID(id string) (NPC, bool) {
 
 // Emits reports whether some answer of the NPC's dialogue sends the signal.
 func (c *Catalog) Emits(npc, signal string) bool {
-	n, ok := c.NPCByID(npc)
-	if !ok {
+	graph := c.ContactDialogue(npc)
+	if n, ok := c.NPCByID(npc); ok {
+		graph = n.Dialogue
+	}
+	if graph == "" {
 		return false
 	}
-	for _, node := range c.Dialogues[n.Dialogue].Nodes {
+	for _, node := range c.Dialogues[graph].Nodes {
 		for _, ch := range node.Choices {
 			if ch.Emit == signal {
 				return true

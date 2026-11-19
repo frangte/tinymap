@@ -2,6 +2,7 @@
   "id": "chi_hanh",
   "about": "Chị Hạnh guides tours on Lam Sơn square. She talks in group mode: everyone who walks up joins one conversation, and its first member picks the questions. Finishing the tour sends tour_lam_son.",
   "start": "greet",
+  "call": "call",
   "nodes": {
     "greet": {
       "say": {
@@ -55,6 +56,20 @@
       "say": {
         "default": { "vi": "Hẹn gặp lại nha, mình đứng đây cả ngày!", "en": "See you later, I'm here all day!" }
       }
+    },
+    "call": {
+      "say": {
+        "default": { "vi": "Alô, Hạnh nghe. Tour ở quảng trường Lam Sơn mình đi hằng ngày, bạn ghé lúc nào cũng được nha!", "en": "Hello, Hạnh here. The Lam Sơn square tour runs every day, drop by whenever you like!" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, mình gọi hỏi thăm chị thôi.", "en": "I just called to say hi." }, "goto": "call_bye" }
+      ]
+    },
+    "call_bye": {
+      "say": {
+        "default": { "vi": "Ừ, hẹn gặp bạn ở quảng trường nha!", "en": "Great, see you at the square!" }
+      }
     }
+
   }
 }
