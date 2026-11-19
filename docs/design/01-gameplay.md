@@ -94,7 +94,7 @@ These are for shaping and testing the quest engine, not final content.
 
 - Rotating daily quests.
 - Events tied to the real calendar: a Trung Thu lantern night on Nguyễn Huệ, Tết.
-- A day/night cycle and the 4 p.m. rain, run by the server: cheap to build, big on atmosphere.
+- A day/night cycle and the 4 p.m. rain: cheap to build, big on atmosphere. Now D24: the time of day follows Saigon's real clock (built), the weather will follow Saigon's real weather through the server.
 - Later: friends and groups, then housing and the economy as long-term goals.
 
 ## Language

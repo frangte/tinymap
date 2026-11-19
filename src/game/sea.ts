@@ -53,6 +53,8 @@ void main(){
 
 export class Sea {
   readonly mesh: THREE.Mesh;
+  /** the shader's colours, tinted by the time of day (daylight/daylight.ts): edge is the foam, far the haze */
+  readonly colours: { deep: THREE.Color; shallow: THREE.Color; edge: THREE.Color; far: THREE.Color };
   private readonly mat: THREE.ShaderMaterial;
 
   constructor(ink: InkPass, camera: THREE.PerspectiveCamera, level: number, center: THREE.Vector3) {
@@ -73,6 +75,8 @@ export class Sea {
       transparent: true,
       depthWrite: false,
     });
+    const u = this.mat.uniforms;
+    this.colours = { deep: u.uDeep.value, shallow: u.uShallow.value, edge: u.uFoam.value, far: u.uHaze.value };
     const geo = new THREE.CircleGeometry(1400, 96);
     geo.rotateX(-Math.PI / 2);
     this.mesh = new THREE.Mesh(geo, this.mat);

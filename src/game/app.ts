@@ -4,9 +4,14 @@
 //   play  third-person walking (see play.ts)
 // The URL hash picks the mode (#ban-do, #choi; none = menu), so the back button and shared links work.
 // Around every mode: the sea, drifting clouds and gulls, swaying trees; in play, each area's own sound.
+// The light follows Saigon's real time of day (daylight/), night included.
 import * as THREE from 'three';
 import { aimSun, createRenderer, createScene, loadModel } from './world';
 import { paintWorld, FOLIAGE } from './paint';
+import { SaigonClock } from './daylight/clock';
+import { ClockView } from './daylight/clockView';
+import { Daylight } from './daylight/daylight';
+import { StreetLamps } from './daylight/lamps';
 import { InkPass } from './ink';
 import { CityCollider } from './collider';
 import { MAP } from './mapInfo';
@@ -124,7 +129,13 @@ export async function startApp(): Promise<void> {
     e.preventDefault();
     hud.fail(() => L.contextLost);
   });
-  const { scene, sun } = createScene();
+  const parts = createScene();
+  const { scene, sun } = parts;
+  // ?time=17:30 stops Saigon's clock at that time of today (to look at a sunset or test the night)
+  const daylight = new Daylight(parts, new SaigonClock(new URLSearchParams(location.search).get('time')));
+  const clockView = new ClockView();
+  daylight.update(performance.now());
+  clockView.update(daylight.now, daylight.phase);
   const camera = new THREE.PerspectiveCamera(35, 1, 0.25, 1500);
   const ink = new InkPass(camera);
   const tags = new NameTags(el('tags'));
@@ -208,6 +219,7 @@ export async function startApp(): Promise<void> {
   let sea: Sea | null = null;
   let ponds: Ponds | null = null;
   let life: Life | null = null;
+  let lamps: StreetLamps | null = null;
   const ambient = new Ambient();
   /** where the player hears from (Blender XY) */
   const ear: Ear = { x: 0, y: 0 };
@@ -289,6 +301,7 @@ export async function startApp(): Promise<void> {
     else shadowLook.copy(map.controls.target);
     if (flight.active || mode !== 'play') half = THREE.MathUtils.clamp(camera.position.distanceTo(shadowLook) * 0.8, SHADOW_NEAR, SHADOW_FAR);
     shadowLook.y = 0;
+    lamps?.focus(shadowLook);
     if (shadowHalf > 0 && Math.abs(half - shadowHalf) < 0.25 * shadowHalf && shadowLook.distanceTo(shadowAt) < 0.35 * shadowHalf) return;
     shadowHalf = half;
     shadowAt.copy(shadowLook);
@@ -339,6 +352,9 @@ export async function startApp(): Promise<void> {
       camera.fov += (fov - camera.fov) * damp(4, dt);
       camera.updateProjectionMatrix();
     }
+    // the time of day: a new light direction re-bakes the shadow
+    if (daylight.update(now)) shadowHalf = 0;
+    clockView.update(daylight.now, daylight.phase);
     followShadow();
     if (draw) ink.render(renderer, scene, camera);
   };
@@ -387,6 +403,8 @@ export async function startApp(): Promise<void> {
   scene.add(world);
   ink.track(world);
   ponds = new Ponds(world, ink, camera);
+  daylight.addWater(ponds.colours, 'pond');
+  lamps = new StreetLamps(world);
   renderer.shadowMap.needsUpdate = true;
 
   const p = new PlayMode(collider, camera, hud, renderer.domElement);
@@ -1088,6 +1106,7 @@ export async function startApp(): Promise<void> {
   const [icx, icy] = MAP.islandCenter;
   fromBlender(icx, icy, 0, islandCenter);
   sea = new Sea(ink, camera, MAP.seaLevel, islandCenter);
+  daylight.addWater(sea.colours, 'sea');
   scene.add(sea.mesh);
   life = new Life(islandCenter, COAST_R);
   scene.add(life.root);
@@ -1250,7 +1269,7 @@ export async function startApp(): Promise<void> {
         colliderView = null;
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, phoneCard, shop: shopSheet, owned, giveItems, notebook, placeCard, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, daylight, lamps, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, phoneCard, shop: shopSheet, owned, giveItems, notebook, placeCard, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

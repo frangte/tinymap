@@ -71,6 +71,9 @@ body[data-mode='play'] [data-modes]:not([data-modes~='play']) { display: none !i
   gap: 2px;
 }
 .eyebrow { font: 600 11px/1.2 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brick); }
+/* the eyebrow and, across from it, Saigon's time (daylight/clockView.ts) */
+.where-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.where-clock { font: 500 11px/1.2 var(--mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; flex: none; }
 .where h1 { margin: 0; font: 800 22px/1.15 var(--display); letter-spacing: -0.01em; text-wrap: balance; }
 .where .note { font: 500 12px/1.3 var(--body); color: var(--ink-soft); }
 /* multiplayer status: a dot (teal online, ochre connecting, brick offline / full) and a short line */
@@ -132,6 +135,8 @@ button:disabled { cursor: progress; opacity: 0.55; transform: none; }
 .lang-seg button:active { transform: none; }
 .menu h1 { margin: 0; font: 800 40px/1 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
 .menu .lede { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty; }
+.menu-clock { margin: 0; font: 500 12px/1.3 var(--mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.menu-clock:empty { display: none; }
 .menu .status { margin: 6px 0 0; font: 600 12px/1.3 var(--body); letter-spacing: 0.06em; text-transform: uppercase; }
 .menu .status.is-error { color: var(--brick); text-transform: none; letter-spacing: 0; font-size: 14px; line-height: 1.45; }
 .loadrow { display: grid; gap: 6px; }

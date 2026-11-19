@@ -22,6 +22,62 @@ const FOLIAGE_KEYS = new Set(['leaf', 'leafLight', 'leafDark']);
  */
 export const FOLIAGE = { uPivot: { value: new THREE.Vector3() }, uSee: { value: 1 }, uTime: { value: 0 } };
 
+/** how many street lamps light the ground at once (the nearest to what the camera looks at) */
+export const MAX_LAMPS = 16;
+
+/**
+ * Shared by every paint material, set by the time of day (daylight/daylight.ts): how dark it is (0 by day, 1 at
+ * night), the share of windows with a light on, and the pools of light under the nearest street lamps.
+ */
+export const NIGHT = {
+  uNight: { value: 0 },
+  uLit: { value: 0 },
+  uLamps: { value: Array.from({ length: MAX_LAMPS }, () => new THREE.Vector3()) },
+  uLampCount: { value: 0 },
+};
+
+/**
+ * What lights up after dark, by material key: its glow (sRGB) and how. `always` glows whole (lanterns, traffic
+ * lights, the clock face); `windows` lights some panes and not others, more in the evening than at 3 a.m.; `shops`
+ * (signs, shop interiors) the same, but most are on until late.
+ */
+const NIGHT_GLOW: Record<string, { color: string; strength: number; kind: 'always' | 'windows' | 'shops' }> = {
+  lantern: { color: '#FF5A3C', strength: 0.95, kind: 'always' },
+  sigRed: { color: '#FF5034', strength: 1.1, kind: 'always' },
+  sigAmber: { color: '#FFB238', strength: 0.5, kind: 'always' },
+  sigGreen: { color: '#5CFF9A', strength: 1.0, kind: 'always' },
+  clockWhite: { color: '#FFF1C8', strength: 0.8, kind: 'always' },
+  glassTeal: { color: '#FFD08A', strength: 0.6, kind: 'windows' },
+  glassBlue: { color: '#FFD9A0', strength: 0.5, kind: 'windows' },
+  glassDark: { color: '#FFD08A', strength: 0.6, kind: 'windows' },
+  interior: { color: '#FFB866', strength: 0.75, kind: 'shops' },
+  signRed: { color: '#FF6A4A', strength: 0.5, kind: 'shops' },
+  signGold: { color: '#FFD27A', strength: 0.5, kind: 'shops' },
+};
+
+/** GLSL (fragment): the light of the street lamps near `wp` and the night glow mask of a material. */
+const NIGHT_GLSL = /* glsl */ `
+uniform float uNight;
+uniform float uLit;
+uniform vec3 uLamps[${MAX_LAMPS}];
+uniform int uLampCount;
+varying vec3 vSdW;
+vec3 sdLampLight(vec3 wp){
+  float k = 0.0;
+  for (int i = 0; i < ${MAX_LAMPS}; i++) {
+    if (i >= uLampCount) break;
+    vec3 d = wp - uLamps[i];
+    float r2 = dot(d, d);
+    // two stepped bands, like the toon ramp: a bright pool and a softer ring round it
+    k += (1.0 - smoothstep(7.0, 9.0, r2))*0.65 + (1.0 - smoothstep(22.0, 30.0, r2))*0.35;
+  }
+  return vec3(1.0, 0.74, 0.42)*min(k, 1.0)*0.7;
+}
+float sdLitShare(float bias){
+  return clamp(uLit*bias, 0.0, 1.0);
+}
+`;
+
 /** GLSL (vertex): `sdWind(worldPos)` offsets crowns and fronds in a slow gust; trunks below 1.2 m stay put. */
 export const FOLIAGE_VERT_GLSL = /* glsl */ `
 uniform float uTime;
@@ -108,20 +164,46 @@ export function paintMaterial(color: THREE.ColorRepresentation, key: string, opt
   const grime = opts.grime ?? (NO_GRIME.has(key) ? 0 : baseGrime);
   const local = opts.local === true;
   const see = opts.foliage ?? FOLIAGE_KEYS.has(key);
+  const glow = NIGHT_GLOW[key];
   const m = new THREE.MeshToonMaterial({ color: new THREE.Color(color), gradientMap: toonRamp(), side: THREE.DoubleSide });
   m.name = key;
   m.defines = { FLAT_SHADED: '' }; // faceted normals from screen derivatives: the GLB ships positions only
   const pos = local ? 'transformed' : '(modelMatrix * vec4(transformed, 1.0)).xyz';
+  const world = see && !local ? 'sdWorld.xyz' : '(modelMatrix * vec4(transformed, 1.0)).xyz';
+  // lit panes and shop fronts: one cell of a few metres is on or off, picked by its place (the same every night)
+  const glowMask = !glow
+    ? ''
+    : glow.kind === 'always'
+      ? '1.0'
+      : glow.kind === 'windows'
+        ? 'step(1.0 - sdLitShare(1.0), sdHash(floor(vSdW/vec3(2.4, 3.2, 2.4)) + 3.7))'
+        : 'step(1.0 - sdLitShare(1.35), sdHash(floor(vSdW/vec3(4.0, 3.0, 4.0)) + 9.1))';
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uVar = { value: variation };
     sh.uniforms.uGrime = { value: grime };
     if (see) Object.assign(sh.uniforms, FOLIAGE);
+    Object.assign(sh.uniforms, NIGHT);
+    if (glow) sh.uniforms.uGlow = { value: new THREE.Color(glow.color).multiplyScalar(glow.strength) };
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\n${see ? FOLIAGE_VERT_GLSL : ''}`)
-      .replace('#include <project_vertex>', see && !local ? `${FOLIAGE_PROJECT}\nvWPos = sdWorld.xyz;` : `#include <project_vertex>\nvWPos = ${pos};`);
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vSdW;\n${see ? FOLIAGE_VERT_GLSL : ''}`)
+      .replace(
+        '#include <project_vertex>',
+        `${see && !local ? `${FOLIAGE_PROJECT}\nvWPos = sdWorld.xyz;` : `#include <project_vertex>\nvWPos = ${pos};`}\nvSdW = ${world};`,
+      );
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nuniform float uVar;\nuniform float uGrime;\nfloat gTermN = 0.0;\n${NOISE}${see ? FOLIAGE_FRAG_GLSL : ''}`)
+      .replace(
+        '#include <common>',
+        `#include <common>\nvarying vec3 vWPos;\nuniform float uVar;\nuniform float uGrime;\n${glow ? 'uniform vec3 uGlow;\n' : ''}float gTermN = 0.0;\n${NOISE}${NIGHT_GLSL}${see ? FOLIAGE_FRAG_GLSL : ''}`,
+      )
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\n${see ? 'seeThrough(vWPos);' : ''}`)
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>\n${glow ? `totalEmissiveRadiance += uGlow*(${glowMask})*uNight;` : ''}`,
+      )
+      .replace(
+        '#include <lights_fragment_end>',
+        '#include <lights_fragment_end>\nif (uNight > 0.01) reflectedLight.directDiffuse += diffuseColor.rgb*sdLampLight(vSdW)*uNight;',
+      )
       .replace('#include <gradientmap_pars_fragment>', `
         uniform sampler2D gradientMap;
         vec3 getGradientIrradiance(vec3 normal, vec3 lightDirection) {
@@ -138,7 +220,7 @@ export function paintMaterial(color: THREE.ColorRepresentation, key: string, opt
         diffuseColor.rgb *= mix(0.955, 1.045, sdNoise(sp*22.0));
         gTermN = (sdNoise(sp*0.9) - 0.5)*0.16;`);
   };
-  m.customProgramCacheKey = () => `sd-paint-${local ? 'l' : 'w'}${see ? 's' : ''}`;
+  m.customProgramCacheKey = () => `sd-paint-${local ? 'l' : 'w'}${see ? 's' : ''}${glow ? `-g${glow.kind}` : ''}`;
   return m;
 }
 

@@ -18,6 +18,8 @@ The game is in Vietnamese and English. The language comes from `?lang=vi|en`, th
 
 The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so the back button and shared links work. `?debug` exposes the app as `window.sgGame` (player, follow camera, map view, the collider and `showCollider()` to draw it, `go(mode)`, `step(n)`); `?debug&manual` stops the frame loop so a test can step it.
 
+The light follows Saigon's real time of day (UTC+7, for every player wherever they are): the sun stands where it stands over District 1 now, worked out from the clock with no API, and the city goes through dawn, day, golden hour, blue hour and night. After dark the moon takes over, the street lamps light pools on the ground (the 16 nearest to the camera's focus) and windows, shops, lanterns and traffic lights glow. The menu and the place card show Saigon's time. `?time=17:30` stops the clock at that time of today (and `sgGame.daylight.set('05:45')` / `set(null)` with `?debug`). The colours of each time of day are in `src/game/daylight/looks.ts`; what glows at night, by material, is `NIGHT_GLOW` in `src/game/paint.ts`.
+
 ## Installing as an app (PWA)
 
 The production build is a Progressive Web App: on a phone, "Add to Home Screen" (Safari) or "Install app" (Chrome) puts Sài Gòn mini on the home screen, where it opens full screen. A service worker ([vite-plugin-pwa](https://vite-pwa-org.netlify.app/), set up in `vite.config.ts`) keeps the page, the code, the fonts and the map on the device, so the game starts at once and opens offline too. Offline it plays alone: walking, NPCs and the map need no server, and multiplayer comes back when the network does.
@@ -61,6 +63,13 @@ src/game/
     beach.ts            soft surf for bai_bien: overlapping waves over a far-off bed
     noise.ts            seamless looping brown / pink noise
   world.ts              renderer, paper sky, sun/ambient lighting, GLB loader (plain or base64 .txt)
+  daylight/             the time of day: Saigon's real clock drives the light, sky, water and the night
+    sun.ts              where the sun stands over District 1 at a given moment
+    clock.ts            Saigon's clock (UTC+7) and ?time= to stop it
+    looks.ts            the colours of dawn, day, golden hour, blue hour and night; windows lit by the hour
+    daylight.ts         applies them once a second: sun or moon, tints, sky, sea, ponds, night glow
+    lamps.ts            the street lamps found in the map's lampGlow mesh, the nearest lit at night
+    clockView.ts        Saigon's time on the menu and the place card
   paint.ts              toon paint material (Blender SD_Paint parameters) + foliage wind and see-through
   ink.ts                normal/depth pass, colour pass and the ink composite
   collider.ts           what bodies bump into: the map's own triangles in one BVH (three-mesh-bvh), capsule

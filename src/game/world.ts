@@ -16,41 +16,67 @@ export function createRenderer(container: HTMLElement): THREE.WebGLRenderer {
   return renderer;
 }
 
-function paperSky(): THREE.Texture {
-  // cool blue-grey at the top, warm paper at the horizon
-  const c = document.createElement('canvas');
-  c.width = 4;
-  c.height = 256;
-  const g = c.getContext('2d');
-  if (g) {
-    const gr = g.createLinearGradient(0, 0, 0, 256);
-    gr.addColorStop(0, '#A9BCC6');
-    gr.addColorStop(0.55, '#D9D6CB');
-    gr.addColorStop(1, '#EFE4D0');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, 4, 256);
+/** The paper sky: a vertical gradient (top, middle, horizon), repainted as the day goes (daylight/daylight.ts). */
+export class PaperSky {
+  readonly texture: THREE.CanvasTexture;
+  private readonly g: CanvasRenderingContext2D | null;
+
+  constructor() {
+    const c = document.createElement('canvas');
+    c.width = 4;
+    c.height = 256;
+    this.g = c.getContext('2d');
+    this.texture = new THREE.CanvasTexture(c);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
+    // cool blue-grey at the top, warm paper at the horizon
+    this.paint(new THREE.Color('#A9BCC6'), new THREE.Color('#D9D6CB'), new THREE.Color('#EFE4D0'));
   }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+
+  paint(top: THREE.Color, mid: THREE.Color, low: THREE.Color): void {
+    if (!this.g) return;
+    const gr = this.g.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, `#${top.getHexString()}`);
+    gr.addColorStop(0.55, `#${mid.getHexString()}`);
+    gr.addColorStop(1, `#${low.getHexString()}`);
+    this.g.fillStyle = gr;
+    this.g.fillRect(0, 0, 4, 256);
+    this.texture.needsUpdate = true;
+  }
 }
 
+/** toward the light (three.js axes): the sun or the moon, set by the time of day (setLightDirection) */
 const SUN_DIR = new THREE.Vector3(-0.5506, 0.7708, -0.3204).normalize();
 
+/** Point the light from `dir` (toward the sun or moon, three.js axes). Re-aim the shadow after (aimSun). */
+export function setLightDirection(dir: THREE.Vector3): void {
+  SUN_DIR.copy(dir).normalize();
+}
+
+export interface SceneParts {
+  scene: THREE.Scene;
+  /** the sun by day, the moon by night: the lit side's tint over the ambient */
+  sun: THREE.DirectionalLight;
+  /** the shadow side's tint */
+  ambient: THREE.AmbientLight;
+  sky: PaperSky;
+}
+
 /** Scene with the paper sky and the Blender LIGHT_TINT / SHADOW_TINT two-tone lighting; aim the sun with aimSun. */
-export function createScene(): { scene: THREE.Scene; sun: THREE.DirectionalLight } {
+export function createScene(): SceneParts {
   const scene = new THREE.Scene();
-  scene.background = paperSky();
+  const sky = new PaperSky();
+  scene.background = sky.texture;
   const LIGHT_TINT = new THREE.Color('#FFF2DC');
   const SHADOW_TINT = new THREE.Color('#717BA2');
-  scene.add(new THREE.AmbientLight(SHADOW_TINT, Math.PI));
+  const ambient = new THREE.AmbientLight(SHADOW_TINT, Math.PI);
+  scene.add(ambient);
   const sun = new THREE.DirectionalLight(LIGHT_TINT.clone().sub(SHADOW_TINT), Math.PI);
   sun.castShadow = true;
   const res = Math.min(window.innerWidth, window.innerHeight) < 700 ? 2048 : 4096;
   sun.shadow.mapSize.set(res, res);
   scene.add(sun, sun.target);
   aimSun(sun, fromBlender(0, 0, 0), 160);
-  return { scene, sun };
+  return { scene, sun, ambient, sky };
 }
 
 /**
