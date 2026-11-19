@@ -89,6 +89,14 @@ export function tx(t: Bilingual): string {
   return current === 'en' && t.en ? t.en : t.vi;
 }
 
+/**
+ * A sum of money as đồng, the way each language writes it: 500.000đ in Vietnamese, 500,000₫ in English. The game,
+ * its content and the protocol keep whole xu (1 xu = 1 đồng); only what is shown goes through here.
+ */
+export function money(n: number): string {
+  return current === 'en' ? `${n.toLocaleString('en-US')}₫` : `${n.toLocaleString('vi-VN')}đ`;
+}
+
 type Entry = string | ((...args: never[]) => string);
 
 /**

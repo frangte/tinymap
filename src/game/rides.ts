@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import data from '../../server/content/ridehail.json';
 import { PLACES, distance, placeById, placeTitle, type Place } from './places';
-import { lang } from './i18n';
+import { money } from './i18n';
 import { L } from './i18n/rides';
 import type { Player } from './player';
 import type { NetClient } from '../net/client';
@@ -32,11 +32,6 @@ const BOARD_NEAR = data.board_reach + 0.5;
 export function fareTo(place: Place, x: number, z: number): number {
   const f = data.fare;
   return Math.round((f.base + f.per_metre * Math.max(0, distance(place, x, -z))) / f.round) * f.round;
-}
-
-/** 16.000 xu (16,000 xu in English) */
-export function xu(n: number): string {
-  return `${n.toLocaleString(lang() === 'en' ? 'en-US' : 'vi-VN')} xu`;
 }
 
 /** A place's name in the player's language, by id (the id itself for places this build does not know). */
@@ -333,18 +328,18 @@ export class Rides {
       // the trip stays for the rating window
       this.ride = r;
       this.rating = false;
-      this.d.notify(L.arrivedTitle, r.end === 'completed' ? L.arrivedPaid(name, xu(r.fare)) : L.alightedPaid(xu(r.fare)));
+      this.d.notify(L.arrivedTitle, r.end === 'completed' ? L.arrivedPaid(name, money(r.fare)) : L.alightedPaid(money(r.fare)));
       if (r.end !== 'completed') this.d.say(L.end('alighted', true));
       this.d.openApp('crab');
       return;
     }
     this.ride = null;
     if (!passenger && r.end === 'completed') {
-      this.d.notify(L.tripDoneTitle, L.tripDone(r.passenger.name, name, xu(r.paid)));
+      this.d.notify(L.tripDoneTitle, L.tripDone(r.passenger.name, name, money(r.paid)));
       return;
     }
     const line = L.end(r.end, passenger);
-    if (line) this.d.say(r.paid > 0 && !passenger ? L.earned(line, xu(r.paid)) : line);
+    if (line) this.d.say(r.paid > 0 && !passenger ? L.earned(line, money(r.paid)) : line);
   }
 
   private announce(r: Ride, before: Ride | null): void {
