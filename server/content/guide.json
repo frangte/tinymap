@@ -404,6 +404,372 @@
         "https://vietnamcoracle.com/the-cafe-apartment-on-saigons-walking-street",
         "https://silverlandhotels.com/cafe-apartment-saigon-guide/"
       ]
+    },
+    {
+      "place": "ben_bach_dang",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Công viên và bến tàu dọc sông Sài Gòn, trên đường Tôn Đức Thắng: chỗ đi dạo, lên buýt sông và nhìn sang Thủ Thiêm.",
+        "en": "The riverside park and landing on Tôn Đức Thắng: a place to stroll, to board the river bus and to look across at Thủ Thiêm."
+      },
+      "facts": {
+        "built": {
+          "vi": "Công viên chỉnh trang xong tháng 3 năm 2022",
+          "en": "The park was renovated in March 2022"
+        },
+        "hours": {
+          "vi": "Công viên ngoài trời, đông cả ngày lẫn đêm",
+          "en": "An open park, busy by day and by night"
+        },
+        "ticket": {
+          "vi": "Không thu vé vào công viên; buýt sông và tàu du lịch bán vé riêng",
+          "en": "No ticket for the park; the river bus and tourist boats sell their own"
+        }
+      },
+      "history": [
+        {
+          "vi": "Tên bến nhắc tới các trận thắng quân xâm lược trên sông Bạch Đằng năm 938, 981 và 1288. Chỗ này ban đầu là nơi đậu thuyền; từ những năm 1950–1960 nó là nơi giới trẻ Sài Gòn hay tới gặp nhau. Tượng Trần Hưng Đạo ở Công trường Mê Linh, tay chỉ ra sông, đứng ngay đầu bến.",
+          "en": "The wharf is named after the victories over invaders on the Bạch Đằng River in 938, 981 and 1288. It began as a place to moor boats, and from the 1950s and 1960s young people in Saigon came here to meet. The statue of Trần Hưng Đạo on Mê Linh Square, his arm pointing to the river, stands at its head."
+        },
+        {
+          "vi": "Tháng 4 năm 2015 thành phố cho dừng tàu cánh ngầm, tàu du lịch và tàu nhà hàng ở đây để chỉnh trang bến. Ngày 17 tháng 3 năm 2022, công viên Bến Bạch Đằng và công viên Mê Linh được chỉnh trang xong và khánh thành, nối lối đi bộ từ phố đi bộ Nguyễn Huệ dọc sông tới Cột cờ Thủ Ngữ. Công viên chạy từ cầu Khánh Hội, gần Bến Nhà Rồng, tới khu Ba Son.",
+          "en": "In April 2015 the city stopped the hydrofoils, tourist boats and restaurant boats here so the landing could be renovated. On 17 March 2022 the Bến Bạch Đằng and Mê Linh parks were finished and inaugurated, joining a walking route from Nguyễn Huệ walking street along the river to the Thủ Ngữ flagpole. The park runs from Khánh Hội Bridge, near Nhà Rồng Wharf, to the Ba Son area."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Tượng Trần Hưng Đạo ở Công trường Mê Linh",
+          "en": "The Trần Hưng Đạo statue on Mê Linh Square"
+        },
+        {
+          "vi": "Đi dạo dọc bờ sông, nhìn sang bờ Thủ Thiêm",
+          "en": "A walk along the bank, looking across to Thủ Thiêm"
+        },
+        {
+          "vi": "Cầu Ba Son và nhịp vòm của cầu đi bộ lá dừa nước đang xây cạnh bến",
+          "en": "Ba Son Bridge, and the arch of the water-palm footbridge being built beside the landing"
+        },
+        {
+          "vi": "Bến buýt sông Sài Gòn",
+          "en": "The Saigon river bus landing"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Cuối tuần và ngày lễ ở đây hay có chợ phiên và biểu diễn văn hoá.",
+          "en": "On weekends and holidays there are often markets and cultural performances here."
+        },
+        {
+          "vi": "Buổi tối có tàu du lịch đón khách ở bến; đây cũng là chỗ lên buýt sông (xem trang Bến buýt đường sông).",
+          "en": "In the evening tourist boats pick up passengers at the landing; this is also where you board the river bus (see the river bus page)."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Ga Ba Son của tuyến metro số 1 nằm dưới đường Tôn Đức Thắng, đi bộ khoảng 10 phút tới Công trường Mê Linh và bến Bạch Đằng.",
+          "en": "Ba Son station on Metro Line 1 lies under Tôn Đức Thắng, about a 10-minute walk from Mê Linh Square and the Bạch Đằng landing."
+        },
+        {
+          "vi": "Phố đi bộ Nguyễn Huệ nối ra bờ sông ở đây.",
+          "en": "Nguyễn Huệ walking street leads out to the river here."
+        }
+      ],
+      "food": [
+        {
+          "vi": "Buổi tối có hàng ăn vặt như cá viên chiên, bánh tráng nướng, bắp; trên sông có tàu nhà hàng",
+          "en": "In the evening, snack stalls with fried fish balls, grilled rice paper and corn; restaurant boats on the river"
+        }
+      ],
+      "maps": "Bến Bạch Đằng, Tôn Đức Thắng, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://vneconomy.vn/tp-hcm-khanh-thanh-du-an-chinh-trang-cong-vien-me-linh-va-cong-vien-ben-bach-dang.htm",
+        "https://mia.vn/cam-nang-du-lich/ben-bach-dang-sai-gon-12371",
+        "https://www.sggp.org.vn/net-moi-ben-bach-dang-post499084.html",
+        "https://thesmartlocal.com/vietnam/ba-son-metro-station/"
+      ]
+    },
+    {
+      "place": "cau_ba_son",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Cầu dây văng sáu làn xe nối đường Tôn Đức Thắng sang Thủ Thiêm, thông xe ngày 28 tháng 4 năm 2022; tên cũ là cầu Thủ Thiêm 2.",
+        "en": "A six-lane cable-stayed bridge from Tôn Đức Thắng to Thủ Thiêm, opened to traffic on 28 April 2022; its old name was Thủ Thiêm 2 Bridge."
+      },
+      "facts": {
+        "built": {
+          "vi": "Thông xe 28/4/2022",
+          "en": "Opened 28 April 2022"
+        },
+        "hours": {
+          "vi": "Cầu cho xe cơ giới; ngắm từ bờ sông hoặc từ buýt sông",
+          "en": "A road bridge for vehicles; view it from the riverbank or the river bus"
+        },
+        "ticket": {
+          "vi": "Không áp dụng",
+          "en": "Not applicable"
+        }
+      },
+      "history": [
+        {
+          "vi": "Cầu được xây với tên Thủ Thiêm 2 và thông xe ngày 28 tháng 4 năm 2022, tổng vốn gần 3.100 tỷ đồng. Cầu dài hơn 1.400 m với 6 làn xe; riêng phần dây văng dài khoảng 886 m, nhịp chính 200 m. Cầu bắt đầu từ đường Tôn Đức Thắng và nối sang khu đô thị Thủ Thiêm.",
+          "en": "The bridge was built as the Thủ Thiêm 2 Bridge and opened to traffic on 28 April 2022, at a total cost of nearly 3,100 billion đồng. It is over 1,400 m long with 6 lanes; the cable-stayed part alone is about 886 m, with a main span of 200 m. It starts on Tôn Đức Thắng and leads over to the Thủ Thiêm new urban area."
+        },
+        {
+          "vi": "Ngày 14 tháng 6 năm 2023 thành phố công bố đặt tên cầu là Ba Son, theo xưởng đóng tàu Ba Son bên cạnh (nay là khu Ba Son); cầu cũ vẫn giữ tên Thủ Thiêm.",
+          "en": "On 14 June 2023 the city announced the name Ba Son Bridge, after the neighbouring Ba Son shipyard (now the Ba Son complex); the older bridge keeps the name Thủ Thiêm."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Dáng cầu dây văng, thấy rõ nhất từ bờ sông Bạch Đằng",
+          "en": "The cable-stayed bridge, best seen from the Bạch Đằng riverbank"
+        },
+        {
+          "vi": "Cầu từ dưới sông: buýt sông có bến mang tên Ba Son",
+          "en": "The bridge from the water: the river bus has a Ba Son landing"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Nhiều người vẫn gọi cầu là Thủ Thiêm 2; cầu Thủ Thiêm cũ (Thủ Thiêm 1) là cầu khác.",
+          "en": "Many people still say Thủ Thiêm 2; the older Thủ Thiêm Bridge (Thủ Thiêm 1) is a different bridge."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Ga Ba Son của tuyến metro số 1 nằm dưới đường Tôn Đức Thắng, gần đầu cầu phía quận 1.",
+          "en": "Ba Son station on Metro Line 1 lies under Tôn Đức Thắng, near the bridge's city end."
+        },
+        {
+          "vi": "Từ bến Bạch Đằng đi bộ dọc bờ sông tới chân cầu.",
+          "en": "From the Bạch Đằng landing, walk along the riverbank to the foot of the bridge."
+        }
+      ],
+      "food": [],
+      "maps": "Cầu Ba Son, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://tuoitre.vn/cau-thu-thiem-2-chinh-thuc-doi-ten-thanh-cau-ba-son-20230614125208539.htm",
+        "https://en.wikipedia.org/wiki/Ba_Son_Bridge",
+        "https://saigonwaterbus.com"
+      ]
+    },
+    {
+      "place": "cau_di_bo_la_dua",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Cầu đi bộ hình lá dừa nước, dài khoảng 720 m, nối bến Bạch Đằng với Thủ Thiêm. Cầu mới hợp long ngày 21/10/2026 và chưa mở cửa.",
+        "en": "A pedestrian bridge shaped like a water-palm leaf, about 720 m long, from the Bạch Đằng landing to Thủ Thiêm. It was joined on 21 October 2026 and is not yet open."
+      },
+      "facts": {
+        "built": {
+          "vi": "Khởi công 2025; hợp long 21/10/2026",
+          "en": "Started 2025; joined 21 October 2026"
+        },
+        "hours": {
+          "vi": "Chưa mở cửa (tháng 11/2026); dự kiến dịp Tết Nguyên đán 2027",
+          "en": "Not open yet (November 2026); planned for around Lunar New Year 2027"
+        },
+        "ticket": {
+          "vi": "Chưa có thông tin",
+          "en": "Not announced"
+        }
+      },
+      "history": [
+        {
+          "vi": "Cầu dài khoảng 720 m, rộng 6–11 m, vốn gần 1.000 tỷ đồng, do Nutifood tài trợ. Nhịp chính là vòm thép hình lá dừa nước dài 187 m, không có trụ giữa sông. Cầu có làn xe đạp, lối cho người khuyết tật, và sẽ có thang máy, thang cuốn. Một đầu ở công viên Bến Bạch Đằng, đầu kia ở bờ Thủ Thiêm.",
+          "en": "The bridge is about 720 m long and 6–11 m wide, costs nearly 1,000 billion đồng and is sponsored by Nutifood. Its main span is a 187 m steel arch shaped like a water-palm leaf, with no pier in the river. It has a bicycle lane and paths for people with disabilities, and will have lifts and escalators. One end is in Bến Bạch Đằng park, the other on the Thủ Thiêm bank."
+        },
+        {
+          "vi": "Tiến độ bị lùi nhiều lần; báo chí tháng 5 năm 2026 còn nói cố gắng xong dịp 2 tháng 9. Ngày 21 tháng 10 năm 2026, nhịp vòm chính được lai dắt bằng sà lan vào vị trí và hợp long trong khoảng 8 tiếng. Sau đó còn lát mặt cầu, lắp lan can, đèn nghệ thuật, cảnh quan hai đầu và thử tải; dự kiến đưa vào sử dụng dịp Tết Nguyên đán 2027.",
+          "en": "The schedule slipped several times; the press in May 2026 still spoke of aiming for 2 September. On 21 October 2026 the main arch was floated into place by barge and joined in about 8 hours. Still to come are the deck, railings, artistic lighting, landscaping at both ends and load testing; opening is planned around Lunar New Year 2027."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Vòm thép của cầu, nhìn từ công viên Bến Bạch Đằng",
+          "en": "The steel arch, seen from Bến Bạch Đằng park"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Cầu chưa mở, đừng đi tìm lối lên; hỏi lại tin trước khi đi vì ngày mở có thể đổi.",
+          "en": "The bridge is not open, so do not look for a way up; check the news before you go, as the opening date may change."
+        },
+        {
+          "vi": "Để sang Thủ Thiêm lúc này, đi buýt sông hoặc đi qua cầu Ba Son hay cầu Thủ Thiêm.",
+          "en": "To cross to Thủ Thiêm now, take the river bus or cross by Ba Son Bridge or Thủ Thiêm Bridge."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Đầu cầu phía thành phố ở công viên Bến Bạch Đằng, đi bộ từ phố đi bộ Nguyễn Huệ ra sông.",
+          "en": "The city end is in Bến Bạch Đằng park, a walk from Nguyễn Huệ walking street down to the river."
+        }
+      ],
+      "food": [],
+      "maps": "Cầu đi bộ qua sông Sài Gòn, Bến Bạch Đằng, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://vietbao.vn/cau-di-bo-qua-song-sai-gon-du-kien-khai-thac-dip-tet-612194.html",
+        "https://thuonghieucongluan.com.vn/ca-u-di-bo-qua-song-sai-gon-hop-long-thanh-cong-sau-8-gio-thi-cong-a338917.html",
+        "https://tuoitre.vn/nutifood.html",
+        "https://vov.vn/kinh-te/tphcm-thu-tai-thanh-cong-cau-di-bo-qua-song-sai-gon-chuan-bi-hop-long-post1340514.vov"
+      ]
+    },
+    {
+      "place": "ben_buyt_song",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Buýt sông Sài Gòn chạy từ bến Bạch Đằng tới Linh Đông (Thủ Đức) qua 8 bến; vé từ 15.000 đồng một lượt.",
+        "en": "The Saigon river bus runs from the Bạch Đằng landing to Linh Đông (Thủ Đức) through 8 stops; tickets from 15,000 đồng one way."
+      },
+      "facts": {
+        "built": {
+          "vi": "Chạy từ tháng 11/2017",
+          "en": "Running since November 2017"
+        },
+        "hours": {
+          "vi": "Lịch mới từ 1/4/2026, chạy mỗi ngày (có thêm chuyến thứ Bảy, Chủ Nhật, ngày lễ); chuyến đầu từ Bạch Đằng khoảng 8:30",
+          "en": "Timetable from 1 April 2026, every day (extra trips on Saturdays, Sundays and holidays); first trip from Bạch Đằng about 8:30 am"
+        },
+        "ticket": {
+          "vi": "15.000 đồng một lượt, 30.000 đồng khứ hồi; miễn phí từ 70 tuổi, người khuyết tật, thương binh, trẻ dưới 1 tuổi",
+          "en": "15,000 đồng one way, 30,000 đồng return; free from age 70, for people with disabilities, war invalids and children under 1"
+        }
+      },
+      "history": [
+        {
+          "vi": "Thành phố duyệt dự án buýt đường sông ngày 20 tháng 7 năm 2015 cho Công ty Thường Nhật, tự đầu tư và khai thác. Tuyến số 1 dài khoảng 10,8 km, đi từ bến Bạch Đằng theo sông Sài Gòn, qua rạch Thanh Đa rồi ra lại sông tới Linh Đông; tuyến bắt đầu chạy tháng 11 năm 2017.",
+          "en": "The city approved the river bus project on 20 July 2015 for Thường Nhật Co., which invests and operates it itself. Route 1 is about 10.8 km, from the Bạch Đằng landing along the Saigon River, through the Thanh Đa canal and back to the river at Linh Đông; it began running in November 2017."
+        },
+        {
+          "vi": "Các bến hiện nay là Bạch Đằng, Thủ Thiêm, Ba Son, Bình An, Thảo Điền, Thanh Đa, Hiệp Bình Chánh và Linh Đông. Tuyến số 1 là tuyến đang chạy; các tuyến khác chưa có tin xác nhận đã khai thác.",
+          "en": "The stops now are Bạch Đằng, Thủ Thiêm, Ba Son, Bình An, Thảo Điền, Thanh Đa, Hiệp Bình Chánh and Linh Đông. Route 1 is the one running; the other planned routes have not been confirmed as operating."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Cầu Ba Son và bờ Thủ Thiêm nhìn từ dưới sông",
+          "en": "Ba Son Bridge and the Thủ Thiêm bank seen from the water"
+        },
+        {
+          "vi": "Quãng sông Sài Gòn và rạch Thanh Đa phía thượng nguồn",
+          "en": "The upper Saigon River and the Thanh Đa canal"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Chạy cả tuyến Bạch Đằng – Linh Đông mất khoảng một tiếng; đi khứ hồi và chờ thì gần 4 tiếng.",
+          "en": "The whole Bạch Đằng – Linh Đông run takes about an hour; a return trip with the wait is nearly 4 hours."
+        },
+        {
+          "vi": "Mua vé ở quầy Bạch Đằng, trên saigonwaterbus.com (trả bằng mã QR hoặc thẻ), hoặc qua Traveloka. Có mặt trước giờ chạy khoảng 15 phút.",
+          "en": "Buy at the Bạch Đằng office, on saigonwaterbus.com (pay by QR code or card), or through Traveloka. Arrive about 15 minutes before departure."
+        },
+        {
+          "vi": "Giờ từng chuyến chỉ có trong bảng giờ trên trang chính thức, hoặc gọi 1900 636 830; các trang du lịch ghi giờ chuyến cuối khác nhau, nên đừng tin vào chuyến muộn.",
+          "en": "The departure times are only in the timetable on the official site, or call 1900 636 830; travel sites disagree on the last trip, so do not count on a late one."
+        },
+        {
+          "vi": "Gửi xe máy ở Bạch Đằng mất thêm 10.000 đồng.",
+          "en": "Leaving a motorbike at Bạch Đằng costs 10,000 đồng more."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Bến Bạch Đằng ở công viên Bến Bạch Đằng, đầu đường Tôn Đức Thắng, đi bộ ra từ phố đi bộ Nguyễn Huệ.",
+          "en": "The Bạch Đằng landing is in Bến Bạch Đằng park on Tôn Đức Thắng, a walk from Nguyễn Huệ walking street."
+        },
+        {
+          "vi": "Ga Ba Son của tuyến metro số 1 cách khoảng 10 phút đi bộ.",
+          "en": "Ba Son station on Metro Line 1 is about a 10-minute walk away."
+        }
+      ],
+      "food": [],
+      "maps": "Bến tàu Bạch Đằng buýt sông Sài Gòn, Thành phố Hồ Chí Minh",
+      "sources": [
+        "https://saigonwaterbus.com",
+        "https://mia.vn/cam-nang-du-lich/water-bus-saigon-12411",
+        "https://www.traveloka.com/vi-vn/explore/tips/ta-warter-bus-sai-gon/1001846",
+        "https://en.wikipedia.org/wiki/Saigon_Waterbus",
+        "https://tuoitre.vn/saigontimes/tphcm-sap-co-2-tuyen-buyt-duong-song",
+        "https://thesmartlocal.com/vietnam/ba-son-metro-station/"
+      ]
+    },
+    {
+      "place": "ben_nha_rong",
+      "checked": "2026-11-19",
+      "summary": {
+        "vi": "Toà nhà bên sông xây đầu thập niên 1860, nơi Nguyễn Tất Thành rời Sài Gòn ngày 5/6/1911 đi tìm đường cứu nước; nay là Bảo tàng Hồ Chí Minh – chi nhánh TP.HCM, đang đóng cửa để cải tạo.",
+        "en": "The riverside building from the early 1860s where Nguyễn Tất Thành left Saigon on 5 June 1911 to seek a way to save the country; now the Hồ Chí Minh Museum, Ho Chi Minh City branch, closed for renovation."
+      },
+      "facts": {
+        "built": {
+          "vi": "Khoảng 1862–1864 (các nguồn ghi năm khởi công khác nhau)",
+          "en": "About 1862–1864 (sources differ on the start year)"
+        },
+        "hours": {
+          "vi": "Đóng cửa từ 7/5/2026 để cải tạo; trang chính thức vẫn ghi \"Đang đóng cửa\" (xem bennharong.vn)",
+          "en": "Closed since 7 May 2026 for renovation; the official site still says \"closed\" (see bennharong.vn)"
+        },
+        "ticket": {
+          "vi": "Chưa có thông tin chính thức; hỏi bảo tàng khi mở lại",
+          "en": "No official figure; ask the museum when it reopens"
+        }
+      },
+      "history": [
+        {
+          "vi": "Toà nhà được người Pháp xây từ khoảng 1862 đến 1864 làm trụ sở hãng tàu Messageries Maritimes ở Sài Gòn, một trong những công trình đầu tiên họ xây sau khi chiếm Sài Gòn. Mái nhà có hình hai rồng chầu nguyệt.",
+          "en": "The French built it from about 1862 to 1864 as the Saigon headquarters of the Messageries Maritimes shipping company, one of the first buildings they put up after taking Saigon. Its roof carries the two-dragons-facing-the-moon motif."
+        },
+        {
+          "vi": "Ngày 5 tháng 6 năm 1911, thanh niên Nguyễn Tất Thành rời cảng Sài Gòn từ bến này, làm phụ bếp trên một con tàu (các sách ghi là tàu Amiral Latouche-Tréville), để đi tìm đường cứu nước.",
+          "en": "On 5 June 1911 the young Nguyễn Tất Thành left the port of Saigon from this wharf as a kitchen helper on a ship (books name it the Amiral Latouche-Tréville), to seek a way to save the country."
+        },
+        {
+          "vi": "Sau năm 1975 toà nhà thành khu lưu niệm Chủ tịch Hồ Chí Minh, mở cửa đón khách ngày 2 tháng 9 năm 1979; tháng 10 năm 1995 đổi tên là Bảo tàng Hồ Chí Minh – chi nhánh TP.HCM. Dự án cải tạo khởi công ngày 29 tháng 4 năm 2026 nằm trong công viên Bến Nhà Rồng – Khánh Hội, nâng khu bảo tàng từ 1,4 ha lên khoảng 11 ha, và có kế hoạch một cầu đi bộ nối Bến Nhà Rồng với Bến Bạch Đằng. Giai đoạn 1 chưa kịp xong dịp 2/9/2026; ngày mở lại đang chờ cấp lãnh đạo duyệt (tin ngày 1/9).",
+          "en": "After 1975 the building became the Hồ Chí Minh memorial area, opened to visitors on 2 September 1979; in October 1995 it was renamed the Hồ Chí Minh Museum, Ho Chi Minh City branch. The renovation that broke ground on 29 April 2026 is part of the Nhà Rồng – Khánh Hội cultural park, growing the museum grounds from 1.4 ha to about 11 ha, with a planned footbridge from Nhà Rồng Wharf to Bạch Đằng Wharf. Phase 1 was not finished for 2 September 2026; the reopening date was waiting for approval from the leadership (news of 1 September)."
+        }
+      ],
+      "see": [
+        {
+          "vi": "Toà nhà và mái hai rồng chầu nguyệt, ngắm từ ngoài",
+          "en": "The building and its two-dragon roof, from outside"
+        },
+        {
+          "vi": "Bảo tàng ảo trên bennharong.vn khi bảo tàng đóng cửa",
+          "en": "The virtual museum on bennharong.vn while the museum is closed"
+        },
+        {
+          "vi": "Khi mở lại: trưng bày về cuộc đời và sự nghiệp của Chủ tịch Hồ Chí Minh, nhất là chuyến ra đi năm 1911",
+          "en": "When it reopens: the exhibition on Hồ Chí Minh's life and career, above all the 1911 departure"
+        }
+      ],
+      "tips": [
+        {
+          "vi": "Trước khi đi, xem bennharong.vn, fanpage của bảo tàng hoặc gọi (028) 38255740 để biết đã mở lại chưa, giờ mở cửa và giá vé; các trang du lịch ghi giờ và giá khác nhau.",
+          "en": "Before you go, check bennharong.vn, the museum's fanpage or call (028) 38255740 to learn whether it has reopened, and its hours and ticket price; travel sites disagree on both."
+        }
+      ],
+      "getting_there": [
+        {
+          "vi": "Địa chỉ: 1 Nguyễn Tất Thành, phường Xóm Chiếu.",
+          "en": "Address: 1 Nguyễn Tất Thành, Xóm Chiếu ward."
+        },
+        {
+          "vi": "Công viên Bến Bạch Đằng bắt đầu từ cầu Khánh Hội, gần Bến Nhà Rồng, nên hai nơi nằm cùng một đoạn bờ sông.",
+          "en": "Bến Bạch Đằng park starts at Khánh Hội Bridge, near Nhà Rồng Wharf, so the two sit on the same stretch of riverbank."
+        }
+      ],
+      "food": [],
+      "maps": "Bảo tàng Hồ Chí Minh chi nhánh Thành phố Hồ Chí Minh, 1 Nguyễn Tất Thành",
+      "sources": [
+        "https://bennharong.vn/",
+        "https://baovanhoa.vn/van-hoa/bao-tang-ho-chi-minh-chi-nhanh-tphcm-chua-mo-cua-phuc-vu-khach-dip-29-261444.html",
+        "https://baovanhoa.vn/du-lich/cong-trinh-giua-trung-tam-tphcm-gan-su-kien-lich-su-hon-100-nam-truoc-234410.html",
+        "https://vi.wikipedia.org/wiki/B%E1%BA%BFn_Nh%C3%A0_R%E1%BB%93ng",
+        "https://lifestyle.zingnews.vn/bao-tang-ho-chi-minh-o-ben-nha-rong-tam-dong-cua-den-thang-9-post1650126.html",
+        "https://nongnghiepmoitruong.vn/ben-nha-rong--khanh-hoi-kien-tao-di-san-ven-song-d819309.html"
+      ]
     }
   ]
 }
