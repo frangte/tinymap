@@ -72,8 +72,10 @@ items gets an Ifone X for free (10-story.md, section 13: "ai cũng được mộ
 | `traveler` | Người nước ngoài / Foreign backpacker | `traveler` | phố đi bộ Bùi Viện | plain |
 | `driver` | Tài xế Crab Bike | `driver` | as now | as now |
 
-`driver` gets `"job": true`: the first pick shows only the three origins, Đổi vai shows the driver too until the
-job is earned in chapter 3 (step 4), when the driver archetype goes. Everyone starts with 500.000đ
+`driver` gets `"job": true`: it is earned in play, never picked. Khoa (2026-11-19): nobody becomes a Crab driver
+at the start, it takes the quests of chapter 3 (step 4). The first pick and Đổi vai show only the three origins, and
+the server refuses a job in a hello or a change; a driver from before keeps it (and sees its own card) until step 4
+turns driving into capabilities earned by quests and the driver archetype goes. Everyone starts with 500.000đ
 (`ridehail.json` `start_balance`); a foreigner's 20 USD and Cô Kim's exchange come later.
 
 Lines may use `{anh_chi}`: "anh" for a man's body, "chị" for a woman's, in Vietnamese only (English lines never

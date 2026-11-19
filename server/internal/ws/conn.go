@@ -384,14 +384,21 @@ func (c *client) readLoop() {
 func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	cat := c.s.catalog
 	arch := hello.Arch
-	if _, ok := cat.Archetype(arch); !ok {
+	at, known := cat.Archetype(arch)
+	if !known {
 		arch = "" // an unknown id plays without an archetype rather than not at all
+	}
+	// a job (the Crab driver) is earned in play, never picked: a hello keeps one only for a character that already
+	// has it (a driver from before), and a new character or a guest asking for one starts without an archetype
+	pick := arch
+	if known && at.Job {
+		pick = ""
 	}
 	look := cat.AllowedLook(*hello.Look, cat.Grants(arch))
 	hello.Name = c.s.cleanName(hello.Name)
 	ctx, cancel := context.WithTimeout(context.Background(), identityWait)
 	defer cancel()
-	found, err := c.s.ids.Arrive(ctx, hello.Token, identity.Profile{Name: hello.Name, Look: look, Archetype: arch})
+	found, err := c.s.ids.Arrive(ctx, hello.Token, identity.Profile{Name: hello.Name, Look: look, Archetype: pick})
 	switch {
 	case errors.Is(err, identity.ErrUnknownToken):
 		return world.Arrival{}, protocol.ErrAuth
@@ -400,7 +407,7 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 	case err != nil:
 		// the database is down or slow: better to play as a guest than not at all
 		c.s.log.Error("account lookup failed, playing as a guest", "err", err)
-		found = identity.Arrived{Archetype: arch}
+		found = identity.Arrived{Archetype: pick}
 	}
 	kept := found.Archetype
 	c.character = found.ID
@@ -461,9 +468,11 @@ func (c *client) changeArch(arch string) bool {
 	cat := c.s.catalog
 	at, known := cat.Archetype(arch)
 	c.mu.Lock()
-	if !known || arch == c.arch {
+	if !known || arch == c.arch || at.Job {
 		c.mu.Unlock()
-		return true // an id this server does not know only comes from a tampered client; the same one is no change
+		// an id this server does not know, or a job (earned in play, never picked), only comes from a tampered
+		// client; the same one is no change
+		return true
 	}
 	caps := c.capsOf(arch)
 	look := cat.AllowedLook(protocol.Look{Body: c.look.Body, Outfit: at.Look.Outfit, Hat: at.Look.Hat}, caps)

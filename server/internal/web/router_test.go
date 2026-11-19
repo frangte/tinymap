@@ -472,6 +472,23 @@ func eventually(t *testing.T, what string, ok func() bool) {
 }
 
 // storedCharacter is the character behind a token, read straight from the database.
+// asDriver makes the character behind token a Crab driver from before driving became a job earned in play: it
+// arrives once as a Citizen, then the store gives it the driver archetype and uniform (a hello cannot pick a job).
+func asDriver(t *testing.T, srv *testServer, token string) {
+	t.Helper()
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "citizen", "thun", "none"))
+	next(t, a, "welcome")
+	a.Close()
+	c, err := storedCharacter(srv, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := srv.db.ChangeArchetype(context.Background(), c.ID, "driver", protocol.Look{Body: "woman", Outfit: "crab", Hat: "helmet"}, 1); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func storedCharacter(srv *testServer, token string) (identity.Character, error) {
 	sum := sha256.Sum256([]byte(token))
 	account, err := srv.db.AccountByToken(context.Background(), sum[:], 0)
@@ -592,9 +609,46 @@ func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
 	}
 }
 
+// Nobody picks the Crab driver: it is a job earned in play (docs/design/11-items.md). A new character or a guest
+// asking for it in a hello starts without an archetype, out of the uniform and with no bike; a change to it is
+// ignored.
+func TestNobodyPicksTheDriverJob(t *testing.T) {
+	srv := startServer(t, testConfig())
+	_, _, token := postGuest(t, srv, "")
+	a := dial(t, srv)
+	send(t, a, helloAs(token, "driver", "crab", "helmet"))
+	if w := next(t, a, "welcome"); w.Arch != "" || len(w.Vehicles) != 0 {
+		t.Fatalf("a new character asking for the driver: arch %q vehicles %+v", w.Arch, w.Vehicles)
+	}
+	eventually(t, "the uniform to be taken off", func() bool {
+		c, err := storedCharacter(srv, token)
+		return err == nil && c.Archetype == "" && c.Look.Outfit != "crab" && c.Look.Hat != "helmet"
+	})
+	a.Close()
+
+	g := dial(t, srv)
+	send(t, g, helloAs("", "driver", "crab", "helmet"))
+	if w := next(t, g, "welcome"); w.Arch != "" || len(w.Vehicles) != 0 {
+		t.Fatalf("a guest asking for the driver: arch %q vehicles %+v", w.Arch, w.Vehicles)
+	}
+	g.Close()
+
+	// a Citizen asking to change to the driver gets nothing; its next change (to a Traveler) is the one made
+	_, _, other := postGuest(t, srv, "")
+	c := dial(t, srv)
+	send(t, c, helloAs(other, "citizen", "thun", "none"))
+	next(t, c, "welcome")
+	send(t, c, `{"t":"arch","arch":"driver"}`)
+	send(t, c, `{"t":"arch","arch":"traveler"}`)
+	if ch := next(t, c, "arch"); ch.Arch != "traveler" {
+		t.Fatalf("the change after asking for the driver: %q", ch.Arch)
+	}
+}
+
 func TestDriverWearsTheUniform(t *testing.T) {
 	srv := startServer(t, testConfig())
 	_, _, token := postGuest(t, srv, "")
+	asDriver(t, srv, token)
 	a := dial(t, srv)
 	send(t, a, helloAs(token, "driver", "crab", "helmet"))
 	// the Crab Driver app needs a smartphone too (bought, docs/design/11-items.md)
@@ -609,6 +663,7 @@ func TestDriverWearsTheUniform(t *testing.T) {
 func TestTheArchetypeChangesInGame(t *testing.T) {
 	srv := startServer(t, testConfig())
 	_, _, token := postGuest(t, srv, "")
+	asDriver(t, srv, token)
 	a := dial(t, srv)
 	send(t, a, helloAs(token, "driver", "crab", "helmet"))
 	w := next(t, a, "welcome")
@@ -730,8 +785,10 @@ func TestTheNextVisitStartsWhereTheLastEnded(t *testing.T) {
 
 func TestTheDriverGetsOnTheirBike(t *testing.T) {
 	srv := startServer(t, testConfig())
+	_, _, token := postGuest(t, srv, "")
+	asDriver(t, srv, token)
 	a := dial(t, srv)
-	send(t, a, helloAs("", "driver", "crab", "helmet"))
+	send(t, a, helloAs(token, "driver", "crab", "helmet"))
 	w := next(t, a, "welcome")
 	if len(w.Vehicles) != 1 || w.Vehicles[0].Owner != w.ID || w.Vehicles[0].Kind != "xe_so_110" || w.Vehicles[0].Rider != 0 {
 		t.Fatalf("welcome vehicles = %+v", w.Vehicles)

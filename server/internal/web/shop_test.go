@@ -131,11 +131,15 @@ func TestAPhoneInTheStoreGivesTheAppsOnArrival(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			srv := startServer(t, shopConfig(t))
 			_, _, token := postGuest(t, srv, "")
-			// the character exists once it has arrived
-			first := dial(t, srv)
-			send(t, first, helloAs(token, c.arch, c.outfit, c.hat))
-			next(t, first, "welcome")
-			first.Close()
+			// the character exists once it has arrived; a driver is one from before (a hello cannot pick the job)
+			if c.arch == "driver" {
+				asDriver(t, srv, token)
+			} else {
+				first := dial(t, srv)
+				send(t, first, helloAs(token, c.arch, c.outfit, c.hat))
+				next(t, first, "welcome")
+				first.Close()
+			}
 			giveItem(t, srv, token, c.item)
 
 			a := dial(t, srv)

@@ -80,8 +80,8 @@ type Archetype struct {
 	ID string `json:"id"`
 	// Tags say which quests it is offered (quests.json tags_any)
 	Tags []string `json:"tags"`
-	// Job marks a role earned in play rather than picked at the start: the first pick leaves it out, Đổi vai shows
-	// it (docs/design/11-items.md)
+	// Job marks a role earned in play, never picked: neither the first pick nor Đổi vai offers it, and the server
+	// refuses it in a hello or a change; only a character that already has it keeps it (docs/design/11-items.md)
 	Job   bool        `json:"job,omitempty"`
 	Name  Text        `json:"name"`
 	Pitch Text        `json:"pitch"`

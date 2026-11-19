@@ -415,7 +415,7 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
    - Còn lại của bước này: Sổ sưu tầm, phần địa điểm và món ăn (chờ nội dung của Khoa). Cài đặt (ngôn ngữ, âm thanh) vẫn ở hàng nút công cụ.
 2. Tạo nhân vật mới, hai chương mở đầu, đồ và cửa hàng, điện thoại thành món đồ thật (danh bạ, tin nhắn, ứng dụng ẩn).
    - **Đợt 1 làm xong 2026-11-19 (chưa deploy)**, cách làm ở [11-items.md](11-items.md):
-     - Ba xuất phát: Người từ quê lên (mới, xuất hiện ở Bến xe Chợ Lớn), Người Sài Gòn gốc (Lê Lai), Người nước ngoài (Bùi Viện). Ai cũng mặc đồ thường; "Đổi vai" vẫn có, thêm tài xế cho tới khi làm xong chương 3.
+     - Ba xuất phát: Người từ quê lên (mới, xuất hiện ở Bến xe Chợ Lớn), Người Sài Gòn gốc (Lê Lai), Người nước ngoài (Bùi Viện). Ai cũng mặc đồ thường; "Đổi vai" vẫn có, chỉ đổi giữa ba xuất phát. Không ai chọn làm tài xế Crab được nữa (Khoa, 2026-11-19: phải làm nhiệm vụ mới lên được); tài xế từ trước giữ nguyên tới bước 4.
      - Không ai có điện thoại lúc đầu: nút điện thoại chỉ đường tới tiệm, thẻ "Nhiệm vụ đầu tiên" và quest "Cái điện thoại đầu tiên".
      - Anh Bảy và tiệm Dế Yêu trên Lê Lợi bán 4 đời máy. Server trừ tiền và cấp quyền `phone.basic` / `phone.smart` trong một giao dịch. Nokla chỉ có Thông báo; Ifone có mọi ứng dụng. Đặt Crab cần smartphone, kể cả ở server.
      - Quest cần smartphone (đi Crab, cuốc đầu của tài xế, Thổ địa) chỉ mở khi có máy, và mở ngay lúc mua.
