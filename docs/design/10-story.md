@@ -399,6 +399,14 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
    - **Trang Cẩm nang cho cả 20 công trình: làm xong 2026-11-19 (chưa deploy).** 15 trang mới (Lam Sơn, Công xã Paris, Hồ Con Rùa, Bitexco, Chung cư 42 Nguyễn Huệ, Bến Bạch Đằng, cầu Ba Son, cầu đi bộ lá dừa, buýt đường sông, Bến Nhà Rồng, dãy nhà phố, Bến xe Chợ Lớn, nhà thờ Thủ Thiêm, hải đăng Vũng Tàu, tượng Chúa Kitô Vua), tra cứu ngày 2026-11-19, có nguồn; chỗ nguồn yếu đã bỏ, chỗ nguồn nói khác nhau ghi khoảng. Cầu đi bộ ghi rõ là chưa mở, Bến Nhà Rồng đang đóng cửa cải tạo. Ghi chú năm của hải đăng (1862) và tượng Chúa (1994) trong `places.json` đã sửa theo nguồn.
    - Còn lại của bước này: Sổ sưu tầm, phần địa điểm và món ăn (chờ nội dung của Khoa). Cài đặt (ngôn ngữ, âm thanh) vẫn ở hàng nút công cụ.
 2. Tạo nhân vật mới, hai chương mở đầu, đồ và cửa hàng, điện thoại thành món đồ thật (danh bạ, tin nhắn, ứng dụng ẩn).
+   - **Đợt 1 làm xong 2026-11-19 (chưa deploy)**, cách làm ở [11-items.md](11-items.md):
+     - Ba xuất phát: Người từ quê lên (mới, xuất hiện ở Bến xe Chợ Lớn), Người Sài Gòn gốc (Lê Lai), Người nước ngoài (Bùi Viện). Ai cũng mặc đồ thường; "Đổi vai" vẫn có, thêm tài xế cho tới khi làm xong chương 3.
+     - Không ai có điện thoại lúc đầu: nút điện thoại chỉ đường tới tiệm, thẻ "Nhiệm vụ đầu tiên" và quest "Cái điện thoại đầu tiên".
+     - Anh Bảy và tiệm Dế Yêu trên Lê Lợi bán 4 đời máy. Server trừ tiền và cấp quyền `phone.basic` / `phone.smart` trong một giao dịch. Nokla chỉ có Thông báo; Ifone có mọi ứng dụng. Đặt Crab cần smartphone, kể cả ở server.
+     - Quest cần smartphone (đi Crab, cuốc đầu của tài xế, Thổ địa) chỉ mở khi có máy, và mở ngay lúc mua.
+     - Tiền hiện bằng đồng; tiền mang theo 500.000đ. Nhân vật cũ được tặng một Ifone X.
+     - Lời thoại có `{anh_chi}` theo giới của nhân vật.
+   - Còn lại của bước 2: chương 0 của từng xuất phát (Bà Chín, anh Tony, cô Kim đổi tiền), danh bạ, cuộc gọi và tin nhắn trong điện thoại, cuộc gọi về cho Má.
 3. Đặt Crab có chỗ thay thế khi không có tài xế: Chú Sáu xe ôm trước, tài xế NPC sau.
 4. Việc vặt, thi bằng, mua xe, đăng ký Crab, khách NPC.
 5. Các chương sau ([mục 9](#9-sau-chương-3-ý-tưởng-chưa-viết)).

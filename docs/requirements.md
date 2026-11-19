@@ -161,6 +161,12 @@ vào game cũng chưa có điện thoại, phải mua từ đầu, có thông b�
 Nokla, Ifone dùng được. Bước 2 (tạo nhân vật, đồ và cửa hàng, điện thoại thành món đồ) đang làm, cách làm ở
 [design/11-items.md](design/11-items.md).
 
+**2026-11-19, đợt 1 của bước 2 làm xong (chưa deploy):** ba xuất phát (thêm Người từ quê lên ở Bến xe Chợ Lớn), ai
+cũng mặc đồ thường và chưa có điện thoại; thẻ "Nhiệm vụ đầu tiên"; anh Bảy bán 4 đời máy ở tiệm Dế Yêu trên Lê Lợi;
+Nokla chỉ có Thông báo, Ifone có mọi ứng dụng; tiền hiện bằng đồng, mang theo 500.000đ. Đã thử mua máy từ đầu tới cuối
+trên trình duyệt (tiếng Việt và tiếng Anh, máy tính và điện thoại). Còn lại: chương 0 của từng xuất phát, danh bạ, tin
+nhắn, cô Kim đổi tiền.
+
 ## Thứ tự đề xuất
 
 R1 (duyệt design → blockout → duyệt → chi tiết, gồm R4, R5) → R2 và R3 khi bake map mới → R6 → R7 (design viết song song, game 1 và 4 cần R6).
