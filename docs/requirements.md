@@ -156,6 +156,11 @@ Thành tích, Bản đồ ra khỏi điện thoại. Chi tiết ở mục 14 c�
 (9 mẹo), Sổ sưu tầm phần Tiếng Việt (9 câu học qua lời thoại Cô Ba, Chú Tư, Dì Năm, Chú Sáu; tab Sưu tầm trong Sổ tay),
 trang Cẩm nang cho cả 20 công trình. Còn chờ: nội dung chuyện ngoài lề về địa điểm và món ăn của Khoa.
 
+**2026-11-19, Khoa chốt cho bước 2:** vẫn cho đổi xuất phát ("Đổi vai"); tiền hiện là "đồng", giá thật cho đồ nhỏ; ai
+vào game cũng chưa có điện thoại, phải mua từ đầu, có thông báo cho người chơi biết đó là nhiệm vụ đầu tiên; tên máy
+Nokla, Ifone dùng được. Bước 2 (tạo nhân vật, đồ và cửa hàng, điện thoại thành món đồ) đang làm, cách làm ở
+[design/11-items.md](design/11-items.md).
+
 ## Thứ tự đề xuất
 
 R1 (duyệt design → blockout → duyệt → chi tiết, gồm R4, R5) → R2 và R3 khi bake map mới → R6 → R7 (design viết song song, game 1 và 4 cần R6).

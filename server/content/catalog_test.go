@@ -21,28 +21,34 @@ func TestCatalogLoads(t *testing.T) {
 	if _, ok := c.Archetype(""); ok {
 		t.Fatal(`"" is no archetype`)
 	}
+	// with a smartphone (items give phone.basic and phone.smart), everyone has the core apps, and each archetype
+	// adds at least one of its own
+	phone := []string{CapPhone, CapSmartphone}
+	core := c.AppsFor(capability.Of(phone...))
 	for _, a := range c.Archetypes {
-		caps := c.Grants(a.ID)
-		apps := c.AppsFor(caps)
-		// everyone has the core apps; each archetype adds at least one of its own
-		for _, core := range []string{"crab", "chat", "notices"} {
-			if !slices.Contains(apps, core) {
-				t.Errorf("%s has no %s app", a.ID, core)
+		apps := c.AppsFor(capability.Of(append(slices.Clone(a.Capabilities), phone...)...))
+		for _, id := range []string{"crab", "chat", "notices"} {
+			if !slices.Contains(apps, id) {
+				t.Errorf("%s has no %s app", a.ID, id)
 			}
 		}
-		if len(apps) <= len(c.AppsFor(c.Grants(""))) {
+		if len(apps) <= len(core) {
 			t.Errorf("%s gets no app of its own: %v", a.ID, apps)
 		}
-	}
-	// no archetype: the core apps only, and no uniform
-	open := 0
-	for _, a := range c.Apps {
-		if len(a.Requires) == 0 {
-			open++
+		// without a phone, no apps at all
+		if apps := c.AppsFor(c.Grants(a.ID)); len(apps) != 0 {
+			t.Errorf("%s without a phone has apps %v", a.ID, apps)
 		}
 	}
-	if apps := c.AppsFor(c.Grants("")); len(apps) != open {
-		t.Errorf("apps without an archetype = %v", apps)
+	// a basic phone: notifications, nothing that needs a smartphone
+	if apps := c.AppsFor(capability.Of(CapPhone)); !slices.Equal(apps, []string{"notices"}) {
+		t.Errorf("apps on a basic phone = %v", apps)
+	}
+	// every app needs a phone
+	for _, a := range c.Apps {
+		if !slices.Contains(a.Requires, CapPhone) && !slices.Contains(a.Requires, CapSmartphone) {
+			t.Errorf("app %s works without a phone", a.ID)
+		}
 	}
 }
 

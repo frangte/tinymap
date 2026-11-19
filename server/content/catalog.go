@@ -68,6 +68,14 @@ type StarterLook struct {
 	Hat    string `json:"hat"`
 }
 
+// The phone capabilities (archetypes.json): items give them, never an archetype (docs/design/11-items.md).
+const (
+	// CapPhone: any phone; the phone opens
+	CapPhone = "phone.basic"
+	// CapSmartphone: a smartphone, for every app beyond notifications, calls and messages
+	CapSmartphone = "phone.smart"
+)
+
 type Archetype struct {
 	ID string `json:"id"`
 	// Tags say which quests it is offered (quests.json tags_any)
@@ -301,6 +309,9 @@ func (c *Catalog) checkArchetype(a Archetype, caps, places map[string]bool) erro
 	for _, k := range a.Capabilities {
 		if !caps[k] {
 			return fmt.Errorf("unknown capability %q", k)
+		}
+		if k == CapPhone || k == CapSmartphone {
+			return fmt.Errorf("grants %q: a phone is an item, bought in a shop (docs/design/11-items.md)", k)
 		}
 	}
 	for _, t := range a.Tags {

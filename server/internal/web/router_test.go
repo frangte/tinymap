@@ -544,7 +544,8 @@ func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
 	a := dial(t, srv)
 	send(t, a, helloAs(token, "traveler", "thun", "cap"))
 	w := next(t, a, "welcome")
-	if w.Arch != "traveler" || !slices.Contains(w.Apps, "guide") || slices.Contains(w.Apps, "crab_driver") {
+	// no phone yet, so no apps: a phone is an item (docs/design/11-items.md)
+	if w.Arch != "traveler" || len(w.Apps) != 0 {
 		t.Fatalf("traveler welcome: arch %q apps %v", w.Arch, w.Apps)
 	}
 	a.Close()
@@ -563,10 +564,10 @@ func TestArchetypeGivesAppsAndIsKept(t *testing.T) {
 	send(t, b, `{"t":"profile","name":"Lan","look":{"body":"woman","outfit":"crab","hat":"helmet"}}`)
 	b.Close()
 
-	// an older client without archetypes: the core apps (Crab, chat, notices; the rest is in the Sổ tay), no badge
+	// an older client without archetypes: no badge, and no apps without a phone
 	c := dial(t, srv)
 	send(t, c, helloMinh)
-	if w := next(t, c, "welcome"); w.Arch != "" || !slices.Equal(w.Apps, []string{"crab", "chat", "notices"}) {
+	if w := next(t, c, "welcome"); w.Arch != "" || len(w.Apps) != 0 {
 		t.Fatalf("no archetype: %q apps %v", w.Arch, w.Apps)
 	}
 	if got, _ := storedCharacter(srv, token); got.Look.Outfit == "crab" {
@@ -579,7 +580,8 @@ func TestDriverWearsTheUniform(t *testing.T) {
 	_, _, token := postGuest(t, srv, "")
 	a := dial(t, srv)
 	send(t, a, helloAs(token, "driver", "crab", "helmet"))
-	if w := next(t, a, "welcome"); w.Arch != "driver" || !slices.Contains(w.Apps, "crab_driver") {
+	// the Crab Driver app needs a smartphone too (bought, docs/design/11-items.md)
+	if w := next(t, a, "welcome"); w.Arch != "driver" || len(w.Apps) != 0 {
 		t.Fatalf("driver welcome: %q %v", w.Arch, w.Apps)
 	}
 	if c, err := storedCharacter(srv, token); err != nil || c.Look.Outfit != "crab" || c.Archetype != "driver" {
@@ -604,7 +606,7 @@ func TestTheArchetypeChangesInGame(t *testing.T) {
 
 	send(t, a, `{"t":"arch","arch":"citizen"}`)
 	ch := next(t, a, "arch")
-	if ch.Arch != "citizen" || !slices.Contains(ch.Apps, "community") || slices.Contains(ch.Apps, "crab_driver") ||
+	if ch.Arch != "citizen" || len(ch.Apps) != 0 ||
 		ch.Look == nil || *ch.Look != (look{Body: "woman", Outfit: "baba", Hat: "nonla"}) {
 		t.Fatalf("the change: arch %q apps %v look %+v", ch.Arch, ch.Apps, ch.Look)
 	}

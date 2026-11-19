@@ -57,7 +57,7 @@ Khoa chốt (2026-11-19): các xuất phát không cùng một mục tiêu. Ngư
 ## 4. Tạo nhân vật
 
 - **Nam hay nữ:** đã có (`man`, `woman` trong `src/game/outfits.ts`).
-- **Xuất phát:** Người từ quê lên (lập nghiệp), Người Sài Gòn gốc, hoặc Người nước ngoài (du khách ba lô). Chọn một lần. Hai kiểu người Việt đều mang tag `citizen` cho quest; người từ quê lên thêm một tag riêng cho chuỗi lập nghiệp.
+- **Xuất phát:** Người từ quê lên (lập nghiệp), Người Sài Gòn gốc, hoặc Người nước ngoài (du khách ba lô). Đổi được trong game bằng nút "Đổi vai" như bây giờ (Khoa chốt 2026-11-19). Hai kiểu người Việt đều mang tag `citizen` cho quest; người từ quê lên thêm một tag riêng cho chuỗi lập nghiệp.
 - Tên, rồi bảng thay đồ đang có, chỉ với đồ thường (áo thun, sơ mi). Đồng phục Crab chỉ có khi đăng ký.
 - Người nước ngoài cần thêm màu da và màu tóc (vàng, nâu, đỏ). Hiện chỉ có một màu da `#C68D66`; màu mới phải được duyệt theo bảng PAL.
 - Ngôn ngữ giao diện vẫn là cài đặt riêng (D19), không theo xuất phát: người Việt chơi nhân vật nước ngoài được, và ngược lại.
@@ -91,7 +91,7 @@ Sinh ra và lớn lên ở dãy nhà phố Lê Lai, nhà ở ngay đó (chỗ "V
 
 ### Người nước ngoài: "Ba lô tới Bùi Viện"
 
-Xuất hiện ở **Phố đi bộ Bùi Viện**, vừa xuống xe buýt từ sân bay, trong túi 20 đô. Điện thoại rớt vỡ màn hình lúc xuống xe (hay lý do khác, xem [câu hỏi 2](#15-cần-khoa-chốt)).
+Xuất hiện ở **Phố đi bộ Bùi Viện**, vừa xuống xe buýt từ sân bay, trong túi 20 đô. Chưa có điện thoại, như mọi người chơi: mua máy là nhiệm vụ đầu tiên ([câu hỏi 2](#15-cần-khoa-chốt)).
 
 1. **Hostel của anh Tony.** Nhận giường: đây là chỗ "Về nhà". Tony dạy hai câu đầu tiên, "Xin chào" và "Cảm ơn": hai ô đầu tiên trong [Sổ sưu tầm](#nhiệm-vụ-ngầm-sổ-sưu-tầm), phần Tiếng Việt.
    - Tony nói tiếng Việt pha tiếng Anh: "Welcome, welcome! Phòng sạch, wifi mạnh, bia rẻ! Đổi tiền hả? Đừng đổi ở sân bay, ra tiệm vàng gần chợ Bến Thành, giá better!"
@@ -368,7 +368,7 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
 
 **Đổi:**
 
-- **D1:** không chọn vai lúc vào game. `driver` không còn là vai chọn được mà là một nghề: quyền `vehicle.motorbike.ride` (có bằng lái), `uniform.crab`, `driver.app`, `ridehail.drive` (đăng ký xong). Bỏ "Đổi vai" ([câu hỏi 4](#15-cần-khoa-chốt)).
+- **D1:** không chọn vai lúc vào game. `driver` không còn là vai chọn được mà là một nghề: quyền `vehicle.motorbike.ride` (có bằng lái), `uniform.crab`, `driver.app`, `ridehail.drive` (đăng ký xong). "Đổi vai" vẫn giữ, để đổi giữa các xuất phát ([câu hỏi 4](#15-cần-khoa-chốt)).
 - **Điện thoại thành một món đồ.** Bây giờ ai cũng có điện thoại từ đầu. Mua máy thì có quyền `phone.basic` hoặc `phone.smart`; app trong `apps.json` vẫn dùng `requires` như bây giờ, và ứng dụng ẩn cũng là `requires`.
 - **Thông tin ra khỏi điện thoại:** Hồ sơ, Nhiệm vụ, Thành tích, Cẩm nang, Bản đồ chuyển sang Sổ tay; quyền `traveler.guide_app` bỏ đi vì ai cũng có Cẩm nang. Trong máy còn Crab, Crab Driver, Trò chuyện, Thông báo, Hàng Xóm, thêm Điện thoại, Tin nhắn, Chỉ đường, Camera.
 - Tiền mang theo và lì xì đổi số (`ridehail.json`).
@@ -405,11 +405,11 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
 ## 15. Cần Khoa chốt
 
 1. ~~Có tách "Dạo phố" và "Sống ở Sài Gòn" ở màn đầu không?~~ Khoa chốt 2026-11-19: không, ai cũng đi dạo được ([mục 3](#3-một-cách-vào-ai-cũng-đi-dạo-được)).
-2. Vì sao người nước ngoài không có điện thoại? Rớt vỡ màn hình (đề xuất, nhẹ nhàng); bị giật (nhớ lâu và dạy được mẹo an toàn, nhưng ấn tượng đầu tiên về Sài Gòn lại xấu); hay không cần lý do?
-3. Tiền hiển thị là "đồng" với giá thật cho đồ nhỏ (đề xuất), hay giữ "xu"?
-4. Xuất phát cố định (đề xuất, bỏ "Đổi vai"), hay vẫn cho đổi?
+2. ~~Vì sao người nước ngoài không có điện thoại?~~ Khoa chốt 2026-11-19: không cần lý do. Ai vào game cũng chưa có điện thoại, phải mua từ đầu, và game báo cho người chơi biết đó là nhiệm vụ đầu tiên.
+3. ~~Tiền hiển thị là "đồng" hay giữ "xu"?~~ Khoa chốt 2026-11-19: "đồng" (đ), giá thật cho đồ nhỏ; trong code vẫn là xu.
+4. ~~Xuất phát cố định hay vẫn cho đổi?~~ Khoa chốt 2026-11-19: vẫn cho đổi (nút "Đổi vai" giữ nguyên, đổi giữa các xuất phát).
 5. ~~Người nước ngoài có được chạy Crab không?~~ Khoa chốt 2026-11-19: được, nhưng không phải mục tiêu chung; mục tiêu của người nước ngoài là [Sổ sưu tầm](#nhiệm-vụ-ngầm-sổ-sưu-tầm).
-6. Tên điện thoại Nokla, Ifone (sau đó Samsun, Oppa) được chưa?
+6. ~~Tên điện thoại Nokla, Ifone được chưa?~~ Khoa chốt 2026-11-19: dùng được.
 7. Làm theo thứ tự ở [mục 14](#14-thứ-tự-đề-xuất), Sổ tay và thẻ thông tin trước?
 8. ~~Ứng dụng ẩn: có làm app tìm được bằng cách quét mã QR ngoài phố không?~~ Khoa bỏ ý này (và Hàng Xóm, Rắn săn mồi) khỏi bảng [ứng dụng ẩn](#ứng-dụng-ẩn), thêm Tindeo cho các chương sau (2026-11-19).
 9. ~~Người Việt từ quê lên hay Sài Gòn gốc?~~ Khoa chốt 2026-11-19: cả hai ([mục 5](#người-sài-gòn-gốc-con-của-khu-phố-lê-lai-đề-xuất)).
