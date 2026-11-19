@@ -236,12 +236,46 @@ Built 2026-11-06 as planned above, with these differences (the code is `server/i
 - **Passengers are drawn where their rider is drawn**, on every screen: their own snapshots run 230 ms late, so a passenger drawn from them trails the bike. The seat-1 pose sits further back and higher than the rider; the top box comes off while seat 1 is taken.
 - **Guidance** reuses the quest tracker: while a trip goes on it shows the trip's next step and points at the passenger to pick up or the destination.
 - **A driver mid-trip** presses E twice within 3 s to get off (the first press warns that it cancels the trip).
-- **Not built yet:** the load run with bot passengers and drivers, the rating shown on the driver's profile (the stars show on the driver card the passenger sees), NPC passengers.
+- **Not built yet:** the load run with bot passengers and drivers, the rating shown on the driver's profile (the stars show on the driver card the passenger sees) (NPC passengers: see below).
 
 Verified with Go tests for every path against the ledger (three drivers accepting at once, every cancel and timeout, failed settlements, the store's guards), and two headless browsers: a traveller books at Chợ Bến Thành, a driver accepts from the banner, picks them up and drops them at Nhà hát Thành phố; 16.000 xu leaves one wallet, 12.800 arrives in the other, the 5.000 tip follows, and both Crab quests complete.
+
+## NPC passengers
+
+Written and built 2026-11-19, from [10-story.md](10-story.md) section 8. A driver with no real passenger nearby still has work: an NPC at a pavement asks for a ride. Code: `server/internal/ridehail/npc.go`, content `server/content/passengers.json`, the generic world piece `server/internal/world/guest.go`.
+
+**When.** A driver on duty, on their bike and with no trip gets one NPC request after `idle_seconds` (30) with no request near them, and again `cooldown_seconds` (40) after the last one ended or lapsed. At most one NPC passenger per driver at a time. Real passengers come first, in two ways: no NPC request while a real request (being held, or open) is within `real_radius` (150 m, the whole island, as offers go) of the driver, and a real request that reaches a driver while their NPC request is still offered withdraws the NPC one (`ride_offer_gone` `cancelled`; the NPC leaves). The NPC request is offered to that driver only, for the offer time (15 s), so it never takes an offer from a real passenger. It lapses like any offer.
+
+**Where and to where.** `passengers.json` has about 19 `spots`: a pavement beside a landmark, checked with the game's collider (floor at the kerb height 0.17 m, a body fits, the ground within 1.5 m all around is flat). The NPC waits at a spot 25-140 m from the driver and goes to a landmark 120-380 m from it, both picked at random; a test keeps every spot within range of some landmark. The fare is the ordinary fare for that distance.
+
+**Who.** The cast (8 people, each with a look as in `npcs.json`, a name and a role) and their lines, all `{vi, en}` and each at most 140 characters, since they are said out loud (nearby chat from the NPC and a bubble over it, the same path as an NPC's call): `greet` on boarding, `thanks` at the end of a good trip, `grumble` after a bad one (3 stars or fewer) or when the driver leaves them, `left` when they give up waiting. The southern voice: "bác tài", "hổng", "nghen", "chú/cô/con" for the older ones.
+
+**The trip** is the real one with these differences:
+
+| Step | Real passenger | NPC passenger |
+|---|---|---|
+| Request | holds the fare, offered to every driver nearby | holds nothing; `npc_join` to everyone, offered to one driver |
+| Accept | `ride_accept`, then the pair are pinned in each other's view | the same message; no pin: an NPC is in the snapshots like any, within 60 m |
+| Pickup | `ride_board` from the passenger, bike within 3 m and stopped | automatic: the stopped bike within `board_reach` (4 m) puts the NPC in seat 1 (`SeatGuest`); `ride` `on_trip`, and its greeting |
+| Waiting | 5 min, then a refund | `patience_seconds` (150), then it says `left`, the driver hears `pickup_timeout`, no money |
+| Arrive | `ride_complete`, stopped inside the destination | the same |
+| End | the passenger rates and tips within 2 min | the NPC gets off (`UnseatGuest`), rates at once, pays at once, thanks or grumbles, and leaves the world `linger_seconds` (8) later |
+| Not completed | refund | nothing moves: the driver got off, left, or 5 min passed |
+
+**How the server holds an NPC.** A guest is an `npc` in the world's list that a module adds and removes (`GuestHost`, found by a type assertion on the host so other hosts need not have it): it goes into the snapshots, a welcome lists it, `npc_join` / `npc_leave` tell everyone, and it has no dialogue and does nothing on its own. Seat 1 holds a player or a guest (`vehicle.guest` beside `vehicle.passenger`); `carry` moves a seated guest with the rider and sets `FlagSeat1` on its row; a dismount, a rider leaving or the module puts it down beside the bike. The vehicle message's `passenger` names the guest's id, so the game needs no new seat code: `app.ts` draws an NPC on the seat the way it draws a remote player, with `RemotePlayer.sitBehind`.
+
+**Money.** The driver gets `fare` minus the platform's cut (`cut_percent`, 20 %): the same share as from a real passenger, `Paid(fare)`. The platform's cut is still created by nobody and kept by nobody, and the share is minted by the game: nobody's wallet pays it. It is one transaction (`SettleNPC`): an `npc_rides` row (migration 0011) and a ledger line with the reason `ride_npc` for the driver, once per trip by the ledger's key, so a retried settlement (they are retried from the tick with backoff, like a real trip's) pays once and answers the same. The NPC never tips and there is no rating window: carrying people stays better, a real passenger can tip 5.000 or 10.000. **Daily cap:** `daily_trips` (8) paid NPC trips per driver per Saigon day. The module stops asking once a driver has done them (it reads the count from `npc_rides` when the driver first needs one), and the store pays 0 for a trip over the cap, which covers a restart or two server processes. At 11.200 xu a trip (a 60 m trip; about 20.000 for 300 m) that is at most about 150.000 xu a day, a chapter 3's worth in ten days, so it makes a quiet night worth driving without replacing the quests and the real passengers.
+
+**Rating.** The NPC starts at 5 stars and loses them for what the server can know, `ridehail.Stars(content.Rating, TripFacts)`: waiting for the pickup (accepting to boarding) over `wait_ok` (40 s) one star, over `wait_bad` (80 s) two; the way ridden (summed from the bike's accepted positions on every tick) over the straight line from the pickup to the destination, over `detour_ok` (1.6) one, over `detour_bad` (2.4) two; the pace (the straight line over the time on the bike) under `pace_ok` (5 m/s) one, under `pace_bad` (2.5) two, where the worse of the detour and the pace counts, not both; and the share of the ride spent faster than `scary_speed` (17 m/s, the bike tops out at 19.8) over `scary_share` (35 %) one. At least 1 star. **No crash rating**: the server checks speeds only (D21) and cannot see a wall, so a crash is not something it can rate. The stars are stored on the `npc_rides` row, count in `DriverStats` with the real ones, and come to the driver on the last `ride` message (`stars`), which the game shows in the trip-done notice.
+
+**Quests.** A completed NPC trip publishes `trip.completed` for the driver (role `rider`) with the partner `npc:<passenger id>`: the same event as a real trip, so `driver.chuyen_dau_tien` and the driver dailies complete. The `trip` objective counts distinct partners, so one NPC (a passenger id) counts once toward a quest that wants several. The NPC side has no character, so it publishes nothing for the passenger.
+
+**Game.** `npcs.ts` reads `passengers.json` as well as `npcs.json`: `npc_join` brings a figure in, `npc_leave` takes it away, its floor follows the snapshots (it stands on a pavement, then rides), and nobody can talk to it (reach 0). `rides.ts` and the Crab Driver app show an NPC trip as any (the offer banner names the passenger, the guide points at it, the pickup arrow comes from `pickup`); the final notice adds the stars the NPC gave; trips that end with no pay say so (`endNpc`).
+
+**Not done.** NPC drivers and Chú Sáu as a xe ôm (they need a road graph); an NPC passenger for the Crab app side (a player's request is only for drivers); varying the NPC's mood by the weather or time of day; a "pair limit" for NPCs (the daily cap does that job).
 
 ## Open questions
 
 - The amounts: start balance, lì xì top-up, the cut, the tips. They are content, so easy to tune after a playtest.
-- NPC passengers after phase 3: when no player books, an NPC at a landmark asks for a ride, paid by the game, so drivers have work with few players online.
+- NPC passengers: built, see below. Open there: whether the daily cap and the pay are right once real drivers have played, and NPC drivers and Chú Sáu as a xe ôm (they need a road graph).
 - On a 200 m island a trip is 10–15 s at 13–20 m/s ([07-tradeoffs.md](07-tradeoffs.md)). The chat, the rating and the tip are the point until the map grows (D10).
