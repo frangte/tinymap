@@ -1,0 +1,86 @@
+{
+  "about": "Travel tips that show once, the first time a situation happens in play, and are kept in the Sổ mẹo in the Sổ tay (docs/design/10-story.md, section 10). The game reads this file itself (src/game/tips.ts) and keeps which tips this player has seen on this device; the server only checks it (LoadTips). A tip: id (lower_snake_case), title and text as {vi, en}, and the trigger. Trigger kinds: place_kind (the player is in a place of this kind, `place_kind`: landmark, street, area or district), place (in this place, `place`), npc (talks to this NPC, `npc`), crab_booked (a Crab trip of ours is booked), fare_paid (a Crab fare was paid), phone_in_street (the phone comes out while in a place of kind street). Keep the tips factual: no invented numbers.",
+  "tips": [
+    {
+      "id": "cross_street",
+      "title": {"vi": "Qua đường", "en": "Crossing the street"},
+      "text": {
+        "vi": "Qua đường thì đi chậm và đều, đừng chạy, đừng lùi hay dừng đột ngột: xe máy sẽ tự lách qua bạn.",
+        "en": "Cross slowly and steadily; do not run, step back or stop suddenly. The motorbikes will weave around you."
+      },
+      "trigger": {"kind": "place_kind", "place_kind": "street"}
+    },
+    {
+      "id": "phone_kerb",
+      "title": {"vi": "Điện thoại ngoài phố", "en": "Phone in the street"},
+      "text": {
+        "vi": "Đứng lùi vào trong lề và cầm điện thoại phía xa lòng đường: giật điện thoại từ xe máy là chuyện có thật ở các thành phố lớn.",
+        "en": "Stand back from the kerb and hold your phone on the side away from the road: phone snatching from passing motorbikes does happen in big cities."
+      },
+      "trigger": {"kind": "phone_in_street"}
+    },
+    {
+      "id": "bargain_market",
+      "title": {"vi": "Trả giá ở chợ", "en": "Bargaining at the market"},
+      "text": {
+        "vi": "Hỏi giá trước rồi trả giá vui vẻ, không vừa thì cười và đi tiếp. Ở miền Nam, \"Mắc quá!\" nghĩa là \"đắt quá\".",
+        "en": "Ask the price first and bargain with a smile; if it does not suit, smile and walk on. In the South, \"Mắc quá!\" means \"too expensive\"."
+      },
+      "trigger": {"kind": "place", "place": "cho_ben_thanh"}
+    },
+    {
+      "id": "blue_notes",
+      "title": {"vi": "Hai tờ tiền xanh", "en": "Two blue notes"},
+      "text": {
+        "vi": "Tờ 20.000 đồng và tờ 500.000 đồng đều màu xanh: coi kỹ số 0 trước khi đưa và trước khi nhận tiền thối.",
+        "en": "The 20,000 and 500,000 dong notes are both blue: check the zeros before you hand one over and before you take change."
+      },
+      "trigger": {"kind": "fare_paid"}
+    },
+    {
+      "id": "crab_plate_helmet",
+      "title": {"vi": "Đi Crab", "en": "Riding a Crab"},
+      "text": {
+        "vi": "Trước khi lên xe, so biển số và tên tài xế với trong app, và đội mũ bảo hiểm tài xế đưa.",
+        "en": "Before you get on, match the plate and the driver's name with the app, and wear the helmet the driver gives you."
+      },
+      "trigger": {"kind": "crab_booked"}
+    },
+    {
+      "id": "xe_om_price",
+      "title": {"vi": "Xe ôm truyền thống", "en": "Traditional xe ôm"},
+      "text": {
+        "vi": "Xe ôm truyền thống không có app báo giá: hỏi giá và thoả thuận xong rồi hãy lên xe.",
+        "en": "A traditional xe ôm has no app to show the fare: ask the price and agree on it before you get on."
+      },
+      "trigger": {"kind": "npc", "npc": "chu_sau"}
+    },
+    {
+      "id": "dress_church",
+      "title": {"vi": "Vào nhà thờ", "en": "Visiting a church"},
+      "text": {
+        "vi": "Vào nhà thờ nên ăn mặc kín vai, kín gối, nói nhỏ và không chụp ảnh khi đang có lễ.",
+        "en": "In a church, cover your shoulders and knees, keep your voice low and do not take photos during a service."
+      },
+      "trigger": {"kind": "place", "place": "nha_tho_duc_ba"}
+    },
+    {
+      "id": "dress_palace",
+      "title": {"vi": "Tham quan Dinh Độc Lập", "en": "Visiting Independence Palace"},
+      "text": {
+        "vi": "Khi tham quan Dinh Độc Lập, nên ăn mặc lịch sự: kín vai, kín gối.",
+        "en": "When you visit Independence Palace, dress neatly: cover your shoulders and knees."
+      },
+      "trigger": {"kind": "place", "place": "dinh_doc_lap"}
+    },
+    {
+      "id": "crowd_bag",
+      "title": {"vi": "Chỗ đông người", "en": "In a crowd"},
+      "text": {
+        "vi": "Ở phố đi bộ đông người, đeo túi phía trước và giữ chặt đồ có giá trị.",
+        "en": "On a crowded walking street, wear your bag in front and keep valuables close."
+      },
+      "trigger": {"kind": "place", "place": "pho_di_bo_bui_vien"}
+    }
+  ]
+}

@@ -65,6 +65,7 @@ const vi = {
   notebookTabs: 'Các mục của sổ tay',
   readMore: 'Đọc thêm',
   hideCard: 'Ẩn thẻ',
+  hideTip: 'Ẩn mẹo',
   // action pad
   emotes: 'Điệu bộ',
   jump: 'Nhảy',
@@ -144,6 +145,7 @@ const en: typeof vi = {
   notebookTabs: 'Notebook sections',
   readMore: 'Read more',
   hideCard: 'Hide the card',
+  hideTip: 'Hide the tip',
   emotes: 'Emotes',
   jump: 'Jump',
   landmarks: 'Landmarks',

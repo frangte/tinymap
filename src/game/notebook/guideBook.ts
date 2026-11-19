@@ -7,6 +7,8 @@ import { GUIDE, guideFor, mapsLink, type GuidePage, type ReadPages } from '../gu
 import { button, h } from '../phone/dom';
 import { tx, type Bilingual } from '../i18n';
 import { L } from '../i18n/guide';
+import { L as Lt } from '../i18n/tips';
+import { TIPS, TIP_BOOK } from '../tips';
 
 /** What the Cẩm nang needs from the notebook and the game. */
 export interface GuideNav {
@@ -45,7 +47,26 @@ function listItem(place: Place, nav: GuideNav): HTMLLIElement {
   return li;
 }
 
-/** The list of landmarks; it redraws when a page is read, and when a landmark is walked up to while it is open. */
+/** The Sổ mẹo: every tip with its text, those met in play marked (they can be read before they trigger). */
+function tipBook(): HTMLElement {
+  const box = h('section', 'tip-book');
+  const ul = h('ul', 'tip-list');
+  for (const tip of TIPS) {
+    const li = h('li', 'tip-item');
+    const seen = TIP_BOOK.has(tip.id);
+    li.append(h('strong', '', tx(tip.title)), h('p', '', tx(tip.text)));
+    if (seen) {
+      const marks = h('span', 'guide-marks');
+      marks.append(h('span', 'guide-mark is-seen', Lt.seen));
+      li.append(marks);
+    }
+    ul.append(li);
+  }
+  box.append(h('h4', '', Lt.title), h('p', 'app-note', Lt.progress(TIP_BOOK.count, TIPS.length)), h('p', 'app-text', Lt.intro), ul);
+  return box;
+}
+
+/** The list of landmarks, then the Sổ mẹo; it redraws when a page is read or a tip seen, and when a landmark is walked up to while it is open. */
 export function guideList(root: HTMLElement, nav: GuideNav): { update(): void; dispose(): void } {
   let seenCount = -1;
   const draw = (): void => {
@@ -54,14 +75,19 @@ export function guideList(root: HTMLElement, nav: GuideNav): { update(): void; d
     const visited = LANDMARKS.filter((l) => seen.has(l)).length;
     const ol = h('ol', 'guide-list');
     for (const p of LISTED) ol.append(listItem(p, nav));
-    root.replaceChildren(h('p', 'app-text', L.intro), h('p', 'app-note', L.progress(visited, LANDMARKS.length, nav.read.count, GUIDE.length)), ol);
+    root.replaceChildren(h('p', 'app-text', L.intro), h('p', 'app-note', L.progress(visited, LANDMARKS.length, nav.read.count, GUIDE.length)), ol, tipBook());
   };
   draw();
+  const stopRead = nav.read.onChange(draw);
+  const stopTips = TIP_BOOK.onChange(draw);
   return {
     update: () => {
       if (nav.seen().size !== seenCount) draw();
     },
-    dispose: nav.read.onChange(draw),
+    dispose: () => {
+      stopRead();
+      stopTips();
+    },
   };
 }
 

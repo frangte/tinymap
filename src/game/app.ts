@@ -30,6 +30,7 @@ import { Phone } from './phone/phone';
 import type { PhoneHost } from './phone/apps';
 import { Notebook } from './notebook/notebook';
 import { PlaceCard } from './placeCard';
+import { TipCard } from './tipCard';
 import { allowedLook, appsFor, archetypeById, grants, outfitAllowed, type Archetype } from './archetypes';
 import { OUTFITS, outfitStyle, sameLook, type Look } from './outfits';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
@@ -746,7 +747,11 @@ export async function startApp(): Promise<void> {
     },
     chatRefused: (code) => chatBox.refused(code),
     notice: (text) => chatBox.system(text),
-    interaction: (i) => talk.interaction(i),
+    interaction: (i) => {
+      talk.interaction(i);
+      const npc = cast.get(i.n);
+      if (npc) tipCard.happened({ kind: 'npc', npc: npc.def.id });
+    },
     interactionEnd: (sid, reason) => talk.ended(sid, reason),
     rateLimited: () => chatBox.rateLimited(),
     ride: (m) => rides.handle(m),
@@ -945,7 +950,10 @@ export async function startApp(): Promise<void> {
   });
   closeNotebook = (): void => notebook.close();
   // one or the other: the phone and the notebook put each other away
-  ph.onOpen = () => notebook.close();
+  ph.onOpen = () => {
+    notebook.close();
+    if (herePlace?.kind === 'street') tipCard.happened({ kind: 'phone_in_street' });
+  };
   notebook.onOpen = () => {
     ph.close();
     talk.close();
@@ -956,9 +964,17 @@ export async function startApp(): Promise<void> {
     if (next === 'map') placeCard.show(placeById(MAP_STOPS[stop]?.place ?? '') ?? null);
     else placeCard.show(null);
   };
+  // travel tips: one at a time, and only while nothing else has the screen
+  const tipCard = new TipCard(() => mode === 'play' && !panel.isOpen && !picker.isOpen && !story.isOpen && !notebook.isOpen);
+  rides.onChange(() => {
+    if (rides.ride?.role !== 'passenger') return;
+    tipCard.happened({ kind: 'crab_booked' });
+    if (rides.ride.state === 'completed') tipCard.happened({ kind: 'fare_paid' });
+  });
   p.onPlace = (place) => {
     herePlace = place;
     placeCard.show(place);
+    if (place) tipCard.happened({ kind: 'place', place });
     // there: the tracker goes back to the quest
     if (place && place === guidedPlace) {
       guidedPlace = null;

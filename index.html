@@ -89,6 +89,15 @@
 
     <div class="toast card" id="toast" role="status" data-modes="play" hidden></div>
 
+    <!-- a travel tip, the first time its situation happens (src/game/tipCard.ts); all of them are in the Sổ mẹo -->
+    <aside class="tip-card card" id="tip-card" role="status" data-modes="play" hidden>
+      <div class="tip-card-text">
+        <span class="eyebrow" id="tip-card-title"></span>
+        <p id="tip-card-body"></p>
+      </div>
+      <button class="tip-card-close" id="tip-card-close" type="button" data-i18n-aria="hideTip" data-i18n-title="hideTip">×</button>
+    </aside>
+
     <!-- a ride offer for a driver on duty (src/game/offerBanner.ts) -->
     <section class="offer card" id="offer" data-modes="play" aria-labelledby="offer-who" hidden>
       <div class="offer-text">

@@ -59,6 +59,8 @@ src/game/
   input.ts              keyboard, mouse, touch joystick, pinch
   places.ts             named landmarks and streets for the HUD
   guide.ts              the Cẩm nang's pages about places (server/content/guide.json), pages read kept in the browser
+  tips.ts               the travel tips (server/content/tips.json) and the tips this player has seen, kept in the browser
+  tipCard.ts            the tip card: a tip the first time its situation happens, one at a time, queued behind other panels
   placeCard.ts          the info card under the place card: one line about the place and "Đọc thêm" (I)
   notebook/             the Sổ tay (B): the game's own menu, open with no phone, over the map and in play
     notebook.ts         the panel and its tabs: Cẩm nang, map, quests, achievements, character

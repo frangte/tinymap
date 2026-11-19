@@ -937,6 +937,32 @@ body.is-dressing .place-card,
 body.is-picking .place-card,
 body.is-story .place-card { display: none !important; }
 
+/* the tip card: a travel tip the first time its situation happens, top centre under the landmark toast */
+.tip-card {
+  position: fixed;
+  top: calc(var(--edge-t) + 150px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 9px 8px 10px 12px;
+  border-left: 4px solid var(--brick);
+  animation: sheet-up 0.24s ease-out backwards;
+}
+.tip-card[hidden] { display: none; }
+.tip-card-text { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.tip-card-text p { margin: 0; font: 500 12.5px/1.4 var(--body); color: var(--ink); text-wrap: pretty; }
+.tip-card-close { flex: none; width: 28px; height: 26px; padding: 0; font: 700 16px/1 var(--body); box-shadow: none; }
+body.is-dressing .tip-card,
+body.is-picking .tip-card,
+body.is-story .tip-card { display: none !important; }
+@media (max-width: 640px) {
+  .tip-card { top: calc(var(--edge-t) + 190px); }
+}
+
 /* the Sổ tay: a book on the left (its spine the brick edge), over the place card and the chat; the phone and the
    action buttons stay on the right */
 .notebook {
@@ -1010,6 +1036,12 @@ body.is-story .notebook { display: none !important; }
 .guide-soon { font: 500 11px/1.2 var(--mono); }
 .guide-marks { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
 .guide-marks:empty { display: none; }
+.tip-book { display: grid; gap: 8px; margin-top: 6px; }
+.tip-book h4 { margin: 8px 0 0; font: 800 15px/1.2 var(--display); }
+.tip-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tip-item { display: grid; gap: 3px; padding: 9px 12px 10px; border: 1.5px solid var(--ink); border-left-width: 4px; border-radius: 3px; background: color-mix(in srgb, var(--paper) 92%, transparent); }
+.tip-item strong { font: 800 14px/1.2 var(--display); }
+.tip-item p { margin: 0; font: 500 12.5px/1.4 var(--body); text-wrap: pretty; }
 .guide-mark { padding: 3px 6px; border: 1.2px solid var(--ink); border-radius: 3px; font: 700 10px/1 var(--body); color: var(--ink); }
 .guide-mark.is-seen { background: color-mix(in srgb, var(--teal) 24%, var(--paper)); }
 .guide-mark.is-read { background: color-mix(in srgb, var(--ochre) 40%, var(--paper)); }
@@ -1064,5 +1096,5 @@ body.is-story .notebook { display: none !important; }
   .guide-title { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .notebook, .place-card { animation: none; }
+  .notebook, .place-card, .tip-card { animation: none; }
 }
