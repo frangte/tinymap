@@ -1,0 +1,56 @@
+{
+  "about": "What can be bought, and where (docs/design/11-items.md). Shared by the server (server/content/items.go), which sells and keeps what each character owns, and the game (src/game/), which shows the shops and what a player has. An item is bought once; grants are capabilities (archetypes.json) the owner has from then on. Prices are whole xu, shown as đồng (1 xu = 1 đồng); big things (phones, bikes) have game prices, small things real ones (docs/design/10-story.md, section 11). Of several phones, the one in hand is the last owned in this file's order. Ids are stable: characters store them.",
+  "shops": [
+    { "id": "de_yeu", "npc": "anh_bay", "name": { "vi": "Tiệm điện thoại Dế Yêu", "en": "Dế Yêu phone shop" } }
+  ],
+  "items": [
+    {
+      "id": "nokla_1280",
+      "kind": "phone",
+      "shop": "de_yeu",
+      "price": 150000,
+      "grants": ["phone.basic"],
+      "name": { "vi": "Nokla 1280", "en": "Nokla 1280" },
+      "about": {
+        "vi": "Cục gạch huyền thoại: gọi điện, nhắn tin, pin xài cả tuần. Không có Crab, không có camera.",
+        "en": "The legendary brick: calls, texts, and a battery that lasts all week. No Crab, no camera."
+      }
+    },
+    {
+      "id": "ifone_x",
+      "kind": "phone",
+      "shop": "de_yeu",
+      "price": 400000,
+      "grants": ["phone.basic", "phone.smart"],
+      "name": { "vi": "Ifone X", "en": "Ifone X" },
+      "about": {
+        "vi": "Máy cũ, hơi trầy nhưng còn zin: đủ mọi ứng dụng, đặt Crab được.",
+        "en": "Second-hand and a little scratched, but all original: every app, Crab included."
+      }
+    },
+    {
+      "id": "ifone_11",
+      "kind": "phone",
+      "shop": "de_yeu",
+      "price": 1200000,
+      "grants": ["phone.basic", "phone.smart"],
+      "name": { "vi": "Ifone 11", "en": "Ifone 11" },
+      "about": {
+        "vi": "Đời mới hơn, chạy mượt hơn: đủ mọi ứng dụng.",
+        "en": "A newer model that runs more smoothly: every app."
+      }
+    },
+    {
+      "id": "ifone_15_pro",
+      "kind": "phone",
+      "shop": "de_yeu",
+      "price": 6000000,
+      "grants": ["phone.basic", "phone.smart"],
+      "name": { "vi": "Ifone 15 Pro", "en": "Ifone 15 Pro" },
+      "about": {
+        "vi": "Máy xịn nhất tiệm, để khoe. Chạy Crab cũng không nhanh hơn đâu nha!",
+        "en": "The fanciest phone in the shop, for showing off. It won't make your Crab rides any faster!"
+      }
+    }
+  ]
+}
