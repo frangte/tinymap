@@ -31,6 +31,11 @@ import type { PhoneHost } from './phone/apps';
 import { Notebook } from './notebook/notebook';
 import { PlaceCard } from './placeCard';
 import { TipCard } from './tipCard';
+import { Owned, phoneShop } from './items';
+import { ShopSheet } from './shopSheet';
+import { PhoneCard } from './phoneCard';
+import { NPC_DEFS } from './npcs';
+import { L as ItemsL } from './i18n/items';
 import { allowedLook, appsFor, archetypeById, grants, outfitAllowed, type Archetype } from './archetypes';
 import { OUTFITS, outfitStyle, sameLook, type Look } from './outfits';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
@@ -46,13 +51,13 @@ import { ACHIEVEMENTS, STAMPS, STREAK_STAMPS, questById, titleName } from './que
 import { collectionEntry } from './collection';
 import type { ArchRefusal, News } from '../net/protocol';
 import { loadPose, savePose } from './lastPose';
-import { Rides, xu, type Guide } from './rides';
+import { Rides, type Guide } from './rides';
 import { OfferBanner } from './offerBanner';
 import { CallBanner } from './callBanner';
 import { Mutes } from './mutes';
 import { Directions } from './directions';
 import { placeById, placeNote, placeTitle, type Place } from './places';
-import { onLangChange, tx } from './i18n';
+import { money, onLangChange, tx } from './i18n';
 import { L } from './i18n/app';
 import { L as G } from './i18n/guide';
 import { startPageTranslation } from './i18n/page';
@@ -65,6 +70,8 @@ const ARCH_REFUSED: Record<ArchRefusal, () => string> = {
   arch_busy: () => L.archBusy,
   arch_wait: () => L.archWait,
 };
+/** the guide to the phone shop ends this close to its NPC (m) */
+const SHOP_HERE = 5;
 const MODEL_BYTES = 3.01e6;
 /** distance from the map's centre to the sea (m): the gulls fly round there, the clouds further out */
 const COAST_R = 235;
@@ -158,6 +165,8 @@ export async function startApp(): Promise<void> {
   let closeStory = (): void => {};
   /** walks out of a conversation when leaving play (replaced once the map has loaded) */
   let closeTalk = (): void => {};
+  /** puts the no-phone card away (replaced once the map has loaded) */
+  let closePhoneCard = (): void => {};
   /** puts the Sổ tay away (replaced once the map has loaded) */
   let closeNotebook = (): void => {};
   /** the info card follows the mode: the map's stop over the map, the player's place in play (replaced once loaded) */
@@ -182,6 +191,8 @@ export async function startApp(): Promise<void> {
   let pad: ActionPad | null = null;
   /** the quest tracker under the place card (replaced once the map has loaded) */
   let tracker: QuestTracker | null = null;
+  /** stops the guide to the phone shop once the player is there (replaced once the map has loaded) */
+  let shopArrive = (_at: THREE.Vector3): void => {};
   const forward = new THREE.Vector3();
   let poseSavedAt = 0;
   /** replaced once the map has loaded */
@@ -192,6 +203,8 @@ export async function startApp(): Promise<void> {
   let dressed = saved !== null;
   /** what the player's archetype grants (apps, uniforms) */
   let caps = grants(profile.archetype);
+  /** what the player owns, as the server says (items.ts): the phone and its capabilities */
+  const owned = new Owned();
   let sea: Sea | null = null;
   let ponds: Ponds | null = null;
   let life: Life | null = null;
@@ -227,6 +240,7 @@ export async function startApp(): Promise<void> {
       closePicker();
       closeStory();
       closeTalk();
+      closePhoneCard();
       play.exit();
     }
     closeNotebook();
@@ -303,6 +317,7 @@ export async function startApp(): Promise<void> {
         play.follow.forward(forward);
         tracker.update(now, pl.position, forward);
       }
+      shopArrive(pl.position);
       if (now - poseSavedAt > POSE_SAVE_EVERY) {
         poseSavedAt = now;
         savePose(pp, pl.heading);
@@ -391,7 +406,7 @@ export async function startApp(): Promise<void> {
     p.setHome(a?.spawn ?? null);
     labelRespawn();
     tags.setSelfArch(profile.archetype);
-    phone?.setApps(serverApps ?? appsFor(caps));
+    phone?.setApps(serverApps ?? appsFor(new Set([...caps, ...owned.caps()])));
     if (pad) setEmotes();
   };
   /** the phone apps the server sent; null until it has (offline, an older server): then the archetype decides */
@@ -621,7 +636,7 @@ export async function startApp(): Promise<void> {
       if (n.kind === 'quest') {
         const q = questById(n.id);
         if (!q) continue;
-        const paid = q.xu > 0 ? ` · +${xu(q.xu)}` : '';
+        const paid = q.xu > 0 ? ` · +${money(q.xu)}` : '';
         ph.notify(q.daily ? L.dailyDone : L.questDone, tx(q.title) + paid);
         if (!toast?.achievement) toast = { name: tx(q.title), note: (q.daily ? L.dailyQuest : L.questDone) + paid, achievement: false };
       } else if (n.kind === 'achievement') {
@@ -730,6 +745,15 @@ export async function startApp(): Promise<void> {
       }
       hud.toast({ name: L.roleNotChanged, note: ARCH_REFUSED[code]() });
     },
+    items: (ids, apps) => {
+      owned.set(ids);
+      if (apps) {
+        serverApps = apps;
+        applyArchetype();
+      }
+      // no phone on arrival: the first quest card, once per visit
+      if (!owned.phoneUsable) phoneCard.arrive();
+    },
     progress: (pr) => {
       // quests that started just now (not on arriving: those were already there)
       const had = log.known ? new Set(log.active().map((q) => q.def.id)) : null;
@@ -809,7 +833,13 @@ export async function startApp(): Promise<void> {
     else if (p.player.seated !== 0) p.player.carry(at.position, at.heading, at.lean, at.speed);
   };
   // ---- talking to NPCs: next to one on foot, the action button (E) says hello; the sheet shows the conversation
-  const talk: Talk = new Talk({ net: netClient, npcs: cast, player: p.player, notify: (text) => chatBox.system(text), done: backToGame });
+  const shopSheet = new ShopSheet({
+    buy: (item) => netClient.buy(item),
+    owned,
+    balance: () => rides.balance,
+    done: backToGame,
+  });
+  const talk: Talk = new Talk({ net: netClient, npcs: cast, player: p.player, shop: shopSheet, notify: (text) => chatBox.system(text), done: backToGame });
   closeTalk = (): void => talk.close();
   // ---- Crab Bike trips: booked and driven from the phone; the action button takes the trip's next step
   const rides: Rides = new Rides({
@@ -825,6 +855,7 @@ export async function startApp(): Promise<void> {
       if (mode === 'play' && !panel.isOpen) ph.open(id);
     },
   });
+  rides.onChange(() => shopSheet.refresh());
   const offerBanner = new OfferBanner(rides, () => p.player.position);
   // ---- asking the way (D18): a Traveler asks from the Cẩm nang; a Citizen gets a call and answers with the button
   const directions: Directions = new Directions({
@@ -910,8 +941,21 @@ export async function startApp(): Promise<void> {
     rides: () => rides,
     directions: () => directions,
     mutes: () => mutes,
+    owned: () => owned,
   };
   const ph = new Phone(phoneHost);
+  // no phone, no phone: the button and the key say where to buy one (nearby chat never needed it)
+  ph.usable = () => owned.phoneUsable;
+  ph.onBlocked = () => {
+    if (mode === 'play' && !panel.isOpen) phoneCard.show();
+  };
+  owned.onChange(() => {
+    ph.setModel(owned.phone());
+    if (!owned.phoneUsable) return;
+    phoneCard.satisfied();
+    shopGuided = false;
+    guide();
+  });
   // ---- the Sổ tay: the Cẩm nang, the map, quests, achievements, the character; a page can show the way there
   /** the landmark the tracker shows the way to from its Cẩm nang page, and the place the player is in */
   let guidedPlace: Place | null = null;
@@ -972,7 +1016,40 @@ export async function startApp(): Promise<void> {
     else placeCard.show(null);
   };
   // travel tips: one at a time, and only while nothing else has the screen
-  const tipCard = new TipCard(() => mode === 'play' && !panel.isOpen && !picker.isOpen && !story.isOpen && !notebook.isOpen);
+  const tipCard: TipCard = new TipCard(() => mode === 'play' && !panel.isOpen && !picker.isOpen && !story.isOpen && !notebook.isOpen && !phoneCard.isOpen);
+  // ---- the first quest: buy a phone at the shop. The card waits behind the story card and the tips, then once per
+  // visit says where; "Dẫn đường tới tiệm" is the tracker's guide to the shop's NPC (no NPC, no button)
+  const shopNpc = () => NPC_DEFS.find((n) => n.id === phoneShop()?.npc);
+  let shopGuided = false;
+  const shopTo = new THREE.Vector3();
+  const shopGuide = (): Guide => ({
+    get title() {
+      return ItemsL.guideTitle;
+    },
+    get goal() {
+      return ItemsL.guideGoal(tx(phoneShop()?.name ?? { vi: '' }));
+    },
+    target: () => {
+      const n = shopNpc();
+      return n ? shopTo.set(n.at[0], 0, -n.at[1]) : null;
+    },
+  });
+  const phoneCard: PhoneCard = new PhoneCard({
+    free: () => mode === 'play' && !panel.isOpen && !picker.isOpen && !story.isOpen && !notebook.isOpen && !talk.isOpen && !shopSheet.isOpen && !tipCard.isShowing,
+    canGuide: () => shopNpc() !== undefined,
+    guiding: () => shopGuided,
+    toggleGuide: () => {
+      shopGuided = !shopGuided;
+      guide();
+    },
+  });
+  closePhoneCard = (): void => phoneCard.close();
+  shopArrive = (at) => {
+    const n = shopGuided ? shopNpc() : undefined;
+    if (!n || Math.hypot(n.at[0] - at.x, -n.at[1] - at.z) > SHOP_HERE) return;
+    shopGuided = false;
+    guide();
+  };
   rides.onChange(() => {
     if (rides.ride?.role !== 'passenger') return;
     tipCard.happened({ kind: 'crab_booked' });
@@ -996,10 +1073,12 @@ export async function startApp(): Promise<void> {
     else if (directions.guide()) {
       if (directions.calls.size > 0) notebook.open('quests');
       else ph.open('guide');
-    } else if (guidedPlace) notebook.openPage(guidedPlace.id);
+    } else if (shopGuided) notebook.open('quests');
+    else if (guidedPlace) notebook.openPage(guidedPlace.id);
   });
   tracker = questTracker;
-  const guide = (): void => questTracker.guideTo(rides.guide() ?? directions.guide() ?? (guidedPlace ? placeGuide(guidedPlace) : null));
+  const guide = (): void =>
+    questTracker.guideTo(rides.guide() ?? directions.guide() ?? (shopGuided ? shopGuide() : guidedPlace ? placeGuide(guidedPlace) : null));
   rides.onChange(guide);
   directions.onChange(guide);
   phone = ph;
@@ -1067,6 +1146,17 @@ export async function startApp(): Promise<void> {
       panel.dismiss();
       return;
     }
+    if (shopSheet.isOpen && e.key === 'Escape') {
+      e.preventDefault();
+      shopSheet.close();
+      backToGame();
+      return;
+    }
+    if (phoneCard.isOpen && e.key === 'Escape') {
+      e.preventDefault();
+      phoneCard.close();
+      return;
+    }
     if (story.isOpen && e.key === 'Escape') {
       e.preventDefault();
       story.dismiss();
@@ -1093,7 +1183,7 @@ export async function startApp(): Promise<void> {
       ph.close();
       return;
     }
-    const busy = panel.isOpen || picker.isOpen || story.isOpen;
+    const busy = panel.isOpen || picker.isOpen || story.isOpen || shopSheet.isOpen;
     // B: the Sổ tay, in play and over the map
     if (mode !== 'menu' && e.code === 'KeyB' && !e.repeat && !busy) {
       e.preventDefault();
@@ -1107,7 +1197,7 @@ export async function startApp(): Promise<void> {
       return;
     }
     // P: the phone
-    if (mode === 'play' && e.code === 'KeyP' && !panel.isOpen && !picker.isOpen && !story.isOpen) {
+    if (mode === 'play' && e.code === 'KeyP' && !panel.isOpen && !picker.isOpen && !story.isOpen && !shopSheet.isOpen) {
       e.preventDefault();
       if (ph.isOpen) ph.close();
       else ph.open();
@@ -1141,6 +1231,12 @@ export async function startApp(): Promise<void> {
         tick(dtMs / 1000, simNow, i === n - 1);
       }
     };
+    /** own exactly these items (ids in items.json) as if the server had said so; the phone apps follow the grants */
+    const giveItems = (ids: string[]): void => {
+      owned.set(ids);
+      serverApps = appsFor(owned.caps());
+      applyArchetype();
+    };
     let colliderView: THREE.Object3D | null = null;
     /** draw what bodies collide with over the map (again to hide it) */
     const showCollider = (on = !colliderView): void => {
@@ -1154,7 +1250,7 @@ export async function startApp(): Promise<void> {
         colliderView = null;
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, notebook, placeCard, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, phoneCard, shop: shopSheet, owned, giveItems, notebook, placeCard, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

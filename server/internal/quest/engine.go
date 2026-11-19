@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/gameday"
 	"saigon-noir/server/internal/quest/objective"
@@ -36,16 +37,18 @@ type Engine struct {
 // track is a quest or an achievement: objectives to do, in a flow, for a reward.
 type track struct {
 	// id is the record id: the quest id, or achievementPrefix + the achievement id
-	id         string
-	quest      bool
-	version    int
-	tagsAny    []string
-	requires   []string
-	flow       string
-	goals      []goal
-	rewards    content.Rewards
-	listens    map[events.Kind]bool
-	rewardFrom string
+	id           string
+	quest        bool
+	version      int
+	tagsAny      []string
+	unlessCaps   []string
+	requiresCaps []string
+	requires     []string
+	flow         string
+	goals        []goal
+	rewards      content.Rewards
+	listens      map[events.Kind]bool
+	rewardFrom   string
 	// daily: it starts over every day; pool, when set, is the pool it takes turns in
 	daily bool
 	pool  string
@@ -89,7 +92,7 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 	}
 	refs := catalogRefs{c}
 	for _, q := range c.Quests {
-		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, requires: q.Requires, flow: q.Flow,
+		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, unlessCaps: q.UnlessCaps, requiresCaps: q.RequiresCaps, requires: q.Requires, flow: q.Flow,
 			rewards: q.Rewards, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool}
 		if t.pool != "" {
 			e.pools[t.pool] = append(e.pools[t.pool], t.id)
@@ -156,9 +159,12 @@ func (t *track) add(id string, o content.Objective, refs objective.Refs) error {
 	return nil
 }
 
-// Player is what the engine needs to know about a character: the tags of its archetype.
+// Player is what the engine needs to know about a character: the tags of its archetype and what it may do.
 type Player struct {
 	Tags []string
+	// Caps are its capabilities when it joined or changed archetype; a quest with unless_caps is not offered to a
+	// character with one of them
+	Caps capability.Set
 }
 
 // Book is a character's progress, in memory.
@@ -316,6 +322,14 @@ func (t *track) taggedFor(p Player) bool {
 
 func (t *track) availableTo(p Player, b *Book) bool {
 	if !t.taggedFor(p) {
+		return false
+	}
+	for _, k := range t.unlessCaps {
+		if p.Caps.Has(k) {
+			return false
+		}
+	}
+	if !p.Caps.HasAll(t.requiresCaps) {
 		return false
 	}
 	for _, id := range t.requires {

@@ -162,3 +162,30 @@ func TestEveryConversationCanEnd(t *testing.T) {
 		}
 	}
 }
+
+func TestAnhChiFollowsTheBody(t *testing.T) {
+	c, err := content.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Dialogues["test"] = content.Dialogue{ID: "test", Start: "hi", Nodes: map[string]content.DialogueNode{
+		"hi": {
+			Say:     map[string]protocol.Text{content.DefaultVariant: {VI: "Chào {anh_chi} {name}", EN: "Hi {name}"}},
+			Choices: []content.Choice{{Text: protocol.Text{VI: "Dạ, {anh_chi} khỏe không?", EN: "Well?"}, Goto: content.DialogueEnd}},
+		},
+	}}
+	s := NewScript(c)
+	for _, tc := range []struct{ body, say, choice string }{
+		{"man", "Chào anh Lan", "Dạ, anh khỏe không?"},
+		{"woman", "Chào chị Lan", "Dạ, chị khỏe không?"},
+		{"", "Chào anh Lan", "Dạ, anh khỏe không?"},
+	} {
+		l, err := s.Line("test", "hi", Speaker{Name: "Lan", Body: tc.body})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if l.Say.VI != tc.say || l.Choices[0].VI != tc.choice || l.Say.EN != "Hi Lan" {
+			t.Errorf("body %q: %+v", tc.body, l)
+		}
+	}
+}

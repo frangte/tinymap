@@ -232,6 +232,23 @@
       <div class="talk-choices" id="talk-choices" role="group" data-i18n-aria="answers"></div>
     </section>
 
+    <!-- the shop sheet (shopSheet.ts), opened from a conversation: the wares, what they open, buying -->
+    <div class="shop-back" id="shop" data-modes="play" role="dialog" aria-modal="true" aria-labelledby="shop-title" hidden>
+      <section class="shop card">
+        <header class="shop-head">
+          <div class="shop-who">
+            <h2 id="shop-title"></h2>
+            <p class="shop-balance" id="shop-balance"></p>
+          </div>
+          <button class="shop-close" id="shop-close" type="button">×</button>
+        </header>
+        <p class="shop-note" id="shop-note"></p>
+        <ul class="shop-list" id="shop-list"></ul>
+        <p class="shop-status" id="shop-status" role="status" aria-live="polite"></p>
+        <button class="shop-done" id="shop-done" type="button"></button>
+      </section>
+    </div>
+
     <!-- bottom left in play: the chat (chatBox.ts) stacked over the control hint -->
     <div class="corner" data-modes="play">
       <section class="chat" id="chat" data-i18n-aria="chat">
@@ -274,6 +291,16 @@
       <div class="phone-home" id="phone-home"></div>
       <div class="phone-view" id="phone-view" hidden></div>
     </section>
+    <!-- no phone yet (phoneCard.ts): said when the phone button is pressed, and once on arrival -->
+    <aside class="phone-card card" id="phone-card" data-modes="play" role="status" hidden>
+      <div class="phone-card-text">
+        <span class="eyebrow" id="phone-card-eyebrow"></span>
+        <h2 id="phone-card-title"></h2>
+        <p id="phone-card-body"></p>
+        <button class="btn-primary" id="phone-card-guide" type="button" hidden></button>
+      </div>
+      <button class="phone-card-close" id="phone-card-close" type="button">×</button>
+    </aside>
     <button class="phone-toggle btn-primary" id="phone-toggle" type="button" data-modes="play" aria-expanded="false" aria-controls="phone" data-i18n-aria="phone">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" stroke-width="2.2" fill="none" /><path d="M11 17.5h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
       <span class="phone-dot" id="phone-dot" hidden></span>

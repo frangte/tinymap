@@ -161,7 +161,9 @@ func newFixture(t *testing.T, cfg ridehail.Config) *fixture {
 	h := &host{now: time.Date(2026, 11, 6, 2, 0, 0, 0, time.UTC), members: map[uint32]*member{}, inbox: map[uint32][]map[string]any{},
 		pins: map[[2]uint32]bool{}}
 	purse := ridehail.Purse{Wallets: db, Cfg: cfg.Ridehail, Now: func() time.Time { return h.now }}
-	drive := capability.Set{ridehail.DriveCapability: {}}
+	// everyone has a smartphone (booking needs one); the drivers can also drive
+	phone := capability.Set{content.CapPhone: {}, content.CapSmartphone: {}}
+	drive := capability.Set{ridehail.DriveCapability: {}, content.CapPhone: {}, content.CapSmartphone: {}}
 	for i, name := range []string{"Lan", "Tài", "Hoa", "Minh"} {
 		id := uint32(i + 1)
 		c := identity.Character{ID: "char" + name, AccountID: "acc" + name, Name: name, CreatedAt: 1}
@@ -174,7 +176,7 @@ func newFixture(t *testing.T, cfg ridehail.Config) *fixture {
 		if _, err := purse.Arrive(ctx, c.ID); err != nil {
 			t.Fatal(err)
 		}
-		m := &member{id: id, char: c.ID, name: name}
+		m := &member{id: id, char: c.ID, name: name, caps: phone}
 		if id != lan {
 			// a driver a few metres away, on their own bike
 			m.caps, m.pose, m.vehicle, m.own = drive, protocol.Pose{X: float64(5 * i)}, 100+id, true
@@ -594,6 +596,22 @@ func TestBookingsAreSpacedOut(t *testing.T) {
 	f.wait(cfg.RequestGap)
 	f.clear()
 	f.book()
+}
+
+func TestBookingNeedsASmartphone(t *testing.T) {
+	f := newFixture(t, config())
+	before := f.balance(f.char(lan))
+	for name, caps := range map[string]capability.Set{"no phone": nil, "a basic phone": {content.CapPhone: {}}} {
+		f.members[lan].caps = caps
+		f.clear()
+		f.send(lan, protocol.ClientMsg{T: protocol.TypeRideRequest, Dest: dest.ID})
+		if e := f.last(lan, "ride_error"); e == nil || e["code"] != ridehail.ErrNotAllowed {
+			t.Fatalf("%s: %v", name, f.inbox[lan])
+		}
+	}
+	if f.balance(f.char(lan)) != before {
+		t.Fatal("a fare was held for a character without a smartphone")
+	}
 }
 
 func TestDutyNeedsTheCapabilityAndTheBike(t *testing.T) {

@@ -12,24 +12,34 @@ export interface Story {
 }
 
 const vi = {
-  traveler: {
-    opening: 'Bạn vừa xuống xe ở bùng binh Quách Thị Trang, lần đầu tới Sài Gòn: balo trên vai, chưa quen ai, và cả Quận 1 ở ngay trước mặt.',
+  newcomer: {
+    opening: 'Bạn vừa xuống xe ở bến xe Chợ Lớn: ba lô trên vai, ít tiền trong túi, và cả Sài Gòn chưa biết mặt. Má dặn lên tới nơi thì mua cái điện thoại mới gọi về.',
     todo: [
-      'Đi dạo khắp phố: tới một công trình thì thẻ thông tin hiện dưới tên địa điểm, bấm Đọc thêm để biết lịch sử và mẹo.',
-      'Mở Sổ tay (nút góc trên phải, phím B): Cẩm nang, bản đồ, nhiệm vụ.',
-      'Ghé chợ Bến Thành nói chuyện với Cô Ba, rồi gọi một ly cà phê sữa đá ở quán Chú Tư trên Lê Lai.',
-      'Đặt một cuốc Crab trên điện thoại để đi một vòng thành phố.',
+      'Đi bộ cho quen đường: tới công trình nào thì thẻ thông tin hiện dưới tên địa điểm. Mở Sổ tay (phím B) để xem bản đồ.',
+      'Vào Quận 1, chào hỏi người quanh phố và nghe họ kể chuyện.',
+      'Việc đầu tiên: mua một cái điện thoại để gọi về cho má.',
+      'Rồi lập nghiệp: tìm chỗ ở, kiếm việc làm. Chạy Crab cũng là một nghề.',
     ],
-    tip: 'Nhiệm vụ tự bắt đầu và hiện ở góc trên trái. Điện thoại dùng để đặt Crab, chat và hỏi đường.',
+    tip: 'Nhiệm vụ chỉ gợi ý, không ai bắt bạn làm. Chưa có điện thoại bạn vẫn đi khắp phố và đọc hết Sổ tay được. Nhấn Enter để chat với người quanh bạn.',
   },
   citizen: {
-    opening: 'Nhà bạn ở dãy nhà phố Lê Lai. Sáng nào cũng cà phê quán Chú Tư, hàng xóm ai cũng quen, góc phố nào cũng thuộc.',
+    opening: 'Bạn sinh ra và lớn lên ở dãy nhà phố Lê Lai: nhà ở ngay đây, hàng xóm ai cũng quen, góc phố nào cũng thuộc. Điện thoại cũ vừa hư, má cho ít tiền mua cái mới.',
     todo: [
       'Uống cà phê sáng ở quán Chú Tư, rồi chào hai người quanh phố.',
-      'Nghe chuyện khu phố từ ba người hàng xóm.',
-      'Khi du khách hỏi đường, một lời gọi hiện lên: đi tới chỗ họ và chỉ đường. Mỗi lần giúp, uy tín khu phố tăng.',
+      'Mua điện thoại mới, rồi nghe chuyện khu phố từ ba người hàng xóm.',
+      'Làm thổ địa: khi du khách hỏi đường, một lời gọi hiện lên trên điện thoại. Đi tới chỗ họ và chỉ đường; mỗi lần giúp, uy tín khu phố tăng.',
     ],
-    tip: 'Điện thoại có app Hàng Xóm: ai đang ở ngoài phố lúc này. Nhấn Enter để chat với người quanh bạn.',
+    tip: 'Nhiệm vụ chỉ gợi ý, không ai bắt bạn làm. Ai cũng đi khắp phố và đọc Sổ tay (phím B) được từ phút đầu. Nhấn Enter để chat với người quanh bạn.',
+  },
+  traveler: {
+    opening: 'Bạn vừa xuống xe buýt ở phố đi bộ Bùi Viện, lần đầu tới Sài Gòn: ba lô trên vai, ít tiền trong túi, đèn neon và mùi đồ ăn khắp nơi.',
+    todo: [
+      'Đi dạo khắp phố: tới công trình nào thì thẻ thông tin hiện dưới tên địa điểm, bấm Đọc thêm để biết lịch sử và mẹo.',
+      'Mở Sổ tay (phím B): Cẩm nang, bản đồ, nhiệm vụ; nhờ dẫn đường tới nơi bạn muốn.',
+      'Nói chuyện với người địa phương để học vài câu tiếng Việt, và ăn thử món ngon, như ly cà phê sữa đá ở quán Chú Tư trên Lê Lai.',
+      'Mua một cái điện thoại để đặt Crab và hỏi đường.',
+    ],
+    tip: 'Nhiệm vụ chỉ gợi ý, không ai bắt bạn làm. Chưa có điện thoại bạn vẫn đi khắp phố và đọc hết Sổ tay được.',
   },
   driver: {
     opening: 'Áo khoác vàng, mũ bảo hiểm, chiếc xe số đậu ngay cạnh bạn trên đường Hàm Nghi. Bạn thuộc từng con đường Quận 1.',
@@ -50,24 +60,34 @@ const fallbackVi: Story = {
 
 /** the same archetypes as `vi` (tsc checks it) */
 const en: typeof vi = {
-  traveler: {
-    opening: 'You have just stepped off at the Quách Thị Trang roundabout, your first time in Saigon: a backpack on your shoulders, nobody you know yet, and all of District 1 right in front of you.',
+  newcomer: {
+    opening: 'You have just stepped off the bus at Chợ Lớn station: a backpack on your shoulders, little money in your pocket, and all of Saigon still strange to you. Mum said to buy a new phone once you got there, and call home.',
     todo: [
-      'Walk around town: at a landmark an info card shows under the place name; tap Read more for its history and tips.',
-      'Open the Notebook (the button top right, or B): the guidebook, the map, your quests.',
-      'Stop by Bến Thành Market to chat with Cô Ba, then order an iced milk coffee (cà phê sữa đá) at Chú Tư’s café on Lê Lai.',
-      'Book a Crab on your phone and ride around the city.',
+      'Walk around to learn the streets: at a landmark an info card shows under the place name. Open the Notebook (B) for the map.',
+      'Head into District 1, say hello to people on the street and listen to their stories.',
+      'First job: buy a phone so you can call Mum.',
+      'Then make a life here: find a place to stay and some work. Riding a Crab is a living too.',
     ],
-    tip: 'Quests start on their own and show in the top left corner. Your phone is for booking a Crab, chatting and asking the way.',
+    tip: 'Quests only suggest, nobody makes you do them. Without a phone you can still walk all over town and read the whole Notebook. Press Enter to chat with the people around you.',
   },
   citizen: {
-    opening: 'You live in the shophouses on Lê Lai. Coffee at Chú Tư’s every morning; you know every neighbour and every street corner.',
+    opening: 'You were born and raised on the Lê Lai shophouse row: your home is right here, you know every neighbour and every street corner. Your old phone just broke, and Mum gave you a little money for a new one.',
     todo: [
       'Have your morning coffee at Chú Tư’s, then say hello to two people around the street.',
-      'Hear the neighbourhood news from three neighbours.',
-      'When a traveller asks the way, a call pops up: walk over and show them. Every time you help, your standing in the neighbourhood grows.',
+      'Buy a new phone, then hear the neighbourhood news from three neighbours.',
+      'Be the thổ địa, the neighbourhood’s local guide: when a traveller asks the way, a call pops up on your phone. Walk over and show them; every time you help, your standing in the neighbourhood grows.',
     ],
-    tip: 'The Neighbours app on your phone shows who is out on the street right now. Press Enter to chat with the people around you.',
+    tip: 'Quests only suggest, nobody makes you do them. Everyone can walk all over town and read the Notebook (B) from the first minute. Press Enter to chat with the people around you.',
+  },
+  traveler: {
+    opening: 'You have just stepped off the bus on Bùi Viện walking street, your first time in Saigon: a backpack on your shoulders, a little money in your pocket, neon lights and the smell of street food everywhere.',
+    todo: [
+      'Walk around town: at a landmark an info card shows under the place name; tap Read more for its history and tips.',
+      'Open the Notebook (B): the guidebook, the map, your quests; ask it to show you the way to anywhere.',
+      'Chat with the locals to pick up some Vietnamese, and try the food, like an iced milk coffee (cà phê sữa đá) at Chú Tư’s on Lê Lai.',
+      'Buy a phone so you can book a Crab and ask the way.',
+    ],
+    tip: 'Quests only suggest, nobody makes you do them. Without a phone you can still walk all over town and read the whole Notebook.',
   },
   driver: {
     opening: 'Yellow jacket, helmet, and your motorbike parked right beside you on Hàm Nghi Street. You know every street in District 1.',

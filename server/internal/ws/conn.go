@@ -41,7 +41,7 @@ var (
 	chatBurst    = 3
 	profileRate  = rate.Every(250 * time.Millisecond)
 	profileBurst = 4
-	// mount, dismount and respawn: a few presses a second is already more than anyone does
+	// mount, dismount, respawn and buy: a few presses a second is already more than anyone does
 	actionRate  = rate.Every(250 * time.Millisecond)
 	actionBurst = 4
 	// interact, choose, interact_leave: reading a line and picking an answer takes a moment
@@ -79,6 +79,11 @@ type Wallets interface {
 	Arrive(ctx context.Context, character string) (int64, error)
 }
 
+// Items lists the items a character owns as it arrives (their ids go in the welcome): store.DB in production.
+type Items interface {
+	Owned(ctx context.Context, character string) ([]string, error)
+}
+
 // Quests runs a character's quests while it plays: quest.Service in production.
 type Quests interface {
 	Join(character string, session uint64, who quest.Player)
@@ -86,6 +91,8 @@ type Quests interface {
 	ChooseTitle(character, title string)
 	// Retag: the character changed archetype during the visit
 	Retag(character string, session uint64, who quest.Player)
+	// Capabilities: the character's capabilities changed during the visit (a purchase, a reward)
+	Capabilities(character string, caps capability.Set)
 }
 
 type Server struct {
@@ -98,6 +105,8 @@ type Server struct {
 	Quests Quests
 	// Wallets, when set, gives arriving characters their balance; nil plays without wallets
 	Wallets Wallets
+	// Items, when set, gives arriving characters the items they own; nil sends none
+	Items Items
 	// Names masks words in the names players pick (chatfilter); nil keeps them as they are
 	Names func(string) string
 	// saving counts the connections that still have a pose to save; closing (under mu) stops new ones once
@@ -141,6 +150,10 @@ func (s *Server) Grant(character, capability string) {
 	caps := c.capsOf(c.arch)
 	c.caps.Store(&caps)
 	s.world.SetCaps(c.peer, caps)
+	// the quests that need it open now, not on the next visit
+	if s.Quests != nil {
+		s.Quests.Capabilities(character, caps)
+	}
 }
 
 func (s *Server) play(c *client) {
@@ -257,7 +270,7 @@ func (c *client) readLoop() {
 		defer c.s.stop(c)
 		if q := c.s.Quests; q != nil {
 			c.session = c.s.sessions.Add(1)
-			q.Join(c.character, c.session, quest.Player{Tags: c.s.catalog.TagsOf(arrival.Arch)})
+			q.Join(c.character, c.session, quest.Player{Tags: c.s.catalog.TagsOf(arrival.Arch), Caps: c.can()})
 			defer q.Leave(c.character, c.session)
 		}
 	}
@@ -296,7 +309,7 @@ func (c *client) readLoop() {
 				msg.S &^= protocol.EmoteMask
 			}
 			ok = w.Handle(c.peer, msg)
-		case protocol.TypeMount, protocol.TypeDismount, protocol.TypeRespawn:
+		case protocol.TypeMount, protocol.TypeDismount, protocol.TypeRespawn, protocol.TypeBuy:
 			if !actions.Allow() {
 				continue
 			}
@@ -413,6 +426,14 @@ func (c *client) arrive(hello protocol.ClientMsg) (world.Arrival, string) {
 			a.Wallet = &balance
 		}
 	}
+	if c.character != "" && c.s.Items != nil {
+		// without the list the welcome has no items, and the game goes on as for a guest until the next visit
+		if owned, err := c.s.Items.Owned(ctx, c.character); err != nil {
+			c.s.log.Error("owned items", "character", c.character, "err", err)
+		} else {
+			a.Items = owned
+		}
+	}
 	return a, ""
 }
 
@@ -463,7 +484,7 @@ func (c *client) changeArch(arch string) bool {
 		c.s.log.Warn("saving archetype", "character", c.character, "err", err)
 	}
 	if q := c.s.Quests; q != nil && c.session != 0 {
-		q.Retag(c.character, c.session, quest.Player{Tags: cat.TagsOf(arch)})
+		q.Retag(c.character, c.session, quest.Player{Tags: cat.TagsOf(arch), Caps: c.can()})
 	}
 	return true
 }

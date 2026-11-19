@@ -247,6 +247,10 @@ func (s *Service) onRequest(m world.Member, dest string) {
 	case m.Character() == "":
 		s.fail(m.ID(), ErrNoAccount)
 		return
+	case !m.Caps().Has(content.CapSmartphone):
+		// the Crab app is on a smartphone; a client without one cannot book, and a tampered one is refused here
+		s.fail(m.ID(), ErrNotAllowed)
+		return
 	case s.of[m.ID()] != nil:
 		s.fail(m.ID(), ErrBusy)
 		return

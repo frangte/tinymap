@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/gameday"
 	"saigon-noir/server/internal/protocol"
@@ -65,6 +66,8 @@ const (
 	jobNewDay
 	// jobRetag: the character changed archetype; the quests of the new one open
 	jobRetag
+	// jobCaps: the character's capabilities changed while it plays; the quests that needed them open
+	jobCaps
 )
 
 type job struct {
@@ -158,6 +161,13 @@ func (s *Service) Retag(character string, session uint64, who Player) {
 	s.enqueue(job{kind: jobRetag, character: character, session: session, player: who}, true)
 }
 
+// Capabilities tells the service a playing character's capabilities changed (it bought a phone, a quest gave it
+// one): the quests that need them open at once, the ones already started keep going. It never blocks, since the
+// service's own workers call it (a reward's capability); a full queue drops it, and the next visit knows anyway.
+func (s *Service) Capabilities(character string, caps capability.Set) {
+	s.enqueue(job{kind: jobCaps, character: character, player: Player{Caps: caps}}, false)
+}
+
 // ChooseTitle changes the title a character carries to one it earned ("" for none).
 func (s *Service) ChooseTitle(character, title string) {
 	s.enqueue(job{kind: jobTitle, character: character, title: title}, false)
@@ -234,6 +244,11 @@ func (s *Service) do(ctx context.Context, players map[string]*player, j job) {
 	case jobNewDay:
 		for character, p := range players {
 			s.apply(ctx, character, p, func(b *Book, now int64) Outcome { return s.engine.Refresh(p.who, b, now) })
+		}
+	case jobCaps:
+		if p := players[j.character]; p != nil {
+			p.who.Caps = j.player.Caps
+			s.apply(ctx, j.character, p, func(b *Book, now int64) Outcome { return s.engine.Refresh(p.who, b, now) })
 		}
 	case jobRetag:
 		if p := players[j.character]; p != nil && p.session == j.session {

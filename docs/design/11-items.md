@@ -92,3 +92,26 @@ protocol keep whole xu (1 xu = 1 đồng).
 2. Then the content of chapter 0 (Bà Chín, Anh Tony, the openings of each origin) and the real phone (contacts,
    calls, messages).
 3. Then Cô Kim's exchange and the first Crab ride for each origin.
+
+## As built (server, 2026-11-19)
+
+What differs from the plan above, or was left open by it:
+
+- **Result code `busy`** (new): a `buy` whose database write failed or whose job queue was full. Nothing is kept;
+  the game may offer to try again. The four codes of the plan are unchanged.
+- **A guest without an account** buying gets `balance` (it has no wallet to pay from), not a code of its own.
+- **`welcome.items`** is `[]` for a character that owns nothing and absent for a guest, as the plan says; the
+  Ifone X backfill (migration 0009) means every character from before items owns one.
+- **Order of a purchase:** `wallet`, `items`, `result` ok, in that order, and the quest event after the purchase is
+  stored. The capabilities reach the connection (`ws.Server.Grant`, the one the quest rewards use) from the same
+  job that wrote the purchase, before the answer, so the `apps` in `items` and what the character may do agree.
+- **Ride booking** without `phone.smart` is refused with the existing ride error `not_allowed`.
+- **`buy_item`** with `{"kind": ...}` counts distinct items for a `count` above 1; with `{"item": ...}` the count
+  must be 1. `unless_caps` is on quests only (not achievements).
+- **Anh Bảy** stands at Blender (-18.5, 112.5) on the west pavement of Lê Lợi, facing the street (+X), about 3 m from the nearest tree, clear of the house fronts (checked against the collider and in the game).
+- The phone quest is `story.dien_thoai_dau_tien` in the questline `chuong_1`, open to everyone, no reward.
+- **`requires_caps`** (added at the lead's request): a quest is offered only to characters that have every one of
+  these capabilities, like `unless_caps` in reverse. It is `phone.smart` on the quests that need a smartphone:
+  `traveler.di_crab`, `driver.chuyen_dau_tien`, `daily.mot_cuoc_xe` and `citizen.tho_dia` (answering asks goes
+  through the Hàng Xóm app). `ws.Server.Grant` (a purchase or a quest's capability reward) now also tells the quest
+  service (`Service.Capabilities`), which refreshes the character's quests at once.

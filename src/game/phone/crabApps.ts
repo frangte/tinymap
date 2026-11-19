@@ -3,9 +3,9 @@
 // trip's state, the offers on the list); the parts that tick (a countdown, how far the driver is) are rewritten in
 // place a few times a second, so buttons stay under the finger and keep the keyboard focus. A language switch
 // redraws the whole app.
-import { CUT_PERCENT, DESTINATIONS, OFFER_RADIUS, TIPS, fareTo, placeName, xu, type Rides } from '../rides';
+import { CUT_PERCENT, DESTINATIONS, OFFER_RADIUS, TIPS, fareTo, placeName, type Rides } from '../rides';
 import { distance, placeTitle } from '../places';
-import { lang, onLangChange } from '../i18n';
+import { lang, money, onLangChange } from '../i18n';
 import { L } from '../i18n/crabApps';
 import { button, h } from './dom';
 import type { AppContext, AppFactory } from './apps';
@@ -48,7 +48,7 @@ function keyed(b: HTMLButtonElement, key: string): HTMLButtonElement {
 }
 
 function walletLine(rides: Rides): HTMLElement {
-  return h('p', 'crab-wallet', rides.balance === null ? L.walletNone : L.wallet(xu(rides.balance)));
+  return h('p', 'crab-wallet', rides.balance === null ? L.walletNone : L.wallet(money(rides.balance)));
 }
 
 function driverCard(p: RidePerson, sub: HTMLElement): HTMLElement {
@@ -101,7 +101,7 @@ function destinations(root: HTMLElement, ctx: AppContext, rides: Rides, ticks: L
     const info = h('span', 'crab-dest-info');
     info.append(h('strong', '', placeTitle(p)), live('crab-dest-fare', () => {
       const at = ctx.self().position;
-      return `${Math.round(distance(p, at.x, -at.z))} m · ${xu(fareTo(p, at.x, at.z))}`;
+      return `${Math.round(distance(p, at.x, -at.z))} m · ${money(fareTo(p, at.x, at.z))}`;
     }, ticks));
     const book = keyed(button(L.book, () => rides.book(p.id), true), `book:${p.id}`);
     // the fare follows the player: so does whether the wallet covers it
@@ -118,7 +118,7 @@ function destinations(root: HTMLElement, ctx: AppContext, rides: Rides, ticks: L
 }
 
 function rating(root: HTMLElement, rides: Rides, r: Ride, choice: Choice): void {
-  root.append(h('p', 'app-text', r.end === 'completed' ? L.arrivedPaid(placeName(r.dest), xu(r.fare)) : L.alightedPaid(xu(r.fare))));
+  root.append(h('p', 'app-text', r.end === 'completed' ? L.arrivedPaid(placeName(r.dest), money(r.fare)) : L.alightedPaid(money(r.fare))));
   if (!r.driver) return;
   const box = h('section', 'crab-rate');
   box.append(h('strong', 'app-section', L.rateDriver(r.driver.name)));
@@ -138,7 +138,7 @@ function rating(root: HTMLElement, rides: Rides, r: Ride, choice: Choice): void 
   tips.setAttribute('role', 'group');
   tips.setAttribute('aria-label', L.tipGroup);
   const tipButtons = TIPS.map((t) => {
-    const b = keyed(button(t === 0 ? L.noTip : `+${xu(t)}`, () => {
+    const b = keyed(button(t === 0 ? L.noTip : `+${money(t)}`, () => {
       choice.tip = t;
       sync();
     }), `tip:${t}`);
@@ -168,14 +168,14 @@ function booked(root: HTMLElement, rides: Rides, r: Ride, ticks: Live[], choice:
   switch (r.state) {
     case 'requested': {
       const card = h('div', 'driver-card');
-      card.append(h('strong', '', L.finding), h('span', '', L.toFare(dest, xu(r.fare))), live('', left, ticks));
+      card.append(h('strong', '', L.finding), h('span', '', L.toFare(dest, money(r.fare))), live('', left, ticks));
       root.append(card, keyed(button(L.cancelTrip, () => rides.cancel()), 'cancel'));
       return;
     }
     case 'accepted': {
       const d = r.driver;
       if (d) root.append(driverCard(d, live('', () => L.comingFor(far(rides.howFar(d.id))), ticks)));
-      root.append(h('p', 'app-text', L.boardHow(dest, xu(r.fare))),
+      root.append(h('p', 'app-text', L.boardHow(dest, money(r.fare))),
         keyed(button(L.cancelTrip, () => rides.cancel()), 'cancel'));
       return;
     }
@@ -226,13 +226,13 @@ function driving(root: HTMLElement, rides: Rides, r: Ride, ticks: Live[]): void 
   const card = h('div', 'driver-card');
   const dest = placeName(r.dest);
   if (r.state === 'accepted') {
-    card.append(h('strong', '', L.pickUp(r.passenger.name)), h('span', '', L.toFare(dest, xu(r.fare))),
+    card.append(h('strong', '', L.pickUp(r.passenger.name)), h('span', '', L.toFare(dest, money(r.fare))),
       live('', () => far(rides.howFar(r.passenger.id)), ticks));
     root.append(card, h('p', 'app-text', L.pickupHow),
       keyed(button(L.cancelRide, () => rides.cancel()), 'cancel'));
     return;
   }
-  card.append(h('strong', '', L.carryTo(r.passenger.name, dest)), h('span', '', L.yourShare(xu(r.fare), 100 - CUT_PERCENT)));
+  card.append(h('strong', '', L.carryTo(r.passenger.name, dest)), h('span', '', L.yourShare(money(r.fare), 100 - CUT_PERCENT)));
   root.append(card, h('p', 'app-text', L.dropOffHow));
 }
 
@@ -248,7 +248,7 @@ function offers(root: HTMLElement, rides: Rides, ticks: Live[]): void {
     const info = h('span', 'crab-dest-info');
     info.append(h('strong', '', `${o.passenger.name} → ${placeName(o.dest)}`), live('crab-dest-fare', () => {
       const secs = Math.max(0, Math.ceil((o.expires - rides.now()) / 1000));
-      return L.offerInfo(xu(o.fare), Math.round(rides.howFarTo(o.pickup[0], o.pickup[1])), secs);
+      return L.offerInfo(money(o.fare), Math.round(rides.howFarTo(o.pickup[0], o.pickup[1])), secs);
     }, ticks));
     li.append(info, keyed(button(L.take, () => rides.accept(o.offer), true), `take:${o.offer}`));
     ol.append(li);

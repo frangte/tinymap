@@ -37,6 +37,7 @@ import (
 	"saigon-noir/server/internal/moderation"
 	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/ridehail"
+	"saigon-noir/server/internal/shop"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/web"
 	"saigon-noir/server/internal/world"
@@ -155,6 +156,12 @@ func run() error {
 	})
 	// asking the way, the co-op quest: a Traveler asks, the Citizens online are called (D18)
 	w.Use(func(h world.Host) world.Module { return directions.New(h, catalog, log) })
+	// items and the phone shop: a player next to the shop's NPC buys; the purchase moves money in a job (D22)
+	var shops *shop.Service
+	w.Use(func(h world.Host) world.Module {
+		shops = shop.New(h, catalog, db, log)
+		return shops
+	})
 	// moderation sees every chat line first: reports, mutes, bans, the moderators' commands (D17)
 	w.Use(func(h world.Host) world.Module { return moderation.New(h, db, log) })
 	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
@@ -162,7 +169,9 @@ func run() error {
 	sockets.Names = filter.Clean
 	sockets.Quests = quests
 	sockets.Wallets = ridehail.Purse{Wallets: db, Cfg: catalog.Ridehail, Now: time.Now}
+	sockets.Items = db
 	quests.OnCapability = sockets.Grant
+	shops.OnCapability = sockets.Grant
 	go quests.Run(ctx)
 	go w.Run(ctx)
 

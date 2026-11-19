@@ -19,12 +19,37 @@
   ],
   "quests": [
     {
+      "id": "story.dien_thoai_dau_tien",
+      "version": 1,
+      "questline": "chuong_1",
+      "title": { "vi": "Cái điện thoại đầu tiên", "en": "The first phone" },
+      "about": {
+        "vi": "Ai vào game cũng chưa có điện thoại, nên đây là nhiệm vụ đầu tiên. Có smartphone là đặt được Crab, trò chuyện, hỏi đường.",
+        "en": "Everyone starts the game without a phone, so this is the first quest. With a smartphone you can book a Crab, chat and ask the way."
+      },
+      "unless_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "buy",
+          "type": "buy_item",
+          "params": { "kind": "phone" },
+          "text": {
+            "vi": "Mua một chiếc điện thoại ở tiệm Dế Yêu của anh Bảy, đường Lê Lợi",
+            "en": "Buy a phone at Anh Bảy's Dế Yêu shop on Lê Lợi"
+          },
+          "at": "anh_bay"
+        }
+      ],
+      "rewards": {}
+    },
+    {
       "id": "citizen.ca_phe_sang",
       "version": 1,
       "questline": "song_o_pho",
       "title": { "vi": "Cà phê sáng", "en": "Morning coffee" },
       "about": { "vi": "Sáng nào cũng vậy: một ly ở quán Chú Tư, ngồi ngó phố một chút rồi mới đi đâu thì đi.", "en": "Every morning: a coffee at Chú Tư's and a moment watching the street before anything else." },
-      "tags_any": ["citizen"],
+      "tags_any": ["native"],
       "flow": "sequence",
       "objectives": [
         { "id": "order", "type": "dialogue_signal", "params": { "npc": "chu_tu", "signal": "order_ca_phe_sua_da" }, "text": { "vi": "Gọi một ly ở quán Chú Tư", "en": "Order a coffee at Chú Tư's" }, "at": "chu_tu" },
@@ -77,7 +102,8 @@
       "questline": "song_o_pho",
       "title": { "vi": "Thổ địa", "en": "Local guide" },
       "about": { "vi": "Khi có du khách hỏi đường, điện thoại sẽ báo. Đi tới chỗ họ và bấm Chỉ đường.", "en": "When a traveller asks the way, your phone rings. Walk up to them and press Show the way." },
-      "tags_any": ["citizen"],
+      "tags_any": ["native"],
+      "requires_caps": ["phone.smart"],
       "flow": "sequence",
       "objectives": [
         { "id": "help", "type": "give_way", "params": {}, "text": { "vi": "Chỉ đường cho một du khách", "en": "Show a traveller the way" } }
@@ -120,6 +146,7 @@
       "title": { "vi": "Chuyến đầu tiên", "en": "Your first trip" },
       "about": { "vi": "Bật nhận cuốc trong app Crab Driver, nhận một cuốc xe, đón khách và chở tới nơi.", "en": "Go on duty in the Crab Driver app, accept a ride, pick the passenger up and drop them off." },
       "tags_any": ["driver"],
+      "requires_caps": ["phone.smart"],
       "requires": ["driver.nhan_xe"],
       "flow": "sequence",
       "objectives": [
@@ -134,6 +161,7 @@
       "title": { "vi": "Đi Crab", "en": "Take a Crab" },
       "about": { "vi": "Mở app Crab, đặt xe tới một công trình, lên xe tài xế và đi một vòng Quận 1.", "en": "Open the Crab app, book a ride to a landmark, hop on behind the driver and see District 1." },
       "tags_any": ["traveler"],
+      "requires_caps": ["phone.smart"],
       "flow": "sequence",
       "objectives": [
         { "id": "ride", "type": "trip", "params": { "role": "passenger" }, "text": { "vi": "Đi một cuốc Crab tới nơi", "en": "Ride a Crab to your destination" } }
@@ -284,6 +312,7 @@
       "title": { "vi": "Một cuốc xe", "en": "One fare" },
       "about": { "vi": "Chở một khách Crab, hoặc chạy 3 cây số nếu phố vắng khách.", "en": "Take one Crab passenger, or ride 3 km if the streets are quiet." },
       "tags_any": ["driver"],
+      "requires_caps": ["phone.smart"],
       "repeat": "daily",
       "pool": "driver_daily",
       "flow": "any",
@@ -341,7 +370,7 @@
       "id": "nguoi_chi_duong",
       "title": { "vi": "Người chỉ đường", "en": "Pathfinder" },
       "about": { "vi": "Chỉ đường cho 5 du khách khác nhau.", "en": "Show 5 different travellers the way." },
-      "tags_any": ["citizen"],
+      "tags_any": ["native"],
       "objective": { "type": "give_way", "params": {}, "count": 5 },
       "rewards": { "titles": ["nguoi_chi_duong"] }
     },

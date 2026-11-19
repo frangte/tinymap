@@ -101,6 +101,8 @@ export interface Interaction {
   size: number;
   say: Text;
   choices: Text[];
+  /** the id of the shop this line opens (items.json), '' for none: the sheet then offers to look at its wares */
+  shop: string;
 }
 
 /** done: it reached its end; left: we closed it; far: we walked away; other: we started another one */
@@ -171,8 +173,11 @@ export type ServerMsg =
    * arch: our archetype as the server keeps it ('' for none); apps: our phone apps in phone order (null: an older
    * server); pose: where the server placed us (null: an older server, which lets us stand where we like)
    */
-  /** wallet: our balance in xu, null for a guest without an account (or an older server) */
-  | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; npcs: NpcInfo[]; chat: ChatLine[]; wallet: number | null }
+  /**
+   * wallet: our balance in xu, null for a guest without an account (or an older server); items: the ids of every
+   * item we own, null for a guest or an older server
+   */
+  | { t: 'welcome'; id: number; name: string; arch: string; apps: string[] | null; max: number; pose: Pose | null; players: PlayerInfo[]; vehicles: VehicleInfo[]; npcs: NpcInfo[]; chat: ChatLine[]; wallet: number | null; items: string[] | null }
   | { t: 'join'; p: PlayerInfo }
   | { t: 'leave'; id: number }
   /** arch: '' from an older server, which does not say (archetypes did not change then) */
@@ -189,6 +194,8 @@ export type ServerMsg =
   | ({ t: 'interaction' } & Interaction)
   | { t: 'interaction_end'; sid: number; reason: EndReason }
   | { t: 'result'; rid: number; ok: boolean; code: string }
+  /** after a purchase (before its result): every item we own and the phone apps we have now */
+  | { t: 'items'; items: string[]; apps: string[] }
   | ({ t: 'progress' } & Progress)
   | { t: 'error'; code: ErrorCode }
   /** a moderation line for our chat log: a command's answer, a mute, a report received */
@@ -214,6 +221,8 @@ export type ClientMsg =
   /** c: the index of the answer among the choices shown; step: that line's step */
   | { t: 'choose'; sid: number; c: number; step: number; rid: number }
   | { t: 'interact_leave'; sid: number }
+  /** buy an item (items.json) from the shop whose NPC we stand next to; the answer is a result (rid) */
+  | { t: 'buy'; rid: number; item: string }
   /** the title to carry, among those earned ('' for none) */
   | { t: 'title'; title: string }
   /** change archetype; the answer is an arch, or an error arch_busy / arch_wait */
@@ -341,7 +350,7 @@ function interaction(m: Obj): Interaction | null {
     if (!t) return null;
     choices.push(t);
   }
-  return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices };
+  return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices, shop: idOf(m.shop) };
 }
 
 const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth', 'mount', 'replaced', 'slow', 'repeat', 'new_player', 'muted', 'banned', 'kicked', 'arch_busy', 'arch_wait'];
@@ -369,7 +378,8 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
       const vehicles = list(m.vehicles, vehicle) ?? [];
       const npcs = list(m.npcs, npcInfo) ?? [];
       const wallet = Number.isInteger(m.wallet) && (m.wallet as number) >= 0 ? (m.wallet as number) : null;
-      return { t: 'welcome', id: m.id, name, arch: idOf(m.arch), apps, max: m.max, pose: pose(m.pose), players, vehicles, npcs, chat, wallet };
+      const items = Array.isArray(m.items) ? m.items.map(idOf).filter((i) => i !== '') : null;
+      return { t: 'welcome', id: m.id, name, arch: idOf(m.arch), apps, max: m.max, pose: pose(m.pose), players, vehicles, npcs, chat, wallet, items };
     }
     case 'join': {
       const p = player(m.p);
@@ -430,6 +440,10 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
     }
     case 'interaction_end':
       return isId(m.sid) ? { t: 'interaction_end', sid: m.sid, reason: REASONS.find((r) => r === m.reason) ?? 'unknown' } : null;
+    case 'items': {
+      if (!Array.isArray(m.items) || !Array.isArray(m.apps)) return null;
+      return { t: 'items', items: m.items.map(idOf).filter((i) => i !== ''), apps: m.apps.map(idOf).filter((a) => a !== '') };
+    }
     case 'result':
       return isId(m.rid) ? { t: 'result', rid: m.rid, ok: m.ok === true, code: typeof m.code === 'string' ? m.code.slice(0, 16) : '' } : null;
     case 'error': {

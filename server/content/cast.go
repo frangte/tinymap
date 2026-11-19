@@ -92,7 +92,9 @@ type Dialogue struct {
 type DialogueNode struct {
 	Say map[string]Text `json:"say"`
 	// Emote is played by the NPC as it says the line (emotes.json), "" for none
-	Emote   string   `json:"emote,omitempty"`
+	Emote string `json:"emote,omitempty"`
+	// Shop is a shop id (items.json): the game offers a button that opens its sheet while this line is shown
+	Shop    string   `json:"shop,omitempty"`
 	Choices []Choice `json:"choices,omitempty"`
 }
 
@@ -115,6 +117,14 @@ const (
 	ChoiceMax  = 90
 	ChoicesMax = 6
 	BarkMax    = protocol.ChatMax
+)
+
+// The placeholders a dialogue line may hold (dialogue.fill replaces them).
+const (
+	// PlaceholderName becomes the player's name
+	PlaceholderName = "{name}"
+	// PlaceholderAnhChi becomes "anh" for a man's body and "chị" for a woman's, in Vietnamese lines only
+	PlaceholderAnhChi = "{anh_chi}"
 )
 
 var (
@@ -283,6 +293,9 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 	if _, ok := c.Emote(n.Emote); n.Emote != "" && !ok {
 		return fmt.Errorf("emote %q is not in emotes.json", n.Emote)
 	}
+	if n.Shop != "" && !slices.ContainsFunc(c.Shops, func(sh Shop) bool { return sh.ID == n.Shop }) {
+		return fmt.Errorf("shop %q is not in items.json", n.Shop)
+	}
 	if len(n.Choices) > ChoicesMax {
 		return fmt.Errorf("at most %d choices", ChoicesMax)
 	}
@@ -309,7 +322,7 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 }
 
 // checkText checks a line: Vietnamese required, both languages within max characters, clean of control
-// characters, and (where allowed) no placeholder but {name}.
+// characters, and (where allowed) no placeholder but {name} and, in Vietnamese only, {anh_chi}.
 func checkText(t Text, max int, placeholders bool) error {
 	if t.VI == "" {
 		return errors.New("needs Vietnamese")
@@ -335,8 +348,13 @@ func checkText(t Text, max int, placeholders bool) error {
 			return errors.New("no double, leading or trailing spaces")
 		}
 		for _, p := range placeholder.FindAllString(s, -1) {
-			if !placeholders || p != "{name}" {
-				return fmt.Errorf("unknown placeholder %s (only {name})", p)
+			switch {
+			case placeholders && p == PlaceholderName:
+			case placeholders && p == PlaceholderAnhChi && s == t.VI && s != t.EN:
+			case p == PlaceholderAnhChi:
+				return fmt.Errorf("%s is for Vietnamese dialogue lines only: English has no word that changes with the body", p)
+			default:
+				return fmt.Errorf("unknown placeholder %s (only %s, and %s in Vietnamese)", p, PlaceholderName, PlaceholderAnhChi)
 			}
 		}
 	}

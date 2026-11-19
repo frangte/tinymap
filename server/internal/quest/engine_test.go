@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/quest/objective"
@@ -91,6 +92,12 @@ func TestObjectiveParamsAreChecked(t *testing.T) {
 		{"one place entered twice", "reach_place", `{"place": "cho_ben_thanh"}`, 2, "count must be 1"},
 		{"one NPC talked to twice", "talk_npc", `{"npc": "co_ba"}`, 2, "count must be 1"},
 		{"a trip in no role", "trip", `{"role": "pilot"}`, 1, "rider or passenger"},
+		{"buying neither an item nor a kind", "buy_item", `{}`, 1, "exactly one"},
+		{"buying an item and a kind", "buy_item", `{"item": "ifone_x", "kind": "phone"}`, 1, "exactly one"},
+		{"buying an item that does not exist", "buy_item", `{"item": "nokia_3310"}`, 1, "unknown item"},
+		{"buying a kind that does not exist", "buy_item", `{"kind": "car"}`, 1, "unknown item kind"},
+		{"buying one item twice", "buy_item", `{"item": "ifone_x"}`, 2, "count must be 1"},
+		{"buying more phones than there are", "buy_item", `{"kind": "phone"}`, 9, "only"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -118,8 +125,13 @@ type run struct {
 	completed []string
 }
 
+// newRun is a character with a smartphone (what most quests assume); newRunWith picks its capabilities.
 func newRun(t *testing.T, tags ...string) *run {
-	r := &run{t: t, e: engine(t), who: Player{Tags: tags}, book: NewBook(Saved{}), now: 1}
+	return newRunWith(t, capability.Of(content.CapPhone, content.CapSmartphone), tags...)
+}
+
+func newRunWith(t *testing.T, caps capability.Set, tags ...string) *run {
+	r := &run{t: t, e: engine(t), who: Player{Tags: tags, Caps: caps}, book: NewBook(Saved{}), now: 1}
 	r.collect(r.e.Refresh(r.who, r.book, r.now))
 	return r
 }
@@ -351,7 +363,7 @@ func TestACitizenAnsweringFinishesTheAskAndCountsForThemOnce(t *testing.T) {
 	if traveler.state("traveler.hoi_duong") != StateDone {
 		t.Fatal("a Citizen's answer did not finish the ask")
 	}
-	citizen := newRun(t, "citizen")
+	citizen := newRun(t, "citizen", "native")
 	given := func(asker string) {
 		citizen.do(events.Event{Kind: events.DirectionsGiven, Place: "bitexco", Partners: []string{asker}})
 	}
@@ -444,5 +456,109 @@ func TestProgressLeavesOutCollectionEntriesNoLongerInTheFile(t *testing.T) {
 	}
 	if !slices.Equal(p.Collection, []string{"xin_chao"}) {
 		t.Fatalf("progress lists %v, want only the found entry the file still has", p.Collection)
+	}
+}
+
+func bought(item, kind string) events.Event {
+	return events.Event{Kind: events.ItemBought, Item: item, ItemKind: kind}
+}
+
+const phoneQuest = "story.dien_thoai_dau_tien"
+
+// Everyone without a phone is offered the phone quest, and buying any phone finishes it.
+func TestBuyingAPhoneCompletesThePhoneQuest(t *testing.T) {
+	for _, arch := range []string{"citizen", "traveler", "driver"} {
+		t.Run(arch, func(t *testing.T) {
+			r := newRunWith(t, nil, arch)
+			if r.state(phoneQuest) != StateActive {
+				t.Fatalf("the phone quest is %q for a character without a phone", r.state(phoneQuest))
+			}
+			r.do(bought("ifone_x", "phone"))
+			if r.state(phoneQuest) != StateDone {
+				t.Fatalf("after buying a phone: %q", r.state(phoneQuest))
+			}
+		})
+	}
+	// an item of another kind does not count
+	r := newRunWith(t, nil, "citizen")
+	r.do(bought("jar", "pottery"))
+	if r.state(phoneQuest) != StateActive {
+		t.Fatal("a jar is no phone")
+	}
+}
+
+// unless_caps: a character that already has a phone is never offered the quest; one running keeps running.
+func TestUnlessCapsHidesAQuestFromThoseWhoHaveOne(t *testing.T) {
+	e := engine(t)
+	with := Player{Tags: []string{"citizen"}, Caps: capability.Of(content.CapPhone, content.CapSmartphone)}
+	book := NewBook(Saved{})
+	e.Refresh(with, book, 1)
+	if book.Records[phoneQuest] != nil {
+		t.Fatal("a character with a phone was offered the phone quest")
+	}
+	// started without a phone, then the capability shows up (a retag with a phone): it is not taken away
+	without := Player{Tags: []string{"citizen"}}
+	e.Refresh(without, book, 2)
+	if book.Records[phoneQuest] == nil {
+		t.Fatal("a character without a phone was not offered the phone quest")
+	}
+	e.Refresh(with, book, 3)
+	if book.Records[phoneQuest] == nil || book.Records[phoneQuest].State != StateActive {
+		t.Fatal("a quest already running was dropped")
+	}
+	// any one of the capabilities hides it
+	basic := Player{Tags: []string{"citizen"}, Caps: capability.Of(content.CapPhone)}
+	other := NewBook(Saved{})
+	e.Refresh(basic, other, 1)
+	if other.Records[phoneQuest] != nil {
+		t.Fatal("a basic phone was offered the phone quest")
+	}
+}
+
+// requires_caps: the Crab quests wait for a smartphone, and open the moment the character has one.
+func TestRequiresCapsHoldsAQuestBackUntilTheCharacterHasThem(t *testing.T) {
+	e := engine(t)
+	const crab = "traveler.di_crab"
+	book := NewBook(Saved{})
+	none := Player{Tags: []string{"traveler"}}
+	e.Refresh(none, book, 1)
+	if book.Records[crab] != nil {
+		t.Fatal("a character without a phone was offered a Crab quest")
+	}
+	brick := Player{Tags: []string{"traveler"}, Caps: capability.Of(content.CapPhone)}
+	e.Refresh(brick, book, 2)
+	if book.Records[crab] != nil {
+		t.Fatal("a basic phone was offered a Crab quest")
+	}
+	smart := Player{Tags: []string{"traveler"}, Caps: capability.Of(content.CapPhone, content.CapSmartphone)}
+	if out := e.Refresh(smart, book, 3); out.Changed[crab] == nil || book.Records[crab] == nil {
+		t.Fatal("a smartphone did not open the Crab quest")
+	}
+}
+
+func TestEveryQuestThatNeedsASmartphoneSaysSo(t *testing.T) {
+	c := catalog(t)
+	want := map[string]bool{"traveler.di_crab": true, "driver.chuyen_dau_tien": true, "daily.mot_cuoc_xe": true, "citizen.tho_dia": true}
+	for _, q := range c.Quests {
+		has := slices.Contains(q.RequiresCaps, content.CapSmartphone)
+		if has != want[q.ID] {
+			t.Errorf("%s: requires_caps %v, want smartphone %v", q.ID, q.RequiresCaps, want[q.ID])
+		}
+	}
+}
+
+// A newcomer shares the citizen tag with a native Saigonese, but the quests that need a local's habits and a
+// local's knowledge of the streets (the morning coffee, showing the way) are the native's alone.
+func TestANewcomerGetsTheNeighbourhoodQuestsButNotTheNativesOwn(t *testing.T) {
+	r := newRun(t, "citizen", "newcomer")
+	for _, id := range []string{"citizen.chuyen_khu_pho", "citizen.chao_hang_xom", "citizen.tap_the_duc"} {
+		if r.state(id) != StateActive {
+			t.Errorf("a newcomer should be offered %s, state %q", id, r.state(id))
+		}
+	}
+	for _, id := range []string{"citizen.ca_phe_sang", "citizen.tho_dia"} {
+		if r.book.Records[id] != nil {
+			t.Errorf("%s is for a native Saigonese only", id)
+		}
 	}
 }

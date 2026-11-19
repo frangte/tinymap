@@ -7,11 +7,11 @@ import { MiniMap } from '../phone/miniMap';
 import { badge } from '../badge';
 import { countOf, current, isDone, type ActiveQuest, type QuestLog } from '../questLog';
 import { BOOK_STAMPS, STREAK_STAMPS, countText, titleName, type StampDef } from '../quests';
-import { xu } from '../rides';
 import { button, h } from '../phone/dom';
 import type { AppFactory } from '../phone/apps';
-import { tx } from '../i18n';
+import { money, tx } from '../i18n';
 import { L } from '../i18n/notebook';
+import { L as ItemsL } from '../i18n/items';
 
 export const profile: AppFactory = (root, ctx) => {
   const p = ctx.profile();
@@ -28,8 +28,17 @@ export const profile: AppFactory = (root, ctx) => {
   fact(L.outfit, outfitStyle(p.look.outfit, p.look.body).name);
   fact(L.hat, HAT_NAMES[p.look.hat]);
   const balance = ctx.rides().balance;
-  if (balance !== null) fact(L.wallet, xu(balance));
+  if (balance !== null) fact(L.wallet, money(balance));
+  // what the player carries: the phone in hand (or where to buy one) and every other item
+  const owned = ctx.owned();
+  const phone = owned.phone();
+  if (phone || owned.known) fact(ItemsL.phoneInHand, phone ? tx(phone.name) : ItemsL.noPhone);
+  const others = owned.list().filter((i) => i !== phone && i.kind !== 'phone');
+  const phones = owned.list().filter((i) => i.kind === 'phone' && i !== phone);
+  const rest = [...phones, ...others];
+  if (rest.length > 0 || owned.known) fact(ItemsL.itemsOwned, rest.length > 0 ? rest.map((i) => tx(i.name)).join(', ') : ItemsL.itemsNone);
   root.append(facts);
+  if (!phone && owned.known) root.append(h('p', 'app-note', ItemsL.noPhoneWhere));
   const log = ctx.quests();
   let stop: (() => void) | undefined;
   if (log.titles.length > 0) {
@@ -121,7 +130,7 @@ function questCard(q: ActiveQuest, log: QuestLog, tracked: ActiveQuest | null): 
     goals.append(li);
   }
   card.append(goals);
-  if (q.def.xu > 0) card.append(h('small', 'quest-reward', L.reward(xu(q.def.xu))));
+  if (q.def.xu > 0) card.append(h('small', 'quest-reward', L.reward(money(q.def.xu))));
   card.append(q.def === tracked?.def ? h('small', 'quest-tracking', L.tracking) : button(L.track, () => log.track(q.def.id)));
   return card;
 }
@@ -142,7 +151,7 @@ function dailySection(log: QuestLog, tracked: ActiveQuest | null): HTMLElement |
       continue;
     }
     const card = h('section', 'quest-card is-done');
-    card.append(h('strong', 'quest-title', tx(q.def.title)), h('small', 'quest-tracking', q.def.xu > 0 ? L.doneTodayPaid(xu(q.def.xu)) : L.doneToday));
+    card.append(h('strong', 'quest-title', tx(q.def.title)), h('small', 'quest-tracking', q.def.xu > 0 ? L.doneTodayPaid(money(q.def.xu)) : L.doneToday));
     box.append(card);
   }
   if (STREAK_STAMPS.length > 0) box.append(stampRow(STREAK_STAMPS, new Set(log.stamps), 'stamp-book is-small'));

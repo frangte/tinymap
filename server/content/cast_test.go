@@ -73,6 +73,9 @@ func distToPlace(p Place, x, y float64) float64 {
 // noQuests stands in for quests.json where the shipped quests would refer to NPCs a test left out.
 var noQuests = []byte(`{"titles": [], "stamps": [], "quests": [], "achievements": []}`)
 
+// noItems is an items.json without shops: the shipped shop belongs to an NPC these small casts do not have
+var noItems = []byte(`{"shops": [], "items": []}`)
+
 func TestCastRejects(t *testing.T) {
 	const npc = `{"id": "x", "name": "Cô X", "role": {"vi": "bán hàng", "en": "bán hàng"}, "look": {"body": "woman", "outfit": "baba", "hat": "nonla"},
 		"place": "cho_ben_thanh", "at": [2, -11.5], "face": [8, -17], "mode": "private", "dialogue": "x", "reach": 3 %s}`
@@ -102,6 +105,8 @@ func TestCastRejects(t *testing.T) {
 		{"no default line", npcs(""), dialogue(`"a": {"say": {"traveler": {"vi": "Chào", "en": "Chào"}}}`), "default"},
 		{"a line for an archetype that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}, "tourist": {"vi": "Hi", "en": "Hi"}}}`), "not an archetype"},
 		{"a placeholder other than {name}", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {player}", "en": "Chào {player}"}}}`), "placeholder"},
+		{"{anh_chi} in an English line", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào {anh_chi}", "en": "Hello {anh_chi}"}}}`), "Vietnamese"},
+		{"{anh_chi} in a Vietnamese choice is fine, in a bark it is not", npcs(`, "barks": [{"vi": "Ê {anh_chi}", "en": "Hey"}]`), dialogue(okNodes), "Vietnamese"},
 		{"an emote that does not exist", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "emote": "dance"}`), "emote"},
 		{"an answer needing an unknown capability", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "end", "requires": ["no.such"]}]}`), "unknown capability"},
 		{"a signal that is not an id", npcs(""), dialogue(`"a": {"say": {"default": {"vi": "Chào", "en": "Chào"}}, "choices": [{"text": {"vi": "Đi", "en": "Đi"}, "goto": "end", "emit": "Bought It"}]}`), "signal"},
@@ -115,7 +120,7 @@ func TestCastRejects(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			f := embedded()
-			f.npcs, f.dialogues, f.quests = c.npcs, c.dialogues, noQuests
+			f.npcs, f.dialogues, f.quests, f.items = c.npcs, c.dialogues, noQuests, noItems
 			_, err := load(f)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err = %v, want it to mention %q", err, c.want)
@@ -124,7 +129,7 @@ func TestCastRejects(t *testing.T) {
 	}
 	// and the base case loads, so each failure above is the one edit
 	f := embedded()
-	f.npcs, f.dialogues, f.quests = npcs(""), dialogue(okNodes), noQuests
+	f.npcs, f.dialogues, f.quests, f.items = npcs(""), dialogue(okNodes), noQuests, noItems
 	if _, err := load(f); err != nil {
 		t.Fatalf("the base case: %v", err)
 	}

@@ -6,6 +6,7 @@ import { el } from '../hud';
 import { PHONE_APPS } from '../archetypes';
 import { APP_VIEWS, type AppContext, type AppView, type Notice, type PhoneHost } from './apps';
 import { icon } from './icons';
+import type { Item } from '../items';
 import { onLangChange, tx } from '../i18n';
 import { L } from '../i18n/phone';
 
@@ -25,9 +26,14 @@ export class Phone {
   private readonly ctx: AppContext;
   private apps: string[] = [];
   private current: { id: string; view: AppView } | null = null;
+  /** the phone in hand: its name is the home screen's title */
+  private model: Item | null = null;
   private timer = 0;
   /** the phone came out (the Sổ tay is put away then) */
   onOpen: () => void = () => {};
+  /** a phone may come out (false: no phone owned; `onBlocked` says so instead of opening) */
+  usable: () => boolean = () => true;
+  onBlocked: () => void = () => {};
 
   constructor(host: PhoneHost) {
     this.ctx = { ...bindHost(host), notices: () => this.notices, close: () => this.close() };
@@ -48,7 +54,21 @@ export class Phone {
     this.renderHome();
   }
 
+  /** The phone in hand (null for none): its name shows over the home screen. */
+  setModel(item: Item | null): void {
+    this.model = item;
+    if (!this.current) this.title.textContent = this.homeTitle();
+  }
+
+  private homeTitle(): string {
+    return this.model ? tx(this.model.name) : L.home;
+  }
+
   open(app?: string): void {
+    if (!this.usable()) {
+      this.onBlocked();
+      return;
+    }
     this.onOpen();
     this.root.hidden = false;
     this.toggle.setAttribute('aria-expanded', 'true');
@@ -84,7 +104,7 @@ export class Phone {
   private retranslate(): void {
     this.renderHome();
     if (this.current) this.openApp(this.current.id);
-    else this.title.textContent = L.home;
+    else this.title.textContent = this.homeTitle();
   }
 
   private renderHome(): void {
@@ -123,7 +143,7 @@ export class Phone {
     this.screen.hidden = true;
     this.home.hidden = false;
     this.back.hidden = true;
-    this.title.textContent = L.home;
+    this.title.textContent = this.homeTitle();
     this.home.querySelector<HTMLButtonElement>('.app-tile')?.focus({ preventScroll: true });
   }
 }
@@ -147,5 +167,6 @@ export function bindHost(host: PhoneHost): PhoneHost {
     rides: () => host.rides(),
     directions: () => host.directions(),
     mutes: () => host.mutes(),
+    owned: () => host.owned(),
   };
 }

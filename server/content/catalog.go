@@ -79,7 +79,10 @@ const (
 type Archetype struct {
 	ID string `json:"id"`
 	// Tags say which quests it is offered (quests.json tags_any)
-	Tags  []string    `json:"tags"`
+	Tags []string `json:"tags"`
+	// Job marks a role earned in play rather than picked at the start: the first pick leaves it out, Đổi vai shows
+	// it (docs/design/11-items.md)
+	Job   bool        `json:"job,omitempty"`
 	Name  Text        `json:"name"`
 	Pitch Text        `json:"pitch"`
 	Badge Badge       `json:"badge"`
@@ -120,6 +123,8 @@ type Catalog struct {
 	Dialogues    map[string]Dialogue
 	Titles       []Title
 	Stamps       []Stamp
+	Items        []Item
+	Shops        []Shop
 	Quests       []Quest
 	Achievements []Achievement
 	Ridehail     Ridehail
@@ -129,6 +134,8 @@ type Catalog struct {
 	byID         map[string]Archetype
 	vehicleByID  map[string]Vehicle
 	questByID    map[string]Quest
+	itemByID     map[string]Item
+	shopByID     map[string]Shop
 }
 
 var (
@@ -138,14 +145,14 @@ var (
 
 // files are the data files a catalog is read from; embedded() is what ships.
 type files struct {
-	places, island, archetypes, apps, movement, vehicles, emotes, npcs, quests, ridehail, directions, guide, collection []byte
+	places, island, archetypes, apps, movement, vehicles, emotes, npcs, items, quests, ridehail, directions, guide, collection []byte
 	// dialogues are the files of dialogue/, by name
 	dialogues map[string][]byte
 }
 
 func embedded() files {
 	return files{places: placesJSON, island: mapJSON, archetypes: archetypesJSON, apps: appsJSON, movement: movementJSON, vehicles: vehiclesJSON,
-		emotes: emotesJSON, npcs: npcsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
+		emotes: emotesJSON, npcs: npcsJSON, items: itemsJSON, quests: questsJSON, ridehail: ridehailJSON, directions: directionsJSON,
 		guide: guideJSON, collection: collectionJSON, dialogues: dialogueFiles()}
 }
 
@@ -178,6 +185,9 @@ func load(f files) (*Catalog, error) {
 		return nil, fmt.Errorf("apps.json: %w", err)
 	}
 	if err := parseMotion(f, c); err != nil {
+		return nil, err
+	}
+	if err := parseItems(f, c); err != nil {
 		return nil, err
 	}
 	if err := parseQuests(f, c); err != nil {
@@ -234,11 +244,18 @@ func (c *Catalog) check() error {
 	if len(c.Archetypes) == 0 {
 		return errors.New("archetypes.json: no archetypes")
 	}
+	origins := 0
 	for _, a := range c.Archetypes {
 		if err := c.checkArchetype(a, caps, places); err != nil {
 			return fmt.Errorf("archetypes.json: archetype %q: %w", a.ID, err)
 		}
 		c.byID[a.ID] = a
+		if !a.Job {
+			origins++
+		}
+	}
+	if origins == 0 {
+		return errors.New("archetypes.json: every archetype is a job, so a new character has nothing to start as")
 	}
 	seen := map[string]bool{}
 	for _, app := range c.Apps {
@@ -258,6 +275,9 @@ func (c *Catalog) check() error {
 		}
 	}
 	if err := c.checkCast(caps, places); err != nil {
+		return err
+	}
+	if err := c.checkItems(caps); err != nil {
 		return err
 	}
 	if err := c.Ridehail.check(); err != nil {

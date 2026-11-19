@@ -58,10 +58,11 @@ Khoa chốt (2026-11-19): các xuất phát không cùng một mục tiêu. Ngư
 
 - **Nam hay nữ:** đã có (`man`, `woman` trong `src/game/outfits.ts`).
 - **Xuất phát:** Người từ quê lên (lập nghiệp), Người Sài Gòn gốc, hoặc Người nước ngoài (du khách ba lô). Đổi được trong game bằng nút "Đổi vai" như bây giờ (Khoa chốt 2026-11-19). Hai kiểu người Việt đều mang tag `citizen` cho quest; người từ quê lên thêm một tag riêng cho chuỗi lập nghiệp.
-- Tên, rồi bảng thay đồ đang có, chỉ với đồ thường (áo thun, sơ mi). Đồng phục Crab chỉ có khi đăng ký.
+  - **Đã làm (2026-11-19):** ba xuất phát là `newcomer`, `citizen` (Người Sài Gòn gốc) và `traveler` (Người nước ngoài) trong `archetypes.json`; lần chọn đầu chỉ hiện ba xuất phát, "Đổi vai" hiện thêm tài xế Crab (`"job": true`) cho tới chương 3. Người từ quê lên có tag `citizen` và `newcomer`, người Sài Gòn gốc có `citizen` và `native`. Quest cần thói quen hay hiểu biết của dân gốc (Cà phê sáng, Thổ địa, thành tích Người chỉ đường) chuyển sang tag `native`; Chuyện khu phố, Chào hàng xóm, Tập thể dục và các nhiệm vụ hằng ngày của `citizen` giữ nguyên cho cả người từ quê lên. Quyền chỉ đường (`directions.give`) chỉ người gốc có.
+- Tên, rồi bảng thay đồ đang có, chỉ với đồ thường (áo thun, sơ mi). (Đã làm: lần đầu bảng chỉ hiện áo thun, sơ mi và các mũ thường: nón kết, mũ tai bèo, tóc búi, không nón; ai cũng bắt đầu bằng áo thun hoặc sơ mi, không còn nón lá hay áo bà ba.) Đồng phục Crab chỉ có khi đăng ký.
 - Người nước ngoài cần thêm màu da và màu tóc (vàng, nâu, đỏ). Hiện chỉ có một màu da `#C68D66`; màu mới phải được duyệt theo bảng PAL.
 - Ngôn ngữ giao diện vẫn là cài đặt riêng (D19), không theo xuất phát: người Việt chơi nhân vật nước ngoài được, và ngược lại.
-- **Xưng hô:** NPC lớn tuổi gọi người chơi là "con", không theo giới; người ngang tuổi gọi "anh" hay "chị" theo giới. Lời thoại cần thêm một biến xưng hô (ví dụ `{anh_chi}`), như `{name}` đang có.
+- **Xưng hô:** NPC lớn tuổi gọi người chơi là "con", không theo giới; người ngang tuổi gọi "anh" hay "chị" theo giới. Lời thoại cần thêm một biến xưng hô (ví dụ `{anh_chi}`), như `{name}` đang có. (Đã làm: `{anh_chi}` thành "anh" hay "chị" theo thân hình, chỉ trong lời Việt; phần kiểm tra nội dung từ chối nó trong lời Anh.)
 
 ## 5. Chương 0: tới Sài Gòn
 
@@ -398,6 +399,14 @@ Tên đặt theo thứ trong nhà kiểu miền Nam (Ba, Tư, Năm, Sáu, Bảy,
    - **Trang Cẩm nang cho cả 20 công trình: làm xong 2026-11-19 (chưa deploy).** 15 trang mới (Lam Sơn, Công xã Paris, Hồ Con Rùa, Bitexco, Chung cư 42 Nguyễn Huệ, Bến Bạch Đằng, cầu Ba Son, cầu đi bộ lá dừa, buýt đường sông, Bến Nhà Rồng, dãy nhà phố, Bến xe Chợ Lớn, nhà thờ Thủ Thiêm, hải đăng Vũng Tàu, tượng Chúa Kitô Vua), tra cứu ngày 2026-11-19, có nguồn; chỗ nguồn yếu đã bỏ, chỗ nguồn nói khác nhau ghi khoảng. Cầu đi bộ ghi rõ là chưa mở, Bến Nhà Rồng đang đóng cửa cải tạo. Ghi chú năm của hải đăng (1862) và tượng Chúa (1994) trong `places.json` đã sửa theo nguồn.
    - Còn lại của bước này: Sổ sưu tầm, phần địa điểm và món ăn (chờ nội dung của Khoa). Cài đặt (ngôn ngữ, âm thanh) vẫn ở hàng nút công cụ.
 2. Tạo nhân vật mới, hai chương mở đầu, đồ và cửa hàng, điện thoại thành món đồ thật (danh bạ, tin nhắn, ứng dụng ẩn).
+   - **Đợt 1 làm xong 2026-11-19 (chưa deploy)**, cách làm ở [11-items.md](11-items.md):
+     - Ba xuất phát: Người từ quê lên (mới, xuất hiện ở Bến xe Chợ Lớn), Người Sài Gòn gốc (Lê Lai), Người nước ngoài (Bùi Viện). Ai cũng mặc đồ thường; "Đổi vai" vẫn có, thêm tài xế cho tới khi làm xong chương 3.
+     - Không ai có điện thoại lúc đầu: nút điện thoại chỉ đường tới tiệm, thẻ "Nhiệm vụ đầu tiên" và quest "Cái điện thoại đầu tiên".
+     - Anh Bảy và tiệm Dế Yêu trên Lê Lợi bán 4 đời máy. Server trừ tiền và cấp quyền `phone.basic` / `phone.smart` trong một giao dịch. Nokla chỉ có Thông báo; Ifone có mọi ứng dụng. Đặt Crab cần smartphone, kể cả ở server.
+     - Quest cần smartphone (đi Crab, cuốc đầu của tài xế, Thổ địa) chỉ mở khi có máy, và mở ngay lúc mua.
+     - Tiền hiện bằng đồng; tiền mang theo 500.000đ. Nhân vật cũ được tặng một Ifone X.
+     - Lời thoại có `{anh_chi}` theo giới của nhân vật.
+   - Còn lại của bước 2: chương 0 của từng xuất phát (Bà Chín, anh Tony, cô Kim đổi tiền), danh bạ, cuộc gọi và tin nhắn trong điện thoại, cuộc gọi về cho Má.
 3. Đặt Crab có chỗ thay thế khi không có tài xế: Chú Sáu xe ôm trước, tài xế NPC sau.
 4. Việc vặt, thi bằng, mua xe, đăng ký Crab, khách NPC.
 5. Các chương sau ([mục 9](#9-sau-chương-3-ý-tưởng-chưa-viết)).

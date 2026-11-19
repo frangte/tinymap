@@ -475,3 +475,79 @@ func TestPublicLinesAreNotHeardFasterThanPublicEvery(t *testing.T) {
 		t.Fatalf("after the pause: %d lines, want 1", n)
 	}
 }
+
+// Anh Bảy's shop node carries the shop id in its interaction line, and no other line does.
+func TestTheShopNodeSendsItsShop(t *testing.T) {
+	h, _ := castHarness(t, nil)
+	anh := h.npc("anh_bay")
+	p, _ := h.joinNear("Lan", "citizen", anh, 1.5, 0)
+	h.interact(p, anh, 1)
+	greet := only(t, mustDrain(h, p), protocol.TypeInteraction)
+	if greet.Shop != "" {
+		t.Fatalf("the greeting opens shop %q", greet.Shop)
+	}
+	h.choose(p, greet.Sid, 0, 2) // "Cho em coi máy"
+	if line := only(t, mustDrain(h, p), protocol.TypeInteraction); line.Shop != "de_yeu" {
+		t.Fatalf("the shop line has shop %q", line.Shop)
+	}
+}
+
+// A welcome carries the items of a character (an empty list for one with none), and none for a guest.
+func TestTheWelcomeCarriesItems(t *testing.T) {
+	h := newHarness(t)
+	for _, c := range []struct {
+		name  string
+		items []string
+		want  string
+	}{
+		{"Lan", []string{"nokla_1280", "ifone_x"}, `["nokla_1280","ifone_x"]`},
+		{"Minh", []string{}, `[]`},
+		{"Khách", nil, ``},
+	} {
+		p, _ := h.join(Arrival{Name: c.name, Items: c.items})
+		if got := string(only(t, mustDrain(h, p), protocol.TypeWelcome).Items); got != c.want {
+			t.Errorf("%s: welcome items %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+// Every NPC greets a newcomer with its default line (no variant is written for one), and the line reads right for
+// someone who just arrived: no placeholder left over, and nothing meant only for a neighbour or a native.
+func TestEveryNPCGreetsANewcomerWithItsDefaultLine(t *testing.T) {
+	h, _ := castHarness(t, nil)
+	for i, key := range []string{"co_ba", "chu_tu", "di_nam", "chi_hanh", "chu_sau"} {
+		n := h.npc(key)
+		p, _ := h.joinNear("Tay"+strconv.Itoa(i), "newcomer", n, 1.5, 0)
+		h.interact(p, n, 1)
+		fs, _ := h.drain(p)
+		in := only(t, fs, protocol.TypeInteraction)
+		if in.Say.VI == "" || in.Say.EN == "" || strings.ContainsAny(in.Say.VI+in.Say.EN, "{}") {
+			t.Errorf("%s greets a newcomer with %+v", key, in.Say)
+		}
+		// the line a native hears ("Ủa {name}...", "Như cũ hả con?") must not reach a newcomer
+		pc, _ := h.joinNear("Minh"+strconv.Itoa(i), "citizen", n, 1.5, 1)
+		h.interact(pc, n, 2)
+		natFrames, _ := h.drain(pc)
+		if nat := only(t, natFrames, protocol.TypeInteraction); nat.Say.VI == in.Say.VI {
+			t.Errorf("%s: the native's own greeting %q is the newcomer's too", key, nat.Say.VI)
+		}
+	}
+}
+
+// {anh_chi} follows the body of the player: Chị Hạnh greets a Crab driver as "anh" or "chị".
+func TestAnhChiInAGreetingFollowsTheBody(t *testing.T) {
+	h, _ := castHarness(t, nil)
+	hanh := h.npc("chi_hanh")
+	for _, tc := range []struct{ body, want, not string }{{"man", "Chào anh tài xế", "chị"}, {"woman", "Chào chị tài xế", "anh tài"}} {
+		x, z := h.near(hanh, 1.5, 0)
+		p, _ := h.join(Arrival{Name: "Tài", Arch: "driver", Character: "char-" + tc.body, Start: &protocol.Pose{X: x, Z: z},
+			Look: protocol.Look{Body: tc.body, Outfit: "crab", Hat: "helmet"}})
+		h.drain(p)
+		h.interact(p, hanh, 3)
+		fs, _ := h.drain(p)
+		in := only(t, fs, protocol.TypeInteraction)
+		if !strings.Contains(in.Say.VI, tc.want) || strings.Contains(in.Say.VI, tc.not) || strings.Contains(in.Say.EN, "{") {
+			t.Errorf("%s: %+v", tc.body, in.Say)
+		}
+	}
+}

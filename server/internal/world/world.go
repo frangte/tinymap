@@ -121,6 +121,8 @@ type Arrival struct {
 	Vehicle *VehicleSpec
 	// Wallet is the character's balance in xu, shown in the welcome; nil for none (a guest)
 	Wallet *int64
+	// Items are the ids of the items the character owns, shown in the welcome; nil for none (a guest)
+	Items []string
 	// Since is when the character was made (global chat waits a little for new ones); MutedUntil is when its
 	// account's mute ends (zero for none)
 	Since      time.Time
@@ -483,9 +485,13 @@ func (w *World) onJoin(p *Peer, a Arrival) {
 	if apps == nil {
 		apps = []string{}
 	}
+	var items *[]string
+	if a.Items != nil {
+		items = &a.Items
+	}
 	w.sendTo(p, protocol.Encode(protocol.Welcome{
 		T: protocol.TypeWelcome, ID: m.id, Name: m.name, Arch: m.arch, Apps: apps, MaxPlayers: w.cfg.MaxPlayers,
-		Pose: protocol.PoseArray(m.pose), Players: others, Vehicles: w.vehicleList(), NPCs: w.npcList(), Wallet: a.Wallet,
+		Pose: protocol.PoseArray(m.pose), Players: others, Vehicles: w.vehicleList(), NPCs: w.npcList(), Wallet: a.Wallet, Items: items,
 		Chat: append([]protocol.ChatLine{}, w.history...),
 	}))
 	w.broadcast(protocol.Encode(protocol.Join{T: protocol.TypeJoin, P: m.player()}), p)

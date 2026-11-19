@@ -13,6 +13,7 @@ import type { Rides } from '../rides';
 import { button, h } from './dom';
 import type { Directions } from '../directions';
 import type { Mutes } from '../mutes';
+import type { Owned } from '../items';
 import { crab, crabDriver } from './crabApps';
 import { L } from '../i18n/phoneApps';
 
@@ -48,6 +49,8 @@ export interface PhoneHost {
   directions(): Directions;
   /** players muted here (their chat hidden) */
   mutes(): Mutes;
+  /** what the player owns: the phone in hand and the items */
+  owned(): Owned;
 }
 
 export interface AppContext extends PhoneHost {

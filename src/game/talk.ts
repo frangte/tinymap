@@ -16,12 +16,21 @@ const REFUSED: Record<string, (name: string) => string> = {
   mute: (n) => L.busy(n),
 };
 
+/** The shop sheet as the conversation sees it. */
+export interface ShopPort {
+  open(id: string): void;
+  close(): void;
+  readonly isOpen: boolean;
+}
+
 export interface TalkDeps {
   net: NetClient;
   npcs: Npcs;
   player: Player;
   /** a line in the chat log (system note) */
   notify(text: string): void;
+  /** the conversation's shop button: open the shop of this id */
+  shop: ShopPort;
   /** a sheet button was pressed: give the keyboard back to the game */
   done(): void;
 }
@@ -41,6 +50,7 @@ export class Talk {
   constructor(private readonly d: TalkDeps) {
     this.sheet = new DialogueSheet({
       choose: (i) => this.choose(i),
+      shop: (id) => d.shop.open(id),
       close: () => this.close(),
       done: () => d.done(),
     });
@@ -92,7 +102,7 @@ export class Talk {
     this.current = i;
     this.answering = false;
     this.sheet.setBusy(false);
-    this.sheet.show({ name: n.def.name, role: n.def.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices });
+    this.sheet.show({ name: n.def.name, role: n.def.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop });
   }
 
   /** The server ended a conversation. */
@@ -106,6 +116,8 @@ export class Talk {
 
   /** A digit key while talking presses that answer; false leaves the key to the game (emotes). */
   press(digit: number): boolean {
+    // the shop sheet is over the answers: the digit is not theirs, and not an emote either
+    if (this.isOpen && this.d.shop.isOpen) return true;
     return this.isOpen && this.sheet.press(digit);
   }
 
@@ -144,6 +156,7 @@ export class Talk {
     this.current = null;
     this.answering = false;
     this.generation++;
+    this.d.shop.close();
     this.sheet.setBusy(false);
     this.sheet.hide();
   }

@@ -202,6 +202,21 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("title = %q", m.Title)
 				}
 			}},
+		{name: "buy", in: `{"t":"buy","rid":7,"item":"ifone_x"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Item != "ifone_x" || m.Rid != 7 {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "buy without an item", in: `{"t":"buy","rid":7}`, wantErr: ErrBadItem},
+		{name: "buy something that is not an id", in: `{"t":"buy","rid":7,"item":"Ifone X!"}`, wantErr: ErrBadItem},
+		{name: "buy an id too long", in: `{"t":"buy","rid":7,"item":"` + strings.Repeat("a", ArchMax+1) + `"}`, wantErr: ErrBadItem},
+		{name: "an item only counts in buy", in: `{"t":"chat","text":"hi","item":"ifone_x"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Item != "" {
+					t.Fatalf("item = %q", m.Item)
+				}
+			}},
 		{name: "a request id only counts on commands that are answered", in: `{"t":"state","x":0,"y":0,"z":0,"h":0,"rid":5}`,
 			check: func(t *testing.T, m ClientMsg) {
 				if m.Rid != 0 {
@@ -223,6 +238,22 @@ func TestDecode(t *testing.T) {
 			}
 			c.check(t, m)
 		})
+	}
+}
+
+func TestItemsAndTheWelcomeEncode(t *testing.T) {
+	b := string(Encode(Items{T: TypeItems, Items: []string{"ifone_x"}, Apps: []string{"notices", "crab"}}))
+	if b != `{"t":"items","items":["ifone_x"],"apps":["notices","crab"]}` {
+		t.Fatalf("items = %s", b)
+	}
+	// the welcome has no items for a guest, and an empty list for a character that owns none
+	guest := string(Encode(Welcome{T: TypeWelcome}))
+	if strings.Contains(guest, `"items"`) {
+		t.Fatalf("a guest's welcome has items: %s", guest)
+	}
+	none := []string{}
+	if own := string(Encode(Welcome{T: TypeWelcome, Items: &none})); !strings.Contains(own, `"items":[]`) {
+		t.Fatalf("a character without items: %s", own)
 	}
 }
 

@@ -2,9 +2,9 @@
 // is, and a bar running down until it expires. It sits over the game, so a driver on the bike can take it without
 // the phone. Text only via textContent; it follows a language switch.
 import { el } from './hud';
-import { onLangChange } from './i18n';
+import { money, onLangChange } from './i18n';
 import { L } from './i18n/offerBanner';
-import { OFFER_MS, placeName, xu, type Rides } from './rides';
+import { OFFER_MS, placeName, type Rides } from './rides';
 import type { RideOffer } from '../net/rideProtocol';
 import type * as THREE from 'three';
 
@@ -34,7 +34,7 @@ export class OfferBanner {
     this.bar.style.transform = `scaleX(${Math.min(1, left / OFFER_MS).toFixed(3)})`;
     const p = this.self();
     const d = Math.round(Math.hypot(o.pickup[0] - p.x, o.pickup[1] - p.z));
-    const text = L.where(placeName(o.dest), xu(o.fare), d);
+    const text = L.where(placeName(o.dest), money(o.fare), d);
     if (this.where.textContent !== text) this.where.textContent = text;
   }
 

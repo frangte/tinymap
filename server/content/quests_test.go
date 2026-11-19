@@ -59,6 +59,9 @@ func TestQuestsRejects(t *testing.T) {
 		{"a tag no archetype has", file(quest(`tags_any=["tourist"]`)), "tag"},
 		{"requiring a quest that does not exist", file(quest(`requires=["a.two"]`)), "requires"},
 		{"requiring itself", file(quest(`requires=["a.one"]`)), "requires"},
+		{"unless_caps naming an unknown capability", file(quest(`unless_caps=["no.such"]`)), "unless_caps"},
+		{"requires_caps naming an unknown capability", file(quest(`requires_caps=["no.such"]`)), "requires_caps"},
+		{"a capability both required and forbidden", file(quest(`requires_caps=["phone.basic"];unless_caps=["phone.basic"]`)), "never be offered"},
 		{"two quests requiring each other", file(quest(`requires=["a.two"]`), quest(`id="a.two";requires=["a.one"]`)), "loop"},
 		{"two quests with one id", file(quest(""), quest("")), "duplicate"},
 		{"an unknown flow", file(quest(`flow="whenever"`)), "flow"},
@@ -76,7 +79,7 @@ func TestQuestsRejects(t *testing.T) {
 			f := embedded()
 			// the shipped dialogue refers to the shipped final quest
 			f.quests, f.dialogues = c.file, map[string][]byte{}
-			f.npcs = []byte(`{"npcs": []}`)
+			f.npcs, f.items = []byte(`{"npcs": []}`), noItems
 			_, err := load(f)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err = %v, want it to mention %q", err, c.want)
@@ -84,7 +87,7 @@ func TestQuestsRejects(t *testing.T) {
 		})
 	}
 	f := embedded()
-	f.quests, f.dialogues, f.npcs = file(quest("")), map[string][]byte{}, []byte(`{"npcs": []}`)
+	f.quests, f.dialogues, f.npcs, f.items = file(quest("")), map[string][]byte{}, []byte(`{"npcs": []}`), noItems
 	if _, err := load(f); err != nil {
 		t.Fatalf("the base case: %v", err)
 	}

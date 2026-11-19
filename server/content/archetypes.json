@@ -1,11 +1,11 @@
 {
-  "about": "Who a player can be (docs/design/01-gameplay.md). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities and has tags (which quests are offered, quests.json), and systems only ever check capabilities and tags, never the archetype id. vehicle is the starter vehicle (vehicles.json), parked next to the player on arrival. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
+  "about": "Who a player can be (docs/design/01-gameplay.md, 11-items.md). job: true marks a role that is earned in play rather than picked at the start (the first pick leaves it out, Đổi vai shows it). Shared by the server (server/content) and the game (src/game/archetypes.ts). An archetype is data: it grants capabilities and has tags (which quests are offered, quests.json), and systems only ever check capabilities and tags, never the archetype id. vehicle is the starter vehicle (vehicles.json), parked next to the player on arrival. Spawn points are Blender XY metres (three.js x = X, z = -Y); face is the point the player looks toward on arrival. Ids are stable: characters store them.",
   "capabilities": [
     { "id": "traveler.guide_app", "about": "the Hỏi đường phone app: ask the Citizens online the way to a landmark (the Cẩm nang itself is in the Sổ tay, for everyone)" },
     { "id": "citizen.community_app", "about": "the Hàng Xóm phone app: who is out on the street right now" },
     { "id": "driver.app", "about": "the Crab Driver phone app (ride requests arrive with ride-hailing)" },
     { "id": "directions.ask", "about": "may ask the Citizens online the way to a landmark (the co-op quest Hỏi đường người Sài Gòn)" },
-    { "id": "directions.give", "about": "gets Travelers' asks for the way, and may answer them by walking up (Thổ địa)" },
+    { "id": "directions.give", "about": "gets foreigners' asks for the way, and may answer them by walking up (Thổ địa)" },
     { "id": "moderation.act", "about": "moderators: mute, ban, kick and read chat reports with chat commands; given by `sg-server mod add` to an account, never by an archetype" },
     { "id": "uniform.crab", "about": "may wear the yellow Crab Bike jacket and helmet" },
     { "id": "vehicle.motorbike.ride", "about": "may ride a motorbike (vehicles.json); later also bought as an item" },
@@ -15,34 +15,48 @@
   ],
   "archetypes": [
     {
+      "id": "newcomer",
+      "tags": ["citizen", "newcomer"],
+      "name": { "vi": "Người từ quê lên", "en": "From the provinces" },
+      "pitch": {
+        "vi": "Mới xuống xe ở bến xe Chợ Lớn, ba lô trên vai, trong túi vài trăm ngàn. Ai cũng đi dạo và đọc Sổ tay được từ phút đầu; việc của bạn là kiếm chỗ ở, mua điện thoại gọi về cho má, rồi lập nghiệp ở Sài Gòn.",
+        "en": "Just off the bus at Chợ Lớn station with a backpack and a few hundred thousand đồng. Everyone can walk around and read the Notebook from the first minute; yours is to find a place to stay, buy a phone to call home, and make a living in Saigon."
+      },
+      "badge": { "short": { "vi": "Từ quê lên", "en": "Newcomer" }, "color": "#B5523B", "text": "#F3EBDD" },
+      "spawn": { "place": "ben_xe_cho_lon", "at": [-177, -77.5], "face": [-177, -60], "button": { "vi": "Về bến xe", "en": "Back to the bus station" } },
+      "look": { "outfit": "thun", "hat": "none" },
+      "capabilities": ["citizen.community_app"]
+    },
+    {
+      "id": "citizen",
+      "tags": ["citizen", "native"],
+      "name": { "vi": "Người Sài Gòn gốc", "en": "Native Saigonese" },
+      "pitch": {
+        "vi": "Sinh ra và lớn lên ở dãy nhà phố Lê Lai, hàng xóm ai cũng quen. Ai cũng đi dạo và đọc Sổ tay được từ phút đầu; bạn thì làm thổ địa của khu phố, chỉ đường cho du khách, và chạy Crab nếu thích.",
+        "en": "Born and raised on the Lê Lai shophouse row, you know every neighbour. Everyone can walk around and read the Notebook from the first minute; you become the neighbourhood’s thổ địa, show travellers the way, and ride a Crab if you like."
+      },
+      "badge": { "short": { "vi": "Người SG", "en": "Native" }, "color": "#3E7F5F", "text": "#F3EBDD" },
+      "spawn": { "place": "day_nha_pho_le_lai", "at": [-39, -10], "face": [-39, -21], "button": { "vi": "Về nhà", "en": "Back home" } },
+      "look": { "outfit": "somi", "hat": "none" },
+      "capabilities": ["citizen.community_app", "directions.give"]
+    },
+    {
       "id": "traveler",
       "tags": ["traveler"],
-      "name": { "vi": "Du khách", "en": "Traveler" },
+      "name": { "vi": "Người nước ngoài", "en": "Foreign backpacker" },
       "pitch": {
-        "vi": "Lần đầu tới Sài Gòn. Đi khắp phố, gặp người địa phương, ghé từng công trình và đọc chuyện của nó trong Sổ tay.",
-        "en": "First time in Saigon. Walk the streets, meet the locals, visit every landmark and read its story in the notebook."
+        "vi": "Ba lô trên vai, vừa xuống xe buýt ở phố đi bộ Bùi Viện. Ai cũng đi dạo và đọc Sổ tay được từ phút đầu; bạn thì học tiếng Việt, ăn như người Sài Gòn và sưu tầm những chuyện ít sách nào ghi.",
+        "en": "A backpack on your shoulders, just off the bus on Bùi Viện walking street. Everyone can walk around and read the Notebook from the first minute; you learn Vietnamese, eat like a local and collect the stories few guidebooks tell."
       },
-      "badge": { "short": { "vi": "Du khách", "en": "Traveler" }, "color": "#4E7CA6", "text": "#F3EBDD" },
-      "spawn": { "place": "bung_binh_quach_thi_trang", "at": [-27, 25], "face": [-51, 25], "button": { "vi": "Về bùng binh", "en": "Back to the roundabout" } },
+      "badge": { "short": { "vi": "Nước ngoài", "en": "Foreigner" }, "color": "#4E7CA6", "text": "#F3EBDD" },
+      "spawn": { "place": "pho_di_bo_bui_vien", "at": [-100, -39], "face": [-69, -39], "button": { "vi": "Về Bùi Viện", "en": "Back to Bùi Viện" } },
       "look": { "outfit": "thun", "hat": "cap" },
       "capabilities": ["traveler.guide_app", "directions.ask"]
     },
     {
-      "id": "citizen",
-      "tags": ["citizen"],
-      "name": { "vi": "Người Sài Gòn", "en": "Citizen" },
-      "pitch": {
-        "vi": "Dân Quận 1 chính gốc. Cà phê sáng, hàng xóm quen, những góc phố chỉ người địa phương mới biết, và chỉ đường cho du khách.",
-        "en": "Born and raised in District 1. Morning coffee, the neighbours, the corners only locals know, and showing travellers the way."
-      },
-      "badge": { "short": { "vi": "Người SG", "en": "Citizen" }, "color": "#3E7F5F", "text": "#F3EBDD" },
-      "spawn": { "place": "day_nha_pho_le_lai", "at": [-39, -10], "face": [-39, -21], "button": { "vi": "Về nhà", "en": "Back home" } },
-      "look": { "outfit": "baba", "hat": "nonla" },
-      "capabilities": ["citizen.community_app", "directions.give"]
-    },
-    {
       "id": "driver",
       "tags": ["driver"],
+      "job": true,
       "name": { "vi": "Tài xế Crab Bike", "en": "Crab Bike driver" },
       "pitch": {
         "vi": "Áo khoác vàng, mũ bảo hiểm, thuộc từng con đường. Sắp tới: nhận cuốc xe trên điện thoại và chở khách khắp phố.",
