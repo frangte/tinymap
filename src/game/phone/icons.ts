@@ -2,6 +2,8 @@
 // The last few are the browser buttons the install steps point at (src/install.ts).
 const PATHS: Record<string, string> = {
   profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1.2-4 4.3-6 8-6s6.8 2 8 6',
+  phone: 'M7 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A15 15 0 0 1 5 5.5a2 2 0 0 1 2-2z',
+  message: 'M3.5 6h17v12h-17zM3.5 7l8.5 6.5L20.5 7',
   chat: 'M4 5h16v11H9l-5 4zM8 9.5h8M8 12.5h5',
   map: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14',
   bell: 'M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4',

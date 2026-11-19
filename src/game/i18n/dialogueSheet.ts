@@ -6,11 +6,14 @@ export const GOODBYE: Bilingual = { vi: 'Tạm biệt', en: 'Goodbye' };
 
 const vi = {
   group: 'Nhóm',
+  /** the tag on the sheet while the conversation is a phone call */
+  call: 'Cuộc gọi',
   groupOf: (n: number) => `Nhóm · ${n} người`,
 };
 
 const en: typeof vi = {
   group: 'Group',
+  call: 'Phone call',
   groupOf: (n) => `Group · ${n} people`,
 };
 

@@ -9,7 +9,7 @@ import { L } from '../game/i18n/client';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
 import type { RideClientMsg, RideServerMsg } from './rideProtocol';
 import type { WayClientMsg, WayServerMsg } from './wayProtocol';
-import { parseServerMsg, type ArchRefusal, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
+import { parseServerMsg, type ArchRefusal, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PhoneText, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
 /** banned, kicked: a moderator sent this player out; this one stops trying too */
@@ -48,6 +48,12 @@ export interface NetEvents {
    * have now); never for a guest without an account
    */
   items(items: string[], apps: string[] | null): void;
+  /** our numbers and texts, on joining and when we get a phone (they replace what we had) */
+  phone(contacts: string[], texts: PhoneText[]): void;
+  /** a number we just got */
+  contact(id: string): void;
+  /** a text that just arrived */
+  text(t: PhoneText): void;
   /** our quests and achievements, on joining and whenever they change (only for a character with an account) */
   progress(p: Progress): void;
   /** the last chat line was refused for being too fast */
@@ -230,6 +236,16 @@ export class NetClient {
     return this.request((rid) => ({ t: 'buy', rid, item }));
   }
 
+  /** Call a contact wherever we are; the conversation arrives as `interaction` events, the result says why not. */
+  call(contact: string): Promise<Result> {
+    return this.request((rid) => ({ t: 'call', rid, contact }));
+  }
+
+  /** We opened our messages. */
+  sendTextsRead(): void {
+    if (this.online) this.send({ t: 'texts_read' });
+  }
+
   /** Close a conversation; the server answers with `interactionEnd`. */
   leaveTalk(sid: number): void {
     if (this.online) this.send({ t: 'interact_leave', sid });
@@ -391,6 +407,15 @@ export class NetClient {
         break;
       case 'items':
         this.on.items(m.items, m.apps);
+        break;
+      case 'phone':
+        this.on.phone(m.contacts, m.texts);
+        break;
+      case 'contact':
+        this.on.contact(m.contact);
+        break;
+      case 'text':
+        this.on.text(m.text);
         break;
       case 'result':
         this.settle(m.rid, { ok: m.ok, code: m.code });

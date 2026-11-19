@@ -32,6 +32,7 @@ import { ChatBox, spoken } from './chatBox';
 import { ArchetypePicker } from './archetypePicker';
 import { StoryCard } from './storyCard';
 import { Phone } from './phone/phone';
+import { PhoneBook, contactName } from './contacts';
 import type { PhoneHost } from './phone/apps';
 import { Notebook } from './notebook/notebook';
 import { PlaceCard } from './placeCard';
@@ -216,6 +217,8 @@ export async function startApp(): Promise<void> {
   let caps = grants(profile.archetype);
   /** what the player owns, as the server says (items.ts): the phone and its capabilities */
   const owned = new Owned();
+  /** the numbers and texts, as the server says (contacts.ts) */
+  const book = new PhoneBook();
   let sea: Sea | null = null;
   let ponds: Ponds | null = null;
   let life: Life | null = null;
@@ -763,6 +766,13 @@ export async function startApp(): Promise<void> {
       }
       hud.toast({ name: L.roleNotChanged, note: ARCH_REFUSED[code]() });
     },
+    phone: (contacts, texts) => book.set(contacts, texts),
+    contact: (id) => book.addContact(id),
+    text: (t) => {
+      const fresh = !t.read && !book.texts().some((m) => m.id === t.id);
+      book.addText(t);
+      if (fresh && owned.phoneUsable) ph.notify(L.newText(contactName(t.from)), tx(t.say));
+    },
     items: (ids, apps) => {
       owned.set(ids);
       if (apps) {
@@ -798,7 +808,7 @@ export async function startApp(): Promise<void> {
     notice: (text) => chatBox.system(text),
     interaction: (i) => {
       talk.interaction(i);
-      const npc = cast.get(i.n);
+      const npc = i.call ? undefined : cast.get(i.n);
       if (npc) tipCard.happened({ kind: 'npc', npc: npc.def.id });
     },
     interactionEnd: (sid, reason) => talk.ended(sid, reason),
@@ -811,6 +821,7 @@ export async function startApp(): Promise<void> {
       talk.reset();
       rides.reset();
       directions.reset();
+      book.clear();
       cast.local();
       riding.offline();
       showOnline();
@@ -960,8 +971,12 @@ export async function startApp(): Promise<void> {
     directions: () => directions,
     mutes: () => mutes,
     owned: () => owned,
+    book: () => book,
+    call: (contact) => talk.call(contact),
+    readTexts: () => netClient.sendTextsRead(),
   };
   const ph = new Phone(phoneHost);
+  book.onChange(() => ph.setBadge('messages', book.unread()));
   // no phone, no phone: the button and the key say where to buy one (nearby chat never needed it)
   ph.usable = () => owned.phoneUsable;
   ph.onBlocked = () => {
