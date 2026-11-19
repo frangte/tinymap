@@ -367,12 +367,12 @@
       },
       "place": "thu_thiem",
       "at": [
-        120,
-        40
+        146,
+        172
       ],
       "face": [
-        130,
-        40
+        146,
+        166
       ],
       "mode": "private",
       "dialogue": "thay_muoi",
@@ -402,12 +402,12 @@
       },
       "place": "cho_lon",
       "at": [
-        -170,
-        -70
+        -172,
+        -78
       ],
       "face": [
-        -170,
-        -60
+        -172,
+        -82
       ],
       "mode": "private",
       "dialogue": "chu_tam",
@@ -438,12 +438,12 @@
       },
       "place": "duong_ham_nghi",
       "at": [
-        14,
-        21
+        18,
+        18.2
       ],
       "face": [
-        14,
-        15
+        10,
+        18.2
       ],
       "mode": "private",
       "dialogue": "chi_vy",

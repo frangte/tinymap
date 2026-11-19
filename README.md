@@ -97,6 +97,9 @@ src/game/
   hud.ts                DOM overlay helpers
   storyCard.ts          the arrival card: the archetype's story and first steps, once per visit
   stories.ts            that text per archetype (written in i18n/stories.ts)
+  items.ts              what can be bought and what the player owns (server/content/items.json): phones, the bike, the uniform, fees, bargains
+  shopSheet.ts          the shop sheet opened from a conversation: prices (a bargain shows the lower one), buy; the fee button is in dialogueSheet.ts
+  driveTest.ts          the A1 licence practical as the server runs it: the lent bike, the clock and the next checkpoint in the quest tracker
   langSwitch.ts         the language switch on the menu and in the tools
   i18n/                 every interface text, Vietnamese and English (see "Adding text")
   coords.ts             Blender <-> three.js axes, small math helpers

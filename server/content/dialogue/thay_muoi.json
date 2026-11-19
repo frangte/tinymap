@@ -51,8 +51,8 @@
     "about": {
       "say": {
         "default": {
-          "vi": "Hai phần. Lý thuyết mười câu về biển báo và luật, đúng tám câu là đậu. Thực hành thì thầy cho mượn xe của trường, con chạy qua các điểm trong hai phút, không được xuống xe. Lệ phí hai trăm ngàn, rớt thi lại năm chục ngàn.",
-          "en": "Two parts. Ten theory questions on signs and rules, eight right to pass. Then the practical: I lend you the school's bike and you ride through the checkpoints within two minutes without getting off. The fee is 200.000đ, and a retake is 50.000đ."
+          "vi": "Hai phần. Lý thuyết mười câu về biển báo và luật, đúng tám câu là đậu. Thực hành thì thầy cho mượn xe của trường, con chạy qua các điểm trong một phút rưỡi, không được xuống xe. Lệ phí hai trăm ngàn, rớt thi lại năm chục ngàn.",
+          "en": "Two parts. Ten theory questions on signs and rules, eight right to pass. Then the practical: I lend you the school's bike and you ride through the checkpoints within a minute and a half without getting off. The fee is 200.000đ, and a retake is 50.000đ."
         }
       },
       "choices": [
@@ -1062,8 +1062,8 @@
     "practical_intro": {
       "say": {
         "default": {
-          "vi": "Xe của trường đậu bên cạnh con. Lên xe là bắt đầu tính giờ: chạy qua các điểm theo thứ tự trong hai phút, không được xuống xe. Nhìn xa phía trước, đừng ngó bánh xe! Ga đều tay!",
-          "en": "The school bike will be parked beside you. The clock starts when you get on: ride through the checkpoints in order within two minutes, and do not get off. Look far ahead, not at the wheel! Smooth on the throttle!"
+          "vi": "Xe của trường đậu bên cạnh con. Lên xe là bắt đầu tính giờ: chạy qua các điểm theo thứ tự trong một phút rưỡi, không được xuống xe. Nhìn xa phía trước, đừng ngó bánh xe! Ga đều tay!",
+          "en": "The school bike will be parked beside you. The clock starts when you get on: ride through the checkpoints in order within a minute and a half, and do not get off. Look far ahead, not at the wheel! Smooth on the throttle!"
         }
       },
       "choices": [

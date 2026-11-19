@@ -1,23 +1,17 @@
 {
-  "about": "The A1 licence test (docs/design/13-driver.md). npc runs it (dialogue/thay_muoi.json); vehicle is the school's bike (vehicles.json), lent to a player on the practical; the player gets on within mount_within seconds, then rides the checkpoints in order within time_limit seconds without getting off. Checkpoints are Blender XY metres with a radius r; they sit on Thủ Thiêm's streets, which the test shares with nobody else. The real driving yard (figure 8, narrow line) replaces this route once its design is approved.",
+  "about": "The A1 licence test (docs/design/13-driver.md). npc runs it (dialogue/thay_muoi.json); vehicle is the school's bike (vehicles.json), lent to a player on the practical; the player gets on within mount_within seconds, then rides the checkpoints in order within time_limit seconds without getting off. Checkpoints are Blender XY metres with a radius r. They follow Thủ Thiêm's bridge road: east from the Ba Son bridge, round the bend and south down the long avenue (about 165 m, walked with a 0.5 m body against the collider). The real driving yard (figure 8, narrow line) replaces this route once its design is approved.",
   "npc": "thay_muoi",
   "vehicle": "xe_tap_lai",
-  "time_limit": 120,
+  "time_limit": 90,
   "mount_within": 90,
   "checkpoints": [
-    {
-      "at": [
-        120,
-        40
-      ],
-      "r": 6
-    },
-    {
-      "at": [
-        150,
-        40
-      ],
-      "r": 6
-    }
+    { "at": [158, 164], "r": 6 },
+    { "at": [172, 156], "r": 6 },
+    { "at": [176.5, 138], "r": 6 },
+    { "at": [177, 112], "r": 6 },
+    { "at": [180, 92], "r": 6 },
+    { "at": [180, 72], "r": 6 },
+    { "at": [181, 45], "r": 6 },
+    { "at": [181, 20], "r": 6 }
   ]
 }
