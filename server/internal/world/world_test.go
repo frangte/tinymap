@@ -84,6 +84,8 @@ type frame struct {
 	Say     protocol.Text   `json:"say"`
 	Choices []protocol.Text `json:"choices"`
 	Reason  string          `json:"reason"`
+	Shop    string          `json:"shop"`
+	Items   json.RawMessage `json:"items"`
 	Rid     uint32          `json:"rid"`
 	OK      bool            `json:"ok"`
 	Name    string          `json:"name"`

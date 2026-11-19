@@ -158,6 +158,8 @@ const (
 	ResOwned = "owned"
 	// ResBalance: a buy the wallet cannot pay
 	ResBalance = "balance"
+	// ResBusy: a buy that could not be written now (the database is slow or down); nothing was kept, try again
+	ResBusy = "busy"
 )
 
 // Conversation modes (the "mode" of an interaction, server/content/npcs.json): private is between one player and

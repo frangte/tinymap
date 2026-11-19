@@ -25,6 +25,8 @@ import (
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/quest"
+	"saigon-noir/server/internal/ridehail"
+	"saigon-noir/server/internal/shop"
 	"saigon-noir/server/internal/store"
 	"saigon-noir/server/internal/world"
 	"saigon-noir/server/internal/ws"
@@ -103,6 +105,10 @@ type msg struct {
 	Reason  string          `json:"reason"`
 	Rid     uint32          `json:"rid"`
 	OK      bool            `json:"ok"`
+	// wallet, items (welcome and items messages)
+	Wallet  *int64   `json:"wallet"`
+	Balance int64    `json:"balance"`
+	Items   []string `json:"items"`
 	// progress
 	Quests []protocol.QuestState `json:"quests"`
 	Stamps []string              `json:"stamps"`
@@ -159,12 +165,23 @@ func startWith(t *testing.T, cfg world.Config, opt Options) *testServer {
 	// the map's spawn, as the server sets it (cmd/server/main.go)
 	cfg.Spawn[0], cfg.Spawn[1] = catalog.Map.ThreeSpawn()
 	w := world.New(cfg, log)
+	w.Use(func(h world.Host) world.Module {
+		return ridehail.New(h, ridehail.ConfigFrom(catalog.Ridehail), catalog.Places, db, log)
+	})
+	var shops *shop.Service
+	w.Use(func(h world.Host) world.Module {
+		shops = shop.New(h, catalog, db, log)
+		return shops
+	})
 	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
 	go quests.Run(ctx)
 	go w.Run(ctx)
 	sockets := ws.New(w, accounts, catalog, ws.Config{HelloTimeout: 300 * time.Millisecond}, log)
 	sockets.Quests = quests
+	sockets.Wallets = ridehail.Purse{Wallets: db, Cfg: catalog.Ridehail, Now: time.Now}
+	sockets.Items = db
 	quests.OnCapability = sockets.Grant
+	shops.OnCapability = sockets.Grant
 	r, err := NewRouter(w, sockets, accounts, opt)
 	if err != nil {
 		t.Fatal(err)

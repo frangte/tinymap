@@ -475,3 +475,38 @@ func TestPublicLinesAreNotHeardFasterThanPublicEvery(t *testing.T) {
 		t.Fatalf("after the pause: %d lines, want 1", n)
 	}
 }
+
+// Anh Bảy's shop node carries the shop id in its interaction line, and no other line does.
+func TestTheShopNodeSendsItsShop(t *testing.T) {
+	h, _ := castHarness(t, nil)
+	anh := h.npc("anh_bay")
+	p, _ := h.joinNear("Lan", "citizen", anh, 1.5, 0)
+	h.interact(p, anh, 1)
+	greet := only(t, mustDrain(h, p), protocol.TypeInteraction)
+	if greet.Shop != "" {
+		t.Fatalf("the greeting opens shop %q", greet.Shop)
+	}
+	h.choose(p, greet.Sid, 0, 2) // "Cho em coi máy"
+	if line := only(t, mustDrain(h, p), protocol.TypeInteraction); line.Shop != "de_yeu" {
+		t.Fatalf("the shop line has shop %q", line.Shop)
+	}
+}
+
+// A welcome carries the items of a character (an empty list for one with none), and none for a guest.
+func TestTheWelcomeCarriesItems(t *testing.T) {
+	h := newHarness(t)
+	for _, c := range []struct {
+		name  string
+		items []string
+		want  string
+	}{
+		{"Lan", []string{"nokla_1280", "ifone_x"}, `["nokla_1280","ifone_x"]`},
+		{"Minh", []string{}, `[]`},
+		{"Khách", nil, ``},
+	} {
+		p, _ := h.join(Arrival{Name: c.name, Items: c.items})
+		if got := string(only(t, mustDrain(h, p), protocol.TypeWelcome).Items); got != c.want {
+			t.Errorf("%s: welcome items %q, want %q", c.name, got, c.want)
+		}
+	}
+}
