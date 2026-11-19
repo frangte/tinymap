@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"slices"
+	"strings"
 
 	"saigon-noir/server/content"
 	"saigon-noir/server/internal/events"
@@ -27,6 +28,9 @@ type Engine struct {
 	// titles and stamps are the ones quests.json still has: one earned before it was taken out stays stored but
 	// is no longer shown or carried
 	titles, stamps map[string]bool
+	// collection are the entries collection.json still has: one found before it was taken out stays stored but
+	// is no longer carried
+	collection map[string]bool
 }
 
 // track is a quest or an achievement: objectives to do, in a flow, for a reward.
@@ -76,7 +80,7 @@ func (r catalogRefs) Quest(id string) (content.Quest, bool) {
 // NewEngine compiles the game data's quests and achievements; an objective whose params do not check out is an
 // error naming it.
 func NewEngine(c *content.Catalog) (*Engine, error) {
-	e := &Engine{byID: map[string]*track{}, pools: map[string][]string{}, titles: map[string]bool{}, stamps: map[string]bool{}}
+	e := &Engine{byID: map[string]*track{}, pools: map[string][]string{}, titles: map[string]bool{}, stamps: map[string]bool{}, collection: map[string]bool{}}
 	for _, t := range c.Titles {
 		e.titles[t.ID] = true
 	}
@@ -104,6 +108,14 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 			return nil, fmt.Errorf("achievement %s: %w", a.ID, err)
 		}
 		e.add(t)
+	}
+	for _, en := range c.Collection {
+		t := &track{id: collectionPrefix + en.ID, version: 1, flow: content.FlowSequence, rewardFrom: collectionPrefix + en.ID}
+		if err := t.add("", en.Objective, refs); err != nil {
+			return nil, fmt.Errorf("collection entry %s: %w", en.ID, err)
+		}
+		e.add(t)
+		e.collection[en.ID] = true
 	}
 	return e, nil
 }
@@ -203,20 +215,20 @@ func (b *Book) clone() *Book {
 	return c
 }
 
-// Active is the ids of the quests running (achievements aside).
+// Active is the ids of the quests running (achievements and the collection aside).
 func (b *Book) Active() map[string]bool {
 	out := map[string]bool{}
 	for id, r := range b.Records {
-		if r.State == StateActive && !isAchievement(id) {
+		if r.State == StateActive && !isAchievement(id) && !isCollection(id) {
 			out[id] = true
 		}
 	}
 	return out
 }
 
-func isAchievement(id string) bool {
-	return len(id) > len(achievementPrefix) && id[:len(achievementPrefix)] == achievementPrefix
-}
+func isAchievement(id string) bool { return strings.HasPrefix(id, achievementPrefix) }
+
+func isCollection(id string) bool { return strings.HasPrefix(id, collectionPrefix) }
 
 // Outcome is what a step changed.
 type Outcome struct {
@@ -323,7 +335,7 @@ func (e *Engine) Apply(p Player, b *Book, ev events.Event, now int64) Outcome {
 	for steps := 0; len(queue) > 0 && steps < maxChain; steps++ {
 		ev, queue = queue[0], queue[1:]
 		for _, id := range e.step(b, ev, now, &out) {
-			if isAchievement(id) {
+			if isAchievement(id) || isCollection(id) {
 				continue
 			}
 			queue = append(queue, events.Event{Kind: events.QuestDone, Character: ev.Character, Quest: id})

@@ -1,6 +1,6 @@
 {
   "id": "chu_sau",
-  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions; he is who a Traveler asks when no Citizen player answers an ask for the way in time (D18).",
+  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions; he is who a Traveler asks when no Citizen player answers an ask for the way in time (D18). The Sổ sưu tầm (collection.json) listens for phrase_xin_loi (opening with “xin lỗi”) and phrase_khong (refusing a ride politely).",
   "start": "greet",
   "nodes": {
     "greet": {
@@ -12,10 +12,10 @@
       },
       "emote": "wave",
       "choices": [
-        { "text": { "vi": "Chú chỉ đường giúp con được không?", "en": "Could you give me directions?" }, "goto": "where" },
+        { "text": { "vi": "Xin lỗi chú, chỉ đường giúp con được không?", "en": "Excuse me, could you give me directions?" }, "goto": "where", "emit": "phrase_xin_loi" },
         { "text": { "vi": "Chạy xe ôm có vui không chú?", "en": "Do you like driving a xe ôm?" }, "goto": "life" },
         { "text": { "vi": "Chú chở con đi một vòng nha?", "en": "Could you give me a ride?" }, "goto": "ride" },
-        { "text": { "vi": "Dạ thôi, con đi bộ.", "en": "No thanks, I'll walk." }, "goto": "bye" }
+        { "text": { "vi": "Không, cảm ơn chú. Con đi bộ.", "en": "No, thank you. I'll walk." }, "goto": "bye", "emit": "phrase_khong" }
       ]
     },
     "where": {

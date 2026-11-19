@@ -43,6 +43,7 @@ import { Talk } from './talk';
 import { QuestLog } from './questLog';
 import { QuestTracker } from './questTracker';
 import { ACHIEVEMENTS, STAMPS, STREAK_STAMPS, questById, titleName } from './quests';
+import { collectionEntry } from './collection';
 import type { ArchRefusal, News } from '../net/protocol';
 import { loadPose, savePose } from './lastPose';
 import { Rides, xu, type Guide } from './rides';
@@ -614,6 +615,8 @@ export async function startApp(): Promise<void> {
   const celebrate = (news: readonly News[], opened: readonly string[]): void => {
     // an achievement's toast wins over a quest's
     let toast: { name: string; note: string; achievement: boolean } | null = null;
+    // a collection entry found: the hidden quest's toast, yielding to a quest's or an achievement's
+    let found: { name: string; note: string } | null = null;
     for (const n of news) {
       if (n.kind === 'quest') {
         const q = questById(n.id);
@@ -626,6 +629,9 @@ export async function startApp(): Promise<void> {
         if (!a) continue;
         ph.notify(L.newAchievement, tx(a.title));
         toast = { name: tx(a.title), note: L.newAchievement, achievement: true };
+      } else if (n.kind === 'collection') {
+        const entry = collectionEntry(n.id);
+        if (entry) found = { name: L.collected(tx(entry.title)), note: L.collectedNote };
       } else if (n.kind === 'title') {
         const t = titleName(n.id);
         if (t) ph.notify(L.newTitle, L.newTitleBody(t));
@@ -640,7 +646,8 @@ export async function startApp(): Promise<void> {
       const q = questById(id);
       if (q) ph.notify(L.newQuest, tx(q.title));
     }
-    if (toast && mode === 'play') hud.toast(toast);
+    const shown = toast ?? found;
+    if (shown && mode === 'play') hud.toast(shown);
   };
   // ---- NPCs: drawn at their spots from the start; online the server's take their place
   const cast = new Npcs(scene, ink, floorAt);

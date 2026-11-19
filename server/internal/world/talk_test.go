@@ -326,15 +326,21 @@ func TestAnAnswerSendsItsSignal(t *testing.T) {
 	p, _ := h.joinNear("Lan", "traveler", coBa, 1.5, 0)
 	h.interact(p, coBa, 1)
 	sid := only(t, mustDrain(h, p), protocol.TypeInteraction).Sid
-	// greet → the lesson → greeting → thanks → asking the price, which sends greetings_learned
+	// greet → the lesson → greeting → thanks → asking the price: each answer sends its signal
 	for i := range 4 {
 		h.choose(p, sid, 0, uint32(2+i))
 		if ok, code := resultOf(t, mustDrain(h, p)); !ok {
 			t.Fatalf("answer %d: %s", i, code)
 		}
 	}
-	if len(*signals) != 1 || (*signals)[0].Character != "char-Lan" || (*signals)[0].NPC != "co_ba" || (*signals)[0].Signal != "greetings_learned" {
+	want := []string{"phrase_xin_chao", "phrase_cam_on", "greetings_learned"}
+	if len(*signals) != len(want) {
 		t.Fatalf("signals %+v", *signals)
+	}
+	for i, s := range *signals {
+		if s.Character != "char-Lan" || s.NPC != "co_ba" || s.Signal != want[i] {
+			t.Fatalf("signal %d %+v, want %s", i, s, want[i])
+		}
 	}
 }
 

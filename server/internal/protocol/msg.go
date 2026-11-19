@@ -547,8 +547,10 @@ type Progress struct {
 	Stamps []string `json:"stamps"`
 	Title  string   `json:"title"`
 	// Streak is how many days in a row a daily quest was done (0 once a day went by without one)
-	Streak int    `json:"streak"`
-	News   []News `json:"news,omitempty"`
+	Streak int `json:"streak"`
+	// Collection are the ids of the Sổ sưu tầm entries found (collection.json; the ones it no longer has are left out)
+	Collection []string `json:"collection"`
+	News       []News   `json:"news,omitempty"`
 }
 
 // Wallet is a character's balance in xu.
@@ -570,7 +572,7 @@ type AchievementState struct {
 	Done bool   `json:"done,omitempty"`
 }
 
-// News: Kind is quest, achievement, title or stamp; ID which one.
+// News: Kind is quest, achievement, collection, title or stamp; ID which one.
 type News struct {
 	Kind string `json:"kind"`
 	ID   string `json:"id"`

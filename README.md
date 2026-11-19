@@ -61,11 +61,13 @@ src/game/
   guide.ts              the Cẩm nang's pages about places (server/content/guide.json), pages read kept in the browser
   tips.ts               the travel tips (server/content/tips.json) and the tips this player has seen, kept in the browser
   tipCard.ts            the tip card: a tip the first time its situation happens, one at a time, queued behind other panels
+  collection.ts         the Sổ sưu tầm's entries (server/content/collection.json; the server runs each as a hidden quest)
   placeCard.ts          the info card under the place card: one line about the place and "Đọc thêm" (I)
   notebook/             the Sổ tay (B): the game's own menu, open with no phone, over the map and in play
-    notebook.ts         the panel and its tabs: Cẩm nang, map, quests, achievements, character
+    notebook.ts         the panel and its tabs: Cẩm nang, map, quests, collection, achievements, character
     guideBook.ts        the Cẩm nang: the landmark list and a place's page (history, tips, getting there, sources)
     sections.ts         the map, quests, achievements and character (phone apps before)
+    collectionBook.ts   the Sưu tầm tab: phrases, side stories and dishes found, the rest "???" with a hint
   phone/                the in-game phone: only what a real phone is for (Crab, chat, notices, asking the way)
     mapLand.json        the map's land and roads (written by scripts/map/move_game_content_v8.py)
   hud.ts                DOM overlay helpers

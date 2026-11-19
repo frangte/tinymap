@@ -58,8 +58,8 @@ func engine(t *testing.T) *Engine {
 func TestTheGameDataCompiles(t *testing.T) {
 	c := catalog(t)
 	e := engine(t)
-	if len(e.tracks) != len(c.Quests)+len(c.Achievements) {
-		t.Fatalf("%d tracks for %d quests and %d achievements", len(e.tracks), len(c.Quests), len(c.Achievements))
+	if len(e.tracks) != len(c.Quests)+len(c.Achievements)+len(c.Collection) {
+		t.Fatalf("%d tracks for %d quests, %d achievements and %d collection entries", len(e.tracks), len(c.Quests), len(c.Achievements), len(c.Collection))
 	}
 	for _, kind := range []string{"reach_place", "stay_place", "talk_npc", "dialogue_signal", "emote_at", "greet", "mount", "ride_through", "ride_distance", "quest_done", "trip", "daily_streak"} {
 		if _, ok := objective.Lookup(kind); !ok {
@@ -382,5 +382,67 @@ func TestProgressLeavesOutWhatQuestsJSONNoLongerHas(t *testing.T) {
 		if q.ID == "gone.quest" {
 			t.Fatal("a quest taken out of quests.json is still shown")
 		}
+	}
+}
+
+func TestACollectionEntryIsFoundOnceAndStaysHidden(t *testing.T) {
+	r := newRun(t) // no archetype tags: the collection is open to everyone
+	const id = collectionPrefix + "xin_chao"
+	if r.state(id) != StateActive {
+		t.Fatalf("the entry is %q before anything happened, want it running", r.state(id))
+	}
+	if out := r.do(signal("chu_tu", "phrase_xin_chao")); len(out.Completed) != 0 { // the right signal from the wrong NPC
+		t.Fatalf("collected by %v", out.Completed)
+	}
+	out := r.do(signal("co_ba", "phrase_xin_chao"))
+	if !slices.Equal(out.Completed, []string{id}) || r.state(id) != StateDone {
+		t.Fatalf("completed %v, state %q", out.Completed, r.state(id))
+	}
+	if len(out.Grants) != 0 {
+		t.Fatalf("an entry gave %+v, it has no reward yet", out.Grants)
+	}
+	news := (&Service{}).news(out, nil)
+	if len(news) != 1 || news[0] != (News{Kind: NewsCollection, ID: "xin_chao"}) {
+		t.Fatalf("news %+v", news)
+	}
+	// said again: found once, no news again
+	if again := r.do(signal("co_ba", "phrase_xin_chao")); len(again.Completed) != 0 || len(again.Changed) != 0 {
+		t.Fatalf("collected twice: %+v", again)
+	}
+	var p protocol.Progress
+	if err := json.Unmarshal(r.e.progress(r.book, nil, "2026-11-19"), &p); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(p.Collection, []string{"xin_chao"}) {
+		t.Fatalf("progress lists %v", p.Collection)
+	}
+	for _, q := range p.Quests {
+		if strings.HasPrefix(q.ID, collectionPrefix) {
+			t.Fatalf("a collection entry in the quest list: %s", q.ID)
+		}
+	}
+	for _, a := range p.Achievements {
+		if strings.Contains(a.ID, "xin_chao") {
+			t.Fatalf("a collection entry among the achievements: %s", a.ID)
+		}
+	}
+	if r.book.Active()[id] {
+		t.Fatal("a collection entry is among the active quests")
+	}
+}
+
+func TestProgressLeavesOutCollectionEntriesNoLongerInTheFile(t *testing.T) {
+	e := engine(t)
+	b := NewBook(Saved{Records: []Record{
+		{ID: collectionPrefix + "xin_chao", Version: 1, State: StateDone},
+		{ID: collectionPrefix + "gone_entry", Version: 1, State: StateDone},
+		{ID: collectionPrefix + "da", Version: 1, State: StateActive},
+	}})
+	var p protocol.Progress
+	if err := json.Unmarshal(e.progress(b, nil, "2026-11-19"), &p); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(p.Collection, []string{"xin_chao"}) {
+		t.Fatalf("progress lists %v, want only the found entry the file still has", p.Collection)
 	}
 }

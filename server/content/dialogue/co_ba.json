@@ -1,6 +1,6 @@
 {
   "id": "co_ba",
-  "about": "Cô Ba sells at Bến Thành's south gate. Her lesson (three phrases: greeting an elder, thanking, asking the price) ends with the signal greetings_learned, which no quest listens for since the Traveler's questline was taken out (2026-11-19, to be designed again with the story, docs/design/10-story.md).",
+  "about": "Cô Ba sells at Bến Thành's south gate. Her lesson (three phrases: greeting an elder, thanking, asking the price) sends phrase_xin_chao, phrase_cam_on and last greetings_learned (asking the price); bargaining at the price sends phrase_mac_qua. The Sổ sưu tầm (collection.json) listens for them; no quest listens for greetings_learned since the Traveler's questline was taken out (2026-11-19, docs/design/10-story.md).",
   "start": "greet",
   "nodes": {
     "greet": {
@@ -67,7 +67,8 @@
             "vi": "Dạ, con chào cô!",
             "en": "(politely) Hello, auntie!"
           },
-          "goto": "lesson_thanks"
+          "goto": "lesson_thanks",
+          "emit": "phrase_xin_chao"
         },
         {
           "text": {
@@ -91,7 +92,8 @@
             "vi": "Dạ, con chào cô!",
             "en": "(politely) Hello, auntie!"
           },
-          "goto": "lesson_thanks"
+          "goto": "lesson_thanks",
+          "emit": "phrase_xin_chao"
         }
       ]
     },
@@ -108,7 +110,8 @@
             "vi": "Dạ, con cảm ơn cô!",
             "en": "cảm ơn"
           },
-          "goto": "lesson_price"
+          "goto": "lesson_price",
+          "emit": "phrase_cam_on"
         },
         {
           "text": {
@@ -132,7 +135,8 @@
             "vi": "Dạ, con cảm ơn cô!",
             "en": "Thank you, auntie!"
           },
-          "goto": "lesson_price"
+          "goto": "lesson_price",
+          "emit": "phrase_cam_on"
         }
       ]
     },
@@ -301,8 +305,33 @@
       "choices": [
         {
           "text": {
+            "vi": "Mắc quá cô ơi! Bớt chút nha cô?",
+            "en": "That's pricey, auntie! A little discount?"
+          },
+          "goto": "bargain",
+          "emit": "phrase_mac_qua"
+        },
+        {
+          "text": {
             "vi": "Dạ, để con đi một vòng rồi quay lại nha cô.",
             "en": "I'll walk around and come back."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bargain": {
+      "say": {
+        "default": {
+          "vi": "Ui, “mắc quá” là câu ai cũng nói ở chợ! Thôi cô bớt còn năm chục, giá chót nghen con.",
+          "en": "Ha, “mắc quá” is what everyone says at the market! Fine, fifty thousand, my final price."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn cô!",
+            "en": "Thank you, auntie!"
           },
           "goto": "bye"
         }

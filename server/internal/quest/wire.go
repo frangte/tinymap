@@ -12,6 +12,7 @@ const (
 	NewsAchievement = "achievement"
 	NewsTitle       = "title"
 	NewsStamp       = "stamp"
+	NewsCollection  = "collection"
 )
 
 // News is one thing that just happened.
@@ -24,13 +25,19 @@ func (e *Engine) progress(b *Book, news []News, day string) []byte {
 		title = ""
 	}
 	msg := protocol.Progress{T: protocol.TypeProgress, Quests: []protocol.QuestState{}, Achievements: []protocol.AchievementState{},
-		Titles: known(b.Titles, e.titles), Stamps: known(b.Stamps, e.stamps), Title: title, Streak: b.StreakNow(day), News: news}
+		Titles: known(b.Titles, e.titles), Stamps: known(b.Stamps, e.stamps), Title: title, Streak: b.StreakNow(day), Collection: []string{}, News: news}
 	for _, t := range e.tracks {
 		r := b.Records[t.id]
 		if r == nil {
 			continue
 		}
 		done := r.State == StateDone
+		if isCollection(t.id) {
+			if id := t.id[len(collectionPrefix):]; done && e.collection[id] {
+				msg.Collection = append(msg.Collection, id)
+			}
+			continue
+		}
 		if !t.quest {
 			n := 0
 			if p := r.Objectives[""]; p != nil {

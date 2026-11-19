@@ -1,6 +1,6 @@
 {
   "id": "di_nam",
-  "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the dailies listen for it).",
+  "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the dailies listen for it); praising the food sends phrase_ngon_qua (the Sổ sưu tầm, collection.json, listens for it).",
   "start": "greet",
   "nodes": {
     "greet": {
@@ -50,12 +50,22 @@
         "default": { "vi": "Chịu chơi ghê! Nè, mười lăm ngàn. Ngồi ăn ngắm hồ cho mát nha.", "en": "Brave! Here you go, fifteen thousand. Sit by the lake and enjoy." }
       },
       "choices": [
+        { "text": { "vi": "(ăn thử) Ngon quá dì ơi!", "en": "(taste it) Delicious, auntie!" }, "goto": "praise", "emit": "phrase_ngon_qua" },
         { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you!" }, "goto": "bye" }
       ]
     },
     "mild": {
       "say": {
         "default": { "vi": "Ừ, dì bỏ chút xíu thôi. Mười lăm ngàn nghen con.", "en": "Alright, just a pinch. Fifteen thousand, dear." }
+      },
+      "choices": [
+        { "text": { "vi": "(ăn thử) Ngon quá dì ơi!", "en": "(taste it) Delicious, auntie!" }, "goto": "praise", "emit": "phrase_ngon_qua" },
+        { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you!" }, "goto": "bye" }
+      ]
+    },
+    "praise": {
+      "say": {
+        "default": { "vi": "Khen vậy dì mừng! “Ngon quá” là lời khen người bán thích nghe nhất đó con.", "en": "That makes me happy! “Ngon quá” is the compliment every cook loves to hear." }
       },
       "choices": [
         { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you!" }, "goto": "bye" }

@@ -11,19 +11,21 @@ import { icon } from '../phone/icons';
 import { guideFor, ReadPages } from '../guide';
 import type { Place } from '../places';
 import { achievements, map, profile, quests } from './sections';
+import { collection } from './collectionBook';
 import { guideList, placePage, type GuideNav } from './guideBook';
 
-export type NotebookTab = 'guide' | 'map' | 'quests' | 'achievements' | 'profile';
+export type NotebookTab = 'guide' | 'map' | 'quests' | 'collection' | 'achievements' | 'profile';
 
 const TABS: ReadonlyArray<{ id: NotebookTab; icon: string; name: () => string }> = [
   { id: 'guide', icon: 'book', name: () => L.tabGuide },
   { id: 'map', icon: 'map', name: () => L.tabMap },
   { id: 'quests', icon: 'flag', name: () => L.tabQuests },
+  { id: 'collection', icon: 'star', name: () => L.tabCollection },
   { id: 'achievements', icon: 'trophy', name: () => L.tabAchievements },
   { id: 'profile', icon: 'profile', name: () => L.tabProfile },
 ];
 
-const SECTIONS: Readonly<Record<Exclude<NotebookTab, 'guide'>, AppFactory>> = { map, quests, achievements, profile };
+const SECTIONS: Readonly<Record<Exclude<NotebookTab, 'guide'>, AppFactory>> = { map, quests, collection, achievements, profile };
 
 /** live sections (the map, a list that ticks off landmarks) redraw this often while open (ms) */
 const REFRESH = 250;

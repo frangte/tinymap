@@ -352,9 +352,12 @@ func (s *Service) send(character string, b *Book, news []News, now int64) {
 func (s *Service) news(out Outcome, granted []string) []News {
 	var n []News
 	for _, id := range out.Completed {
-		if isAchievement(id) {
+		switch {
+		case isCollection(id):
+			n = append(n, News{Kind: NewsCollection, ID: id[len(collectionPrefix):]})
+		case isAchievement(id):
 			n = append(n, News{Kind: NewsAchievement, ID: id[len(achievementPrefix):]})
-		} else {
+		default:
 			n = append(n, News{Kind: NewsQuest, ID: id})
 		}
 	}

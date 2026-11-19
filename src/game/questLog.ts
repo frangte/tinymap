@@ -40,6 +40,11 @@ export class QuestLog {
     return this.progress?.stamps ?? [];
   }
 
+  /** ids of the Sổ sưu tầm entries found */
+  get collection(): readonly string[] {
+    return this.progress?.collection ?? [];
+  }
+
   /** days in a row with a daily done */
   get streak(): number {
     return this.progress?.streak ?? 0;

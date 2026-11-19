@@ -192,7 +192,7 @@ func (c *Catalog) checkQuests(caps, places map[string]bool) error {
 		}
 		seen[a.ID] = true
 	}
-	return nil
+	return refs.collection()
 }
 
 type questRefs struct {
