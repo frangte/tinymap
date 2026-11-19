@@ -1,8 +1,8 @@
 // "Bạn từ đâu tới?": the origin cards. Shown before the first dressing (and once to players from before archetypes)
-// with the three origins, and again from the Sổ tay to change origin, the current one marked and a way back. Jobs
-// (the Crab driver) are earned in play and never offered; a driver from before only sees its own card, marked. Hovering or focusing a card previews that archetype's starter look.
+// with the three origins, and again from the Sổ tay to change origin, the current one marked and a way back. The Crab
+// driver is no origin: it is earned in play (docs/design/13-driver.md). Hovering or focusing a card previews that archetype's starter look.
 import { el } from './hud';
-import { ARCHETYPES, archetypeById, type Archetype } from './archetypes';
+import { ARCHETYPES, type Archetype } from './archetypes';
 import { onLangChange, tx } from './i18n';
 import { L } from './i18n/archetypePicker';
 
@@ -99,8 +99,6 @@ export class ArchetypePicker {
     this.label();
     this.cancelButton.hidden = !current;
     for (const [id, b] of this.cards) {
-      // a job (the Crab driver) is earned in play, never picked: only a driver from before sees its own card
-      b.hidden = (archetypeById(id)?.job ?? false) && id !== current;
       const mine = id === current;
       b.classList.toggle('is-current', mine);
       if (mine) b.setAttribute('aria-current', 'true');

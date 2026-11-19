@@ -31,7 +31,7 @@ export interface RidingDeps {
   vehicles: Vehicles;
   net: NetClient;
   collider: CityCollider;
-  /** the vehicle kind the player's archetype starts with, '' for none */
+  /** the vehicle kind of the bike the player owns (an item), '' for none */
   starter(): string;
   notify(text: string): void;
 }

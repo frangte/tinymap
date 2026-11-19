@@ -9,7 +9,7 @@ import { L } from '../game/i18n/client';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
 import type { RideClientMsg, RideServerMsg } from './rideProtocol';
 import type { WayClientMsg, WayServerMsg } from './wayProtocol';
-import { parseServerMsg, type ArchRefusal, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PhoneText, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
+import { parseServerMsg, type ArchRefusal, type Channel, type ChatLine, type ClientMsg, type DriveTest, type EndReason, type Interaction, type NpcInfo, type PhoneText, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
 /** banned, kicked: a moderator sent this player out; this one stops trying too */
@@ -51,6 +51,10 @@ export interface NetEvents {
    * have now); never for a guest without an account
    */
   items(items: string[], apps: string[] | null): void;
+  /** a bargain in a shop began (percent off) or ended (0) */
+  deal(shop: string, percent: number): void;
+  /** the practical of the licence test moved on */
+  driveTest(t: DriveTest): void;
   /** our numbers and texts, on joining and when we get a phone (they replace what we had) */
   phone(contacts: string[], texts: PhoneText[]): void;
   /** a number we just got */
@@ -239,6 +243,11 @@ export class NetClient {
     return this.request((rid) => ({ t: 'buy', rid, item }));
   }
 
+  /** Pay a fee to the NPC we stand next to; the result says why not (far, target, owned, locked, balance). */
+  pay(fee: string): Promise<Result> {
+    return this.request((rid) => ({ t: 'pay', rid, fee }));
+  }
+
   /** Call a contact wherever we are; the conversation arrives as `interaction` events, the result says why not. */
   call(contact: string): Promise<Result> {
     return this.request((rid) => ({ t: 'call', rid, contact }));
@@ -417,6 +426,14 @@ export class NetClient {
       case 'items':
         this.on.items(m.items, m.apps);
         break;
+      case 'deal':
+        this.on.deal(m.shop, m.percent);
+        break;
+      case 'drive_test': {
+        const { t: _t, ...d } = m;
+        this.on.driveTest(d);
+        break;
+      }
       case 'phone':
         this.on.phone(m.contacts, m.texts);
         break;

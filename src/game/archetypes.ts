@@ -32,13 +32,9 @@ export interface Archetype {
   id: string;
   name: Text;
   pitch: Text;
-  /** a role earned in play, not an origin: the first pick leaves it out, Đổi vai shows it */
-  job: boolean;
   badge: Badge;
   spawn: Spawn;
   look: { outfit: OutfitId; hat: HatId };
-  /** the starter vehicle (server/content/vehicles.json), parked next to the player; '' for none */
-  vehicle: string;
   capabilities: readonly string[];
 }
 
@@ -55,11 +51,9 @@ export const ARCHETYPES: readonly Archetype[] = archetypeData.archetypes.map((a)
   id: a.id,
   name: a.name,
   pitch: a.pitch,
-  job: ('job' in a ? a.job : undefined) ?? false,
   badge: a.badge,
   spawn: { place: a.spawn.place, at: pair(a.spawn.at), face: pair(a.spawn.face), button: a.spawn.button },
   look: { outfit: a.look.outfit as OutfitId, hat: a.look.hat as HatId },
-  vehicle: ('vehicle' in a ? a.vehicle : undefined) ?? '',
   capabilities: a.capabilities,
 }));
 

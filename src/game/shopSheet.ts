@@ -21,6 +21,7 @@ export interface ShopDeps {
 const FAILURE_TEXT = {
   owned: () => L.failOwned,
   balance: () => L.failBalance,
+  locked: () => L.failLocked,
   far: () => L.failFar,
   target: () => L.failTarget,
   other: () => L.failOther,
@@ -42,6 +43,8 @@ export class ShopSheet {
   private told: (() => string) | null = null;
   /** bumped on every open: an answer that arrives after the sheet was closed says nothing */
   private session = 0;
+  /** the bargains in force, percent off by shop id: the server decides the price, this only shows it */
+  private readonly deals = new Map<string, number>();
 
   constructor(private readonly d: ShopDeps) {
     const close = (): void => {
@@ -87,6 +90,19 @@ export class ShopSheet {
     this.buying = '';
   }
 
+  /** A bargain began (percent off) or ended (0) in a shop: the prices on the sheet follow. */
+  setDeal(shop: string, percent: number): void {
+    if (percent > 0) this.deals.set(shop, percent);
+    else this.deals.delete(shop);
+    this.render();
+  }
+
+  /** What the server will charge for the item now. */
+  private priceOf(item: Item): number {
+    const pct = this.deals.get(item.shop) ?? 0;
+    return item.price - Math.floor((item.price * pct) / 100);
+  }
+
   /** The balance changed (a purchase, a fare): redraw it and the buttons that depend on it. */
   refresh(): void {
     if (this.isOpen) this.render();
@@ -102,7 +118,8 @@ export class ShopSheet {
     this.doneButton.textContent = L.shopDone;
     const balance = this.d.balance();
     this.balance.textContent = balance === null ? L.balanceNone : L.balance(money(balance));
-    this.note.textContent = L.gameNote;
+    const deal = this.deals.get(this.shopId) ?? 0;
+    this.note.textContent = deal > 0 ? `${L.gameNote} ${L.dealNote(deal)}` : L.gameNote;
     const hand = this.d.owned.phone();
     this.list.replaceChildren(...itemsOf(this.shopId).map((item) => this.row(item, balance, hand?.id === item.id)));
     this.status.textContent = this.told ? this.told() : '';
@@ -120,7 +137,8 @@ export class ShopSheet {
     name.textContent = tx(item.name);
     const price = document.createElement('span');
     price.className = 'shop-price';
-    price.textContent = money(item.price);
+    const now = this.priceOf(item);
+    price.textContent = now < item.price ? `${money(now)} (${L.dealPrice(money(item.price))})` : money(item.price);
     head.append(name, price);
 
     const about = document.createElement('p');
@@ -132,8 +150,14 @@ export class ShopSheet {
     if (kind !== 'none') {
       const o = document.createElement('p');
       o.className = 'shop-opens';
-      o.textContent = kind === 'smart' ? L.opensSmart : L.opensBasic;
+      o.textContent = { smart: L.opensSmart, basic: L.opensBasic, bike: L.opensBike, uniform: L.opensUniform }[kind];
       li.append(o);
+    }
+    if (item.requires.length > 0 && !owned) {
+      const need = document.createElement('p');
+      need.className = 'shop-opens';
+      need.textContent = L.needs;
+      li.append(need);
     }
 
     if (owned) {
@@ -143,7 +167,7 @@ export class ShopSheet {
       li.append(mark);
       return li;
     }
-    const poor = balance !== null && balance < item.price;
+    const poor = balance !== null && balance < now;
     const buy = document.createElement('button');
     buy.type = 'button';
     buy.className = poor ? 'shop-buy' : 'shop-buy btn-primary';

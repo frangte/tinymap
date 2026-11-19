@@ -103,8 +103,25 @@ export interface Interaction {
   choices: Text[];
   /** the id of the shop this line opens (items.json), '' for none: the sheet then offers to look at its wares */
   shop: string;
+  /** the id of the fee this line asks for (items.json), '': the sheet offers a button that pays it with `pay` */
+  fee: string;
   /** the contact's id when the conversation is a phone call ('' face to face); `n` is then a voice we do not see */
   call: string;
+}
+
+/**
+ * The practical of the A1 licence as the server runs it (docs/design/13-driver.md): lent (the school's bike stands
+ * beside us), run (the clock is going: ride to `next`, a point in three.js x and z with a radius, within `left` seconds),
+ * pass, or fail (reason: time, off, idle).
+ */
+export interface DriveTest {
+  state: 'lent' | 'run' | 'pass' | 'fail';
+  index: number;
+  total: number;
+  left: number;
+  next: [number, number] | null;
+  radius: number;
+  reason: string;
 }
 
 /** A text message (docs/design/12-phone.md): `id` says which one it is, `from` is a contact id (contacts.json). */
@@ -216,6 +233,9 @@ export type ServerMsg =
   | { t: 'result'; rid: number; ok: boolean; code: string }
   /** after a purchase (before its result): every item we own and the phone apps we have now */
   | { t: 'items'; items: string[]; apps: string[] }
+  /** a price we bargained down in a shop: the sheet shows `percent` off its prices until it ends (0) */
+  | { t: 'deal'; shop: string; percent: number }
+  | ({ t: 'drive_test' } & DriveTest)
   /** every number we have (contact ids, in the order we got them) and our texts, oldest first; texts are empty without a phone */
   | { t: 'phone'; contacts: string[]; texts: PhoneText[] }
   /** a number we just got */
@@ -249,6 +269,8 @@ export type ClientMsg =
   | { t: 'interact_leave'; sid: number }
   /** buy an item (items.json) from the shop whose NPC we stand next to; the answer is a result (rid) */
   | { t: 'buy'; rid: number; item: string }
+  /** pay a fee (items.json) to the NPC we stand next to; the answer is a result (rid): far, target, owned, locked, balance, busy */
+  | { t: 'pay'; rid: number; fee: string }
   /** call a contact (contacts.json) wherever we are; the answer is a result (rid): far from nothing, but phone, target, mute, busy */
   | { t: 'call'; rid: number; contact: string }
   /** we opened the messages: all our texts are read */
@@ -390,7 +412,7 @@ function interaction(m: Obj): Interaction | null {
     if (!t) return null;
     choices.push(t);
   }
-  return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices, shop: idOf(m.shop), call: idOf(m.call) };
+  return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices, shop: idOf(m.shop), fee: idOf(m.fee), call: idOf(m.call) };
 }
 
 /** a text's id is the quest, its cycle and the moment that sent it (citizen.ca_phe_sang//start/0) */
@@ -504,6 +526,15 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
     case 'items': {
       if (!Array.isArray(m.items) || !Array.isArray(m.apps)) return null;
       return { t: 'items', items: m.items.map(idOf).filter((i) => i !== ''), apps: m.apps.map(idOf).filter((a) => a !== '') };
+    }
+    case 'deal':
+      return idOf(m.shop) && Number.isInteger(m.percent) ? { t: 'deal', shop: idOf(m.shop), percent: Math.max(0, Math.min(100, m.percent as number)) } : null;
+    case 'drive_test': {
+      const state = (['lent', 'run', 'pass', 'fail'] as const).find((s) => s === m.state);
+      if (!state) return null;
+      const next = Array.isArray(m.next) && m.next.length === 2 && m.next.every(num) ? ([m.next[0], m.next[1]] as [number, number]) : null;
+      const n = (v: unknown): number => (num(v) ? v : 0);
+      return { t: 'drive_test', state, index: n(m.index), total: n(m.total), left: n(m.left), next, radius: n(m.radius), reason: idOf(m.reason) };
     }
     case 'phone': {
       const contacts = list(m.contacts, (c) => idOf(c) || null);

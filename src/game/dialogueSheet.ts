@@ -6,7 +6,8 @@
 // Text only goes in via textContent.
 import { el } from './hud';
 import type { TalkMode, Text } from '../net/protocol';
-import { lang, onLangChange, tx, type Bilingual } from './i18n';
+import { lang, money, onLangChange, tx, type Bilingual } from './i18n';
+import { feeById } from './items';
 import { GOODBYE, L } from './i18n/dialogueSheet';
 import { L as ITEMS_L } from './i18n/items';
 
@@ -22,6 +23,8 @@ export interface SheetView {
   choices: readonly Bilingual[];
   /** the shop this line opens (items.json), '' for none */
   shop: string;
+  /** the fee this line asks for (items.json), '' for none */
+  fee: string;
   /** a phone call: the sheet looks like one */
   call: boolean;
 }
@@ -31,6 +34,8 @@ export interface SheetEvents {
   choose(index: number): void;
   /** the shop button was pressed: the shop's id */
   shop(id: string): void;
+  /** the fee button was pressed: the fee's id */
+  fee(id: string): void;
   /** closed (×, goodbye, Esc) */
   close(): void;
   /** a button was pressed: give the keyboard back to the game */
@@ -98,6 +103,7 @@ export class DialogueSheet {
     this.choices.replaceChildren(...this.buttons);
     // a line that names a shop also offers its wares, above the answers
     if (v.shop !== '') this.choices.prepend(this.shopButton(v.shop));
+    if (v.fee !== '') this.choices.prepend(this.feeButton(v.fee));
   }
 
   hide(): void {
@@ -122,6 +128,16 @@ export class DialogueSheet {
     if (!this.isOpen || !b) return false;
     if (!b.disabled) b.click();
     return true;
+  }
+
+  private feeButton(id: string): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'talk-choice talk-shop btn-primary';
+    const fee = feeById(id);
+    b.textContent = ITEMS_L.payFee(money(fee?.amount ?? 0));
+    b.addEventListener('click', () => this.on.fee(id));
+    return b;
   }
 
   private shopButton(shop: string): HTMLButtonElement {

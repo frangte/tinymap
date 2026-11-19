@@ -41,15 +41,6 @@ const vi = {
     ],
     tip: 'Nhiệm vụ chỉ gợi ý, không ai bắt bạn làm. Chưa có điện thoại bạn vẫn đi khắp phố và đọc hết Sổ tay được.',
   },
-  driver: {
-    opening: 'Áo khoác vàng, mũ bảo hiểm, chiếc xe số đậu ngay cạnh bạn trên đường Hàm Nghi. Bạn thuộc từng con đường Quận 1.',
-    todo: [
-      'Lên xe và chạy thử một vòng.',
-      'Chạy thuộc Lê Lợi, Đồng Khởi rồi Hàm Nghi qua các điểm trên đường.',
-      'Bật nhận cuốc trong app Crab Driver và chở khách khắp phố.',
-    ],
-    tip: 'Nhấn E để lên hoặc xuống xe. Cuốc xe mới hiện ở giữa màn hình: nhận nhanh, tài xế nào nhận trước thì được.',
-  },
 } satisfies Record<string, Story>;
 
 const fallbackVi: Story = {
@@ -88,15 +79,6 @@ const en: typeof vi = {
       'Buy a phone so you can book a Crab and ask the way.',
     ],
     tip: 'Quests only suggest, nobody makes you do them. Without a phone you can still walk all over town and read the whole Notebook.',
-  },
-  driver: {
-    opening: 'Yellow jacket, helmet, and your motorbike parked right beside you on Hàm Nghi Street. You know every street in District 1.',
-    todo: [
-      'Get on the bike and take it for a spin.',
-      'Learn Lê Lợi, Đồng Khởi and Hàm Nghi by riding past the points along each street.',
-      'Go on duty in the Crab Driver app and carry passengers all over town.',
-    ],
-    tip: 'Press E to get on or off the bike. New rides pop up in the middle of the screen: be quick, the first driver to take one gets it.',
   },
 };
 

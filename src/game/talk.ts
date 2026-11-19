@@ -10,12 +10,23 @@ import { DialogueSheet } from './dialogueSheet';
 import { contactDef, contactName } from './contacts';
 import { tx } from './i18n';
 import { L } from './i18n/talk';
+import { L as ITEMS_L } from './i18n/items';
+import { feeById } from './items';
 
 /** why the server would not start a conversation, as the player reads it */
 const REFUSED: Record<string, (name: string) => string> = {
   far: (n) => L.far(n),
   full: (n) => L.full(n),
   mute: (n) => L.busy(n),
+};
+
+/** why the server would not take a fee */
+const FEE_REFUSED: Record<string, () => string> = {
+  owned: () => ITEMS_L.feeFailOwned,
+  balance: () => ITEMS_L.feeFailBalance,
+  locked: () => ITEMS_L.feeFailLocked,
+  far: () => ITEMS_L.feeFailFar,
+  other: () => ITEMS_L.feeFailOther,
 };
 
 /** why the server would not ring a number */
@@ -60,6 +71,7 @@ export class Talk {
     this.sheet = new DialogueSheet({
       choose: (i) => this.choose(i),
       shop: (id) => d.shop.open(id),
+      fee: (id) => this.payFee(id),
       close: () => this.close(),
       done: () => d.done(),
     });
@@ -98,6 +110,15 @@ export class Talk {
     });
   }
 
+  /** The fee button: ask the server to take the fee; it answers in a result, told in a line of the chat log. */
+  private payFee(id: string): void {
+    const fee = feeById(id);
+    void this.d.net.pay(id).then((r) => {
+      if (r.ok) this.d.notify(ITEMS_L.feePaid(fee ? tx(fee.name) : id));
+      else this.d.notify((FEE_REFUSED[r.code] ?? FEE_REFUSED.other)());
+    });
+  }
+
   /** The phone's Danh bạ rings a contact: the call is a conversation like any, wherever both are. */
   call(contact: string): void {
     if (this.greeting) return;
@@ -129,7 +150,7 @@ export class Talk {
     this.current = i;
     this.answering = false;
     this.sheet.setBusy(false);
-    this.sheet.show({ name: n.def.name, role: n.def.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop, call: false });
+    this.sheet.show({ name: n.def.name, role: n.def.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop, fee: i.fee, call: false });
   }
 
   /** A line of a phone call: the contact has no figure to look at, the sheet says who is on the line. */
@@ -145,7 +166,7 @@ export class Talk {
     this.current = i;
     this.answering = false;
     this.sheet.setBusy(false);
-    this.sheet.show({ name: tx(c.name), role: c.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop, call: true });
+    this.sheet.show({ name: tx(c.name), role: c.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop, fee: i.fee, call: true });
   }
 
   /** The server ended a conversation. */

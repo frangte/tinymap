@@ -39,6 +39,7 @@ import { PlaceCard } from './placeCard';
 import { TipCard } from './tipCard';
 import { Owned, phoneShop } from './items';
 import { ShopSheet } from './shopSheet';
+import { DriveTestRun } from './driveTest';
 import { PhoneCard } from './phoneCard';
 import { NPC_DEFS } from './npcs';
 import { L as ItemsL } from './i18n/items';
@@ -332,6 +333,7 @@ export async function startApp(): Promise<void> {
       if (tracker) {
         play.follow.forward(forward);
         tracker.update(now, pl.position, forward);
+        driveTest.tick(now);
       }
       shopArrive(pl.position);
       if (now - poseSavedAt > POSE_SAVE_EVERY) {
@@ -814,6 +816,8 @@ export async function startApp(): Promise<void> {
       if (npc) tipCard.happened({ kind: 'npc', npc: npc.def.id });
     },
     interactionEnd: (sid, reason) => talk.ended(sid, reason),
+    deal: (shop, percent) => shopSheet.setDeal(shop, percent),
+    driveTest: (t) => driveTest.handle(t, performance.now()),
     rateLimited: () => chatBox.rateLimited(),
     ride: (m) => rides.handle(m),
     way: (m) => directions.handle(m),
@@ -826,6 +830,7 @@ export async function startApp(): Promise<void> {
       book.clear();
       cast.local();
       riding.offline();
+      driveTest.reset();
       showOnline();
     },
   });
@@ -839,7 +844,7 @@ export async function startApp(): Promise<void> {
     vehicles: bikes,
     net: netClient,
     collider,
-    starter: () => archetypeById(profile.archetype)?.vehicle ?? '',
+    starter: () => owned.bike()?.vehicle ?? '',
     notify: (text) => chatBox.system(text),
   });
   const view: RiderView = { position: new THREE.Vector3(), heading: 0, speed: 0, lean: 0 };
@@ -870,6 +875,8 @@ export async function startApp(): Promise<void> {
     balance: () => rides.balance,
     done: backToGame,
   });
+  // ---- the licence practical: the tracker points at each checkpoint the server names, the clock runs on its word
+  const driveTest = new DriveTestRun({ notify: (text) => chatBox.system(text), onChange: () => guide() });
   const talk: Talk = new Talk({ net: netClient, npcs: cast, player: p.player, shop: shopSheet, notify: (text) => chatBox.system(text), done: backToGame });
   closeTalk = (): void => talk.close();
   // ---- Crab Bike trips: booked and driven from the phone; the action button takes the trip's next step
@@ -935,7 +942,7 @@ export async function startApp(): Promise<void> {
     p.emoteKeys = list.map((e) => e.code);
   };
   setEmotes();
-  // a returning driver finds their bike beside them (the server's replaces it once online)
+  // offline, a player who owns a bike finds it beside them (the server's replaces it once online)
   riding.start();
   goOnline = (): void => {
     if (dressed) netClient.start(profile);
@@ -1114,7 +1121,7 @@ export async function startApp(): Promise<void> {
   });
   tracker = questTracker;
   const guide = (): void =>
-    questTracker.guideTo(rides.guide() ?? directions.guide() ?? (shopGuided ? shopGuide() : guidedPlace ? placeGuide(guidedPlace) : null));
+    questTracker.guideTo(driveTest.guide(() => performance.now()) ?? rides.guide() ?? directions.guide() ?? (shopGuided ? shopGuide() : guidedPlace ? placeGuide(guidedPlace) : null));
   rides.onChange(guide);
   directions.onChange(guide);
   phone = ph;
