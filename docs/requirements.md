@@ -174,6 +174,14 @@ với Cô Ba; qua đường với Chú Sáu; hỏi giá cà phê, bánh tráng t
 mua điện thoại vẫn đứng đầu khung nhiệm vụ. Chưa làm: "Về nhà" ở nhà trọ bà Chín và hostel anh Tony, tour đi bộ của người
 nước ngoài, đổi đô ở tiệm cô Kim (bỏ: ai cũng có sẵn tiền đồng).
 
+**2026-11-20, bước 3–4 làm xong (chưa deploy, PR #11):** Khoa: không ai chọn làm tài xế Crab lúc đầu, phải làm nhiệm
+vụ mới lên được. Đổi vai chỉ còn ba xuất phát. Việc vặt chương 2 (bưng cà phê, giao bánh tráng, phát tờ rơi, khuân
+hàng; mỗi việc một lần một ngày, Khoa duyệt "ok ổn"); chương 3: thi bằng A1 với Thầy Mười (lệ phí, lý thuyết 10 câu,
+thực hành bằng xe của trường trên đường Thủ Thiêm vì chưa có model sân tập), mua xe cũ ở tiệm Chú Tám (trả giá bớt
+10%), đăng ký ở văn phòng Crab với Chị Vy; vai tài xế bỏ, tài xế cũ giữ xe, đồng phục, bằng. Khách NPC đặt xe khi không
+có khách thật. Chưa làm: tài xế NPC và Chú Sáu chở xe ôm khi không ai nhận cuốc (cần đồ thị đường, cùng R4), sân tập
+lái (chờ duyệt model).
+
 ## Thứ tự đề xuất
 
 R1 (duyệt design → blockout → duyệt → chi tiết, gồm R4, R5) → R2 và R3 khi bake map mới → R6 → R7 (design viết song song, game 1 và 4 cần R6).
