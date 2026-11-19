@@ -45,7 +45,8 @@ void main(){
   col = mix(col, uSky, fres*0.55);
   // glints on the ripple tops
   float g = n2(p*6.0 + vec2(uTime*0.9, -uTime*0.6))*rip;
-  col = mix(col, vec3(1.0), smoothstep(0.52, 0.58, g)*0.8);
+  // (pale as the rim: white by day, moonlit at night)
+  col = mix(col, min(uRim*1.1, vec3(1.0)), smoothstep(0.52, 0.58, g)*0.8);
   // a pale line where the water meets the rim, the columns, the jets
   float line = 1.0 - smoothstep(0.012, 0.05 + (r1 - 0.5)*0.02, depth);
   col = mix(col, uRim, line*0.85);
@@ -58,6 +59,8 @@ void main(){
 export class Ponds {
   private readonly mat: THREE.ShaderMaterial;
   readonly meshes: THREE.Mesh[] = [];
+  /** the shader's colours, tinted by the time of day (daylight/daylight.ts): edge is the rim, far the sky on it */
+  readonly colours: { deep: THREE.Color; shallow: THREE.Color; edge: THREE.Color; far: THREE.Color };
 
   constructor(world: THREE.Object3D, ink: InkPass, camera: THREE.PerspectiveCamera) {
     this.mat = new THREE.ShaderMaterial({
@@ -77,6 +80,8 @@ export class Ponds {
       transparent: true,
       depthWrite: false,
     });
+    const u = this.mat.uniforms;
+    this.colours = { deep: u.uDeep.value, shallow: u.uShallow.value, edge: u.uRim.value, far: u.uSky.value };
     world.traverse((o) => {
       if (o instanceof THREE.Mesh && o.userData.paintKey === 'water') this.meshes.push(o);
     });

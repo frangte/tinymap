@@ -34,6 +34,8 @@
       </div>
       <h1 id="menu-title">Sài Gòn mini</h1>
       <p class="lede" data-i18n="menuLede"></p>
+      <!-- Saigon's time now: the city follows it, so a dark map at night reads as the real one (daylight/clockView.ts) -->
+      <p class="menu-clock" id="menu-clock"></p>
       <p class="status" id="menu-status" role="status" aria-live="polite"></p>
       <div class="loadrow" id="loadrow">
         <div class="bar"><i id="loadbar"></i></div>
@@ -65,7 +67,11 @@
     <!-- top left: where you are, and under it the quest tracker (questTracker.ts) in play -->
     <div class="topleft" data-modes="map play">
       <header class="where card" data-modes="map play" aria-live="polite">
-        <div class="eyebrow" id="where-eyebrow"></div>
+        <div class="where-top">
+          <div class="eyebrow" id="where-eyebrow"></div>
+          <!-- Saigon's time (daylight/clockView.ts); not read out every minute -->
+          <span class="where-clock" id="where-clock" aria-live="off"></span>
+        </div>
         <h1 id="where"></h1>
         <div class="note" id="wherenote"></div>
         <div class="online" id="online" data-status="offline" hidden><i aria-hidden="true"></i><span id="online-text"></span></div>
