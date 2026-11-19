@@ -68,7 +68,8 @@ const en: typeof vi = {
   tabMap: 'Map',
   tabQuests: 'Quests',
   tabCollection: 'Collection',
-  tabAchievements: 'Achievements',
+  /** short: six tabs share a phone's width */
+  tabAchievements: 'Awards',
   tabProfile: 'Character',
   role: 'Role',
   roleNone: 'Not chosen yet',

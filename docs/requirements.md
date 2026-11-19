@@ -152,6 +152,10 @@ ký Crab, thẻ thông tin công trình, mẹo theo tình huống, bảng giá, 
 thẻ thông tin dưới khung tên địa điểm (phím I), trang chi tiết cho 5 công trình đầu, dẫn đường tới đó; Hồ sơ, Nhiệm vụ,
 Thành tích, Bản đồ ra khỏi điện thoại. Chi tiết ở mục 14 của [design/10-story.md](design/10-story.md).
 
+**2026-11-19, phần còn lại của bước 1 (làm song song bằng 5 agent, đã review và gộp):** mẹo theo tình huống và Sổ mẹo
+(9 mẹo), Sổ sưu tầm phần Tiếng Việt (9 câu học qua lời thoại Cô Ba, Chú Tư, Dì Năm, Chú Sáu; tab Sưu tầm trong Sổ tay),
+trang Cẩm nang cho cả 20 công trình. Còn chờ: nội dung chuyện ngoài lề về địa điểm và món ăn của Khoa.
+
 ## Thứ tự đề xuất
 
 R1 (duyệt design → blockout → duyệt → chi tiết, gồm R4, R5) → R2 và R3 khi bake map mới → R6 → R7 (design viết song song, game 1 và 4 cần R6).
