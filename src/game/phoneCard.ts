@@ -89,6 +89,21 @@ export class PhoneCard {
     this.waiting = false;
     this.reason = 'arrival';
     this.open();
+    this.watch();
+  }
+
+  /**
+   * The arrival card steps aside for whatever takes the screen after it came up (a conversation started a moment
+   * later, the Sổ tay, the shop): it was told, and the quest tracker keeps saying it.
+   */
+  private watch(): void {
+    window.clearTimeout(this.timer);
+    if (!this.isOpen || this.reason !== 'arrival') return;
+    if (!this.d.free()) {
+      this.close();
+      return;
+    }
+    this.timer = window.setTimeout(() => this.watch(), RETRY_MS);
   }
 
   private open(): void {
