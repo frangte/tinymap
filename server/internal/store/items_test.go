@@ -139,7 +139,7 @@ func TestTheBackfillGivesEveryOldCharacterAnIfoneX(t *testing.T) {
 	opt := tempOptions(t)
 	before := fstest.MapFS{}
 	err := fs.WalkDir(migrationFiles, "migrations", func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || path == "migrations/0009_items.sql" {
+		if err != nil || d.IsDir() || path >= "migrations/0009" {
 			return err
 		}
 		b, err := fs.ReadFile(migrationFiles, path)

@@ -23,6 +23,9 @@ type session struct {
 	// node is where the conversation is in the NPC's dialogue graph; step counts the lines it has shown
 	node string
 	step uint32
+	// call: a phone call (docs/design/12-phone.md). It is a private conversation that distance does not end,
+	// where the NPC does not turn or gesture and is not busy for the others
+	call bool
 }
 
 func (m *member) speaker() dialogue.Speaker {
@@ -44,7 +47,7 @@ func (w *World) onInteract(p *Peer, m *member, msg protocol.ClientMsg) {
 		return
 	}
 	if s := m.talk; s != nil {
-		if s.npc == n {
+		if s.npc == n && !s.call {
 			// already talking to it (a press while the answer was on its way): the line again
 			w.show(s, m)
 			w.result(p, msg.Rid, "")
@@ -145,9 +148,11 @@ func (w *World) speak(s *session, by *member) bool {
 	if !ok {
 		return false
 	}
-	n.turnTo(by)
 	now := w.now()
-	n.play(line.Emote, line.EmoteFor, now)
+	if !s.call {
+		n.turnTo(by)
+		n.play(line.Emote, line.EmoteFor, now)
+	}
 	s.step++
 	w.showAll(s)
 	if s.mode == protocol.ModePublic && !now.Before(n.heardAt.Add(w.cfg.Talk.PublicEvery)) {
@@ -196,6 +201,9 @@ func (w *World) showTo(s *session, to []*member) {
 	}
 	msg := protocol.Interaction{T: protocol.TypeInteraction, Sid: s.id, N: s.npc.id, Mode: s.mode, Step: s.step, Size: len(s.members),
 		Choices: l.Choices, Shop: l.Shop}
+	if s.call {
+		msg.Call = s.npc.spec.Key
+	}
 	var slow []*Peer
 	for _, m := range to {
 		msg.Lead, msg.Say = m == lead, l.Say
@@ -258,6 +266,9 @@ func (w *World) closeSession(s *session) {
 		return
 	}
 	delete(w.sessions, s.id)
+	if s.call {
+		return
+	}
 	n := s.npc
 	n.talks--
 	if n.group == s {
@@ -272,6 +283,9 @@ func (w *World) closeSession(s *session) {
 func (w *World) walkAways() {
 	var far []*member
 	for _, s := range w.sessions {
+		if s.call {
+			continue // a call goes on wherever they are
+		}
 		limit := s.npc.spec.Reach + w.cfg.Talk.Slack
 		for _, m := range s.members {
 			if s.npc.dist2(m) > limit*limit {

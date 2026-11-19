@@ -2,6 +2,7 @@
   "id": "anh_bay",
   "about": "Anh Bảy runs the Dế Yêu phone shop on Lê Lợi (docs/design/10-story.md, chapter 1). The node `shop` carries \"shop\": \"de_yeu\": the game shows a button that opens the shop sheet while it is on screen, and buying is the `buy` message (items.json), never a dialogue answer. Everyone starts with no phone, so the first quest (story.dien_thoai_dau_tien) sends them here.",
   "start": "greet",
+  "call": "call",
   "nodes": {
     "greet": {
       "say": {
@@ -82,6 +83,20 @@
           "en": "Sure, come back when you need a phone. Dế Yêu, remember the name!"
         }
       }
+    },
+    "call": {
+      "say": {
+        "default": { "vi": "Dế Yêu nghe! Em cần gì? Máy hư thì mang ra tiệm anh coi cho, khỏi lấy tiền công.", "en": "Dế Yêu here! What do you need? If a phone's broken, bring it to the shop, no labour charge." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ không, em gọi hỏi thăm anh thôi.", "en": "No, I just called to say hi." }, "goto": "call_bye" }
+      ]
+    },
+    "call_bye": {
+      "say": {
+        "default": { "vi": "Ừ, rảnh ghé tiệm chơi nghen em!", "en": "Sure, drop by the shop when you're free!" }
+      }
     }
+
   }
 }

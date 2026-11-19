@@ -7,6 +7,10 @@ const vi = {
   full: (npc: string) => `Nhóm của ${npc} đông quá, chờ chút nha.`,
   busy: (npc: string) => `${npc} đang bận.`,
   notHeard: 'Chưa nói chuyện được, thử lại nha.',
+  /** why a call was refused */
+  noPhone: 'Chưa có điện thoại thì chưa gọi được.',
+  noNumber: (who: string) => `Bạn chưa có số của ${who}.`,
+  noAnswer: (who: string) => `${who} không bắt máy.`,
   /** the action button */
   greeting: 'Đang chào…',
   talkTo: (npc: string) => `Nói chuyện · ${npc}`,
@@ -18,6 +22,9 @@ const en: typeof vi = {
   full: (npc) => `${npc}'s group is full, wait a moment.`,
   busy: (npc) => `${npc} is busy.`,
   notHeard: "Couldn't start talking, try again.",
+  noPhone: "You can't call without a phone.",
+  noNumber: (who) => `You don't have ${who}'s number.`,
+  noAnswer: (who) => `${who} doesn't pick up.`,
   greeting: 'Saying hello…',
   talkTo: (npc) => `Talk · ${npc}`,
   walkedAway: (npc) => `You walked away from ${npc}.`,

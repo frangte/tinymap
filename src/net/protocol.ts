@@ -103,6 +103,18 @@ export interface Interaction {
   choices: Text[];
   /** the id of the shop this line opens (items.json), '' for none: the sheet then offers to look at its wares */
   shop: string;
+  /** the contact's id when the conversation is a phone call ('' face to face); `n` is then a voice we do not see */
+  call: string;
+}
+
+/** A text message (docs/design/12-phone.md): `id` says which one it is, `from` is a contact id (contacts.json). */
+export interface PhoneText {
+  id: string;
+  from: string;
+  say: Text;
+  /** ms since the epoch */
+  at: number;
+  read: boolean;
 }
 
 /** done: it reached its end; left: we closed it; far: we walked away; other: we started another one */
@@ -196,6 +208,12 @@ export type ServerMsg =
   | { t: 'result'; rid: number; ok: boolean; code: string }
   /** after a purchase (before its result): every item we own and the phone apps we have now */
   | { t: 'items'; items: string[]; apps: string[] }
+  /** every number we have (contact ids, in the order we got them) and our texts, oldest first; texts are empty without a phone */
+  | { t: 'phone'; contacts: string[]; texts: PhoneText[] }
+  /** a number we just got */
+  | { t: 'contact'; contact: string }
+  /** a text that just arrived */
+  | { t: 'text'; text: PhoneText }
   | ({ t: 'progress' } & Progress)
   | { t: 'error'; code: ErrorCode }
   /** a moderation line for our chat log: a command's answer, a mute, a report received */
@@ -223,6 +241,10 @@ export type ClientMsg =
   | { t: 'interact_leave'; sid: number }
   /** buy an item (items.json) from the shop whose NPC we stand next to; the answer is a result (rid) */
   | { t: 'buy'; rid: number; item: string }
+  /** call a contact (contacts.json) wherever we are; the answer is a result (rid): far from nothing, but phone, target, mute, busy */
+  | { t: 'call'; rid: number; contact: string }
+  /** we opened the messages: all our texts are read */
+  | { t: 'texts_read' }
   /** the title to carry, among those earned ('' for none) */
   | { t: 'title'; title: string }
   /** change archetype; the answer is an arch, or an error arch_busy / arch_wait */
@@ -350,7 +372,21 @@ function interaction(m: Obj): Interaction | null {
     if (!t) return null;
     choices.push(t);
   }
-  return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices, shop: idOf(m.shop) };
+  return { sid: m.sid, n: m.n, mode, step: m.step as number, lead: m.lead === true, size: Math.max(1, m.size as number), say, choices, shop: idOf(m.shop), call: idOf(m.call) };
+}
+
+/** a text's id is the quest, its cycle and the moment that sent it (citizen.ca_phe_sang//start/0) */
+const TEXT_ID_MAX = 96;
+const TEXT_MAX = 200;
+/** more numbers and texts than the game data could ever have: anything past it is dropped */
+const CONTACTS_MAX = 64;
+const TEXTS_MAX = 256;
+
+function phoneText(v: unknown): PhoneText | null {
+  if (!isObj(v) || typeof v.id !== 'string' || v.id === '' || v.id.length > TEXT_ID_MAX || !num(v.at)) return null;
+  const from = idOf(v.from);
+  const say = text(v.say, TEXT_MAX);
+  return from && say ? { id: v.id, from, say, at: v.at, read: v.read === true } : null;
 }
 
 const ERROR_CODES: readonly ErrorCode[] = ['full', 'bad_hello', 'rate', 'auth', 'mount', 'replaced', 'slow', 'repeat', 'new_player', 'muted', 'banned', 'kicked', 'arch_busy', 'arch_wait'];
@@ -443,6 +479,17 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
     case 'items': {
       if (!Array.isArray(m.items) || !Array.isArray(m.apps)) return null;
       return { t: 'items', items: m.items.map(idOf).filter((i) => i !== ''), apps: m.apps.map(idOf).filter((a) => a !== '') };
+    }
+    case 'phone': {
+      const contacts = list(m.contacts, (c) => idOf(c) || null);
+      const texts = list(m.texts, phoneText);
+      return contacts && texts ? { t: 'phone', contacts: [...new Set(contacts)].slice(0, CONTACTS_MAX), texts: texts.slice(-TEXTS_MAX) } : null;
+    }
+    case 'contact':
+      return idOf(m.contact) ? { t: 'contact', contact: idOf(m.contact) } : null;
+    case 'text': {
+      const t = phoneText(m.text);
+      return t ? { t: 'text', text: t } : null;
     }
     case 'result':
       return isId(m.rid) ? { t: 'result', rid: m.rid, ok: m.ok === true, code: typeof m.code === 'string' ? m.code.slice(0, 16) : '' } : null;

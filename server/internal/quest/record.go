@@ -3,6 +3,7 @@ package quest
 import (
 	"context"
 
+	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/quest/objective"
 )
 
@@ -77,8 +78,18 @@ type Commit struct {
 	Title *string
 	// Streak, when set, is the character's new streak of dailies
 	Streak *Streak
+	// Texts are the text messages the event sends (their senders' numbers are kept with them)
+	Texts []Message
 	// At is when (unix milliseconds)
 	At int64
+}
+
+// Message is a text a quest sends: Key says which one it is (the quest, its cycle, the moment and the index), so
+// storing it again changes nothing; From is a contact id.
+type Message struct {
+	Key  string
+	From string
+	Say  protocol.Text
 }
 
 // Stored is what a commit gave.
@@ -88,6 +99,9 @@ type Stored struct {
 	// Paid: some grant put xu in the wallet, which now holds Balance
 	Paid    bool
 	Balance int64
+	// Texts are the messages that were new (one stored before is skipped), Contacts the numbers they gave
+	Texts    []protocol.PhoneText
+	Contacts []string
 }
 
 // Store keeps quest state (store.DB in production).

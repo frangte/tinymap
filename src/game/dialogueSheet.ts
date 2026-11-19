@@ -22,6 +22,8 @@ export interface SheetView {
   choices: readonly Bilingual[];
   /** the shop this line opens (items.json), '' for none */
   shop: string;
+  /** a phone call: the sheet looks like one */
+  call: boolean;
 }
 
 export interface SheetEvents {
@@ -82,8 +84,10 @@ export class DialogueSheet {
   private draw(v: SheetView): void {
     this.name.textContent = v.name;
     this.role.textContent = tx(v.role);
-    this.group.hidden = v.mode !== 'group';
-    this.group.textContent = v.size > 1 ? L.groupOf(v.size) : L.group;
+    this.root.classList.toggle('is-call', v.call);
+    this.group.hidden = v.mode !== 'group' && !v.call;
+    this.group.classList.toggle('is-call', v.call);
+    this.group.textContent = v.call ? L.call : v.size > 1 ? L.groupOf(v.size) : L.group;
     this.say.textContent = v.say.vi;
     const gloss = lang() === 'en' ? v.say.en : '';
     this.gloss.textContent = gloss;

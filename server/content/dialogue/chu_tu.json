@@ -1,7 +1,8 @@
 {
   "id": "chu_tu",
-  "about": "Chú Tư's café on Lê Lai. Ordering a cà phê sữa đá sends order_ca_phe_sua_da (the Citizen's morning coffee and the dailies listen for it). The Sổ sưu tầm (collection.json) listens for phrase_da (greeting with “dạ”) and phrase_mot_hai (ordering two).",
+  "about": "Chú Tư's café on Lê Lai. Ordering a cà phê sữa đá sends order_ca_phe_sua_da (the Citizen's morning coffee and the dailies listen for it). The answer gated by the quest traveler.an_nhu_nguoi_sai_gon (asking the price in Vietnamese) sends hoi_gia_ca_phe. The Sổ sưu tầm (collection.json) listens for phrase_da (greeting with “dạ”) and phrase_mot_hai (ordering two).",
   "start": "greet",
+  "call": "call",
   "nodes": {
     "greet": {
       "say": {
@@ -14,6 +15,7 @@
       "choices": [
         { "text": { "vi": "Cho con một ly cà phê sữa đá.", "en": "One iced milk coffee, please." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
         { "text": { "vi": "Dạ, con chào chú!", "en": "Hello, uncle! (polite “dạ”)" }, "goto": "hello", "emit": "phrase_da" },
+        { "text": { "vi": "Cho con hỏi, ly cà phê sữa đá bao nhiêu tiền vậy chú?", "en": "Excuse me, how much is an iced milk coffee?" }, "goto": "coffee_price", "emit": "hoi_gia_ca_phe", "requires_quest": "traveler.an_nhu_nguoi_sai_gon" },
         { "text": { "vi": "Cà phê sữa đá là sao chú?", "en": "What is cà phê sữa đá?" }, "goto": "explain" },
         { "text": { "vi": "Quán mở lâu chưa chú?", "en": "How long has the café been here?" }, "goto": "history" },
         { "text": { "vi": "Dạ thôi, lát con ghé.", "en": "Not now, I'll come back later." }, "goto": "bye" }
@@ -26,6 +28,15 @@
       "choices": [
         { "text": { "vi": "Dạ, cho con một ly cà phê sữa đá.", "en": "Yes please, an iced milk coffee." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
         { "text": { "vi": "Dạ thôi, lát con ghé.", "en": "Not now, I'll come back later." }, "goto": "bye" }
+      ]
+    },
+    "coffee_price": {
+      "say": {
+        "default": { "vi": "Ly cà phê sữa đá hai lăm ngàn thôi con. Quán vỉa hè chừng hai chục, quán máy lạnh ba chục là bình thường. Hỏi giá trước là khôn đó!", "en": "An iced milk coffee is twenty-five thousand. Pavement cafés charge around twenty, air-conditioned ones thirty, that's normal. Asking the price first is smart!" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, cho con một ly cà phê sữa đá.", "en": "Yes please, an iced milk coffee." }, "goto": "order", "emit": "order_ca_phe_sua_da" },
+        { "text": { "vi": "Dạ, con cảm ơn chú.", "en": "Thank you." }, "goto": "bye" }
       ]
     },
     "explain": {
@@ -91,6 +102,20 @@
       "say": {
         "default": { "vi": "Ừ, đi đâu thì đi, nhớ ghé uống cà phê nghen!", "en": "Go wherever you like, just come back for coffee!" }
       }
+    },
+    "call": {
+      "say": {
+        "default": { "vi": "Alô, quán Chú Tư nghe! Muốn ly cà phê hả? Tới quán chú pha, gọi điện thoại chú pha qua đó hổng được đâu!", "en": "Hello, Chú Tư's café! Want a coffee? Come in and I'll make it. I can't pour one through the phone!" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con hỏi thăm chú thôi.", "en": "I just wanted to say hi." }, "goto": "call_bye" }
+      ]
+    },
+    "call_bye": {
+      "say": {
+        "default": { "vi": "Ừ, nhớ ghé uống cà phê nghen con!", "en": "Good. Come by for a coffee soon!" }
+      }
     }
+
   }
 }

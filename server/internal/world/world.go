@@ -49,6 +49,10 @@ type Config struct {
 	// one they stand there but do not talk.
 	NPCs     []NPCSpec
 	Dialogue dialogue.Provider
+	// Voices are contacts with no body on the island (Má): they can only be called. Contacts says whether a
+	// character has a number; without it nobody can call.
+	Voices   []NPCSpec
+	Contacts ContactBook
 	// Places are where players go (places.json): entering one, and time spent there, are events
 	Places []content.Place
 	// Emotes names emote codes (emotes.json), for emote events
@@ -269,6 +273,8 @@ type World struct {
 	vehicles map[uint32]*vehicle
 	npcs     []*npc
 	npcByID  map[uint32]*npc
+	// byKey finds a contact to call: the NPCs and the voices, by content id
+	byKey    map[string]*npc
 	sessions map[uint32]*session
 	places   []placeShape
 	nextID   uint32
@@ -297,12 +303,16 @@ func New(cfg Config, log *slog.Logger) *World {
 		members:  make(map[*Peer]*member),
 		vehicles: make(map[uint32]*vehicle),
 		npcByID:  make(map[uint32]*npc),
+		byKey:    make(map[string]*npc),
 		sessions: make(map[uint32]*session),
 		places:   shapesOf(cfg.Places),
 		archAt:   make(map[string]time.Time),
 	}
 	for _, spec := range cfg.NPCs {
 		w.addNPC(spec)
+	}
+	for _, spec := range cfg.Voices {
+		w.addVoice(spec)
 	}
 	return w
 }
@@ -537,6 +547,8 @@ func (w *World) onMsg(p *Peer, msg protocol.ClientMsg) {
 		w.onInteract(p, m, msg)
 	case protocol.TypeChoose:
 		w.onChoose(p, m, msg)
+	case protocol.TypeCall:
+		w.onCall(p, m, msg)
 	case protocol.TypeInteractLeave:
 		if m.talk != nil && m.talk.id == msg.Sid {
 			w.leaveTalk(m, protocol.EndLeft)

@@ -23,6 +23,8 @@ export class Phone {
   private readonly toggle = el<HTMLButtonElement>('phone-toggle');
   private readonly dot = el('phone-dot');
   private readonly notices: Notice[] = [];
+  /** the count shown on an app's tile (unread texts), by app id */
+  private readonly badges = new Map<string, number>();
   private readonly ctx: AppContext;
   private apps: string[] = [];
   private current: { id: string; view: AppView } | null = null;
@@ -51,6 +53,12 @@ export class Phone {
   setApps(ids: readonly string[]): void {
     this.apps = ids.filter((id) => id in APP_VIEWS);
     if (this.current && !this.apps.includes(this.current.id)) this.showHome();
+    this.renderHome();
+  }
+
+  /** A count on an app's tile (0 for none): the unread texts on Tin nhắn. */
+  setBadge(app: string, n: number): void {
+    this.badges.set(app, n);
     this.renderHome();
   }
 
@@ -116,6 +124,13 @@ export class Phone {
       const name = document.createElement('span');
       name.textContent = def ? tx(def.name) : id;
       b.append(icon(def?.icon ?? ''), name);
+      const n = this.badges.get(id) ?? 0;
+      if (n > 0) {
+        const badge = document.createElement('b');
+        badge.className = 'app-badge';
+        badge.textContent = String(n);
+        b.append(badge);
+      }
       b.addEventListener('click', () => this.openApp(id));
       return b;
     }));
@@ -168,5 +183,8 @@ export function bindHost(host: PhoneHost): PhoneHost {
     directions: () => host.directions(),
     mutes: () => host.mutes(),
     owned: () => host.owned(),
+    book: () => host.book(),
+    call: (contact) => host.call(contact),
+    readTexts: () => host.readTexts(),
   };
 }

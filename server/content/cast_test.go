@@ -76,6 +76,9 @@ var noQuests = []byte(`{"titles": [], "stamps": [], "quests": [], "achievements"
 // noItems is an items.json without shops: the shipped shop belongs to an NPC these small casts do not have
 var noItems = []byte(`{"shops": [], "items": []}`)
 
+// noContacts is a contacts.json with nobody: the shipped numbers belong to NPCs and dialogue these small casts do not have
+var noContacts = []byte(`{"contacts": []}`)
+
 func TestCastRejects(t *testing.T) {
 	const npc = `{"id": "x", "name": "Cô X", "role": {"vi": "bán hàng", "en": "bán hàng"}, "look": {"body": "woman", "outfit": "baba", "hat": "nonla"},
 		"place": "cho_ben_thanh", "at": [2, -11.5], "face": [8, -17], "mode": "private", "dialogue": "x", "reach": 3 %s}`
@@ -121,6 +124,7 @@ func TestCastRejects(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			f := embedded()
 			f.npcs, f.dialogues, f.quests, f.items = c.npcs, c.dialogues, noQuests, noItems
+			f.contacts = noContacts
 			_, err := load(f)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err = %v, want it to mention %q", err, c.want)
@@ -130,6 +134,7 @@ func TestCastRejects(t *testing.T) {
 	// and the base case loads, so each failure above is the one edit
 	f := embedded()
 	f.npcs, f.dialogues, f.quests, f.items = npcs(""), dialogue(okNodes), noQuests, noItems
+	f.contacts = noContacts
 	if _, err := load(f); err != nil {
 		t.Fatalf("the base case: %v", err)
 	}

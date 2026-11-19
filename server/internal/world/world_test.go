@@ -85,6 +85,7 @@ type frame struct {
 	Choices []protocol.Text `json:"choices"`
 	Reason  string          `json:"reason"`
 	Shop    string          `json:"shop"`
+	Call    string          `json:"call"`
 	Items   json.RawMessage `json:"items"`
 	Rid     uint32          `json:"rid"`
 	OK      bool            `json:"ok"`

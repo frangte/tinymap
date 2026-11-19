@@ -32,6 +32,7 @@ const vi = {
   stampInBook: 'Sổ tem (Sổ tay, mục Thành tích)',
   stampBody: (stamp: string, where: string) => `${stamp}: xem trong ${where}.`,
   newQuest: 'Nhiệm vụ mới',
+  newText: (from: string) => `Tin nhắn từ ${from}`,
   // arriving, and the people around
   welcome: 'Chào mừng tới Quận 1',
   welcomeBody: (role: string, pitch: string) => `Bạn là ${role}. ${pitch}`,
@@ -71,6 +72,7 @@ const en: typeof vi = {
   stampInBook: 'the stamp book (Notebook, Achievements)',
   stampBody: (stamp, where) => `${stamp}: see it in ${where}.`,
   newQuest: 'New quest',
+  newText: (from) => `Message from ${from}`,
   welcome: 'Welcome to District 1',
   welcomeBody: (role, pitch) => `You are a ${role}. ${pitch}`,
   welcomeNoRole: 'Stroll around, chat, visit the landmarks.',

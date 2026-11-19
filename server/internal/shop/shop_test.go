@@ -223,12 +223,12 @@ func TestBuyingAPhoneAnswersInOrder(t *testing.T) {
 	}
 }
 
-func TestABasicPhoneOpensOnlyNotifications(t *testing.T) {
+func TestABasicPhoneOpensOnlyThePhoneApps(t *testing.T) {
 	f := newFixture(t, 500_000)
 	f.buy("nokla_1280", 1)
 	var it protocol.Items
 	_ = json.Unmarshal(f.h.inbox[lan][1], &it)
-	if !slices.Equal(it.Apps, []string{"notices"}) {
+	if !slices.Equal(it.Apps, []string{"calls", "messages", "notices"}) {
 		t.Fatalf("apps on a brick: %v", it.Apps)
 	}
 }

@@ -518,19 +518,19 @@ func TestUnlessCapsHidesAQuestFromThoseWhoHaveOne(t *testing.T) {
 // requires_caps: the Crab quests wait for a smartphone, and open the moment the character has one.
 func TestRequiresCapsHoldsAQuestBackUntilTheCharacterHasThem(t *testing.T) {
 	e := engine(t)
-	const crab = "traveler.di_crab"
+	const crab = "citizen.tho_dia"
 	book := NewBook(Saved{})
-	none := Player{Tags: []string{"traveler"}}
+	none := Player{Tags: []string{"citizen", "native"}}
 	e.Refresh(none, book, 1)
 	if book.Records[crab] != nil {
 		t.Fatal("a character without a phone was offered a Crab quest")
 	}
-	brick := Player{Tags: []string{"traveler"}, Caps: capability.Of(content.CapPhone)}
+	brick := Player{Tags: []string{"citizen", "native"}, Caps: capability.Of(content.CapPhone)}
 	e.Refresh(brick, book, 2)
 	if book.Records[crab] != nil {
 		t.Fatal("a basic phone was offered a Crab quest")
 	}
-	smart := Player{Tags: []string{"traveler"}, Caps: capability.Of(content.CapPhone, content.CapSmartphone)}
+	smart := Player{Tags: []string{"citizen", "native"}, Caps: capability.Of(content.CapPhone, content.CapSmartphone)}
 	if out := e.Refresh(smart, book, 3); out.Changed[crab] == nil || book.Records[crab] == nil {
 		t.Fatal("a smartphone did not open the Crab quest")
 	}

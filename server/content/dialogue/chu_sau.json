@@ -1,13 +1,15 @@
 {
   "id": "chu_sau",
-  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions; he is who a Traveler asks when no Citizen player answers an ask for the way in time (D18). The Sổ sưu tầm (collection.json) listens for phrase_xin_loi (opening with “xin lỗi”) and phrase_khong (refusing a ride politely).",
+  "about": "Chú Sáu waits with his xe ôm at the roundabout. His directions send asked_directions; he is who a Traveler asks when no Citizen player answers an ask for the way in time (D18). The answer gated by the quest traveler.qua_duong (crossing the roundabout) sends crossing_advice. The Sổ sưu tầm (collection.json) listens for phrase_xin_loi (opening with “xin lỗi”) and phrase_khong (refusing a ride politely).",
   "start": "greet",
+  "call": "call",
   "nodes": {
     "greet": {
       "say": {
         "default": { "vi": "Đi đâu con? Chú chở, giá mềm!", "en": "Where to? I'll take you, good price!" },
         "traveler": { "vi": "Khách du lịch hả? Muốn đi đâu chú chỉ đường cho, hông đi xe cũng được!", "en": "A traveller? Tell me where you're going and I'll show you the way, ride or not!" },
         "citizen": { "vi": "Ê {name}, nay rảnh hả con? Ngồi xuống nói chuyện chơi.", "en": "Hey {name}, free today? Sit down and chat." },
+        "newcomer": { "vi": "Ủa, con của bạn chú dưới Bến Tre hả? Giống ba con như đúc! Mới lên hả? Có gì khó cứ nói chú nghe, đừng ngại.", "en": "Oh, my old friend's child from Bến Tre? You look just like your dad! Just arrived? Anything hard, just tell me, don't be shy." },
         "driver": { "vi": "Ủa, Crab Bike hả? Nay chạy được nhiêu cuốc rồi con?", "en": "Oh, Crab Bike? How many rides today?" }
       },
       "emote": "wave",
@@ -15,7 +17,8 @@
         { "text": { "vi": "Xin lỗi chú, chỉ đường giúp con được không?", "en": "Excuse me, could you give me directions?" }, "goto": "where", "emit": "phrase_xin_loi" },
         { "text": { "vi": "Chạy xe ôm có vui không chú?", "en": "Do you like driving a xe ôm?" }, "goto": "life" },
         { "text": { "vi": "Chú chở con đi một vòng nha?", "en": "Could you give me a ride?" }, "goto": "ride" },
-        { "text": { "vi": "Không, cảm ơn chú. Con đi bộ.", "en": "No, thank you. I'll walk." }, "goto": "bye", "emit": "phrase_khong" }
+        { "text": { "vi": "Không, cảm ơn chú. Con đi bộ.", "en": "No, thank you. I'll walk." }, "goto": "bye", "emit": "phrase_khong" },
+        { "text": { "vi": "Chú ơi, qua bùng binh sao cho an toàn vậy?", "en": "Uncle, how do I cross the roundabout safely?" }, "goto": "crossing", "requires_quest": "traveler.qua_duong" }
       ]
     },
     "where": {
@@ -65,6 +68,15 @@
         { "text": { "vi": "Còn chỗ khác thì sao chú?", "en": "And somewhere else?" }, "goto": "where" }
       ]
     },
+    "crossing": {
+      "say": {
+        "default": { "vi": "Qua đường ở Sài Gòn hả? Đừng chạy, đừng đứng khựng giữa đường. Cứ đi chậm, đều, tay giơ ra cho người ta thấy, xe nó chạy vòng qua mình. Mắt ngó xe, đừng ngó điện thoại!", "en": "Crossing a Saigon street? Don't run, don't freeze in the middle. Walk slowly and steadily, hold a hand out so they see you, and the bikes flow around you. Eyes on the traffic, not your phone!" }
+      },
+      "emote": "wave",
+      "choices": [
+        { "text": { "vi": "Đi chậm, đều, đừng chạy. Dạ, con cảm ơn chú!", "en": "Slow, steady, no running. Thank you, uncle!" }, "goto": "bye_road", "emit": "crossing_advice" }
+      ]
+    },
     "life": {
       "say": {
         "default": { "vi": "Chú chạy xe ôm ba chục năm rồi. Giờ người ta đặt xe trên điện thoại hết, mà khách quen vẫn kêu chú.", "en": "Thirty years on a xe ôm. Everyone books rides on their phones now, but my regulars still call me." },
@@ -94,6 +106,20 @@
       "say": {
         "default": { "vi": "Ừ, đi đi con. Cần xe thì kêu chú!", "en": "Off you go. Need a ride, just call me!" }
       }
+    },
+    "call": {
+      "say": {
+        "default": { "vi": "Alô, chú Sáu nghe. Cần xe hả con? Chú đang ở bùng binh, tới đây chú chở.", "en": "Hello, Chú Sáu here. Need a ride, dear? I'm at the roundabout, come over and I'll take you." }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con gọi hỏi thăm chú thôi.", "en": "I just called to say hello." }, "goto": "call_bye" }
+      ]
+    },
+    "call_bye": {
+      "say": {
+        "default": { "vi": "Ừ, có gì khó thì ra bùng binh kiếm chú nghen con!", "en": "Good. If anything's hard, come find me at the roundabout!" }
+      }
     }
+
   }
 }

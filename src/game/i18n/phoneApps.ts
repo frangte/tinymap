@@ -29,6 +29,14 @@ const vi = {
   communityEmpty: 'Chưa có ai khác ngoài phố. Rủ bạn bè vào chơi nhé!',
   communityCount: (n: number) => `${n} người đang ở ngoài phố, gần nhất trước.`,
   farAway: 'ở xa',
+  // calls: the Danh bạ
+  callsAbout: 'Bấm Gọi để nói chuyện qua điện thoại, ở đâu cũng được. Gặp ai ngoài đời thì có số người đó.',
+  noContacts: 'Chưa có số nào. Nói chuyện với ai đó ngoài đời thì có số của họ.',
+  callsOffline: 'Đang mất kết nối, chưa gọi được.',
+  call: 'Gọi',
+  callAria: (name: string) => `Gọi ${name}`,
+  // messages
+  noTexts: 'Chưa có tin nhắn nào.',
 };
 
 const en: typeof vi = {
@@ -54,6 +62,12 @@ const en: typeof vi = {
   communityEmpty: 'Nobody else is out on the street. Invite your friends!',
   communityCount: (n) => (n === 1 ? '1 person out on the street.' : `${n} people out on the street, nearest first.`),
   farAway: 'far away',
+  callsAbout: 'Press Call to talk on the phone, wherever you are. You get the number of anyone you meet in person.',
+  noContacts: 'No numbers yet. Talk to someone in person to get theirs.',
+  callsOffline: 'Connection lost, calls are not available yet.',
+  call: 'Call',
+  callAria: (name) => `Call ${name}`,
+  noTexts: 'No messages yet.',
 };
 
 export const L = catalog({ vi, en });

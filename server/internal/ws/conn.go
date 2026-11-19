@@ -84,6 +84,14 @@ type Items interface {
 	Owned(ctx context.Context, character string) ([]string, error)
 }
 
+// Phone keeps a character's numbers and texts while it plays: phone.Service in production.
+type Phone interface {
+	// Arrive: the character joined or changed archetype (tags); hasPhone says whether its texts go with its numbers
+	Arrive(character string, tags []string, hasPhone bool)
+	// Read: the character opened its messages
+	Read(character string)
+}
+
 // Quests runs a character's quests while it plays: quest.Service in production.
 type Quests interface {
 	Join(character string, session uint64, who quest.Player)
@@ -103,6 +111,8 @@ type Server struct {
 	log     *slog.Logger
 	// Quests, when set, hears which characters are playing; nil plays without quests
 	Quests Quests
+	// Phone, when set, tells arriving characters their numbers and texts; nil plays without a phone's data
+	Phone Phone
 	// Wallets, when set, gives arriving characters their balance; nil plays without wallets
 	Wallets Wallets
 	// Items, when set, gives arriving characters the items they own; nil sends none
@@ -273,6 +283,9 @@ func (c *client) readLoop() {
 			q.Join(c.character, c.session, quest.Player{Tags: c.s.catalog.TagsOf(arrival.Arch), Caps: c.can()})
 			defer q.Leave(c.character, c.session)
 		}
+		if ph := c.s.Phone; ph != nil {
+			ph.Arrive(c.character, c.s.catalog.TagsOf(arrival.Arch), c.can().Has(content.CapPhone))
+		}
 	}
 
 	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -314,7 +327,11 @@ func (c *client) readLoop() {
 				continue
 			}
 			ok = w.Handle(c.peer, msg)
-		case protocol.TypeInteract, protocol.TypeChoose, protocol.TypeInteractLeave:
+		case protocol.TypeTextsRead:
+			if profiles.Allow() && c.character != "" && c.s.Phone != nil {
+				c.s.Phone.Read(c.character)
+			}
+		case protocol.TypeInteract, protocol.TypeChoose, protocol.TypeInteractLeave, protocol.TypeCall:
 			// a dropped command gets no result: the game gives up waiting for it after a while
 			if !talks.Allow() {
 				continue
@@ -485,6 +502,10 @@ func (c *client) changeArch(arch string) bool {
 	}
 	if q := c.s.Quests; q != nil && c.session != 0 {
 		q.Retag(c.character, c.session, quest.Player{Tags: cat.TagsOf(arch), Caps: c.can()})
+	}
+	if ph := c.s.Phone; ph != nil {
+		// the new archetype's starting numbers (a native who becomes a newcomer has Má's)
+		ph.Arrive(c.character, cat.TagsOf(arch), c.can().Has(content.CapPhone))
 	}
 	return true
 }

@@ -7,6 +7,8 @@ import type { EndReason, Interaction } from '../net/protocol';
 import type { Player } from './player';
 import type { Npc, Npcs } from './npcs';
 import { DialogueSheet } from './dialogueSheet';
+import { contactDef, contactName } from './contacts';
+import { tx } from './i18n';
 import { L } from './i18n/talk';
 
 /** why the server would not start a conversation, as the player reads it */
@@ -14,6 +16,13 @@ const REFUSED: Record<string, (name: string) => string> = {
   far: (n) => L.far(n),
   full: (n) => L.full(n),
   mute: (n) => L.busy(n),
+};
+
+/** why the server would not ring a number */
+const CALL_REFUSED: Record<string, (name: string) => string> = {
+  phone: () => L.noPhone,
+  target: (n) => L.noNumber(n),
+  mute: (n) => L.noAnswer(n),
 };
 
 /** The shop sheet as the conversation sees it. */
@@ -62,7 +71,8 @@ export class Talk {
 
   /** The NPC the action button would talk to: the nearest in reach, on foot, online, not the one we talk to. */
   near(): Npc | null {
-    if (this.d.player.riding || !this.d.net.isOnline) return null;
+    // on a call the sheet is the whole conversation: hang up before walking up to someone
+    if (this.d.player.riding || !this.d.net.isOnline || this.current?.call) return null;
     const n = this.d.npcs.nearest(this.d.player.position);
     return n && n.id !== this.current?.n ? n : null;
   }
@@ -88,9 +98,26 @@ export class Talk {
     });
   }
 
+  /** The phone's Danh bạ rings a contact: the call is a conversation like any, wherever both are. */
+  call(contact: string): void {
+    if (this.greeting) return;
+    this.greeting = true;
+    void this.d.net.call(contact).then((r) => {
+      this.greeting = false;
+      if (r.ok || (r.code === 'timeout' && this.isOpen)) return;
+      const name = contactName(contact);
+      const say = CALL_REFUSED[r.code];
+      this.d.notify(say ? say(name) : L.notHeard);
+    });
+  }
+
   /** The server shows where a conversation is. */
   interaction(i: Interaction): void {
     if (this.left.has(i.sid)) return;
+    if (i.call) {
+      this.showCall(i);
+      return;
+    }
     const n = this.d.npcs.get(i.n);
     if (!n) {
       // an NPC this game does not know (a newer server): walk out rather than stay in its conversation unseen
@@ -102,14 +129,30 @@ export class Talk {
     this.current = i;
     this.answering = false;
     this.sheet.setBusy(false);
-    this.sheet.show({ name: n.def.name, role: n.def.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop });
+    this.sheet.show({ name: n.def.name, role: n.def.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop, call: false });
+  }
+
+  /** A line of a phone call: the contact has no figure to look at, the sheet says who is on the line. */
+  private showCall(i: Interaction): void {
+    const c = contactDef(i.call);
+    if (!c) {
+      // a number this game does not know (a newer server): hang up rather than stay in a call unseen
+      this.left.add(i.sid);
+      this.d.net.leaveTalk(i.sid);
+      return;
+    }
+    if (this.current && this.current.sid !== i.sid) this.generation++;
+    this.current = i;
+    this.answering = false;
+    this.sheet.setBusy(false);
+    this.sheet.show({ name: tx(c.name), role: c.role, mode: i.mode, lead: i.lead, size: i.size, say: i.say, choices: i.choices, shop: i.shop, call: true });
   }
 
   /** The server ended a conversation. */
   ended(sid: number, reason: EndReason): void {
     this.left.delete(sid);
     if (this.current?.sid !== sid) return;
-    const n = this.d.npcs.get(this.current.n);
+    const n = this.current.call ? undefined : this.d.npcs.get(this.current.n);
     this.drop();
     if (reason === 'far' && n) this.d.notify(L.walkedAway(n.def.name));
   }

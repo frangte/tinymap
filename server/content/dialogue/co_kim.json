@@ -1,0 +1,192 @@
+{
+  "id": "co_kim",
+  "about": "Cô Kim runs a gold shop on Lê Thánh Tôn and teaches the polymer notes as a two-question quiz (docs/design/10-story.md, chapter 0). Question one (which note shows the Hội An Japanese Covered Bridge: the 20.000đ) sends quiz_tien_20k on the right answer; question two (which is longer: the 500.000đ, 152 mm against 136 mm) sends biet_tien_viet. A wrong answer gets a kind correction and the same question again. Facts: Vietnamese polymer notes, https://en.wikipedia.org/wiki/Vietnamese_%C4%91%E1%BB%93ng (20.000đ blue, 136x65 mm, Hội An covered bridge on the back; 500.000đ cyan, 152x65 mm, Kim Liên on the back). There is no currency exchange in the game: everyone starts with đồng.",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "say": {
+        "default": {
+          "vi": "Mua vàng hả con? Tiệm cô có nhẫn, dây chuyền, tính theo chỉ theo cây đàng hoàng.",
+          "en": "Looking for gold, dear? I have rings and chains, weighed properly in chỉ and cây."
+        },
+        "traveler": {
+          "vi": "Anh Tony giới thiệu hả? Con có sẵn tiền đồng trong túi rồi, khỏi đổi. Ngồi đây cô chỉ cách nhận tiền Việt, kẻo bị thối nhầm.",
+          "en": "Did Tony send you? You already have đồng in your pocket, no need to change. Sit down and I'll show you how to tell the notes apart, so nobody gives you the wrong change."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Cô chỉ con cách phân biệt tiền Việt được không?",
+            "en": "Could you show me how to tell the Vietnamese notes apart?"
+          },
+          "goto": "quiz1"
+        },
+        {
+          "text": {
+            "vi": "Vàng ở đây tính sao vậy cô?",
+            "en": "How is gold sold here?"
+          },
+          "goto": "gold"
+        },
+        {
+          "text": {
+            "vi": "Dạ thôi, con đi dạo tiếp.",
+            "en": "No thanks, I'll keep walking."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "quiz1": {
+      "say": {
+        "default": {
+          "vi": "Tiền polymer 20.000 với 500.000 đều màu xanh, dễ nhầm lắm. Câu một: tờ nào có hình Chùa Cầu Hội An ở mặt sau?",
+          "en": "The polymer 20.000 and 500.000 notes are both blue and easy to mix up. Question one: which one has the Hội An Covered Bridge on the back?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Tờ 20.000",
+            "en": "The 20.000"
+          },
+          "goto": "quiz1_ok",
+          "emit": "quiz_tien_20k"
+        },
+        {
+          "text": {
+            "vi": "Tờ 500.000",
+            "en": "The 500.000"
+          },
+          "goto": "quiz1_wrong"
+        }
+      ]
+    },
+    "quiz1_wrong": {
+      "say": {
+        "default": {
+          "vi": "Chưa đúng con ơi, không sao đâu! Tờ 500.000 xanh lơ nhạt, mặt sau là nhà ở quê Bác Hồ ở Kim Liên. Chùa Cầu là tờ 20.000, xanh dương đậm hơn. Thử lại nghen.",
+          "en": "Not quite, but that's fine! The 500.000 is a lighter cyan blue with Kim Liên, Uncle Hồ's home village, on the back. The Covered Bridge is on the 20.000, a deeper blue. Try again."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, để con thử lại.",
+            "en": "All right, let me try again."
+          },
+          "goto": "quiz1"
+        }
+      ]
+    },
+    "quiz1_ok": {
+      "say": {
+        "default": {
+          "vi": "Đúng rồi! Tờ 20.000 xanh dương đậm, có Chùa Cầu. Câu hai: để hai tờ cạnh nhau, tờ nào dài hơn?",
+          "en": "Correct! The 20.000 is the deeper blue one with the Covered Bridge. Question two: put the two notes side by side, which one is longer?"
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Tờ 500.000",
+            "en": "The 500.000"
+          },
+          "goto": "quiz2_ok",
+          "emit": "biet_tien_viet"
+        },
+        {
+          "text": {
+            "vi": "Tờ 20.000",
+            "en": "The 20.000"
+          },
+          "goto": "quiz2_wrong"
+        }
+      ]
+    },
+    "quiz2_wrong": {
+      "say": {
+        "default": {
+          "vi": "Gần đúng rồi! Tiền càng lớn thì tờ càng dài: 500.000 dài 152 mm, còn 20.000 chỉ 136 mm. Chọn lại nghen.",
+          "en": "Close! The bigger the value, the longer the note: the 500.000 is 152 mm long, the 20.000 only 136 mm. Choose again."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Tờ 500.000",
+            "en": "The 500.000"
+          },
+          "goto": "quiz2_ok",
+          "emit": "biet_tien_viet"
+        },
+        {
+          "text": {
+            "vi": "Cô nhắc lại câu đầu giùm con.",
+            "en": "Could you go over the first one again?"
+          },
+          "goto": "quiz1"
+        }
+      ]
+    },
+    "quiz2_ok": {
+      "say": {
+        "default": {
+          "vi": "Giỏi quá! 500.000 dài hơn, 152 mm so với 136 mm. Trả tiền nhớ coi kỹ mấy số không, nhất là buổi tối. Vậy là con biết tiền Việt rồi đó.",
+          "en": "Well done! The 500.000 is longer, 152 mm against 136 mm. When you pay, check the zeros carefully, especially at night. Now you know Vietnamese money."
+        }
+      },
+      "emote": "wave",
+      "choices": [
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn cô!",
+            "en": "Thank you, auntie!"
+          },
+          "goto": "bye"
+        },
+        {
+          "text": {
+            "vi": "Vàng ở đây tính sao vậy cô?",
+            "en": "How is gold sold here?"
+          },
+          "goto": "gold"
+        }
+      ]
+    },
+    "gold": {
+      "say": {
+        "default": {
+          "vi": "Vàng người Việt tính bằng chỉ: một chỉ là 3,75 gam, mười chỉ là một cây, tức một lượng. Ngày cưới, ngày vía Thần Tài ai cũng ghé mua.",
+          "en": "Vietnamese gold is sold by the chỉ: one chỉ is 3.75 grams, ten chỉ make one cây, or lượng. People come to buy at weddings and on the God of Wealth day."
+        }
+      },
+      "choices": [
+        {
+          "text": {
+            "vi": "Cô chỉ con cách phân biệt tiền Việt được không?",
+            "en": "Could you show me how to tell the Vietnamese notes apart?"
+          },
+          "goto": "quiz1"
+        },
+        {
+          "text": {
+            "vi": "Dạ, con cảm ơn cô.",
+            "en": "Thank you, auntie."
+          },
+          "goto": "bye"
+        }
+      ]
+    },
+    "bye": {
+      "say": {
+        "default": {
+          "vi": "Ừ, đi chơi vui nghen con!",
+          "en": "Alright, have fun, dear!"
+        }
+      }
+    }
+  }
+}

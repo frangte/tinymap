@@ -1,7 +1,8 @@
 {
   "id": "di_nam",
-  "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the dailies listen for it); praising the food sends phrase_ngon_qua (the Sổ sưu tầm, collection.json, listens for it).",
+  "about": "Dì Năm sells bánh tráng trộn by Hồ Con Rùa. She talks in public mode, so every line is heard nearby: keep each within 140 characters. Buying sends buy_banh_trang_tron (the dailies listen for it); asking the price in Vietnamese, gated by the quest traveler.an_nhu_nguoi_sai_gon, sends hoi_gia_banh_trang; praising the food sends phrase_ngon_qua (the Sổ sưu tầm, collection.json, listens for it).",
   "start": "greet",
+  "call": "call",
   "nodes": {
     "greet": {
       "say": {
@@ -13,9 +14,19 @@
       "emote": "wave",
       "choices": [
         { "text": { "vi": "Cho con một bịch!", "en": "One bag, please!" }, "goto": "order", "emit": "buy_banh_trang_tron" },
+        { "text": { "vi": "Một bịch bao nhiêu tiền vậy dì?", "en": "How much is one bag, auntie?" }, "goto": "price", "emit": "hoi_gia_banh_trang", "requires_quest": "traveler.an_nhu_nguoi_sai_gon" },
         { "text": { "vi": "Trong đó có gì vậy dì?", "en": "What's in it?" }, "goto": "what" },
         { "text": { "vi": "Sao gọi là Hồ Con Rùa vậy dì?", "en": "Why is it called Turtle Lake?" }, "goto": "lake" },
         { "text": { "vi": "Dạ thôi dì.", "en": "No thanks." }, "goto": "bye" }
+      ]
+    },
+    "price": {
+      "say": {
+        "default": { "vi": "Mười lăm ngàn một bịch con. Dì trộn tại chỗ, ăn liền cho giòn nghen!", "en": "Fifteen thousand a bag. I mix it on the spot, eat it right away while it's crunchy!" }
+      },
+      "choices": [
+        { "text": { "vi": "Cho con một bịch!", "en": "One bag, please!" }, "goto": "order", "emit": "buy_banh_trang_tron" },
+        { "text": { "vi": "Dạ, con cảm ơn dì.", "en": "Thank you!" }, "goto": "bye" }
       ]
     },
     "what": {
@@ -75,6 +86,20 @@
       "say": {
         "default": { "vi": "Ừ, đi chơi vui nha! Thèm thì quay lại dì trộn cho.", "en": "Have fun! Come back when you're hungry." }
       }
+    },
+    "call": {
+      "say": {
+        "default": { "vi": "Alô, Dì Năm nghe. Thèm bánh tráng trộn hả con? Ra Hồ Con Rùa, dì trộn liền!", "en": "Hello, Dì Năm here. Craving bánh tráng trộn? Come to Turtle Lake, I'll mix it right away!" }
+      },
+      "choices": [
+        { "text": { "vi": "Dạ, con hỏi thăm dì thôi.", "en": "I just wanted to say hi." }, "goto": "call_bye" }
+      ]
+    },
+    "call_bye": {
+      "say": {
+        "default": { "vi": "Ừ, ghé ăn nghen con!", "en": "Good. Come and eat!" }
+      }
     }
+
   }
 }

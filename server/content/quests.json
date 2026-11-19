@@ -15,7 +15,8 @@
   ],
   "stamps": [
     { "id": "ba_ngay_lien", "name": { "vi": "Ba ngày liền", "en": "Three days running" }, "set": "streak" },
-    { "id": "mot_tuan_o_pho", "name": { "vi": "Một tuần ở phố", "en": "A week in town" }, "set": "streak" }
+    { "id": "mot_tuan_o_pho", "name": { "vi": "Một tuần ở phố", "en": "A week in town" }, "set": "streak" },
+    { "id": "biet_tien_viet", "name": { "vi": "Biết tiền Việt", "en": "Knows Vietnamese money" } }
   ],
   "quests": [
     {
@@ -44,6 +45,386 @@
       "rewards": {}
     },
     {
+      "id": "story.goi_ve_cho_ma",
+      "version": 1,
+      "questline": "chuong_1",
+      "title": { "vi": "Gọi về cho má", "en": "Call home" },
+      "about": {
+        "vi": "Má dặn lên tới nơi, có điện thoại rồi thì gọi về. Mở điện thoại, vào Danh bạ và gọi Má.",
+        "en": "Mum said to call once you arrived and got a phone. Open the phone, go to Contacts and call Mum."
+      },
+      "tags_any": ["newcomer"],
+      "requires_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "call",
+          "type": "dialogue_signal",
+          "params": { "npc": "ma", "signal": "ma_gui_tien" },
+          "text": { "vi": "Gọi về cho Má bằng điện thoại (Danh bạ)", "en": "Call Mum on your phone (Contacts)" }
+        }
+      ],
+      "rewards": { "xu": 100000 },
+      "texts": {
+        "on_done": [
+          {
+            "from": "ma",
+            "text": { "vi": "Má gửi cho con một trăm ngàn rồi nghen. Ăn cơm đàng hoàng, có gì khó kiếm chú Sáu.", "en": "I sent you a hundred thousand. Eat properly, and if anything's hard, find Chú Sáu." }
+          }
+        ]
+      }
+    },
+    {
+      "id": "story.gap_chu_sau",
+      "version": 1,
+      "questline": "chuong_1",
+      "title": { "vi": "Đi gặp chú Sáu", "en": "Go and meet Chú Sáu" },
+      "about": {
+        "vi": "Chú Sáu là bạn của ba, chạy xe ôm ở bùng binh Quách Thị Trang. Má dặn có gì khó thì kiếm chú.",
+        "en": "Chú Sáu is your dad's old friend and drives a xe ôm at the Quách Thị Trang roundabout. Mum said to find him if anything is hard."
+      },
+      "tags_any": ["newcomer"],
+      "requires": ["story.goi_ve_cho_ma"],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "meet",
+          "type": "talk_npc",
+          "params": { "npc": "chu_sau" },
+          "text": { "vi": "Nói chuyện với chú Sáu ở bùng binh", "en": "Talk to Chú Sáu at the roundabout" },
+          "at": "chu_sau"
+        }
+      ],
+      "rewards": {}
+    },
+    {
+      "id": "newcomer.to_giay_dia_chi",
+      "version": 1,
+      "questline": "chuong_0_que",
+      "title": {
+        "vi": "Tờ giấy ghi địa chỉ",
+        "en": "The slip with the address"
+      },
+      "about": {
+        "vi": "Má viết sẵn địa chỉ nhà trọ bà Chín trên một tờ giấy. Từ bến xe Chợ Lớn, đi bộ tới dãy nhà phố Lê Lai. Lần đầu xuống lòng đường thì nhớ ngó xe.",
+        "en": "Mum wrote the address of Bà Chín's guesthouse on a slip of paper. Walk from Chợ Lớn bus station to the Lê Lai shophouse row, and look out for bikes if you step into the road."
+      },
+      "tags_any": [
+        "newcomer"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "walk",
+          "type": "reach_place",
+          "params": {
+            "place": "day_nha_pho_le_lai"
+          },
+          "text": {
+            "vi": "Đi bộ từ bến xe tới dãy nhà phố Lê Lai",
+            "en": "Walk from the bus station to the Lê Lai shophouse row"
+          },
+          "at": "day_nha_pho_le_lai"
+        }
+      ],
+      "rewards": {
+        "xu": 50000
+      }
+    },
+    {
+      "id": "newcomer.nha_tro_ba_chin",
+      "version": 1,
+      "questline": "chuong_0_que",
+      "title": {
+        "vi": "Nhà trọ bà Chín",
+        "en": "Bà Chín's guesthouse"
+      },
+      "about": {
+        "vi": "Đưa tờ giấy cho bà Chín, nhận phòng. Bà sẽ chỉ chỗ mua điện thoại để gọi về cho má.",
+        "en": "Show Bà Chín the slip and take your room. She will tell you where to buy a phone to call your mum."
+      },
+      "tags_any": [
+        "newcomer"
+      ],
+      "requires": [
+        "newcomer.to_giay_dia_chi"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "check_in",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "ba_chin",
+            "signal": "nhan_phong"
+          },
+          "text": {
+            "vi": "Nói chuyện với bà Chín và nhận phòng",
+            "en": "Talk to Bà Chín and take your room"
+          },
+          "at": "ba_chin"
+        }
+      ],
+      "rewards": {
+        "xu": 100000
+      }
+    },
+    {
+      "id": "traveler.hostel_anh_tony",
+      "version": 1,
+      "questline": "chuong_0_nuoc_ngoai",
+      "title": {
+        "vi": "Hostel của anh Tony",
+        "en": "Tony's hostel"
+      },
+      "about": {
+        "vi": "Anh Tony chủ hostel trên phố Bùi Viện dạy hai câu tiếng Việt đầu tiên: xin chào và cảm ơn.",
+        "en": "Tony, who runs a hostel on Bùi Viện, teaches the first two Vietnamese phrases: xin chào and cảm ơn."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "flow": "all",
+      "objectives": [
+        {
+          "id": "xin_chao",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "anh_tony",
+            "signal": "phrase_xin_chao"
+          },
+          "text": {
+            "vi": "Học câu “Xin chào” với anh Tony",
+            "en": "Learn “Xin chào” from Tony"
+          },
+          "at": "anh_tony"
+        },
+        {
+          "id": "cam_on",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "anh_tony",
+            "signal": "phrase_cam_on"
+          },
+          "text": {
+            "vi": "Học câu “Cảm ơn” với anh Tony",
+            "en": "Learn “Cảm ơn” from Tony"
+          },
+          "at": "anh_tony"
+        }
+      ],
+      "rewards": {
+        "xu": 50000
+      }
+    },
+    {
+      "id": "traveler.tien_viet",
+      "version": 1,
+      "questline": "chuong_0_nuoc_ngoai",
+      "title": {
+        "vi": "Tiền Việt",
+        "en": "Vietnamese money"
+      },
+      "about": {
+        "vi": "Tờ 20.000 và 500.000 đều màu xanh, dễ nhầm. Ghé tiệm vàng cô Kim trên đường Lê Thánh Tôn học cách phân biệt.",
+        "en": "The 20.000 and 500.000 notes are both blue and easy to mix up. Visit Cô Kim's gold shop on Lê Thánh Tôn to learn to tell them apart."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.hostel_anh_tony"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "note_20k",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "co_kim",
+            "signal": "quiz_tien_20k"
+          },
+          "text": {
+            "vi": "Chỉ ra tờ 20.000 cho cô Kim",
+            "en": "Pick out the 20.000 note for Cô Kim"
+          },
+          "at": "co_kim"
+        },
+        {
+          "id": "note_500k",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "co_kim",
+            "signal": "biet_tien_viet"
+          },
+          "text": {
+            "vi": "Chỉ ra tờ 500.000 dài hơn",
+            "en": "Pick out the longer 500.000 note"
+          },
+          "at": "co_kim"
+        }
+      ],
+      "rewards": {
+        "xu": 50000,
+        "stamps": [
+          "biet_tien_viet"
+        ]
+      }
+    },
+    {
+      "id": "traveler.tra_gia_cho",
+      "version": 1,
+      "questline": "chuong_0_nuoc_ngoai",
+      "title": {
+        "vi": "Trả giá ở chợ",
+        "en": "Bargaining at the market"
+      },
+      "about": {
+        "vi": "Ra chợ Bến Thành hỏi Cô Ba giá cái nón lá, trả giá cho vui rồi cảm ơn. Hỏi giá trước, trả giá vui vẻ là cách ở chợ.",
+        "en": "At Bến Thành market ask Cô Ba the price of a conical hat, haggle in good humour, then say thanks. Ask first and bargain cheerfully: that is how the market works."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.tien_viet"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "ask",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "co_ba",
+            "signal": "asked_price_hat"
+          },
+          "text": {
+            "vi": "Hỏi giá cái nón lá của Cô Ba",
+            "en": "Ask Cô Ba the price of the conical hat"
+          },
+          "at": "co_ba"
+        },
+        {
+          "id": "haggle",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "co_ba",
+            "signal": "phrase_mac_qua"
+          },
+          "text": {
+            "vi": "Trả giá: “Mắc quá!”",
+            "en": "Haggle: “Mắc quá!”"
+          },
+          "at": "co_ba"
+        },
+        {
+          "id": "thanks",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "co_ba",
+            "signal": "thanked_after_bargain"
+          },
+          "text": {
+            "vi": "Cảm ơn Cô Ba",
+            "en": "Thank Cô Ba"
+          },
+          "at": "co_ba"
+        }
+      ],
+      "rewards": {
+        "xu": 50000
+      }
+    },
+    {
+      "id": "traveler.qua_duong",
+      "version": 1,
+      "questline": "chuong_0_nuoc_ngoai",
+      "title": {
+        "vi": "Qua đường với Chú Sáu",
+        "en": "Crossing with Chú Sáu"
+      },
+      "about": {
+        "vi": "Qua đường ở Sài Gòn thì xe cứ chạy hoài. Hỏi Chú Sáu ở bùng binh Quách Thị Trang cách qua đường cho an toàn.",
+        "en": "Traffic in Saigon never stops. Ask Chú Sáu at the Quách Thị Trang roundabout how to cross safely."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.tra_gia_cho"
+      ],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "advice",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "chu_sau",
+            "signal": "crossing_advice"
+          },
+          "text": {
+            "vi": "Hỏi Chú Sáu cách qua đường",
+            "en": "Ask Chú Sáu how to cross the road"
+          },
+          "at": "chu_sau"
+        }
+      ],
+      "rewards": {
+        "xu": 50000
+      }
+    },
+    {
+      "id": "traveler.an_nhu_nguoi_sai_gon",
+      "version": 1,
+      "questline": "chuong_0_nuoc_ngoai",
+      "title": {
+        "vi": "Ăn như người Sài Gòn",
+        "en": "Eat like a Saigonese"
+      },
+      "about": {
+        "vi": "Hỏi giá bằng tiếng Việt rồi gọi một ly cà phê sữa đá ở quán Chú Tư và bánh tráng trộn của Dì Năm. Biết giá thật thì khỏi bị nói thách.",
+        "en": "Ask the price in Vietnamese, then order an iced milk coffee at Chú Tư's and bánh tráng trộn from Dì Năm. Knowing the real price keeps you from being overcharged."
+      },
+      "tags_any": [
+        "traveler"
+      ],
+      "requires": [
+        "traveler.qua_duong"
+      ],
+      "flow": "all",
+      "objectives": [
+        {
+          "id": "coffee",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "chu_tu",
+            "signal": "hoi_gia_ca_phe"
+          },
+          "text": {
+            "vi": "Hỏi giá ly cà phê sữa đá ở quán Chú Tư",
+            "en": "Ask the price of an iced milk coffee at Chú Tư's"
+          },
+          "at": "chu_tu"
+        },
+        {
+          "id": "snack",
+          "type": "dialogue_signal",
+          "params": {
+            "npc": "di_nam",
+            "signal": "hoi_gia_banh_trang"
+          },
+          "text": {
+            "vi": "Hỏi giá bịch bánh tráng trộn của Dì Năm",
+            "en": "Ask the price of Dì Năm's bánh tráng trộn"
+          },
+          "at": "di_nam"
+        }
+      ],
+      "rewards": {
+        "xu": 100000
+      }
+    },
+    {
       "id": "citizen.ca_phe_sang",
       "version": 1,
       "questline": "song_o_pho",
@@ -55,7 +436,15 @@
         { "id": "order", "type": "dialogue_signal", "params": { "npc": "chu_tu", "signal": "order_ca_phe_sua_da" }, "text": { "vi": "Gọi một ly ở quán Chú Tư", "en": "Order a coffee at Chú Tư's" }, "at": "chu_tu" },
         { "id": "sit", "type": "stay_place", "params": { "place": "day_nha_pho_le_lai" }, "count": 20, "text": { "vi": "Ngồi ngó phố", "en": "Sit and watch the street" }, "at": "chu_tu" }
       ],
-      "rewards": { "titles": ["khach_quen"] }
+      "rewards": { "titles": ["khach_quen"] },
+      "texts": {
+        "on_start": [
+          { "from": "chu_tu", "text": { "vi": "Sáng mai con ghé quán sớm nha, chú để dành cái bàn sát cửa sổ cho.", "en": "Come by the café early tomorrow, dear. I'll keep the table by the window for you." } }
+        ],
+        "on_done": [
+          { "from": "chu_tu", "text": { "vi": "Cảm ơn con ghé quán. Mai nhớ ghé nữa nghen!", "en": "Thanks for stopping by. Come again tomorrow!" } }
+        ]
+      }
     },
     {
       "id": "citizen.chuyen_khu_pho",
@@ -162,6 +551,7 @@
       "about": { "vi": "Mở app Crab, đặt xe tới một công trình, lên xe tài xế và đi một vòng Quận 1.", "en": "Open the Crab app, book a ride to a landmark, hop on behind the driver and see District 1." },
       "tags_any": ["traveler"],
       "requires_caps": ["phone.smart"],
+      "requires": ["traveler.tien_viet"],
       "flow": "sequence",
       "objectives": [
         { "id": "ride", "type": "trip", "params": { "role": "passenger" }, "text": { "vi": "Đi một cuốc Crab tới nơi", "en": "Ride a Crab to your destination" } }

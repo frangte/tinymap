@@ -1,0 +1,18 @@
+{
+  "about": "The numbers a character can have (docs/design/12-phone.md). Shared by the server, which keeps who has which number and runs the calls, and the game (src/game/phone/), which draws the Danh bạ. A contact whose id is an NPC's (npcs.json) is that NPC: they give their number to whoever has talked to them face to face, and a call runs their dialogue from the graph's \"call\" node. A contact with no NPC on the island (Má) has its own name, role and dialogue, and is given at the start to characters whose archetype has a tag in start_for. Every contact's dialogue must have a call node. Texts (quests.json, \"texts\") may come from any contact, and the sender's number is kept when one arrives.",
+  "contacts": [
+    {
+      "id": "ma",
+      "name": { "vi": "Má", "en": "Mum" },
+      "role": { "vi": "má ở quê", "en": "your mum back home" },
+      "dialogue": "ma",
+      "start_for": ["newcomer"]
+    },
+    { "id": "anh_bay" },
+    { "id": "chu_sau" },
+    { "id": "chu_tu" },
+    { "id": "co_ba" },
+    { "id": "di_nam" },
+    { "id": "chi_hanh" }
+  ]
+}

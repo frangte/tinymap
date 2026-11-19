@@ -14,6 +14,8 @@ import { button, h } from './dom';
 import type { Directions } from '../directions';
 import type { Mutes } from '../mutes';
 import type { Owned } from '../items';
+import type { PhoneBook } from '../contacts';
+import { calls, messages } from './callApps';
 import { crab, crabDriver } from './crabApps';
 import { L } from '../i18n/phoneApps';
 
@@ -51,6 +53,12 @@ export interface PhoneHost {
   mutes(): Mutes;
   /** what the player owns: the phone in hand and the items */
   owned(): Owned;
+  /** the numbers and texts the player has */
+  book(): PhoneBook;
+  /** ring a contact (the conversation opens as a call) */
+  call(contact: string): void;
+  /** the messages were opened: tell the server every text is read */
+  readTexts(): void;
 }
 
 export interface AppContext extends PhoneHost {
@@ -208,6 +216,8 @@ const community: AppFactory = (root, ctx) => {
 };
 
 export const APP_VIEWS: Readonly<Record<string, AppFactory>> = {
+  calls,
+  messages,
   chat,
   notices,
   guide,
