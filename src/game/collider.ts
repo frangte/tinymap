@@ -35,8 +35,16 @@ const PASS_THROUGH = new Set(['lampGlow', 'lantern']);
 const WATER = new Set(['water', 'waterDeep', 'foam']);
 /** tree crowns and the bushes painted on the hill: they stop a body, the camera looks through them (paint.ts) */
 const FOLIAGE = new Set(['leaf', 'leafLight', 'leafDark']);
+/**
+ * tree trunks and branches, iron railings: they stop a body, but the camera looks through them. A sight line that
+ * jumps in for every trunk it passes behind jerks the camera into the player's back and out again.
+ */
+const THIN = new Set(['bark', 'railing']);
 /** per-vertex flags */
 const FLAG_FOLIAGE = 1;
+const FLAG_THIN = 2;
+/** what the camera's sight lines and its floor leave out */
+const CAMERA_SKIP = FLAG_FOLIAGE | FLAG_THIN;
 /** the land itself and what grows on it: an open edge of these over dry floor gets a skirt */
 const TERRAIN = new Set(['grass', 'grassDark', 'rock', 'rockDark', 'earth', 'earthDark', 'sand', 'leaf', 'leafLight', 'leafDark']);
 /** the land and the roads, paths and stairs on it, welded together to find the open edges (a path up the hill is
@@ -227,7 +235,7 @@ export class CityCollider {
     const solid = gather(
       world,
       (k) => !PASS_THROUGH.has(k) && !WATER.has(k),
-      (k) => (FOLIAGE.has(k) ? FLAG_FOLIAGE : 0),
+      (k) => (FOLIAGE.has(k) ? FLAG_FOLIAGE : 0) | (THIN.has(k) ? FLAG_THIN : 0),
     );
     if (!solid) throw new Error('the map has nothing to stand on');
     const wet = gather(world, (k) => WATER.has(k), () => 0);
@@ -318,17 +326,26 @@ export class CityCollider {
     return fromY - d;
   }
 
+  /**
+   * The first surface below (x, fromY, z) for the camera to keep above: like floorBelow(), but tree crowns, trunks
+   * and railings do not count (the camera looks through them), or it would hop up over every crown it passes.
+   */
+  cameraFloor(x: number, fromY: number, z: number, reach: number): number {
+    const d = this.castRay(this.v2.set(x, fromY, z), this.down, reach, CAMERA_SKIP);
+    return Number.isFinite(d) ? fromY - d : NaN;
+  }
+
   /** The normal's y of the surface the last floorBelow() found. */
   get lastNormalY(): number {
     return this.hitNormalY;
   }
 
   /**
-   * How far the camera can go from `origin` along `dir` (unit) before a wall, up to `far`. Foliage does not count:
-   * paint.ts fades the crowns between the camera and the player instead.
+   * How far the camera can go from `origin` along `dir` (unit) before a wall, up to `far`. Foliage does not count
+   * (paint.ts fades the crowns between the camera and the player instead), nor do trunks and railings (THIN).
    */
   sightDistance(origin: THREE.Vector3, dir: THREE.Vector3, far: number): number {
-    return Math.min(far, this.castRay(origin, dir, far, FLAG_FOLIAGE));
+    return Math.min(far, this.castRay(origin, dir, far, CAMERA_SKIP));
   }
 
   /**

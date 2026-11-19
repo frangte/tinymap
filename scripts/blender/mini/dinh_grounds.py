@@ -26,6 +26,8 @@ from mathutils.bvhtree import BVHTree  # noqa: E402
 PI = math.pi
 kit.PAL.setdefault('tankGreen', '#56653F')
 kit.PAL.setdefault('archDark', '#3B3330')
+# iron railings and gate leaves: the colour of archDark, a key of their own so the game camera looks through them
+kit.PAL.setdefault('railing', '#3B3330')
 
 # the fence line (Blender XY): just inside the pavements on the west, south and east, across the park on the north
 X0, X1, Y0, Y1 = -143.2, -87.6, 3.6, 66.5
@@ -71,11 +73,11 @@ def railing(g, a, b, M=None, base=True, top=RAIL, z0=0.0):
         g.box('stone', 0, -0.22, BASE, L, 0.22, BASE + 0.08, R)
     lo = BASE + 0.08 if base else 0.0
     for z in (lo + 0.12, top - 0.05):
-        g.box('archDark', 0, -0.03, z - 0.03, L, 0.03, z + 0.03, R)
+        g.box('railing', 0, -0.03, z - 0.03, L, 0.03, z + 0.03, R)
     k = max(1, round(L / BAR))
     for i in range(1, k):
         x = L * i / k
-        g.box('archDark', x - 0.025, -0.025, lo, x + 0.025, 0.025, top + 0.12, R)
+        g.box('railing', x - 0.025, -0.025, lo, x + 0.025, 0.025, top + 0.12, R)
 
 
 def fence_run(g, a, b, gaps=()):
@@ -103,15 +105,15 @@ def fence_run(g, a, b, gaps=()):
 
 def leaf(g, M, w, h=2.0):
     """a gate leaf in its own frame: hinge on local z, leaf along +x (w long), standing h tall"""
-    g.box('archDark', 0, -0.05, 0.0, w, 0.05, 0.1, M)
-    g.box('archDark', 0, -0.05, h - 0.1, w, 0.05, h, M)
-    g.box('archDark', 0, -0.05, 0.0, 0.1, 0.05, h, M)
-    g.box('archDark', w - 0.1, -0.05, 0.0, w, 0.05, h, M)
-    g.box('archDark', 0, -0.04, h * 0.45, w, 0.04, h * 0.45 + 0.08, M)
+    g.box('railing', 0, -0.05, 0.0, w, 0.05, 0.1, M)
+    g.box('railing', 0, -0.05, h - 0.1, w, 0.05, h, M)
+    g.box('railing', 0, -0.05, 0.0, 0.1, 0.05, h, M)
+    g.box('railing', w - 0.1, -0.05, 0.0, w, 0.05, h, M)
+    g.box('railing', 0, -0.04, h * 0.45, w, 0.04, h * 0.45 + 0.08, M)
     k = max(2, round(w / 0.22))
     for i in range(1, k):
         x = w * i / k
-        g.box('archDark', x - 0.022, -0.022, 0.0, x + 0.022, 0.022, h + 0.14, M)
+        g.box('railing', x - 0.022, -0.022, 0.0, x + 0.022, 0.022, h + 0.14, M)
     # the round emblem in the middle of the old gates
     g.ring('signGold', M @ T(w / 2, 0.0, h * 0.62) @ Matrix.Rotation(PI / 2, 4, 'X'), 0.28, 0.06, 12)
 

@@ -50,7 +50,7 @@ Quận 1 thu gọn thành một hòn đảo low-poly giữa biển, dựng trong
 |---|---|
 | Tường | cream `#EAD9AE`, creamLight `#F4EBD3`, wallGrey `#A0A7AA`, wallTeal `#5E9A96`, wallOchre `#C9A25E`, wallBeige `#CFC1A0`, wallPink `#D29A86`, wallSalmon `#EBA78A` (Nhà Rồng), opWhite `#EEE7D7`, opShade `#D8CDB8`, poYellow `#E0B45A`, brick `#B5523B`, stone `#E6DCC8`, towerPale `#DAD4C8`, concrete `#ABA69C` |
 | Mái | roofRed `#A9492F` (dark `#7D3326`, light `#C0613F`), slate `#646B74`, spire `#6F7780`, tinBlue `#8AA3B6` |
-| Điểm nhấn | poGreen `#3E7F5F`, clockBlue `#4E7CA6`, clockWhite `#F3EEE2`, gold `#C9A24A`, lotusTop `#E6D29C`, turq `#5BA9A1`, archDark `#3B3330`, glassBlue `#7FA0B5`, glassTeal `#4F7A7C`, finSilver `#D3DAE0`, bridgeWhite `#EEF0EE`, statueW `#F2EFE8`, bronze `#7B5B3C` (tượng), tankGreen `#56653F` (xe tăng ở Dinh) |
+| Điểm nhấn | poGreen `#3E7F5F`, clockBlue `#4E7CA6`, clockWhite `#F3EEE2`, gold `#C9A24A`, lotusTop `#E6D29C`, turq `#5BA9A1`, archDark `#3B3330`, railing `#3B3330` (song rào, lan can: camera trong game nhìn xuyên qua), glassBlue `#7FA0B5`, glassTeal `#4F7A7C`, finSilver `#D3DAE0`, bridgeWhite `#EEF0EE`, statueW `#F2EFE8`, bronze `#7B5B3C` (tượng), tankGreen `#56653F` (xe tăng ở Dinh) |
 | Mặt đất | asphalt `#6F6D69`, paving `#BDB4A2`, curb `#D3CBB8`, roadLine `#ECE6D4`, grass `#86A85E`, sand `#CDB98F`, water `#6FA9B6` (hồ) |
 | Biển (Three.js, `src/game/sea.ts`) | sâu `#3F8399`, cạn `#86CBC6`, bọt `#F3F1E7`, sương chân trời `#DCDCD0` |
 | Nước hồ (Three.js, `src/game/water.ts`, mọi mesh `water`) | sâu `#3E8E9C`, cạn `#8FD0C8`, viền `#EEF4EC`, trời phản chiếu `#D8E9E6` |

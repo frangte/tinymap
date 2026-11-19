@@ -29,7 +29,8 @@ from mathutils import Matrix, Vector  # noqa: E402
 
 PI = math.pi
 for _k, _v in {'wallSalmon': '#EBA78A', 'bronze': '#7B5B3C', 'roofRedDark': '#7D3326', 'poGreen': '#3E7F5F',
-               'lampGlow': '#FFE6A8'}.items():
+               'lampGlow': '#FFE6A8',
+               'railing': '#3B3330'}.items():   # railing: archDark's colour, a key the game camera looks through
     kit.PAL.setdefault(_k, _v)
 
 A = Vector((57.0, -9.0, 0.0))
@@ -258,13 +259,13 @@ def rail_run(g, a, b, h=1.1):
     k = max(1, round(L / 1.8))
     for j in range(k + 1):
         x = L * j / k
-        g.box('archDark', x - 0.05, -0.05, 0.0, x + 0.05, 0.05, h, R)
+        g.box('railing', x - 0.05, -0.05, 0.0, x + 0.05, 0.05, h, R)
     # the lower rail higher than a step (0.5 m), so nobody climbs the railing
     for z in (0.72, h - 0.05):
-        g.box('archDark', 0.0, -0.035, z - 0.035, L, 0.035, z + 0.035, R)
+        g.box('railing', 0.0, -0.035, z - 0.035, L, 0.035, z + 0.035, R)
     for j in range(k * 6):
         x = L * (j + 0.5) / (k * 6)
-        g.box('archDark', x - 0.015, -0.015, 0.1, x + 0.015, 0.015, h - 0.05, R)
+        g.box('railing', x - 0.015, -0.015, 0.1, x + 0.015, 0.015, h - 0.05, R)
 
 
 def statue(g, M):

@@ -1,8 +1,8 @@
 // Third-person follow camera: orbits a pivot above the player's head (drag / wheel / pinch), drifts back
 // behind the player while walking forward, and cranes up over a building behind the player (pulling in only as far
-// as it still has to) instead of entering it. Walls are the map's own shapes (collider.ts); tree crowns do not
-// count (paint.ts fades the ones in the way), and neither does a pole or a trunk, which only one of three side by
-// side sight lines runs into.
+// as it still has to) instead of entering it. Walls are the map's own shapes (collider.ts); tree crowns, trunks and
+// iron railings do not count (paint.ts fades the crowns in the way), and neither does a pole, which only one of three
+// side by side sight lines runs into.
 import * as THREE from 'three';
 import type { LookDelta } from './input';
 import type { CityCollider } from './collider';
@@ -24,6 +24,11 @@ const LIFT_STEP = 0.12;
 const SIDE_SIGHT = 0.45;
 /** the camera stays this far over the floor below it (m) */
 const ABOVE_FLOOR = 0.5;
+/** ...easing up to it over a kerb, a parapet or a roof edge passing under it, but never closer than this (m) */
+const MIN_ABOVE_FLOOR = 0.15;
+/** after pulling in for a wall the camera backs out again no faster than this (m/s): an exponential way back out
+ *  starts at 30 m/s or more, which reads as the camera jerking away from the player */
+const OUT_SPEED = 4;
 
 /** Close framing of the whole body for the dressing panel. */
 export interface Framing {
@@ -50,6 +55,10 @@ export class FollowCamera {
   private readonly side = new THREE.Vector3();
   /** extra pitch while a building behind the player is in the way (eased, on top of the user's pitch) */
   private lift = 0;
+  /** how far the camera is raised over what passes under it (eased) */
+  private floorLift = 0;
+  /** set while the camera makes its way back out after a wall pulled it in */
+  private backingOut = false;
 
   constructor(private readonly camera: THREE.PerspectiveCamera, private readonly collider: CityCollider) {}
 
@@ -58,7 +67,7 @@ export class FollowCamera {
     this.yaw = heading + Math.PI;
     this.pivot.set(target.x, target.y + PIVOT_H, target.z);
     this.dist = this.goalDist;
-    this.place();
+    this.place(0);
   }
 
   /**
@@ -112,10 +121,17 @@ export class FollowCamera {
     }
     this.lift += (goal - this.lift) * damp(goal > this.lift ? 8 : 2, dt);
     const free = this.clearDistance(want, this.pitch + this.lift);
-    // pull in at once for a wall, glide in for the dressing framing, ease back out
+    // pull in at once for a wall, glide in for the dressing framing, ease back out (slowly after a wall: OUT_SPEED)
     const inRate = frame && free >= want ? 5 : 30;
-    this.dist += (free - this.dist) * damp(free < this.dist ? inRate : 3.5, dt);
-    this.place();
+    if (free < this.dist) {
+      this.dist += (free - this.dist) * damp(inRate, dt);
+      if (free < want) this.backingOut = true;
+    } else {
+      const step = (free - this.dist) * damp(3.5, dt);
+      this.dist += this.backingOut ? Math.min(step, OUT_SPEED * dt) : step;
+      if (free - this.dist < 0.05) this.backingOut = false;
+    }
+    this.place(dt);
   }
 
   private setDir(pitch = this.pitch + this.lift): void {
@@ -139,13 +155,18 @@ export class FollowCamera {
     return d >= want ? want : Math.max(0.8, d - WALL_GAP);
   }
 
-  private place(): void {
+  /** @param dt 0 snaps (a jump behind the player) */
+  private place(dt: number): void {
     this.setDir();
-    this.camera.position.copy(this.pivot).addScaledVector(this.dir, this.dist);
-    // stay above the ground behind the player (slopes, the hill, a bridge)
     const cam = this.camera.position;
-    const floor = this.collider.floorBelow(cam.x, Math.max(this.pivot.y, cam.y), cam.z, Math.max(this.pivot.y, cam.y) - cam.y + ABOVE_FLOOR + 3);
-    if (Number.isFinite(floor)) cam.y = Math.max(cam.y, floor + ABOVE_FLOOR);
+    cam.copy(this.pivot).addScaledVector(this.dir, this.dist);
+    // stay above the ground behind the player (slopes, the hill, a bridge); tree crowns do not count
+    const from = Math.max(this.pivot.y, cam.y);
+    const floor = this.collider.cameraFloor(cam.x, from, cam.z, from - cam.y + ABOVE_FLOOR + 3);
+    const need = Number.isFinite(floor) ? Math.max(0, floor + ABOVE_FLOOR - cam.y) : 0;
+    // ease up over what passes under the camera instead of hopping, and back down slowly
+    this.floorLift = dt > 0 ? this.floorLift + (need - this.floorLift) * damp(need > this.floorLift ? 10 : 3, dt) : need;
+    cam.y += Math.max(this.floorLift, need - (ABOVE_FLOOR - MIN_ABOVE_FLOOR));
     this.camera.lookAt(this.pivot);
   }
 
