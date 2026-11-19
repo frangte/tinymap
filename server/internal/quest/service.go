@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"saigon-noir/server/content"
 	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/gameday"
@@ -48,9 +49,12 @@ type Service struct {
 	log    *slog.Logger
 	// OnCapability hears every capability a character earns (the connection updates what it may do)
 	OnCapability func(character, capability string)
-	now          func() time.Time
-	workers      []chan job
-	dropped      atomic.Int64
+	// OnPhone hears that a playing character just got its first phone: the texts that waited are due (the phone
+	// service sends them). Set it before Run.
+	OnPhone func(character string)
+	now     func() time.Time
+	workers []chan job
+	dropped atomic.Int64
 	// stopped is closed when Run returns: nobody takes jobs any more
 	stopped chan struct{}
 }
@@ -247,7 +251,11 @@ func (s *Service) do(ctx context.Context, players map[string]*player, j job) {
 		}
 	case jobCaps:
 		if p := players[j.character]; p != nil {
+			had := p.who.Caps.Has(content.CapPhone)
 			p.who.Caps = j.player.Caps
+			if !had && p.who.Caps.Has(content.CapPhone) && s.OnPhone != nil {
+				s.OnPhone(j.character)
+			}
 			s.apply(ctx, j.character, p, func(b *Book, now int64) Outcome { return s.engine.Refresh(p.who, b, now) })
 		}
 	case jobRetag:
@@ -287,7 +295,7 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 	if out.Empty() {
 		return false
 	}
-	c := Commit{Grants: out.Grants, Title: out.Title, Streak: out.Streak, At: now}
+	c := Commit{Grants: out.Grants, Title: out.Title, Streak: out.Streak, Texts: out.Texts, At: now}
 	for _, r := range out.Changed {
 		c.Records = append(c.Records, *r)
 	}
@@ -303,6 +311,7 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 		s.world.Deliver(character, protocol.Encode(protocol.Wallet{T: protocol.TypeWallet, Balance: stored.Balance}))
 	}
 	s.send(character, b, s.news(out, stored.Granted), now)
+	s.deliverTexts(character, p.who, stored)
 	if !maps.Equal(before.Active(), b.Active()) {
 		s.world.SetQuests(character, b.Active())
 	}
@@ -317,6 +326,20 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 		}
 	}
 	return true
+}
+
+// deliverTexts tells the game of the numbers and texts a commit stored. A text only reaches a character that has a
+// phone: otherwise it waits in the store and is sent once the character has one (OnPhone).
+func (s *Service) deliverTexts(character string, who Player, stored Stored) {
+	for _, id := range stored.Contacts {
+		s.world.Deliver(character, protocol.Encode(protocol.Contact{T: protocol.TypeContact, Contact: id}))
+	}
+	if !who.Caps.Has(content.CapPhone) {
+		return
+	}
+	for _, t := range stored.Texts {
+		s.world.Deliver(character, protocol.Encode(protocol.TextMsg{T: protocol.TypeText, Text: t}))
+	}
 }
 
 // saveTries and saveBackoff: a save that fails (the database busy) is tried again a little later before the

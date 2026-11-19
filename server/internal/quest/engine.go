@@ -47,6 +47,7 @@ type track struct {
 	flow         string
 	goals        []goal
 	rewards      content.Rewards
+	texts        content.QuestTexts
 	listens      map[events.Kind]bool
 	rewardFrom   string
 	// daily: it starts over every day; pool, when set, is the pool it takes turns in
@@ -93,7 +94,7 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 	refs := catalogRefs{c}
 	for _, q := range c.Quests {
 		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, unlessCaps: q.UnlessCaps, requiresCaps: q.RequiresCaps, requires: q.Requires, flow: q.Flow,
-			rewards: q.Rewards, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool}
+			rewards: q.Rewards, texts: q.Texts, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool}
 		if t.pool != "" {
 			e.pools[t.pool] = append(e.pools[t.pool], t.id)
 		}
@@ -250,6 +251,8 @@ type Outcome struct {
 	Dropped []string
 	// Streak is set when the streak of dailies changed
 	Streak *Streak
+	// Texts are the messages the quests started and completed send
+	Texts []Message
 }
 
 // Empty: nothing changed.
@@ -300,6 +303,15 @@ func (e *Engine) refresh(p Player, b *Book, now int64, out *Outcome) {
 		}
 		b.Records[t.id] = r
 		out.changed(r)
+		out.send(t, r, "start", t.texts.OnStart)
+	}
+}
+
+// send adds the messages a quest sends at a moment ("start" or "done"); their keys say which they are, so a record
+// stored again never sends one twice.
+func (o *Outcome) send(t *track, r *Record, moment string, list []content.QuestText) {
+	for i, m := range list {
+		o.Texts = append(o.Texts, Message{Key: fmt.Sprintf("%s/%s/%s/%d", t.id, r.Cycle, moment, i), From: m.From, Say: m.Text})
 	}
 }
 
@@ -407,6 +419,7 @@ func (e *Engine) step(b *Book, ev events.Event, now int64, out *Outcome) []strin
 		r.State, r.CompletedAt = StateDone, now
 		completed = append(completed, t.id)
 		out.Completed = append(out.Completed, t.id)
+		out.send(t, r, "done", t.texts.OnDone)
 		e.reward(t, r, b, out)
 	}
 	return completed

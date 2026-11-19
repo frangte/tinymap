@@ -103,6 +103,9 @@ func (db *DB) SaveQuests(ctx context.Context, character string, c quest.Commit) 
 			return out, err
 		}
 	}
+	if err := saveTexts(ctx, tx, character, c.Texts, c.At, &out); err != nil {
+		return quest.Stored{}, err
+	}
 	if c.Streak != nil {
 		var day any
 		if c.Streak.Last != "" {

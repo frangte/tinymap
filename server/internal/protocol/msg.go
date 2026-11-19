@@ -65,6 +65,11 @@ const (
 	// TypeBuy buys an item (item) in the shop of the NPC the player stands next to (server/internal/shop); the server
 	// answers with a result for the rid, and on success a wallet and an items first
 	TypeBuy = "buy"
+	// TypeCall calls a contact (contact) of the phone: a conversation with them wherever both are
+	// (server/internal/world); the server answers with a result for the rid, and the conversation's first
+	// interaction. TypeTextsRead says the player has read its texts.
+	TypeCall      = "call"
+	TypeTextsRead = "texts_read"
 	// TypeReport reports a player (n) to the moderators, with the last lines of the two
 	TypeReport  = "report"
 	TypeWelcome = "welcome"
@@ -86,7 +91,12 @@ const (
 	TypeWallet = "wallet"
 	// TypeItems is every item a character owns and the phone apps it has now, after a purchase
 	TypeItems = "items"
-	TypeError = "error"
+	// TypePhone is the numbers a character has and the texts it got, when it joins and when it gets a phone;
+	// TypeContact is a number it just got; TypeText a text that just arrived (server/internal/phone)
+	TypePhone   = "phone"
+	TypeContact = "contact"
+	TypeText    = "text"
+	TypeError   = "error"
 )
 
 // State flags (the "s" field of a state, and of every snapshot row).
@@ -158,6 +168,8 @@ const (
 	ResOwned = "owned"
 	// ResBalance: a buy the wallet cannot pay
 	ResBalance = "balance"
+	// ResPhone: a call without a phone (phone.basic)
+	ResPhone = "phone"
 	// ResBusy: a buy that could not be written now (the database is slow or down); nothing was kept, try again
 	ResBusy = "busy"
 )
@@ -253,7 +265,9 @@ type ClientMsg struct {
 	Step uint32 `json:"step"`
 	// Item is the item to buy, in buy (an id from server/content/items.json)
 	Item string `json:"item"`
-	// Rid is a request id, in interact, choose and buy: the server answers {"t":"result","rid":…} (0: no answer wanted)
+	// Contact is the number to call, in call (a contact id from server/content/contacts.json)
+	Contact string `json:"contact"`
+	// Rid is a request id, in interact, choose, call and buy: the server answers {"t":"result","rid":…} (0: no answer wanted)
 	Rid uint32 `json:"rid"`
 	// Title is the title to carry, in title only ("" for none)
 	Title string `json:"title"`
@@ -322,8 +336,11 @@ func Decode(data []byte) (ClientMsg, error) {
 	if m.T != TypeChoose {
 		m.C, m.Step = 0, 0
 	}
-	if m.T != TypeInteract && m.T != TypeChoose && m.T != TypeBuy {
+	if m.T != TypeInteract && m.T != TypeChoose && m.T != TypeBuy && m.T != TypeCall {
 		m.Rid = 0
+	}
+	if m.T != TypeCall {
+		m.Contact = ""
 	}
 	if m.T != TypeBuy {
 		m.Item = ""
@@ -392,6 +409,11 @@ func Decode(data []byte) (ClientMsg, error) {
 		if m.Item == "" || len(m.Item) > ArchMax || !titlePattern.MatchString(m.Item) {
 			return m, ErrBadItem
 		}
+	case TypeCall:
+		if m.Contact == "" || len(m.Contact) > ArchMax || !titlePattern.MatchString(m.Contact) {
+			return m, ErrBadTarget
+		}
+	case TypeTextsRead:
 	case TypeReport:
 		if m.N == 0 {
 			return m, ErrBadTarget
@@ -551,6 +573,9 @@ type Interaction struct {
 	Choices []Text `json:"choices"`
 	// Shop is the shop (server/content/items.json) the line opens: the game shows a button for its sheet
 	Shop string `json:"shop,omitempty"`
+	// Call is the contact id when the conversation is a phone call ("" face to face): N is then a voice the game
+	// does not see, and the sheet shows the contact instead
+	Call string `json:"call,omitempty"`
 }
 
 type InteractionEnd struct {
@@ -588,6 +613,36 @@ type Items struct {
 	T     string   `json:"t"`
 	Items []string `json:"items"`
 	Apps  []string `json:"apps"`
+}
+
+// PhoneText is a text message: ID is stable (the quest and moment that sent it), From a contact id.
+type PhoneText struct {
+	ID   string `json:"id"`
+	From string `json:"from"`
+	Say  Text   `json:"say"`
+	// At is when it arrived (ms since the epoch)
+	At   int64 `json:"at"`
+	Read bool  `json:"read"`
+}
+
+// Phone is every number a character has (contact ids, in the order it got them) and its texts, oldest first. The
+// texts are empty for a character without a phone: they wait until it has one.
+type Phone struct {
+	T        string      `json:"t"`
+	Contacts []string    `json:"contacts"`
+	Texts    []PhoneText `json:"texts"`
+}
+
+// Contact is a number a character just got.
+type Contact struct {
+	T       string `json:"t"`
+	Contact string `json:"contact"`
+}
+
+// TextMsg is a text that just arrived.
+type TextMsg struct {
+	T    string    `json:"t"`
+	Text PhoneText `json:"text"`
 }
 
 // QuestState is a started quest: done, or how far each objective got (by objective id).

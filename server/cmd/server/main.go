@@ -35,6 +35,7 @@ import (
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/moderation"
+	"saigon-noir/server/internal/phone"
 	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/ridehail"
 	"saigon-noir/server/internal/shop"
@@ -114,7 +115,7 @@ func run() error {
 	}
 	cfg.Move.RunSpeed, cfg.Move.Tolerance = catalog.Movement.RunSpeed, catalog.Movement.Tolerance
 	cfg.Spawn[0], cfg.Spawn[1] = catalog.Map.ThreeSpawn()
-	cfg.NPCs, cfg.Dialogue = world.NPCsFrom(catalog), dialogue.NewScript(catalog)
+	cfg.NPCs, cfg.Dialogue, cfg.Voices = world.NPCsFrom(catalog), dialogue.NewScript(catalog), world.VoicesFrom(catalog)
 	cfg.Places, cfg.Emotes = catalog.Places, world.EmoteNames(catalog)
 	words, err := content.LoadChatWords()
 	if err != nil {
@@ -128,7 +129,11 @@ func run() error {
 	}
 	// the world publishes what players do; the quest service (made once the world exists) takes it from there
 	var quests *quest.Service
-	cfg.OnEvent = func(ev events.Event) { quests.Submit(ev) }
+	var phones *phone.Service
+	cfg.OnEvent = func(ev events.Event) {
+		quests.Submit(ev)
+		phones.Submit(ev)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -148,6 +153,7 @@ func run() error {
 	}
 	go db.BackupDaily(ctx, backupsKept)
 	accounts := identity.New(db)
+	cfg.Contacts = db
 
 	w := world.New(cfg, log)
 	// Crab Bike trips run inside the world loop; their money moves in the database (docs/design/08-ride-hailing.md)
@@ -170,9 +176,14 @@ func run() error {
 	sockets.Quests = quests
 	sockets.Wallets = ridehail.Purse{Wallets: db, Cfg: catalog.Ridehail, Now: time.Now}
 	sockets.Items = db
+	// numbers and texts: kept per character; a phone bought later has the waiting texts sent (quest service hook)
+	phones = phone.New(catalog, db, w, phone.DefaultConfig(), log)
+	sockets.Phone = phones
+	quests.OnPhone = phones.Sync
 	quests.OnCapability = sockets.Grant
 	shops.OnCapability = sockets.Grant
 	go quests.Run(ctx)
+	go phones.Run(ctx)
 	go w.Run(ctx)
 
 	router, err := web.NewRouter(w, sockets, accounts, opt)

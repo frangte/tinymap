@@ -89,6 +89,14 @@ func (w *World) addNPC(spec NPCSpec) {
 	n := &npc{entity: entity{id: w.nextID, pose: protocol.Pose{X: spec.X, Z: spec.Z, H: spec.H}, poseAt: w.now()}, spec: spec, face: spec.H}
 	w.npcs = append(w.npcs, n)
 	w.npcByID[n.id] = n
+	w.byKey[spec.Key] = n
+}
+
+// addVoice makes a contact with no body: it has an id (a call's interaction names it) but is never placed,
+// listed or seen, and cannot be walked up to.
+func (w *World) addVoice(spec NPCSpec) {
+	w.nextID++
+	w.byKey[spec.Key] = &npc{entity: entity{id: w.nextID, poseAt: w.now()}, spec: spec}
 }
 
 func (w *World) npcList() []protocol.NPC {
@@ -244,6 +252,15 @@ func NPCsFrom(c *content.Catalog) []NPCSpec {
 		x, z, h := n.ThreePose()
 		out = append(out, NPCSpec{Key: n.ID, Name: n.Name, X: x, Z: z, H: h, Mode: n.Mode, Dialogue: n.Dialogue, Reach: n.Reach,
 			Barks: n.Barks})
+	}
+	return out
+}
+
+// VoicesFrom turns the contacts with no NPC on the island into specs: they speak the contact's dialogue.
+func VoicesFrom(c *content.Catalog) []NPCSpec {
+	var out []NPCSpec
+	for _, k := range c.VoiceContacts() {
+		out = append(out, NPCSpec{Key: k.ID, Name: k.Name.VI, Mode: protocol.ModePrivate, Dialogue: k.Dialogue})
 	}
 	return out
 }

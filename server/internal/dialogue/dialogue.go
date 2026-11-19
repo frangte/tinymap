@@ -44,6 +44,8 @@ type Line struct {
 type Provider interface {
 	// Begin is the node a conversation with this graph starts at.
 	Begin(graph string) (node string, err error)
+	// Call is the node a phone call to this graph starts at; false for a graph nobody can call.
+	Call(graph string) (node string, ok bool)
 	// Line renders a node for a speaker.
 	Line(graph, node string, who Speaker) (Line, error)
 	// Choose applies the speaker's answer (an index into Line's choices for them): next is the node it leads to,
@@ -86,6 +88,11 @@ func (s *Script) Begin(graph string) (string, error) {
 		return "", fmt.Errorf("%w: %q", ErrUnknown, graph)
 	}
 	return d.Start, nil
+}
+
+func (s *Script) Call(graph string) (string, bool) {
+	node := s.catalog.CallNode(graph)
+	return node, node != ""
 }
 
 func (s *Script) Line(graph, node string, who Speaker) (Line, error) {

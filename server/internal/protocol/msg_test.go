@@ -217,6 +217,21 @@ func TestDecode(t *testing.T) {
 					t.Fatalf("item = %q", m.Item)
 				}
 			}},
+		{name: "call", in: `{"t":"call","rid":4,"contact":"chu_sau"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Contact != "chu_sau" || m.Rid != 4 {
+					t.Fatalf("got %+v", m)
+				}
+			}},
+		{name: "call without a contact", in: `{"t":"call","rid":4}`, wantErr: ErrBadTarget},
+		{name: "call something that is not an id", in: `{"t":"call","rid":4,"contact":"Chú Sáu!"}`, wantErr: ErrBadTarget},
+		{name: "a contact only counts in call", in: `{"t":"chat","text":"hi","contact":"ma"}`,
+			check: func(t *testing.T, m ClientMsg) {
+				if m.Contact != "" {
+					t.Fatalf("contact = %q", m.Contact)
+				}
+			}},
+		{name: "texts read", in: `{"t":"texts_read"}`, check: func(t *testing.T, m ClientMsg) {}},
 		{name: "a request id only counts on commands that are answered", in: `{"t":"state","x":0,"y":0,"z":0,"h":0,"rid":5}`,
 			check: func(t *testing.T, m ClientMsg) {
 				if m.Rid != 0 {
@@ -254,6 +269,25 @@ func TestItemsAndTheWelcomeEncode(t *testing.T) {
 	none := []string{}
 	if own := string(Encode(Welcome{T: TypeWelcome, Items: &none})); !strings.Contains(own, `"items":[]`) {
 		t.Fatalf("a character without items: %s", own)
+	}
+}
+
+func TestThePhoneEncodes(t *testing.T) {
+	text := PhoneText{ID: "q//start/0", From: "chu_tu", Say: Text{VI: "Mai ghé nha", EN: "Come tomorrow"}, At: 5}
+	got := string(Encode(Phone{T: TypePhone, Contacts: []string{"ma"}, Texts: []PhoneText{text}}))
+	want := `{"t":"phone","contacts":["ma"],"texts":[{"id":"q//start/0","from":"chu_tu","say":{"vi":"Mai ghé nha","en":"Come tomorrow"},"at":5,"read":false}]}`
+	if got != want {
+		t.Fatalf("phone = %s", got)
+	}
+	if got := string(Encode(Contact{T: TypeContact, Contact: "ma"})); got != `{"t":"contact","contact":"ma"}` {
+		t.Fatalf("contact = %s", got)
+	}
+	// a call's interaction names the contact; a face to face one does not
+	if got := string(Encode(Interaction{T: TypeInteraction, Call: "ma"})); !strings.Contains(got, `"call":"ma"`) {
+		t.Fatalf("a call's interaction = %s", got)
+	}
+	if got := string(Encode(Interaction{T: TypeInteraction})); strings.Contains(got, `"call"`) {
+		t.Fatalf("a face to face interaction = %s", got)
 	}
 }
 

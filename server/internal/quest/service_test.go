@@ -25,10 +25,12 @@ type memStore struct {
 	// balance is each character's wallet; a character without one is not paid
 	balance map[string]int64
 	fail    bool
+	// texts are the messages stored, by character and key (a message stored before is skipped, as in the database)
+	texts map[string]bool
 }
 
 func newMemStore() *memStore {
-	return &memStore{saved: map[string]*Saved{}, granted: map[string]bool{}, balance: map[string]int64{}}
+	return &memStore{saved: map[string]*Saved{}, granted: map[string]bool{}, balance: map[string]int64{}, texts: map[string]bool{}}
 }
 
 func (m *memStore) LoadQuests(_ context.Context, character string) (Saved, error) {
@@ -70,6 +72,14 @@ func (m *memStore) SaveQuests(_ context.Context, character string, c Commit) (St
 			out.Paid, out.Balance = true, b+g.Xu
 		}
 	}
+	for _, msg := range c.Texts {
+		if m.texts[character+msg.Key] {
+			continue
+		}
+		m.texts[character+msg.Key] = true
+		out.Texts = append(out.Texts, protocol.PhoneText{ID: msg.Key, From: msg.From, Say: msg.Say, At: c.At})
+		out.Contacts = append(out.Contacts, msg.From)
+	}
 	if c.Title != nil {
 		s.Title = *c.Title
 	}
@@ -88,17 +98,34 @@ type fakeWorld struct {
 	// wallets are the balances sent, in order
 	wallets  map[string][]int64
 	received chan struct{}
+	// phone are the contact and text frames sent, by character, in order
+	phone map[string][]phoneFrame
+}
+
+// phoneFrame is a contact or a text as the game receives it.
+type phoneFrame struct {
+	T       string             `json:"t"`
+	Contact string             `json:"contact"`
+	Text    protocol.PhoneText `json:"text"`
 }
 
 func newFakeWorld() *fakeWorld {
 	return &fakeWorld{frames: map[string][]protocol.Progress{}, titles: map[string]string{}, quests: map[string]map[string]bool{},
-		wallets: map[string][]int64{}, received: make(chan struct{}, 100)}
+		wallets: map[string][]int64{}, received: make(chan struct{}, 100), phone: map[string][]phoneFrame{}}
 }
 
 func (w *fakeWorld) Deliver(character string, frame []byte) bool {
 	var p protocol.Progress
 	if err := json.Unmarshal(frame, &p); err != nil {
 		panic(err)
+	}
+	if p.T == protocol.TypeContact || p.T == protocol.TypeText {
+		var pf phoneFrame
+		_ = json.Unmarshal(frame, &pf)
+		w.mu.Lock()
+		w.phone[character] = append(w.phone[character], pf)
+		w.mu.Unlock()
+		return true
 	}
 	if p.T == protocol.TypeWallet {
 		var wm protocol.Wallet
