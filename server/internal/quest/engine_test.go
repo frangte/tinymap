@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/protocol"
 	"saigon-noir/server/internal/quest/objective"
@@ -91,6 +92,12 @@ func TestObjectiveParamsAreChecked(t *testing.T) {
 		{"one place entered twice", "reach_place", `{"place": "cho_ben_thanh"}`, 2, "count must be 1"},
 		{"one NPC talked to twice", "talk_npc", `{"npc": "co_ba"}`, 2, "count must be 1"},
 		{"a trip in no role", "trip", `{"role": "pilot"}`, 1, "rider or passenger"},
+		{"buying neither an item nor a kind", "buy_item", `{}`, 1, "exactly one"},
+		{"buying an item and a kind", "buy_item", `{"item": "ifone_x", "kind": "phone"}`, 1, "exactly one"},
+		{"buying an item that does not exist", "buy_item", `{"item": "nokia_3310"}`, 1, "unknown item"},
+		{"buying a kind that does not exist", "buy_item", `{"kind": "car"}`, 1, "unknown item kind"},
+		{"buying one item twice", "buy_item", `{"item": "ifone_x"}`, 2, "count must be 1"},
+		{"buying more phones than there are", "buy_item", `{"kind": "phone"}`, 9, "only"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -444,5 +451,61 @@ func TestProgressLeavesOutCollectionEntriesNoLongerInTheFile(t *testing.T) {
 	}
 	if !slices.Equal(p.Collection, []string{"xin_chao"}) {
 		t.Fatalf("progress lists %v, want only the found entry the file still has", p.Collection)
+	}
+}
+
+func bought(item, kind string) events.Event {
+	return events.Event{Kind: events.ItemBought, Item: item, ItemKind: kind}
+}
+
+const phoneQuest = "story.dien_thoai_dau_tien"
+
+// Everyone without a phone is offered the phone quest, and buying any phone finishes it.
+func TestBuyingAPhoneCompletesThePhoneQuest(t *testing.T) {
+	for _, arch := range []string{"citizen", "traveler", "driver"} {
+		t.Run(arch, func(t *testing.T) {
+			r := newRun(t, arch)
+			if r.state(phoneQuest) != StateActive {
+				t.Fatalf("the phone quest is %q for a character without a phone", r.state(phoneQuest))
+			}
+			r.do(bought("ifone_x", "phone"))
+			if r.state(phoneQuest) != StateDone {
+				t.Fatalf("after buying a phone: %q", r.state(phoneQuest))
+			}
+		})
+	}
+	// an item of another kind does not count
+	r := newRun(t, "citizen")
+	r.do(bought("jar", "pottery"))
+	if r.state(phoneQuest) != StateActive {
+		t.Fatal("a jar is no phone")
+	}
+}
+
+// unless_caps: a character that already has a phone is never offered the quest; one running keeps running.
+func TestUnlessCapsHidesAQuestFromThoseWhoHaveOne(t *testing.T) {
+	e := engine(t)
+	with := Player{Tags: []string{"citizen"}, Caps: capability.Of(content.CapPhone, content.CapSmartphone)}
+	book := NewBook(Saved{})
+	e.Refresh(with, book, 1)
+	if book.Records[phoneQuest] != nil {
+		t.Fatal("a character with a phone was offered the phone quest")
+	}
+	// started without a phone, then the capability shows up (a retag with a phone): it is not taken away
+	without := Player{Tags: []string{"citizen"}}
+	e.Refresh(without, book, 2)
+	if book.Records[phoneQuest] == nil {
+		t.Fatal("a character without a phone was not offered the phone quest")
+	}
+	e.Refresh(with, book, 3)
+	if book.Records[phoneQuest] == nil || book.Records[phoneQuest].State != StateActive {
+		t.Fatal("a quest already running was dropped")
+	}
+	// any one of the capabilities hides it
+	basic := Player{Tags: []string{"citizen"}, Caps: capability.Of(content.CapPhone)}
+	other := NewBook(Saved{})
+	e.Refresh(basic, other, 1)
+	if other.Records[phoneQuest] != nil {
+		t.Fatal("a basic phone was offered the phone quest")
 	}
 }

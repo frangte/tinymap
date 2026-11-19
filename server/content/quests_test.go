@@ -59,6 +59,7 @@ func TestQuestsRejects(t *testing.T) {
 		{"a tag no archetype has", file(quest(`tags_any=["tourist"]`)), "tag"},
 		{"requiring a quest that does not exist", file(quest(`requires=["a.two"]`)), "requires"},
 		{"requiring itself", file(quest(`requires=["a.one"]`)), "requires"},
+		{"unless_caps naming an unknown capability", file(quest(`unless_caps=["no.such"]`)), "unless_caps"},
 		{"two quests requiring each other", file(quest(`requires=["a.two"]`), quest(`id="a.two";requires=["a.one"]`)), "loop"},
 		{"two quests with one id", file(quest(""), quest("")), "duplicate"},
 		{"an unknown flow", file(quest(`flow="whenever"`)), "flow"},

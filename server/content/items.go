@@ -120,6 +120,20 @@ func (c *Catalog) Item(id string) (Item, bool) {
 	return it, ok
 }
 
+// ItemKindKnown says whether kind is a kind of item.
+func ItemKindKnown(kind string) bool { return itemKinds[kind] }
+
+// ItemsOfKind is how many items there are of the kind.
+func (c *Catalog) ItemsOfKind(kind string) int {
+	n := 0
+	for _, it := range c.Items {
+		if it.Kind == kind {
+			n++
+		}
+	}
+	return n
+}
+
 // Shop finds a shop by id.
 func (c *Catalog) Shop(id string) (Shop, bool) {
 	s, ok := c.shopByID[id]

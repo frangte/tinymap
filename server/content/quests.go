@@ -83,6 +83,9 @@ type Quest struct {
 	About     Text   `json:"about"`
 	// TagsAny: offered to characters whose archetype has one of these tags (archetypes.json); empty: everyone
 	TagsAny []string `json:"tags_any,omitempty"`
+	// UnlessCaps: not offered to a character that has any of these capabilities (the phone quest is not offered
+	// to someone who already has a phone); a quest already running keeps running
+	UnlessCaps []string `json:"unless_caps,omitempty"`
 	// Requires are quests to have completed first (never a daily: being done with one only lasts a day)
 	Requires []string `json:"requires,omitempty"`
 	// Repeat is RepeatOnce, or RepeatDaily: it starts over every day (Saigon time, server/internal/gameday)
@@ -218,6 +221,11 @@ func (r questRefs) quest(q Quest) error {
 	}
 	if err := r.tagList(q.TagsAny); err != nil {
 		return err
+	}
+	for _, k := range q.UnlessCaps {
+		if !r.caps[k] {
+			return fmt.Errorf("unless_caps names unknown capability %q (archetypes.json)", k)
+		}
 	}
 	for _, id := range q.Requires {
 		req, ok := r.c.questByID[id]

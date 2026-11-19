@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"saigon-noir/server/content"
+	"saigon-noir/server/internal/capability"
 	"saigon-noir/server/internal/events"
 	"saigon-noir/server/internal/gameday"
 	"saigon-noir/server/internal/quest/objective"
@@ -40,6 +41,7 @@ type track struct {
 	quest      bool
 	version    int
 	tagsAny    []string
+	unlessCaps []string
 	requires   []string
 	flow       string
 	goals      []goal
@@ -89,7 +91,7 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 	}
 	refs := catalogRefs{c}
 	for _, q := range c.Quests {
-		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, requires: q.Requires, flow: q.Flow,
+		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, unlessCaps: q.UnlessCaps, requires: q.Requires, flow: q.Flow,
 			rewards: q.Rewards, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool}
 		if t.pool != "" {
 			e.pools[t.pool] = append(e.pools[t.pool], t.id)
@@ -156,9 +158,12 @@ func (t *track) add(id string, o content.Objective, refs objective.Refs) error {
 	return nil
 }
 
-// Player is what the engine needs to know about a character: the tags of its archetype.
+// Player is what the engine needs to know about a character: the tags of its archetype and what it may do.
 type Player struct {
 	Tags []string
+	// Caps are its capabilities when it joined or changed archetype; a quest with unless_caps is not offered to a
+	// character with one of them
+	Caps capability.Set
 }
 
 // Book is a character's progress, in memory.
@@ -317,6 +322,11 @@ func (t *track) taggedFor(p Player) bool {
 func (t *track) availableTo(p Player, b *Book) bool {
 	if !t.taggedFor(p) {
 		return false
+	}
+	for _, k := range t.unlessCaps {
+		if p.Caps.Has(k) {
+			return false
+		}
 	}
 	for _, id := range t.requires {
 		if r := b.Records[id]; r == nil || r.State != StateDone {

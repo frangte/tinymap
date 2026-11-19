@@ -19,6 +19,31 @@
   ],
   "quests": [
     {
+      "id": "story.dien_thoai_dau_tien",
+      "version": 1,
+      "questline": "chuong_1",
+      "title": { "vi": "Cái điện thoại đầu tiên", "en": "The first phone" },
+      "about": {
+        "vi": "Ở Sài Gòn mini, không ai tới nơi mà đã có sẵn điện thoại. Có smartphone là đặt được Crab, nhắn tin, hỏi đường.",
+        "en": "Nobody arrives in Sài Gòn mini with a phone. With a smartphone you can book a Crab, chat and ask the way."
+      },
+      "unless_caps": ["phone.basic"],
+      "flow": "sequence",
+      "objectives": [
+        {
+          "id": "buy",
+          "type": "buy_item",
+          "params": { "kind": "phone" },
+          "text": {
+            "vi": "Mua một chiếc điện thoại ở tiệm Dế Yêu của anh Bảy, đường Lê Lợi",
+            "en": "Buy a phone at Anh Bảy's Dế Yêu shop on Lê Lợi"
+          },
+          "at": "anh_bay"
+        }
+      ],
+      "rewards": {}
+    },
+    {
       "id": "citizen.ca_phe_sang",
       "version": 1,
       "questline": "song_o_pho",

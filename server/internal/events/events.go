@@ -38,6 +38,8 @@ const (
 	// TripCompleted: a Crab Bike trip the player took part in as Role ("rider", who drove, or "passenger") ended paid,
 	// with Partners (the other one) over Metres
 	TripCompleted Kind = "trip.completed"
+	// ItemBought: the player bought Item (of ItemKind), paid and kept (published by the shop)
+	ItemBought Kind = "item.bought"
 )
 
 // Event is one fact about one character.
@@ -51,6 +53,8 @@ type Event struct {
 	Signal    string
 	Emote     string
 	Vehicle   string
+	Item      string
+	ItemKind  string
 	Quest     string
 	Role      string
 	Riding    bool
