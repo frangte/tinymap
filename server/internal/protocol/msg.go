@@ -86,7 +86,9 @@ const (
 	TypeWallet = "wallet"
 	// TypeItems is every item a character owns and the phone apps it has now, after a purchase
 	TypeItems = "items"
-	TypeError = "error"
+	// TypeWeather is Saigon's weather now, on arrival and whenever it changes (server/internal/weather)
+	TypeWeather = "weather"
+	TypeError   = "error"
 )
 
 // State flags (the "s" field of a state, and of every snapshot row).
@@ -588,6 +590,16 @@ type Items struct {
 	T     string   `json:"t"`
 	Items []string `json:"items"`
 	Apps  []string `json:"apps"`
+}
+
+// Weather is Saigon's weather now: Kind is clear, cloudy, drizzle, rain or storm; Rain how heavy the rain is and
+// Cloud how much of the sky is cloud (0–1); Temp the temperature in °C, absent when no report is fresh.
+type Weather struct {
+	T     string   `json:"t"`
+	Kind  string   `json:"kind"`
+	Rain  float64  `json:"rain"`
+	Cloud float64  `json:"cloud"`
+	Temp  *float64 `json:"temp,omitempty"`
 }
 
 // QuestState is a started quest: done, or how far each objective got (by objective id).

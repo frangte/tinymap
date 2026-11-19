@@ -11,6 +11,8 @@ import { paintWorld, FOLIAGE } from './paint';
 import { SaigonClock } from './daylight/clock';
 import { ClockView } from './daylight/clockView';
 import { Daylight } from './daylight/daylight';
+import { Rain } from './daylight/rain';
+import { Weather } from './daylight/weather';
 import { StreetLamps } from './daylight/lamps';
 import { InkPass } from './ink';
 import { CityCollider } from './collider';
@@ -44,6 +46,7 @@ import { L as ItemsL } from './i18n/items';
 import { allowedLook, appsFor, archetypeById, grants, outfitAllowed, type Archetype } from './archetypes';
 import { OUTFITS, outfitStyle, sameLook, type Look } from './outfits';
 import { NetClient, socketUrl, type NetStatus } from '../net/client';
+import { fetchWeather } from '../net/weatherApi';
 import { Vehicles, type RiderView } from './vehicles';
 import { Riding } from './riding';
 import { ActionPad } from './actionPad';
@@ -132,12 +135,17 @@ export async function startApp(): Promise<void> {
   const parts = createScene();
   const { scene, sun } = parts;
   // ?time=17:30 stops Saigon's clock at that time of today (to look at a sunset or test the night)
-  const daylight = new Daylight(parts, new SaigonClock(new URLSearchParams(location.search).get('time')));
+  const query = new URLSearchParams(location.search);
+  // Saigon's weather, from the server; ?weather=rain (clear, cloudy, drizzle, rain, storm) shows one whatever it says
+  const weather = new Weather(query.get('weather'));
+  const daylight = new Daylight(parts, new SaigonClock(query.get('time')), weather);
   const clockView = new ClockView();
   daylight.update(performance.now());
-  clockView.update(daylight.now, daylight.phase);
+  clockView.update(daylight.now, daylight.phase, weather.kind, weather.temp);
   const camera = new THREE.PerspectiveCamera(35, 1, 0.25, 1500);
   const ink = new InkPass(camera);
+  const rain = new Rain(ink);
+  scene.add(rain.lines);
   const tags = new NameTags(el('tags'));
   const map = new MapView(camera, renderer.domElement);
   const flight = new CameraFlight(camera);
@@ -221,6 +229,16 @@ export async function startApp(): Promise<void> {
   let life: Life | null = null;
   let lamps: StreetLamps | null = null;
   const ambient = new Ambient();
+  weather.onThunder = (near) => ambient.thunder(near);
+  // the weather for the menu, before joining (in a game the socket sends it too), asked again every 15 minutes
+  const WEATHER_ASK_MS = 15 * 60 * 1000;
+  const askWeather = (): void => {
+    void fetchWeather(socketUrl(hud.stage)).then((w) => {
+      if (w) weather.report(w);
+    });
+  };
+  askWeather();
+  window.setInterval(askWeather, WEATHER_ASK_MS);
   /** where the player hears from (Blender XY) */
   const ear: Ear = { x: 0, y: 0 };
   const islandCenter = new THREE.Vector3();
@@ -337,6 +355,13 @@ export async function startApp(): Promise<void> {
       }
     }
     sea?.update(clock, camera);
+    // the weather: falling rain, the clouds, rings on the ponds, the rain's sound (softer over the map), lightning
+    weather.update(dt, clock);
+    rain.update(clock, camera, weather.rain, daylight.rainColour);
+    life?.setWeather(weather.cloud, weather.rain);
+    ponds?.setRain(weather.rain);
+    ambient.setRain(weather.rain * (mode === 'play' ? 1 : 0.45));
+    parts.ambient.intensity = Math.PI * (1 + weather.flash * 2.2);
     ponds?.update(clock, camera);
     life?.update(clock, dt);
     // each area sounds of itself (only the beach for now), heard where the player is; quiet over the map
@@ -354,7 +379,7 @@ export async function startApp(): Promise<void> {
     }
     // the time of day: a new light direction re-bakes the shadow
     if (daylight.update(now)) shadowHalf = 0;
-    clockView.update(daylight.now, daylight.phase);
+    clockView.update(daylight.now, daylight.phase, weather.kind, weather.temp);
     followShadow();
     if (draw) ink.render(renderer, scene, camera);
   };
@@ -763,6 +788,7 @@ export async function startApp(): Promise<void> {
       }
       hud.toast({ name: L.roleNotChanged, note: ARCH_REFUSED[code]() });
     },
+    weather: (w) => weather.report(w),
     items: (ids, apps) => {
       owned.set(ids);
       if (apps) {
@@ -1269,7 +1295,7 @@ export async function startApp(): Promise<void> {
         colliderView = null;
       }
     };
-    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, daylight, lamps, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, phoneCard, shop: shopSheet, owned, giveItems, notebook, placeCard, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
+    Object.assign(window, { sgGame: { play: p, player: p.player, follow: p.follow, map, collider, showCollider, daylight, weather, lamps, scene, camera, ink, renderer, remotes: others, npcs: cast, talk, quests: log, rides, net: netClient, chat: chatBox, phone: ph, phoneCard, shop: shopSheet, owned, giveItems, notebook, placeCard, tags, vehicles: bikes, riding, go: request, step, mode: () => mode } });
     if (manual) tick(0, simNow, true);
   }
 }

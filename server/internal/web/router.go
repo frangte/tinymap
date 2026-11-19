@@ -42,6 +42,9 @@ type Options struct {
 	// GuestBurst is how many guest accounts one address may take at once (0: guestBurst). Only a load test from
 	// one machine raises it (GUEST_BURST); a public server keeps the default.
 	GuestBurst int
+	// Weather, if set, gives Saigon's weather now as the socket's weather message, for GET /api/weather: the start
+	// menu shows it before the player joins (server/internal/weather).
+	Weather func() []byte
 }
 
 // Guests issues anonymous accounts; identity.Service in production.
@@ -106,6 +109,11 @@ func NewRouter(w *world.World, sockets *ws.Server, guests Guests, opt Options) (
 		}
 		c.JSON(http.StatusOK, gin.H{"token": token})
 	})
+	if opt.Weather != nil {
+		api.GET("/weather", func(c *gin.Context) {
+			c.Data(http.StatusOK, "application/json", opt.Weather())
+		})
+	}
 
 	if opt.StaticDir != "" {
 		files := http.FileServer(http.Dir(opt.StaticDir))

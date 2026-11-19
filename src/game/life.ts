@@ -1,5 +1,6 @@
 // Things that move on their own so the island feels alive: low-poly clouds drifting round it and a few gulls
-// circling over the beach. Painted with the same toon shader and inked like the rest of the world.
+// circling over the beach. Painted with the same toon shader and inked like the rest of the world. The weather
+// (setWeather) brings more clouds round the island, greys them in the rain, and sends the gulls to shelter.
 import * as THREE from 'three';
 import { paintMaterial } from './paint';
 
@@ -37,10 +38,26 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+/** the clouds' paint in fair weather and under rain */
+const CLOUD_FAIR = new THREE.Color('#F7F4EC');
+const CLOUD_RAIN = new THREE.Color('#A3A8AE');
+const SHADE_FAIR = new THREE.Color('#E3E4E6');
+const SHADE_RAIN = new THREE.Color('#838A92');
+/** clouds that only come with a cloudy sky */
+const STORM_CLOUDS = 10;
+/** gulls shelter from rain heavier than this */
+const GULLS_SHELTER = 0.45;
+
 export class Life {
   readonly root = new THREE.Group();
   private readonly clouds: Cloud[] = [];
+  /** the clouds of a cloudy sky, shown one by one as it clouds over */
+  private readonly extra: Cloud[] = [];
   private readonly gulls: Gull[] = [];
+  private readonly puff: THREE.MeshToonMaterial;
+  private readonly shade: THREE.MeshToonMaterial;
+  private shownCloud = -1;
+  private shownRain = -1;
 
   /**
    * @param center island centre (three.js) @param coast distance from the centre to the beach (m)
@@ -48,22 +65,27 @@ export class Life {
   constructor(private readonly center: THREE.Vector3, coast: number) {
     this.root.name = 'Life';
     const rnd = mulberry32(1975);
-    const puff = paintMaterial('#F7F4EC', 'cloud', { variation: 0.02, grime: 0, local: true });
-    const shade = paintMaterial('#E3E4E6', 'cloudShade', { variation: 0.02, grime: 0, local: true });
+    const puff = paintMaterial(CLOUD_FAIR, 'cloud', { variation: 0.02, grime: 0, local: true });
+    const shade = paintMaterial(SHADE_FAIR, 'cloudShade', { variation: 0.02, grime: 0, local: true });
+    this.puff = puff;
+    this.shade = shade;
     const ball = new THREE.IcosahedronGeometry(1, 1);
-    for (let i = 0; i < 9; i++) {
+    const cloud = (r: () => number, scale: number): THREE.Group => {
       const g = new THREE.Group();
-      const n = 4 + Math.floor(rnd() * 4);
-      const len = 10 + rnd() * 14;
+      const n = 4 + Math.floor(r() * 4);
+      const len = (10 + r() * 14) * scale;
       for (let k = 0; k < n; k++) {
-        const s = 2.6 + rnd() * 3.4 * (1 - Math.abs(k / (n - 1) - 0.5));
+        const s = (2.6 + r() * 3.4 * (1 - Math.abs(k / (n - 1) - 0.5))) * scale;
         const m = new THREE.Mesh(ball, k % 3 === 2 ? shade : puff);
-        m.position.set((k / (n - 1) - 0.5) * len, s * 0.25 + rnd() * 1.5, (rnd() - 0.5) * 5);
+        m.position.set((k / (n - 1) - 0.5) * len, s * 0.25 + r() * 1.5, (r() - 0.5) * 5 * scale);
         m.scale.set(s, s * 0.62, s * 0.85);
         g.add(m);
       }
       this.root.add(g);
-      this.clouds.push({ group: g, radius: coast + 10 + rnd() * 80, angle: rnd() * Math.PI * 2, speed: (0.004 + rnd() * 0.004) * (rnd() < 0.2 ? -1 : 1), height: 58 + rnd() * 20, bob: rnd() * 6 });
+      return g;
+    };
+    for (let i = 0; i < 9; i++) {
+      this.clouds.push({ group: cloud(rnd, 1), radius: coast + 10 + rnd() * 80, angle: rnd() * Math.PI * 2, speed: (0.004 + rnd() * 0.004) * (rnd() < 0.2 ? -1 : 1), height: 58 + rnd() * 20, bob: rnd() * 6 });
     }
 
     const white = paintMaterial('#F4F1EA', 'gull', { variation: 0.02, grime: 0, local: true });
@@ -99,9 +121,37 @@ export class Life {
       });
       this.root.add(g);
     }
+    // a stream of its own, so the fair-weather sky stays as it always was
+    const wet = mulberry32(2611);
+    for (let i = 0; i < STORM_CLOUDS; i++) {
+      const g = cloud(wet, 1.35);
+      g.visible = false;
+      // round the island like the fair-weather clouds, never over the streets: from above they would hide the city
+      this.extra.push({ group: g, radius: coast + 5 + wet() * 110, angle: wet() * Math.PI * 2, speed: (0.003 + wet() * 0.004) * (wet() < 0.3 ? -1 : 1), height: 60 + wet() * 18, bob: wet() * 6 });
+    }
+  }
+
+  /** The sky's cloud cover and the rain's strength (0–1), from daylight/weather.ts. */
+  setWeather(cloud: number, rain: number): void {
+    if (Math.abs(cloud - this.shownCloud) < 0.01 && Math.abs(rain - this.shownRain) < 0.01) return;
+    this.shownCloud = cloud;
+    this.shownRain = rain;
+    this.extra.forEach((c, i) => {
+      c.group.visible = cloud > 0.35 + (i / STORM_CLOUDS) * 0.6;
+    });
+    const dark = Math.min(1, rain * 0.85 + Math.max(0, cloud - 0.5) * 0.4);
+    this.puff.color.lerpColors(CLOUD_FAIR, CLOUD_RAIN, dark);
+    this.shade.color.lerpColors(SHADE_FAIR, SHADE_RAIN, dark);
+    for (const g of this.gulls) g.group.visible = rain < GULLS_SHELTER;
   }
 
   update(time: number, dt: number): void {
+    for (const c of this.extra) {
+      if (!c.group.visible) continue;
+      c.angle += c.speed * dt;
+      c.group.position.set(this.center.x + Math.cos(c.angle) * c.radius, c.height + Math.sin(time * 0.05 + c.bob) * 1.5, this.center.z + Math.sin(c.angle) * c.radius);
+      c.group.rotation.y = -c.angle;
+    }
     for (const c of this.clouds) {
       c.angle += c.speed * dt;
       c.group.position.set(this.center.x + Math.cos(c.angle) * c.radius, c.height + Math.sin(time * 0.05 + c.bob) * 1.5, this.center.z + Math.sin(c.angle) * c.radius);

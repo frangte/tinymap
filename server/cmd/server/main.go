@@ -39,6 +39,7 @@ import (
 	"saigon-noir/server/internal/ridehail"
 	"saigon-noir/server/internal/shop"
 	"saigon-noir/server/internal/store"
+	"saigon-noir/server/internal/weather"
 	"saigon-noir/server/internal/web"
 	"saigon-noir/server/internal/world"
 	"saigon-noir/server/internal/ws"
@@ -164,6 +165,14 @@ func run() error {
 	})
 	// moderation sees every chat line first: reports, mutes, bans, the moderators' commands (D17)
 	w.Use(func(h world.Host) world.Module { return moderation.New(h, db, log) })
+	// Saigon's weather now, the same for everyone (D24): fetched every 15 minutes off the loop, sent over the socket
+	// and at GET /api/weather (the start menu, before joining); WEATHER_URL=off for none
+	if url := envOr("WEATHER_URL", weather.DefaultURL); url != "off" {
+		sky := weather.NewSource(url, log)
+		go sky.Run(ctx)
+		w.Use(func(h world.Host) world.Module { return weather.New(h, sky) })
+		opt.Weather = func() []byte { return weather.Frame(sky.Now()) }
+	}
 	quests = quest.NewService(engine, db, w, quest.DefaultConfig(), log)
 	sockets := ws.New(w, accounts, catalog, ws.DefaultConfig(), log)
 	sockets.Names = filter.Clean

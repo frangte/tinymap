@@ -17,6 +17,7 @@ void main(){
 const FRAG = /* glsl */ `
 uniform sampler2D tDepth; uniform vec2 uRes; uniform float uNear, uFar, uTime;
 uniform vec3 uDeep, uShallow, uRim, uSky;
+uniform float uRain;
 varying vec3 vW;
 float lin(float z){ float n = z*2.0 - 1.0; return (2.0*uNear*uFar)/(uFar + uNear - n*(uFar - uNear)); }
 float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7)))*43758.5453); }
@@ -47,6 +48,16 @@ void main(){
   float g = n2(p*6.0 + vec2(uTime*0.9, -uTime*0.6))*rip;
   // (pale as the rim: white by day, moonlit at night)
   col = mix(col, min(uRim*1.1, vec3(1.0)), smoothstep(0.52, 0.58, g)*0.8);
+  // rain: rings spreading from drops, one per cell of 0.7 m, each at its own moment
+  if (uRain > 0.01) {
+    vec2 cell = floor(p/0.7);
+    float seed = h2(cell);
+    float age = fract(uTime*0.9 + seed*7.0);
+    vec2 at = (cell + 0.2 + 0.6*vec2(h2(cell + 3.1), h2(cell + 5.7)))*0.7;
+    float ring = abs(length(p - at) - age*0.32);
+    float on = step(seed, uRain*0.85);
+    col = mix(col, uRim, (1.0 - smoothstep(0.012, 0.03, ring))*(1.0 - age)*on*0.7);
+  }
   // a pale line where the water meets the rim, the columns, the jets
   float line = 1.0 - smoothstep(0.012, 0.05 + (r1 - 0.5)*0.02, depth);
   col = mix(col, uRim, line*0.85);
@@ -74,6 +85,7 @@ export class Ponds {
         uShallow: { value: new THREE.Color('#8FD0C8') },
         uRim: { value: new THREE.Color('#EEF4EC') },
         uSky: { value: new THREE.Color('#D8E9E6') },
+        uRain: { value: 0 },
       },
       vertexShader: VERT,
       fragmentShader: FRAG,
@@ -92,6 +104,11 @@ export class Ponds {
       // the depth under the water comes from the normal pass: leave the water out of it
       ink.skip(m);
     }
+  }
+
+  /** How hard it rains on the water (0–1): rings from the drops. */
+  setRain(rain: number): void {
+    this.mat.uniforms.uRain.value = rain;
   }
 
   update(time: number, camera: THREE.PerspectiveCamera): void {

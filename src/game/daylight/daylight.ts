@@ -1,18 +1,20 @@
 // The city follows Saigon's real time of day (D24): the sun stands where it stands over District 1 now, the
 // colours of the light, the sky, the sea and the ponds follow its height (looks.ts), and after dark the moon takes
 // over, the street lamps light pools on the ground and windows, shops and lanterns glow (paint.ts NIGHT).
-// Worked out once a second; the shadow is re-baked when the light has turned enough to show.
+// The weather (weather.ts) greys it all and flattens the light under clouds and rain, and wets the ground.
+// Worked out twice a second; the shadow is re-baked when the light has turned enough to show.
 import * as THREE from 'three';
 import { fromBlender } from '../coords';
-import { NIGHT } from '../paint';
+import { NIGHT, WET } from '../paint';
 import { setLightDirection, type SceneParts } from '../world';
 import { SaigonClock, saigonHours } from './clock';
-import { lookFor, newLook, nightness, phaseOf, windowsLit, type Phase } from './looks';
+import { lookFor, newLook, nightness, phaseOf, windowsLit, type Look, type Phase } from './looks';
 import { sunPosition } from './sun';
+import type { Weather } from './weather';
 
 const RAD = Math.PI / 180;
 const DEG = 180 / Math.PI;
-const UPDATE_MS = 1000;
+const UPDATE_MS = 500;
 /** re-bake the shadow once the light has turned this much (the sun moves a quarter of a degree a minute) */
 const TURN_COS = Math.cos(0.3 * RAD);
 /** a lower sun still lights from its bearing but at this height: its shadows would run off the shadow map */
@@ -21,6 +23,7 @@ const MIN_LIGHT_ALT = 12;
 const HANDOVER_ALT = -2;
 /** moonlight: high in the south-south-west, the same every night */
 const MOON = { alt: 55, az: 200 };
+const WHITE = new THREE.Color(1, 1, 1);
 
 /** The colours a water surface takes from the look (the uniform colours of sea.ts and water.ts). */
 export interface WaterColours {
@@ -30,6 +33,26 @@ export interface WaterColours {
   edge: THREE.Color;
   /** haze over the sea, sky reflected in a pond */
   far: THREE.Color;
+}
+
+const grey = new THREE.Color();
+
+/** Turn `c` toward its own grey (a little cool, `dark` times as bright) by `amount`: a colour under a grey sky. */
+function greyed(c: THREE.Color, amount: number, dark: number): void {
+  if (amount <= 0) return;
+  const l = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+  grey.setRGB(l * 0.97 * dark, l * 0.99 * dark, l * 1.04 * dark);
+  c.lerp(grey, amount);
+}
+
+/** Clouds and rain on a look: grey sky and water, a weaker lit side, a lighter shadow side (diffuse light). */
+function overcast(look: Look, o: number): void {
+  if (o <= 0) return;
+  for (const c of [look.skyTop, look.skyMid, look.skyLow]) greyed(c, o * 0.85, 0.82);
+  for (const c of [look.seaDeep, look.seaShallow, look.seaFoam, look.seaHaze, look.pondDeep, look.pondShallow, look.pondRim, look.pondSky]) greyed(c, o * 0.6, 0.86);
+  greyed(look.light, o * 0.5, 1);
+  grey.copy(look.light).multiplyScalar(0.72);
+  look.shade.lerp(grey, o * 0.55);
 }
 
 function smooth(t: number): number {
@@ -51,6 +74,8 @@ export class Daylight {
   /** the sun's height (degrees) and whether it is before noon, as of the last update */
   altitude = 0;
   morning = true;
+  /** the tint of falling rain: paler than the sky of the moment */
+  readonly rainColour = new THREE.Color('#DDE4EA');
   private readonly look = newLook();
   private readonly dir = new THREE.Vector3();
   private readonly bakedDir = new THREE.Vector3();
@@ -61,6 +86,7 @@ export class Daylight {
   constructor(
     private readonly parts: SceneParts,
     clock: SaigonClock,
+    private readonly weather: Weather | null = null,
   ) {
     this.clock = clock;
   }
@@ -92,10 +118,15 @@ export class Daylight {
     const azimuth = sun.azimuth * DEG;
     this.morning = azimuth < 180;
     const look = lookFor(this.altitude, this.morning, this.look);
+    const cover = this.weather?.overcast ?? 0;
+    overcast(look, cover);
+    this.rainColour.copy(look.skyLow).lerp(WHITE, 0.35);
 
     // the lit side: the sun while it is up, then the moon; neither at the handover, so the switch never shows
     const sunUp = this.altitude > HANDOVER_ALT;
-    const strength = sunUp ? smooth((this.altitude - HANDOVER_ALT) / 6) : 1 - smooth((this.altitude + 8) / (HANDOVER_ALT + 8));
+    const up = sunUp ? smooth((this.altitude - HANDOVER_ALT) / 6) : 1 - smooth((this.altitude + 8) / (HANDOVER_ALT + 8));
+    // under a grey sky the light comes from everywhere: hardly any lit side, soft shadows
+    const strength = up * (1 - 0.78 * cover);
     if (sunUp) towards(Math.max(this.altitude, MIN_LIGHT_ALT), azimuth, this.dir);
     else towards(MOON.alt, MOON.az, this.dir);
     const { sun: light, ambient, sky } = this.parts;
@@ -112,6 +143,7 @@ export class Daylight {
     }
     NIGHT.uNight.value = nightness(this.altitude);
     NIGHT.uLit.value = windowsLit(saigonHours(this.now));
+    WET.uWet.value = this.weather?.wet ?? 0;
 
     if (this.dir.dot(this.bakedDir) > TURN_COS) return false;
     this.bakedDir.copy(this.dir);

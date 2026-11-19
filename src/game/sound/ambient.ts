@@ -1,9 +1,10 @@
 // Area sound, made in code (no audio files). Each area in server/content/places.json can have its own soundscape:
 // it fades in as the player comes into the area and out as they leave it, so every part of the island can sound
-// different. Only the beach has one for now; everywhere else is quiet. Starts on the first click or key (browsers
-// only allow audio after a user gesture).
+// different. Only the beach has one for now; everywhere else is quiet. Over every area, the rain and thunder of
+// the weather (setRain, thunder). Starts on the first click or key (browsers only allow audio after a user gesture).
 import { distance, PLACES, type Place } from '../places';
 import { beachSound } from './beach';
+import { rainSound, type RainSound } from './rain';
 
 /** A sound for one area. It plays into the bus it was made with; the mixer fades that bus. */
 export interface Soundscape {
@@ -67,6 +68,10 @@ function smooth(e0: number, e1: number, x: number): number {
 export class Ambient {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** the weather's sound: its bus follows the rain (thunder plays into it too: a storm always comes with rain) */
+  private rainBus: GainNode | null = null;
+  private rain: RainSound | null = null;
+  private rainLevel = 0;
   private on = readPref();
   private readonly layers: Layer[] = PLACES.flatMap((place) => {
     const make = AREA_SOUNDS[place.id];
@@ -99,6 +104,24 @@ export class Ambient {
       l.level = 0;
       l.scape = l.make(ctx, bus);
     }
+    this.rainBus = ctx.createGain();
+    this.rainBus.gain.value = this.rainLevel;
+    this.rainBus.connect(master);
+    this.rain = rainSound(ctx, this.rainBus);
+  }
+
+  /** How loud the rain is (0–1): the weather's strength, softer away from the street. */
+  setRain(level: number): void {
+    if (Math.abs(level - this.rainLevel) < STEP && !(level === 0 && this.rainLevel !== 0)) return;
+    this.rainLevel = level;
+    if (this.ctx && this.rainBus) this.rainBus.gain.setTargetAtTime(level, this.ctx.currentTime, FADE_TIME * 2);
+  }
+
+  /** A thunderclap (`near` 1 close by, 0 far off). */
+  thunder(near: number): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.on || ctx.state !== 'running' || !this.rain) return;
+    this.rain.thunder(near);
   }
 
   toggle(): boolean {

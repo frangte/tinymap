@@ -435,6 +435,33 @@ func TestHealthzAndForeignOrigin(t *testing.T) {
 	r2.Body.Close()
 }
 
+func TestWeatherAPI(t *testing.T) {
+	frame := []byte(`{"t":"weather","kind":"rain","rain":0.5,"cloud":0.9,"temp":27}`)
+	srv := startWith(t, testConfig(), Options{Weather: func() []byte { return frame }})
+	resp, err := http.Get(srv.URL + "/api/weather")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil || resp.StatusCode != http.StatusOK || string(body) != string(frame) {
+		t.Fatalf("GET /api/weather = %d %q, %v", resp.StatusCode, body, err)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
+		t.Errorf("content type %q", ct)
+	}
+	// without a weather source there is no route
+	plain := startServer(t, testConfig())
+	resp, err = http.Get(plain.URL + "/api/weather")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("no source: status %d, want 404", resp.StatusCode)
+	}
+}
+
 // ---- accounts
 
 // postGuest asks for a guest token, from a page at origin ("" for no Origin header, like curl).

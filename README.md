@@ -20,6 +20,8 @@ The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so th
 
 The light follows Saigon's real time of day (UTC+7, for every player wherever they are): the sun stands where it stands over District 1 now, worked out from the clock with no API, and the city goes through dawn, day, golden hour, blue hour and night. After dark the moon takes over, the street lamps light pools on the ground (the 16 nearest to the camera's focus) and windows, shops, lanterns and traffic lights glow. The menu and the place card show Saigon's time. `?time=17:30` stops the clock at that time of today (and `sgGame.daylight.set('05:45')` / `set(null)` with `?debug`). The colours of each time of day are in `src/game/daylight/looks.ts`; what glows at night, by material, is `NIGHT_GLOW` in `src/game/paint.ts`.
 
+The weather is Saigon's real weather: the server asks Open-Meteo every 15 minutes and sends it to everyone (`server/internal/weather`; the page also asks `GET /api/weather` so the menu shows it before joining). Clouds gather round the island and grey the light; rain falls round the camera, the streets go dark and wet (and shine back the lamps at night) and dry slowly after; the ponds ring with drops, the gulls shelter, and the rain is heard (made in code like the surf). A storm flashes, its thunder a moment later. The menu says it: "16:20 ở Sài Gòn · 27°C · đang mưa". Without a server the sky is clear. `?weather=rain` (`clear`, `cloudy`, `drizzle`, `rain`, `storm`) shows one whatever the server says, as does `sgGame.weather.set('storm')` / `set(null)` with `?debug`.
+
 ## Installing as an app (PWA)
 
 The production build is a Progressive Web App: on a phone, "Add to Home Screen" (Safari) or "Install app" (Chrome) puts Sài Gòn mini on the home screen, where it opens full screen. A service worker ([vite-plugin-pwa](https://vite-pwa-org.netlify.app/), set up in `vite.config.ts`) keeps the page, the code, the fonts and the map on the device, so the game starts at once and opens offline too. Offline it plays alone: walking, NPCs and the map need no server, and multiplayer comes back when the network does.
@@ -61,6 +63,7 @@ src/game/
   sound/                area sound made with WebAudio (no audio files), mute toggle
     ambient.ts          per-area mixer: each area place fades its soundscape in and out by distance
     beach.ts            soft surf for bai_bien: overlapping waves over a far-off bed
+    rain.ts             rain (a hiss and a wash of noise) and thunder, faded by the weather
     noise.ts            seamless looping brown / pink noise
   world.ts              renderer, paper sky, sun/ambient lighting, GLB loader (plain or base64 .txt)
   daylight/             the time of day: Saigon's real clock drives the light, sky, water and the night
@@ -69,7 +72,9 @@ src/game/
     looks.ts            the colours of dawn, day, golden hour, blue hour and night; windows lit by the hour
     daylight.ts         applies them once a second: sun or moon, tints, sky, sea, ponds, night glow
     lamps.ts            the street lamps found in the map's lampGlow mesh, the nearest lit at night
-    clockView.ts        Saigon's time on the menu and the place card
+    clockView.ts        Saigon's time and weather on the menu, the time on the place card
+    weather.ts          the weather from the server (or ?weather=), eased in; wet ground, lightning and thunder
+    rain.ts             falling rain: streaks in a box round the camera
   paint.ts              toon paint material (Blender SD_Paint parameters) + foliage wind and see-through
   ink.ts                normal/depth pass, colour pass and the ink composite
   collider.ts           what bodies bump into: the map's own triangles in one BVH (three-mesh-bvh), capsule

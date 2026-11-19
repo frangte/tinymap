@@ -129,6 +129,17 @@ export interface News {
   id: string;
 }
 
+export const WEATHER_KINDS = ['clear', 'cloudy', 'drizzle', 'rain', 'storm'] as const;
+export type WeatherKind = (typeof WEATHER_KINDS)[number];
+
+/** Saigon's weather now (server/internal/weather): how heavy the rain and how cloudy the sky (0–1), °C or null. */
+export interface WeatherReport {
+  kind: WeatherKind;
+  rain: number;
+  cloud: number;
+  temp: number | null;
+}
+
 /** A character's quests and achievements (their text is in server/content/quests.json), and what just happened. */
 export interface Progress {
   quests: QuestState[];
@@ -196,6 +207,8 @@ export type ServerMsg =
   | { t: 'result'; rid: number; ok: boolean; code: string }
   /** after a purchase (before its result): every item we own and the phone apps we have now */
   | { t: 'items'; items: string[]; apps: string[] }
+  /** on joining and whenever it changes */
+  | ({ t: 'weather' } & WeatherReport)
   | ({ t: 'progress' } & Progress)
   | { t: 'error'; code: ErrorCode }
   /** a moderation line for our chat log: a command's answer, a mute, a report received */
@@ -443,6 +456,13 @@ export function parseServerMsg(data: unknown): ServerMsg | null {
     case 'items': {
       if (!Array.isArray(m.items) || !Array.isArray(m.apps)) return null;
       return { t: 'items', items: m.items.map(idOf).filter((i) => i !== ''), apps: m.apps.map(idOf).filter((a) => a !== '') };
+    }
+    case 'weather': {
+      const kind = WEATHER_KINDS.find((k) => k === m.kind);
+      if (!kind || !num(m.rain) || !num(m.cloud)) return null;
+      const unit = (v: number): number => Math.min(1, Math.max(0, v));
+      const temp = num(m.temp) && Math.abs(m.temp) < 80 ? m.temp : null;
+      return { t: 'weather', kind, rain: unit(m.rain), cloud: unit(m.cloud), temp };
     }
     case 'result':
       return isId(m.rid) ? { t: 'result', rid: m.rid, ok: m.ok === true, code: typeof m.code === 'string' ? m.code.slice(0, 16) : '' } : null;

@@ -9,7 +9,7 @@ import { L } from '../game/i18n/client';
 import { apiUrl, clearToken, fetchGuestToken, loadToken, saveToken } from './auth';
 import type { RideClientMsg, RideServerMsg } from './rideProtocol';
 import type { WayClientMsg, WayServerMsg } from './wayProtocol';
-import { parseServerMsg, type ArchRefusal, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo } from './protocol';
+import { parseServerMsg, type ArchRefusal, type Channel, type ChatLine, type ClientMsg, type EndReason, type Interaction, type NpcInfo, type PlayerInfo, type Pose, type Progress, type Result, type SnapRow, type VehicleInfo, type WeatherReport } from './protocol';
 
 /** replaced: the same character is playing in another tab; this one stops trying */
 /** banned, kicked: a moderator sent this player out; this one stops trying too */
@@ -48,6 +48,8 @@ export interface NetEvents {
    * have now); never for a guest without an account
    */
   items(items: string[], apps: string[] | null): void;
+  /** Saigon's weather now: on joining and whenever it changes */
+  weather(w: WeatherReport): void;
   /** our quests and achievements, on joining and whenever they change (only for a character with an account) */
   progress(p: Progress): void;
   /** the last chat line was refused for being too fast */
@@ -392,6 +394,11 @@ export class NetClient {
       case 'items':
         this.on.items(m.items, m.apps);
         break;
+      case 'weather': {
+        const { t: _t, ...w } = m;
+        this.on.weather(w);
+        break;
+      }
       case 'result':
         this.settle(m.rid, { ok: m.ok, code: m.code });
         break;

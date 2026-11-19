@@ -36,8 +36,9 @@ Deploying to the server (nginx + systemd, `npm run deploy`): see [DEPLOY.md](DEP
 | `DB_PATH` | `data/game.db` | the SQLite database, relative to the working directory; its folder is created. The server stops at start if it cannot open it. |
 | `BACKUP_DIR` | `<database folder>/backup` | daily backups (`game-<time>.db`, the last 7 kept) and a copy taken before every schema migration (`pre-v<N>-<time>.db`) |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
+| `WEATHER_URL` | Open-Meteo, District 1 | where Saigon's weather now comes from (`internal/weather`), asked every 15 minutes; `off` for none (a clear sky). Open-Meteo's free plan is for non-commercial use: a paid plan or a self-hosted Open-Meteo takes the same query (`weather_code`, `cloud_cover`, `precipitation`, `temperature_2m` under `current`). |
 
-`GET /healthz` returns `{"ok":true,"players":3}`.
+`GET /healthz` returns `{"ok":true,"players":3}`. `GET /api/weather` returns the `weather` message below (the start menu shows the real sky before the player joins); missing with `WEATHER_URL=off`.
 
 ## HTTP API
 
@@ -73,6 +74,8 @@ internal/world/vehicle.go        vehicles: parking, mounting, getting off; seat 
 internal/world/host.go           the module hook: modules in the world loop, seats, view pins, jobs off the loop
 internal/ridehail/               Crab Bike trips, a world module: booking, offers, pickup, the trip, its money
 internal/shop/                   buying items from an NPC's shop, a world module: reach, the purchase in a job, then wallet, items, result
+internal/weather/                Saigon's weather now (D24): Open-Meteo every 15 minutes off the loop (Source), a world module that sends it
+                                 on arrival and when it changes; a clear sky without a report fresher than 90 minutes
 internal/directions/             asking the way, a world module: a Traveler asks, Citizens are called, one answers
 internal/moderation/             reports, mutes, bans and the moderators' chat commands, a world module with a chat hook
 internal/chatfilter/             the word filter for chat lines and names (content/chat_filter.json)
@@ -157,6 +160,7 @@ Names and chat are cleaned on the server: control characters and invisible forma
 | `{"t":"interaction_end","sid":12,"reason":"far"}` | the conversation is over for this player: `done` (it reached its end), `left` (closed), `far` (walked further than the NPC's reach + 2 m), `other` (started another) |
 | `{"t":"progress","quests":[{"id":"citizen.ca_phe_sang","n":{"order":1,"sit":0}},{"id":"citizen.tap_the_duc","done":true}],"achievements":[{"id":"kham_pha_quan_1","n":3}],"titles":[…],"stamps":[…],"title":"nguoi_day_som","streak":2,"news":[{"kind":"quest","id":"citizen.tap_the_duc"},{"kind":"title","id":"nguoi_day_som"}]}` | a character's quests (only to one with an account): on joining, and whenever something changed. `n` is how far each objective got (seconds for a stay, metres for a ride); only today's dailies are in it. `streak` is the days in a row with a daily done (0 once a day went by without one). `news` is what just happened (`quest`, `achievement`, `title`, `stamp`), for the game to celebrate. The text is in `content/quests.json`, which the game has. A reward in xu sends `wallet` first. |
 | `{"t":"items","items":["ifone_x"],"apps":["notices","crab",…]}` | after a purchase: every item the character owns, and the phone apps it has now |
+| `{"t":"weather","kind":"rain","rain":0.75,"cloud":0.96,"temp":26.6}` | Saigon's weather now, to everyone, once on arriving and again whenever it changes (`WEATHER_URL`). `kind` is `clear`, `cloudy`, `drizzle`, `rain` or `storm` (from the WMO code); `rain` how heavy the rain is and `cloud` how much of the sky is cloud, both 0–1; `temp` in °C, missing when no report is fresh (then the sky is clear). |
 | `{"t":"wallet","balance":84000}` | the balance after money moved (a hold, a settlement, a tip) |
 | `{"t":"duty","on":true}` | on or off duty |
 | `{"t":"ride","id":"01J…","state":"accepted","role":"passenger","dest":"nha_hat_thanh_pho","fare":16000,"passenger":{"id":7,"name":"Lan"},"driver":{"id":9,"name":"Tài","stars":4.8,"trips":31},"pickup":[x,z],"deadline":1730790060000}` | to both sides of a trip on every change. `role` is `passenger` or `rider`; `state` `requested`, `accepted`, `on_trip`, then how it ended: `completed`, `cancelled`, `expired`, `ended`, with `end` (`completed`, `alighted`, `cancelled_by_passenger`, `cancelled_by_driver`, `no_driver`, `pickup_timeout`, `passenger_left`, `driver_left`, `driver_got_off`, `passenger_got_off`, `trip_timeout`, `hold_failed`) and `paid` (what the driver got). `deadline` is when the state times out, or when the rating window closes. |

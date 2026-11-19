@@ -36,6 +36,9 @@ export const NIGHT = {
   uLampCount: { value: 0 },
 };
 
+/** Shared by every paint material, set by the weather (daylight/weather.ts): how wet the ground is (0–1). */
+export const WET = { uWet: { value: 0 } };
+
 /**
  * What lights up after dark, by material key: its glow (sRGB) and how. `always` glows whole (lanterns, traffic
  * lights, the clock face); `windows` lights some panes and not others, more in the evening than at 3 a.m.; `shops`
@@ -55,13 +58,16 @@ const NIGHT_GLOW: Record<string, { color: string; strength: number; kind: 'alway
   signGold: { color: '#FFD27A', strength: 0.5, kind: 'shops' },
 };
 
-/** GLSL (fragment): the light of the street lamps near `wp` and the night glow mask of a material. */
+/** GLSL (fragment): the light of the street lamps near `wp`, the night glow mask of a material, wet ground. */
 const NIGHT_GLSL = /* glsl */ `
 uniform float uNight;
 uniform float uLit;
 uniform vec3 uLamps[${MAX_LAMPS}];
 uniform int uLampCount;
+uniform float uWet;
 varying vec3 vSdW;
+/** how wet this fragment looks: the weather's wetness on surfaces facing up (streets, squares, roofs) */
+float sdWetness = 0.0;
 vec3 sdLampLight(vec3 wp){
   float k = 0.0;
   for (int i = 0; i < ${MAX_LAMPS}; i++) {
@@ -182,7 +188,7 @@ export function paintMaterial(color: THREE.ColorRepresentation, key: string, opt
     sh.uniforms.uVar = { value: variation };
     sh.uniforms.uGrime = { value: grime };
     if (see) Object.assign(sh.uniforms, FOLIAGE);
-    Object.assign(sh.uniforms, NIGHT);
+    Object.assign(sh.uniforms, NIGHT, WET);
     if (glow) sh.uniforms.uGlow = { value: new THREE.Color(glow.color).multiplyScalar(glow.strength) };
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vSdW;\n${see ? FOLIAGE_VERT_GLSL : ''}`)
@@ -197,12 +203,22 @@ export function paintMaterial(color: THREE.ColorRepresentation, key: string, opt
       )
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\n${see ? 'seeThrough(vWPos);' : ''}`)
       .replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+        // wet ground is darker, and shines back the lamps at night (below)
+        if (uWet > 0.01) {
+          vec3 sdUp = normalize((viewMatrix*vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+          sdWetness = uWet*smoothstep(0.55, 0.85, dot(normal, sdUp));
+          diffuseColor.rgb *= 1.0 - 0.32*sdWetness;
+        }`,
+      )
+      .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>\n${glow ? `totalEmissiveRadiance += uGlow*(${glowMask})*uNight;` : ''}`,
       )
       .replace(
         '#include <lights_fragment_end>',
-        '#include <lights_fragment_end>\nif (uNight > 0.01) reflectedLight.directDiffuse += diffuseColor.rgb*sdLampLight(vSdW)*uNight;',
+        '#include <lights_fragment_end>\nif (uNight > 0.01) reflectedLight.directDiffuse += diffuseColor.rgb*sdLampLight(vSdW)*uNight*(1.0 + 0.9*sdWetness);',
       )
       .replace('#include <gradientmap_pars_fragment>', `
         uniform sampler2D gradientMap;
