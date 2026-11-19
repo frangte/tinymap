@@ -49,6 +49,17 @@
           <span><strong data-i18n="modeMap"></strong><small data-i18n="modeMapNote"></small></span>
         </button>
       </div>
+      <!-- install the game as an app, on phones that do not run it as one yet (src/install.ts fills and shows it) -->
+      <div class="install" id="install" hidden>
+        <button class="install-open" id="install-open" type="button" aria-expanded="false" aria-controls="install-steps">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M8 2.5h8A1.5 1.5 0 0 1 17.5 4v16a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 20V4A1.5 1.5 0 0 1 8 2.5zM12 6.5v7.5M9 11l3 3 3-3M10.5 18.5h3" /></svg>
+          <span><strong id="install-label"></strong><small id="install-note"></small></span>
+        </button>
+        <div class="install-steps" id="install-steps" role="region" hidden>
+          <p class="install-lead" id="install-lead" hidden></p>
+          <ol id="install-list"></ol>
+        </div>
+      </div>
     </section>
 
     <!-- top left: where you are, and under it the quest tracker (questTracker.ts) in play -->

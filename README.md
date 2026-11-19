@@ -23,6 +23,7 @@ The URL hash picks the mode: `#ban-do` (map), `#choi` (play), none (menu), so th
 The production build is a Progressive Web App: on a phone, "Add to Home Screen" (Safari) or "Install app" (Chrome) puts Sài Gòn mini on the home screen, where it opens full screen. A service worker ([vite-plugin-pwa](https://vite-pwa-org.netlify.app/), set up in `vite.config.ts`) keeps the page, the code, the fonts and the map on the device, so the game starts at once and opens offline too. Offline it plays alone: walking, NPCs and the map need no server, and multiplayer comes back when the network does.
 
 - **What is kept:** the page, the hashed JS/CSS, the icons, and the map file `index.html` names (`#stage data-model`), about 4.8 MB. Each file is stored under its content hash, so a re-exported GLB under the same name reaches every player with the next version. `/api`, `/ws` and `/healthz` always go to the network.
+- **Install button** (`src/install.ts`): on a phone or tablet the start menu has "Cài game vào điện thoại" / "Install on your phone" under the two ways in, unless the game already runs as an app. Where the browser can ask by itself (Chrome and the other Chromium browsers on Android, through `beforeinstallprompt`) it opens the browser's install dialog; elsewhere it unfolds the steps for that phone: Share → "Thêm vào MH chính" on iPhone and iPad, the browser menu on other Android browsers, and "open in the browser first" inside Zalo, Facebook and other apps, which cannot install a page. Not shown on computers or in builds without a manifest (dev, single file).
 - **Updates** (`src/pwa.ts`): the worker is registered once the map has loaded, so it never slows the first download. It looks for a new version on every return to the app and hourly. The client and the server change together and the socket has no version check, so a new version takes over right away in the menu; in the map or a game a banner offers "Tải lại" / "Reload", and it also takes over on the next return to the menu.
 - **Dev and single file:** no service worker in `npm run dev` or `build:single`. To try it, `npm run build && npx vite preview`; DevTools → Application shows the manifest, the worker and its cache.
 - **Icons:** `node scripts/pwa-icons.mjs` draws the icon (Chợ Bến Thành's clock tower) and writes every size into `public/icons/` (needs `rsvg-convert`: `brew install librsvg`).
@@ -46,6 +47,7 @@ The camera swings back behind the player while walking forward, pulls in instead
 index.html              HUD markup (start menu + loader, place card, tools, map chips, toast, hints, joystick)
 src/main.ts             entry
 src/pwa.ts              installable app: registers the service worker, the update banner
+src/install.ts          the start menu's install button on phones: the browser's own dialog or the steps by hand
 src/style.css           HUD styles (paper + ink); `data-modes` on each overlay vs `<body data-mode>`
 src/game/
   app.ts                bootstrap, frame loop, mode switching (menu / map / play) with camera flights
