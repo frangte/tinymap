@@ -987,7 +987,9 @@ body.is-story .tip-card { display: none !important; }
 .notebook-bar button { width: 34px; height: 30px; padding: 0; font: 700 18px/1 var(--body); box-shadow: none; }
 .notebook-back { grid-column: 1; grid-row: 1; }
 .notebook-close { grid-column: 3; }
-.notebook-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1.5px solid var(--ink); background: var(--paper-deep); }
+.notebook-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border-bottom: 1.5px solid var(--ink); background: var(--paper-deep); }
+/* as many tabs as notebook.ts lists, one row: a long name wraps rather than widening its tab */
+.notebook-tabs span { max-width: 100%; text-align: center; overflow-wrap: anywhere; }
 .notebook-tabs button {
   display: grid;
   justify-items: center;
@@ -1094,6 +1096,7 @@ body.is-story .notebook { display: none !important; }
   body.is-notebook .phone-toggle { display: none !important; }
   .place-card { max-width: calc(100vw - 32px - 132px); }
   .guide-title { font-size: 22px; }
+  .notebook-tabs button { font-size: 10px; padding: 7px 1px 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .notebook, .place-card, .tip-card { animation: none; }
