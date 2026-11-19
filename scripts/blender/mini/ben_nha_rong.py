@@ -5,8 +5,7 @@ its long front facing the river: an arcade of round arches on the ground floor, 
 above, a raised centre with a pediment, two end pavilions with flat roofs behind balustrades, a red tiled roof, and on
 its ridge the two green dragons, turned outwards since 1955, with the emblem (a horse's head and an anchor) between
 them. In front: a quay pushed 3 m out into the river with a railing and bollards, the statue of Nguyễn Tất Thành, pots
-of bonsai and two flagpoles; moored downstream, a model of the steamer Amiral Latouche-Tréville. Across the canal on
-the Quận 1 bank: the Thủ Ngữ flag tower.
+of bonsai and two flagpoles; moored downstream, a model of the steamer Amiral Latouche-Tréville.
 
 Walls are wallSalmon (the coral of the photos), trim opWhite / white, roof roofRed, dragons poGreen.
 
@@ -14,7 +13,8 @@ The frame: the river bank of the cape runs from A along d (north-west to south-e
 point is (s metres along the bank, i metres inland). The facade stands at i = 6, from s = 10 to 32, clear of the foot
 bridge that lands at s 5.
 
-Objects: LM_NhaRong (the house), LF_NhaRong (quay, statue, pots, flags, lamps), LM_NhaRong_Ship, LM_CotCoThuNgu.
+Objects: LM_NhaRong (the house), LF_NhaRong (quay, statue, pots, flags, lamps), LM_NhaRong_Ship. (The Thủ Ngữ flag
+tower across the canal, LM_CotCoThuNgu, was taken out again on 2026-11-19; run() still removes it from older files.)
 run() takes the old blockout model off LM_NewBuildings (built from build_saigon_mini.py before v9).
 """
 import math
@@ -383,38 +383,14 @@ def ship():
     return g
 
 
-def thu_ngu():
-    """Cột cờ Thủ Ngữ on the Quận 1 bank, across the mouth of the canal: a white tower, a lookout, a flag mast"""
-    g = kit.Mesh(54)
-    x, y = 49.0, 7.0
-    g.box('stone', x - 1.6, y - 1.6, -0.2, x + 1.6, y + 1.6, 0.55)
-    g.box('stone', x - 1.2, y - 1.2, 0.55, x + 1.2, y + 1.2, 0.85)
-    g.lathe('white', T(x, y, 0), [(0.95, 0.85), (0.8, 4.0), (0.62, 8.4)], seg=8)
-    g.ring('white', T(x, y, 8.4), 1.25, 0.25, 12)
-    g.ring('white', T(x, y, 8.65), 0.8, 1.1, 8)
-    g.ring('glassDark', T(x, y, 9.15), 0.82, 0.4, 8)
-    g.ring('white', T(x, y, 9.75), 0.95, 0.5, 8, r2=0.1)
-    g.ring('metal', T(x, y, 10.25), 0.07, 5.0, 6)
-    g.rod('metal', (x - 1.1, y, 14.0), (x + 1.1, y, 14.0), 0.04, 4)
-    for k in range(12):
-        a = 2 * PI * k / 12
-        g.box('white', x + 1.15 * math.cos(a) - 0.04, y + 1.15 * math.sin(a) - 0.04, 8.65, x + 1.15 * math.cos(a) + 0.04,
-              y + 1.15 * math.sin(a) + 0.04, 9.25)
-    a = Vector((x, y, 13.6))
-    V = [a, a + Vector((1.9, 0.4, 0)), a + Vector((1.9, 0.4, 1.25)), a + Vector((0, 0, 1.25))]
-    g.raw('signRed', [tuple(v) for v in V], [(0, 1, 2, 3)])
-    g.raw('signRed', [tuple(v + Vector((0, -0.03, 0))) for v in V], [(3, 2, 1, 0)])
-    return g
-
-
 def run():
     old = kit.drop_loose_parts('LM_NewBuildings', lambda x, y: 46 < x < 71 and -41 < y < -21)
+    # LM_CotCoThuNgu: the Thủ Ngữ flag tower across the canal, taken out again (Khoa 2026-11-19)
     kit.remove_objects(['LM_NhaRong', 'LF_NhaRong', 'LM_NhaRong_Ship', 'LM_CotCoThuNgu'])
     coll = kit.collection('SM_Landmarks')
     ob = kit.make_object(house(), 'LM_NhaRong', coll)
     kit.make_object(front(), 'LF_NhaRong', coll)
     kit.make_object(ship(), 'LM_NhaRong_Ship', coll)
-    kit.make_object(thu_ngu(), 'LM_CotCoThuNgu', coll)
 
     def si(x, y):
         p = Vector((x, y, 0)) - A
@@ -422,7 +398,7 @@ def run():
 
     def on_site(x, y):
         s, i = si(x, y)
-        return (9.0 < s < 33.0 and 4.5 < i < 18.5) or (2.5 < s < 41.0 and -3.5 < i < 4.5) or (x - 49) ** 2 + (y - 7) ** 2 < 4
+        return (9.0 < s < 33.0 and 4.5 < i < 18.5) or (2.5 < s < 41.0 and -3.5 < i < 4.5)
     gone = {n: kit.drop_loose_parts(n, on_site) for n in ('CX_StreetLife', 'CX_Trees')}
     gone['old_model_parts'] = old
     kit.add_wobble('LM_NhaRong', 0.02)

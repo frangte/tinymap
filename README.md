@@ -96,7 +96,8 @@ Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z)
    Trees are scattered before the landmarks and houses round them were modelled: after rebuilding or adding a
    building, run `blender models/saigon_mini.blend --background --python scripts/blender/mini/clean_trees.py`
    (`-- --dry-run` to only list them) to remove the trees that grow through buildings, monuments, stairs or the hill
-   road, stand inside or under a building, in a lake, float, or have a wall through a crown.
+   road, stand inside or under a building, in a lake or over the river bed, float, have a wall through a crown, or
+   stand on a roundabout island.
    The detailed landmarks are part scripts in `scripts/blender/mini/` that the build runs (`MINI_SCRIPTS`) and that
    also run alone on the open file, e.g. `blender models/saigon_mini.blend --background --python
    scripts/blender/mini/ho_con_rua.py -- --save` (v9: `ho_con_rua.py`, `dinh_grounds.py`, `ben_nha_rong.py`; see

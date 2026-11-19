@@ -8,8 +8,10 @@ those objects (a bark trunk standing up, with the branches and crowns nearest ab
 
   - has its trunk through a building, a landmark, a stall, a prop, a boulder or the hill road;
   - has anything over its trunk (it stands inside or under a building, a monument or the hill);
-  - stands on a building or in water, or floats more than 0.5 m over a yard or a street;
-  - has a building's wall through the middle of a crown (closer to its centre than 3% of its radius).
+  - stands on a building or in water (a pond, or over the river bed where a bank was rounded off), or floats more
+    than 0.5 m over a yard or a street;
+  - has a building's wall through the middle of a crown (closer to its centre than 3% of its radius);
+  - stands on the island of a roundabout (Khoa 2026-11-19: no trees in the roundabouts; their low garden stays).
 
 A crown that only brushes a balcony stays, and so does a street tree right next to a house; a landmark's own trees
 (bark inside an LM_ object) are judged against everything but their landmark. Crowns left floating by a removed tree go
@@ -26,11 +28,21 @@ import math
 import re
 import sys
 
+import os
+
 import bmesh
 import bpy
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+import layout as LY  # noqa: E402
+
+# the roundabout islands: (x, y, radius)
+ROUNDABOUTS = [(*LY.tb(ra['c']), ra['r']) for ra in LY.L['roundabouts']]
 
 TREE_OBJECTS = ('CX_Trees', 'CX_YardTrees', 'CX_NuiNho_Trees')
 LEAF = {'leaf', 'leafDark', 'leafLight'}
@@ -198,12 +210,16 @@ def judge(tree, bvh, names):
     if loc is not None:
         under = name(i)
         gap = z0 - loc.z
-        if part(under)[1] in WATER:
+        if part(under)[1] in WATER or (part(under)[0].startswith('IS_') and loc.z < LY.SEA):
             why.append('stands in water')
         elif not part(under)[0].startswith(GROUND) and part(under)[0] != own:
             why.append('stands on ' + under)
         if gap > FLOAT_MAX and not part(under)[0].startswith('IS_'):
             why.append(f'floats {gap:.2f} m over {under}')
+    if own in TREE_OBJECTS:
+        for cx, cy, rr in ROUNDABOUTS:
+            if math.hypot(x - cx, y - cy) < rr + 0.3:
+                why.append('stands in a roundabout')
     for p in tree['parts']:
         if p['kind'] != 'leaf':
             continue

@@ -114,6 +114,10 @@ Khoa yêu cầu sau khi duyệt cầu Ba Son:
 Design, sơ đồ, ảnh tham khảo và kết quả: [landmarks-v9-design.md](landmarks-v9-design.md). Khoa duyệt design và chốt:
 hai xe tăng (390, 843), tường Nhà Rồng hồng cam, shader nước cho mọi hồ. Đã dựng cả ba, map xuất lại, thử vật lý xong.
 
+Sửa sau góp ý (2026-11-18, 19): xoá dãy nhà bị hàng rào Dinh cắt ngang ở góc đông bắc; camera nhìn xuyên thân cây
+và song sắt, lùi ra chậm sau khi bị chắn, khi zoom xa thì ngẩng lên thay vì lao vào; bỏ cột cờ Thủ Ngữ; bỏ cây trong
+bùng binh (giữ vườn thấp); bo tròn các mũi đất nhọn ở bờ sông, kênh (`TIP_R` trong `build_saigon_mini.py`).
+
 ## Thứ tự đề xuất
 
 R1 (duyệt design → blockout → duyệt → chi tiết, gồm R4, R5) → R2 và R3 khi bake map mới → R6 → R7 (design viết song song, game 1 và 4 cần R6).

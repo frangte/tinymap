@@ -354,6 +354,13 @@ river = river_line.buffer(L['river']['width'] / 2, cap_style='flat')
 for _c in L.get('canals', []):
     river = river.union(LineString(path_pts(_c['path'], 1.0)).buffer(_c['width'] / 2, cap_style='flat'))
 land = coast.difference(river)
+# round off the sharp tips of land where the river, the canal and the sea meet at a narrow angle (Khoa 2026-11-19:
+# "bờ sông nhọn"): an opening keeps every bank where it is but cuts each tip back to a TIP_R round end; the water that
+# takes the tip's place gets the river bed
+TIP_R = 5.0
+_land_open = land.buffer(-TIP_R, join_style='round').buffer(TIP_R, join_style='round')
+river = river.union(land.difference(_land_open))
+land = _land_open
 # where house blocks may stand: inside the coastal road and its pavement (layout 'inland', 2026-11-12 coast)
 inland = Polygon(path_pts(L['inland'], 1.0)).buffer(0) if L.get('inland') else coast
 

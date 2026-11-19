@@ -65,6 +65,7 @@ tàu Amiral Latouche-Tréville.
 - **Phía sau:** vườn cây, lối và cổng ra đường Nguyễn Tất Thành.
 - **Bên kia kênh (bờ Quận 1):** cột cờ Thủ Ngữ (trụ trắng thon có chòi và cột cờ), mốc nhỏ mới ở bãi cỏ cạnh chân cầu
   đi bộ.
+  *Đã dựng rồi bỏ (Khoa 2026-11-19).*
 
 ## 3. Dinh Độc Lập (khuôn viên)
 
