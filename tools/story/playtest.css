@@ -1,0 +1,13 @@
+/* the "Chơi thử" tab (playtest.ts) */
+.playtest .pt-row { display: grid; grid-template-columns: 180px minmax(0, 360px); gap: 4px 12px; align-items: center; margin: 10px 0; }
+.playtest .pt-row small { grid-column: 2; opacity: 0.65; }
+.playtest .pt-done { margin: 6px 0 0; padding-left: 22px; }
+.playtest .pt-done li { margin: 3px 0; }
+.playtest .pt-warn { margin: 8px 0; padding: 8px 12px 8px 28px; background: #fbeaea; border-left: 3px solid #c0392b; }
+.playtest .pt-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 16px; margin-top: 6px; }
+.playtest .pt-check { display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
+.playtest .pt-actions { margin: 20px 0 8px; }
+.playtest .pt-go { padding: 10px 22px; font: inherit; font-weight: 700; cursor: pointer; }
+.playtest .pt-status.bad { color: #c0392b; }
+.playtest details summary { cursor: pointer; font-weight: 700; }
+.playtest-link { display: inline-block; margin-top: 8px; font-weight: 700; }

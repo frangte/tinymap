@@ -5,6 +5,7 @@ import { loadContent } from './content';
 import { buildModel, type Model } from './model';
 import { renderFlags, renderProblems } from './panels';
 import { renderOverview } from './overview';
+import { renderPlaytest } from './playtest';
 import { findProblems } from './problems';
 import { originColor, originName, state } from './state';
 
@@ -12,7 +13,8 @@ type Route =
   | { view: 'overview'; quest: string }
   | { view: 'dialogue'; id: string; node: string }
   | { view: 'problems' }
-  | { view: 'flags' };
+  | { view: 'flags' }
+  | { view: 'playtest'; quest: string };
 
 const useFixture = new URLSearchParams(location.search).has('fixture');
 const model: Model = buildModel(loadContent(useFixture));
@@ -23,6 +25,7 @@ function parseRoute(): Route {
   const [view, a, b] = location.hash.replace(/^#\/?/, '').split('/');
   if (view === 'quest') return { view: 'overview', quest: decodeURIComponent(a ?? '') };
   if (view === 'dialogue') return { view: 'dialogue', id: a ?? '', node: b ?? '' };
+  if (view === 'playtest') return { view, quest: decodeURIComponent(a ?? '') };
   if (view === 'problems' || view === 'flags') return { view };
   return { view: 'overview', quest: '' };
 }
@@ -42,6 +45,7 @@ function renderTabs(route: Route): void {
     tab('Lời thoại NPC', '#/dialogue/chu_sau', route.view === 'dialogue'),
     tab('Vấn đề', '#/problems', route.view === 'problems', errors),
     tab('Cờ', '#/flags', route.view === 'flags', model.flags.size),
+    tab('Chơi thử', '#/playtest/', route.view === 'playtest'),
   );
 }
 
@@ -108,6 +112,8 @@ function render(): void {
   } else if (route.view === 'dialogue') {
     const g = model.dialogues.graphs.get(route.id);
     content.replaceChildren(dialogueList(model, route.id), g ? h('div', { class: 'dialogue-pane' }, dialogueInfo(model, g), renderDialogue(model, g, route.node)) : h('p', { class: 'panel' }, `Không có lời thoại "${route.id}"`));
+  } else if (route.view === 'playtest') {
+    content.replaceChildren(h('div', { class: 'scroll' }, renderPlaytest(model, route.quest)));
   } else if (route.view === 'problems') {
     content.replaceChildren(h('div', { class: 'scroll' }, renderProblems(problems)));
   } else {
