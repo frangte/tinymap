@@ -6,6 +6,18 @@ export interface PanZoom {
   focusOn(x: number, y: number, w: number, h: number): void;
   /** 100% with a point of the content at the top left of the frame */
   anchorAt(x: number, y: number): void;
+  /** where a screen point is in the content's own pixels */
+  toWorld(clientX: number, clientY: number): { x: number; y: number };
+  state(): ViewState;
+  setState(view: ViewState): void;
+  /** called after every pan or zoom */
+  onChange(fn: (view: ViewState) => void): void;
+}
+
+export interface ViewState {
+  scale: number;
+  tx: number;
+  ty: number;
 }
 
 const MIN_SCALE = 0.1;
@@ -22,7 +34,9 @@ export function attachPanZoom(viewport: HTMLElement, world: HTMLElement): PanZoo
   let ty = 0;
   let content = { w: 1, h: 1 };
   let onScale: (percent: number) => void = () => {};
+  let changed: (view: ViewState) => void = () => {};
   const apply = () => {
+    changed({ scale, tx, ty });
     world.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
     onScale(Math.round(scale * 100));
   };
@@ -45,7 +59,7 @@ export function attachPanZoom(viewport: HTMLElement, world: HTMLElement): PanZoo
   }, { passive: false });
   let drag: { x: number; y: number } | null = null;
   viewport.addEventListener('pointerdown', (ev) => {
-    if ((ev.target as HTMLElement).closest('a, button')) return;
+    if ((ev.target as HTMLElement).closest('a, button, input, textarea, select, details, .handle, .no-pan')) return;
     drag = { x: ev.clientX, y: ev.clientY };
     viewport.setPointerCapture(ev.pointerId);
     viewport.classList.add('panning');
@@ -75,6 +89,18 @@ export function attachPanZoom(viewport: HTMLElement, world: HTMLElement): PanZoo
   };
   const centre = () => [viewport.clientWidth / 2, viewport.clientHeight / 2] as const;
   const api: PanZoom = {
+    toWorld(clientX, clientY) {
+      const r = viewport.getBoundingClientRect();
+      return { x: (clientX - r.left - tx) / scale, y: (clientY - r.top - ty) / scale };
+    },
+    state: () => ({ scale, tx, ty }),
+    setState(view) {
+      ({ scale, tx, ty } = view);
+      apply();
+    },
+    onChange(fn) {
+      changed = fn;
+    },
     setContent(width, height) {
       content = { w: width, h: height };
     },

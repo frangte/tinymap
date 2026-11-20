@@ -297,10 +297,7 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 	if out.Empty() {
 		return false
 	}
-	c := Commit{Grants: out.Grants, Title: out.Title, Streak: out.Streak, Texts: out.Texts, Flags: out.Flags, At: now}
-	for _, r := range out.Changed {
-		c.Records = append(c.Records, *r)
-	}
+	c := out.Commit(now)
 	stored, err := s.save(ctx, character, c)
 	if err != nil {
 		s.log.Error("saving quests failed, progress not kept", "character", character, "err", err)
@@ -312,13 +309,14 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 	if stored.Paid {
 		s.world.Deliver(character, protocol.Encode(protocol.Wallet{T: protocol.TypeWallet, Balance: stored.Balance}))
 	}
+	// the world shows the title before the game hears of it, so whoever reads the progress finds the world agreeing
+	if out.Title != nil {
+		s.world.SetTitle(character, *out.Title)
+	}
 	s.send(character, b, s.news(out, stored.Granted), now)
 	s.deliverTexts(character, p.who, stored)
 	if !maps.Equal(before.Active(), b.Active()) {
 		s.world.SetQuests(character, b.Active())
-	}
-	if out.Title != nil {
-		s.world.SetTitle(character, *out.Title)
 	}
 	// every capability earned goes to the connection, even one the store had given before (a save that went
 	// through but answered with an error): giving it again changes nothing

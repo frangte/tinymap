@@ -2,6 +2,13 @@ import { h, svg } from './dom';
 import { lineName, questCard } from './cards';
 import type { EdgeKind, Model, QuestEdge, QuestNode } from './model';
 import { state } from './state';
+import { input } from './fields';
+import { QUEST_ID_PATTERN } from './schema';
+
+/** What the overview needs to add a quest to a questline. */
+export interface OverviewEditor {
+  newQuest(line: string, id: string): void;
+}
 
 const BOW = 34;
 const EDGE_ARROWS: EdgeKind[] = ['requires', 'cap', 'flag', 'unless'];
@@ -27,9 +34,19 @@ function orderLine(model: Model, quests: QuestNode[]): QuestNode[] {
   return quests.map((q, i) => ({ q, i })).sort((a, b) => depth.get(a.q.id)! - depth.get(b.q.id)! || a.i - b.i).map((x) => x.q);
 }
 
-function column(model: Model, line: string, quests: QuestNode[], selected: string): HTMLElement {
+function column(model: Model, line: string, quests: QuestNode[], selected: string, editor?: OverviewEditor): HTMLElement {
   const col = h('section', { class: 'column' }, h('h2', {}, lineName(line), h('small', {}, line)));
   for (const q of orderLine(model, quests)) col.append(questCard(model, q, { selected: q.id === selected }));
+  if (editor) {
+    const id = input('', (v) => {
+      if (!QUEST_ID_PATTERN.test(v) || model.quests.has(v)) {
+        id.classList.add('invalid');
+        return;
+      }
+      editor.newQuest(line, v);
+    }, { placeholder: '+ quest mới: nhập id rồi Enter', mono: true, title: 'id dạng story.ten_quest (chữ thường, số, _ và dấu chấm)' });
+    col.append(h('div', { class: 'newquest no-pan' }, id));
+  }
   return col;
 }
 
@@ -123,14 +140,14 @@ function drawEdges(model: Model, root: HTMLElement, layer: SVGElement, labels: S
 }
 
 /** The overview map: questlines as columns, quests as cards, arrows between them. */
-export function renderOverview(model: Model, selected: string): HTMLElement {
+export function renderOverview(model: Model, selected: string, editor?: OverviewEditor): HTMLElement {
   const root = h('div', { class: 'overview' });
   const layer = svg('svg', { class: 'edge-layer' });
   const labels = svg('svg', { class: 'edge-layer labels' });
   const columns = h('div', { class: 'columns' });
   for (const line of model.storyLines) {
     const quests = [...model.quests.values()].filter((q) => q.kind === 'story' && q.line === line);
-    columns.append(column(model, line, quests, selected));
+    columns.append(column(model, line, quests, selected, editor));
   }
   root.append(layer, columns, sideGroup(model, selected), labels);
   const redraw = () => drawEdges(model, root, layer, labels, selected);

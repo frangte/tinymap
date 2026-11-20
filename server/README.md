@@ -33,6 +33,7 @@ Deploying: `sh deploy/remote.sh` builds the server for linux/amd64 (`server/cmd/
 | `TRUSTED_PROXIES` | none | reverse proxy IPs/CIDRs whose `X-Forwarded-For` gin trusts |
 | `MAX_PLAYERS` | `150` | player cap; the next one gets `{"t":"error","code":"full"}` |
 | `GUEST_BURST` | `20` | guest accounts one address may take at once (then one per 10 s); raise it only for a load test from one machine (`cmd/loadbots -accounts`) |
+| `SG_DEV_TOOLS` | off | `1` adds `POST /api/dev/playtest`, which makes a test character in a chosen story state for the Xưởng truyện's "Chơi thử từ đây" (loopback callers only, no proxy headers). Off, the route does not exist. Dev machines only: never set it on a public server (`deploy/` does not) |
 | `DB_PATH` | `data/game.db` | the SQLite database, relative to the working directory; its folder is created. The server stops at start if it cannot open it. |
 | `BACKUP_DIR` | `<database folder>/backup` | daily backups (`game-<time>.db`, the last 7 kept) and a copy taken before every schema migration (`pre-v<N>-<time>.db`) |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |

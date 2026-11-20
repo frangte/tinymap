@@ -79,11 +79,31 @@ Không dùng Twine, Ink hay articy: chúng không biết NPC, địa điểm, đ
    - **Đã làm** (`tools/story/`, chạy bằng `npm run story`, mở http://localhost:5173/tools/story/): bản đồ các chương (cột là chương, thẻ là quest, mũi tên `requires`, quyền, cờ và kết cục), lọc "Xem như" theo xuất phát, tìm quest, bật vi/en; bấm quest ra bảng chi tiết (mục tiêu, và ô thoại nào gửi tín hiệu mà mục tiêu đang chờ); sơ đồ lời thoại từng NPC (kéo, phóng to thu nhỏ); bảng Vấn đề; bảng Cờ. Chỉ xem, chưa ghi vào JSON. Thêm `?fixture` để xem mẫu có kết cục và cờ (`tools/story/fixture.json`). Tầng mô hình (`model.ts`, `dialogues.ts`, `problems.ts`) tách khỏi phần vẽ để bước 3 dùng lại khi sửa.
 2. **Engine:** cờ, kết cục, sự kiện trễ, manh mối, có test Go. Làm song song với bước 1.
 3. **Xưởng truyện sửa được**, có kiểm lỗi và chơi thử. Phần lớn nhất.
+   - **Đã làm (sửa, lưu, kiểm lỗi, chơi thử ở mục "Chơi thử" cuối file):** `npm run story` giờ sửa được. Sơ đồ lời thoại sửa ngay trên ô: câu thoại vi/en và các biến thể (xuất phát, quyền, `flag:<cờ>`), thêm/xóa ô (xóa thì báo những câu trả lời đang nối tới), đặt ô bắt đầu và ô gọi điện, thêm/xóa/đổi thứ tự câu trả lời, kéo dấu ● của câu trả lời tới một ô (hay vào khung "kết thúc") để nối, và các ô điều kiện (tín hiệu, quyền, quest, cờ, điểm). Quest sửa trong bảng bên phải: tên, mô tả, điều kiện (requires, cờ, tags, quyền), mục tiêu (loại và tham số theo từng loại; việc vặt `errand` sửa bằng JSON), kết cục, phần thưởng, tin nhắn; thêm quest vào một chương (ô nhập id cuối cột) và xóa quest (liệt kê nơi nhắc tới trước). Hoàn tác/làm lại (Ctrl/Cmd+Z, Shift+Z), Lưu (Ctrl/Cmd+S), dấu "chưa lưu", cảnh báo khi rời trang.
+   - **Ghi thẳng `server/content/*.json`** qua plugin Vite chỉ chạy lúc dev (`tools/story/vite-plugin.ts`, `/__story/load|save|check`): chỉ máy này gọi được (từ chối địa chỉ khác, Origin khác, thiếu header), chỉ ghi `server/content/*.json` và `dialogue/<id>.json`, và từ chối ghi đè file đã đổi trên đĩa từ lúc tải (có nút tải lại). Bộ ghi JSON (`tools/story/format.ts`) nhớ file nào gõ gọn một dòng, file nào xuống dòng, nên lưu không sửa gì thì git diff rỗng và sửa nhỏ thì diff nhỏ; `npm run story:format-check` kiểm tra điều đó. Không có trường nào mà server không biết được ghi ra (bố cục tự động, không lưu vị trí ô).
+   - **Kiểm lỗi:** `problems.ts` + `rules.ts` (luật của `quests.go`, `flags.go`, `cast.go` mà trang tự kiểm được) chạy lại sau mỗi sửa, thẻ quest và ô thoại sai thì viền đỏ. Ngoài ra bản nháp được đưa cho chính server kiểm (`server/cmd/contentcheck`, dùng `content.LoadDir` và `quest.NewEngine`, trên bản sao của `server/content` có bản nháp phủ lên); lỗi hiện ở thanh trên và ở tab Vấn đề, gắn vào quest hay ô thoại khi lời lỗi nói rõ. Lưu khi server từ chối thì hỏi lại ("server sẽ không khởi động được").
+   - **Chưa làm:** file lời thoại mới cho NPC mới, kéo từ thẻ quest này sang thẻ khác để thêm `requires`, sửa danh hiệu/tem/achievement, sửa tên ô, lưu vị trí ô.
 4. Viết thử chương "Chiếc xe của Chú Tám" bằng Xưởng truyện để thử công cụ; sau đó Khoa viết tiếp.
 
 ## Cần Khoa chốt
 
-1. **Kiểu design:** kéo thả sơ đồ (đề xuất), gõ kịch bản dạng chữ rồi trang tự vẽ sơ đồ, hay cả hai?
+1. **Kiểu design:** kéo thả sơ đồ (đề xuất), gõ kịch bản dạng chữ rồi trang tự vẽ sơ đồ, hay cả hai? *(2026-11-20: Khoa bảo làm bản sửa được trước; làm kéo thả theo đề xuất.)*
 2. **Cơ chế:** làm hết 6, hay chọn vài cái trước (đề xuất 1, 2, 3)?
 3. **Tông truyện:** ba twist mẫu có hợp không, hay tông khác (hài, cảm động, noir)?
-4. Có muốn một mockup Xưởng truyện bấm thử được trước khi code thật không?
+4. Có muốn một mockup Xưởng truyện bấm thử được trước khi code thật không? *(Không làm mockup, làm luôn bản thật.)*
+
+## Chơi thử (đã làm)
+
+Chọn một quest trong Xưởng truyện, bấm "Chơi thử", game mở ở tab mới với một nhân vật thử đã ở đúng trạng thái trước quest đó, khỏi chơi lại hàng giờ.
+
+**Chạy:** `SG_DEV_TOOLS=1 npm run server` (có thể thêm `DB_PATH=/tmp/test.db` để khỏi đụng DB dev) và `npm run story`; mở tab "Chơi thử" (hoặc link "Chơi thử từ đây" ở bảng chi tiết của quest), chọn quest và bấm nút. Không đặt `SG_DEV_TOOLS` thì route không tồn tại (404).
+
+**Trang tự điền:** xuất phát; các quest phải xong (`requires`, cộng quest đặt các cờ trong `requires_flags`), mỗi quest có kết cục thì chọn được kết cục (mặc định là cái thỏa điều kiện của quest đã chọn); đồ cần để có quyền mà các quest đọc (`requires_caps`: điện thoại, xe, đồng phục); cờ thêm; tiền thêm; chỗ đứng (đích đầu tiên của quest, thường là NPC giao quest).
+
+**Server (`server/internal/playtest`, route `server/internal/web/playtest.go`):** `POST /api/dev/playtest` tạo một tài khoản mới và nhân vật tên `Thử: …`, không bao giờ đụng tài khoản có sẵn. Quest "xong" đi qua `quest.Engine.Complete`: cùng đường code với lúc chơi thật (bản ghi và kết cục, cờ `<quest>:<kết cục>`, `rewards.flags`, thưởng xu/danh hiệu/tem/quyền, tin nhắn, và quest hay thành tích mở ra sau đó), nên chơi thử không lệch luật; test Go so sánh với chơi thật bằng sự kiện. Đồ và tiền ghi bằng đúng các dòng mua đồ sẽ ghi (giá 0). Quest chưa mở được (thiếu quyền, cờ) thì thử lại sau các quest khác, hết lượt mà vẫn không mở thì từ chối và nói thiếu gì. Từ chối: id lạ, kết cục không thuộc quest, quest lặp hằng ngày, quest thiếu `requires`.
+
+**Cổng an toàn:** tắt mặc định; chỉ nhận kết nối từ loopback và không có header `X-Forwarded-*` (nginx cùng máy cũng bị chặn); Vite dev (nghe cả LAN) chặn `/api/dev/` với máy khác bằng middleware chỉ chạy khi dev (`vite.config.ts`); Origin lạ bị chặn như các API khác.
+
+**Client:** `/?playtest=<token>&ptarch=…&ptname=…&ptlook=…` (giữ `lang`, `debug`), chỉ có tác dụng ở game của dev server (`npm run dev`); bản production bỏ qua tham số này. Tab đó thay `localStorage` bằng bộ nhớ (token và hồ sơ test), nên nhân vật đã lưu của người chơi không bị đọc hay ghi đè; có nhãn "NHÂN VẬT THỬ" (`src/game/i18n/playtest.ts`).
+
+**Chưa làm:** quyền `exam.a1.*` (cấp bởi phí thi, không có item) không tự điền được; tin nhắn của quest xong nằm chờ trong Tin nhắn như lúc chơi thật; quest mà server chưa có (ví dụ trong `?fixture`) bị server từ chối.

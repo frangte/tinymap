@@ -11,7 +11,7 @@ For gameplay, multiplayer and backend work (archetypes, quests, NPCs, phone, cha
 ## Commands
 
 - `npm run dev` — dev server at http://localhost:5173 (`?debug` exposes `window.sgGame`, `?debug&manual` stops the loop for stepping)
-- `npm run story` — the Xưởng truyện, a read-only story map of the content JSON at http://localhost:5173/tools/story/ (dev only, `?fixture` for a sample with outcomes and flags; docs/design/14-story-tools.md)
+- `npm run story` — the Xưởng truyện, the story editor at http://localhost:5173/tools/story/: draws and edits `server/content/` (quests, dialogue) and saves back to the JSON (dev only, localhost only; `?fixture` is a read-only sample with outcomes and flags; docs/design/14-story-tools.md). `npm run story:format-check` checks its JSON writer reproduces the content files exactly
 - `npm run typecheck` — `tsc --noEmit`
 - `npm run i18n:check` — fails on interface text typed outside the catalogs in `src/game/i18n/`
 - `npm run build` — type-check + production build into `dist/`

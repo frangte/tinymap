@@ -42,6 +42,10 @@ type Options struct {
 	// GuestBurst is how many guest accounts one address may take at once (0: guestBurst). Only a load test from
 	// one machine raises it (GUEST_BURST); a public server keeps the default.
 	GuestBurst int
+	// Playtest, when set, adds the dev route that makes a test character in a chosen story state
+	// (POST /api/dev/playtest, loopback callers only). Nil, the route does not exist. main sets it only when
+	// SG_DEV_TOOLS is on.
+	Playtest Playtester
 }
 
 // Guests issues anonymous accounts; identity.Service in production.
@@ -106,6 +110,10 @@ func NewRouter(w *world.World, sockets *ws.Server, guests Guests, opt Options) (
 		}
 		c.JSON(http.StatusOK, gin.H{"token": token})
 	})
+
+	if opt.Playtest != nil {
+		playtestRoute(api, opt.Playtest)
+	}
 
 	if opt.StaticDir != "" {
 		files := http.FileServer(http.Dir(opt.StaticDir))
