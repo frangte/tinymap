@@ -3,7 +3,7 @@ import { hashQuest, questTitle, type Model, type QuestNode } from './model';
 import { originColor, originName, originShort, state, tx } from './state';
 import type { Rewards } from './types';
 
-/** Questline names for the column headings; a line not listed shows its id. */
+/** Questline names for the column headings (the one place to name a questline; `lineName` falls back to a readable id). */
 const LINE_NAMES: Record<string, string> = {
   chuong_0_que: 'Chương 0 · Từ quê lên',
   chuong_0_nuoc_ngoai: 'Chương 0 · Người nước ngoài',
@@ -17,7 +17,15 @@ const LINE_NAMES: Record<string, string> = {
   thanh_tich: 'Thành tích',
 };
 
-export const lineName = (id: string): string => LINE_NAMES[id] ?? id;
+/** A questline's heading: the name above, else the id read as words ("chuong_4" → "Chương 4"). */
+export function lineName(id: string): string {
+  const known = LINE_NAMES[id];
+  if (known) return known;
+  const chapter = /^chuong_(\d+)(?:_(.+))?$/.exec(id);
+  if (chapter) return `Chương ${chapter[1]}${chapter[2] ? ` · ${chapter[2].replace(/_/g, ' ')}` : ''}`;
+  const words = id.replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 /** What each objective type means, in a few words. */
 export const OBJECTIVE_NAMES: Record<string, string> = {

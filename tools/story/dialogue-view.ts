@@ -1,5 +1,5 @@
 import { badge, h, svg } from './dom';
-import { listenersOf, hashDialogue, hashQuest, type Model } from './model';
+import { dialogueTitle, listenersOf, hashDialogue, hashQuest, type Model } from './model';
 import { layoutLayered } from './layout';
 import { attachPanZoom } from './panzoom';
 import { originColor, tx } from './state';
@@ -119,7 +119,10 @@ export function renderDialogue(model: Model, g: DialogueGraph, focus: string): H
     if (target) {
       target.el.classList.add('focus');
       pz.focusOn(target.x, target.y, target.w, target.h);
-    } else pz.fit();
+    } else {
+      const start = boxes.get(g.def.start);
+      pz.anchorAt(start?.x ?? 0, start?.y ?? 0);
+    }
   };
   requestAnimationFrame(place);
   attachHover(viewport);
@@ -162,15 +165,14 @@ function attachHover(viewport: HTMLElement): void {
 export function dialogueList(model: Model, current: string): HTMLElement {
   const list = h('nav', { class: 'dlist' });
   for (const g of model.dialogues.graphs.values()) {
-    const names = g.speakers.map((id) => model.content.npcs.find((n) => n.id === id)?.name ?? id);
-    list.append(h('a', { href: hashDialogue(g.id), class: g.id === current ? 'current' : '' }, h('b', {}, names[0] ?? g.id), h('small', {}, `${g.id} · ${Object.keys(g.def.nodes).length} ô`)));
+    list.append(h('a', { href: hashDialogue(g.id), class: g.id === current ? 'current' : '' }, h('b', {}, dialogueTitle(model, g.id)), h('small', {}, `${g.id} · ${Object.keys(g.def.nodes).length} ô`)));
   }
   return list;
 }
 
 export function dialogueInfo(model: Model, g: DialogueGraph): HTMLElement {
-  const info = h('div', { class: 'dinfo' }, h('h2', {}, g.speakers.map((id) => model.content.npcs.find((n) => n.id === id)?.name ?? id).join(', ') || g.id), h('span', { class: 'id' }, `${g.id}.json`));
-  const role = model.content.npcs.find((n) => n.id === g.speakers[0])?.role;
+  const info = h('div', { class: 'dinfo' }, h('h2', {}, dialogueTitle(model, g.id)), h('span', { class: 'id' }, `${g.id}.json`));
+  const role = model.content.npcs.find((n) => n.id === g.speakers[0])?.role ?? model.content.contacts.find((c) => c.id === g.speakers[0])?.role;
   if (role) info.append(h('span', { class: 'role' }, tx(role)));
   if (g.def.about) info.append(h('p', { class: 'about' }, g.def.about));
   return info;

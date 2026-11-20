@@ -83,6 +83,17 @@ const ENGINE_SIGNALS: { npc: string; signal: string }[] = [
   { npc: 'thay_muoi', signal: 'thuc_hanh_bat_dau' },
 ];
 
+/** How an NPC or contact is called: the NPC's name, else the contact's (Má has no NPC), else the id. */
+export function speakerName(model: Pick<Model, 'content'>, id: string): string {
+  return model.content.npcs.find((n) => n.id === id)?.name ?? model.content.contacts.find((c) => c.id === id)?.name?.vi ?? id;
+}
+
+/** The name a dialogue's owner goes by, for lists, links and problems. */
+export function dialogueTitle(model: Pick<Model, 'content' | 'dialogues'>, dialogue: string): string {
+  const speakers = model.dialogues.graphs.get(dialogue)?.speakers ?? [];
+  return speakers.length ? speakers.map((s) => speakerName(model, s)).join(', ') : dialogue;
+}
+
 export const hashQuest = (id: string): string => `#/quest/${id}`;
 export const hashDialogue = (id: string, node?: string): string => `#/dialogue/${id}${node ? `/${node}` : ''}`;
 
@@ -227,7 +238,7 @@ function buildListeners(content: RawContent, quests: Map<string, QuestNode>): Si
   return out;
 }
 
-function buildFlags(quests: Map<string, QuestNode>, dialogues: DialogueIndex): Map<string, FlagInfo> {
+function buildFlags(model: Pick<Model, 'content' | 'dialogues'>, quests: Map<string, QuestNode>): Map<string, FlagInfo> {
   const flags = new Map<string, FlagInfo>();
   const get = (id: string): FlagInfo => {
     let f = flags.get(id);
@@ -245,15 +256,15 @@ function buildFlags(quests: Map<string, QuestNode>, dialogues: DialogueIndex): M
     q.def.requires_flags?.forEach((f) => get(f).reads.push({ where: here(), how: 'quest cần cờ này (requires_flags)' }));
     q.def.unless_flags?.forEach((f) => get(f).reads.push({ where: here(), how: 'quest bị chặn bởi cờ này (unless_flags)' }));
   }
-  for (const g of dialogues.graphs.values()) {
+  for (const g of model.dialogues.graphs.values()) {
     for (const [nodeId, node] of Object.entries(g.def.nodes)) {
       for (const key of Object.keys(node.say)) {
         if (key.startsWith('flag:')) {
-          get(key.slice(5)).reads.push({ where: { text: `${g.id}/${nodeId}`, hash: hashDialogue(g.id, nodeId) }, how: 'biến thể câu thoại' });
+          get(key.slice(5)).reads.push({ where: { text: `${dialogueTitle(model, g.id)}/${nodeId}`, hash: hashDialogue(g.id, nodeId) }, how: 'biến thể câu thoại' });
         }
       }
       (node.choices ?? []).forEach((c, i) => {
-        const where = { text: `${g.id}/${nodeId} (câu trả lời ${i + 1})`, hash: hashDialogue(g.id, nodeId) };
+        const where = { text: `${dialogueTitle(model, g.id)}/${nodeId} (câu trả lời ${i + 1})`, hash: hashDialogue(g.id, nodeId) };
         c.if_flags?.forEach((f) => get(f).reads.push({ where, how: 'câu trả lời chỉ hiện khi có cờ (if_flags)' }));
         c.unless_flags?.forEach((f) => get(f).reads.push({ where, how: 'câu trả lời ẩn khi có cờ (unless_flags)' }));
       });
@@ -290,7 +301,7 @@ export function buildModel(content: RawContent): Model {
     dialogues,
     listeners: buildListeners(content, quests),
     capSources: capSources(content, quests),
-    flags: buildFlags(quests, dialogues),
+    flags: buildFlags({ content, dialogues }, quests),
   };
 }
 

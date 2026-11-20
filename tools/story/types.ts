@@ -108,6 +108,7 @@ export interface NpcDef {
 export interface ContactDef {
   id: string;
   name?: Text;
+  role?: Text;
   dialogue?: string;
   start_for?: string[];
 }

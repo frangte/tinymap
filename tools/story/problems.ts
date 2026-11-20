@@ -1,5 +1,5 @@
 import { DIALOGUE_END } from './types';
-import { emissionsFor, hashDialogue, hashQuest, listenersOf, questTitle, type Model, type Place } from './model';
+import { dialogueTitle, emissionsFor, speakerName, hashDialogue, hashQuest, listenersOf, questTitle, type Model, type Place } from './model';
 
 export type Severity = 'error' | 'warn' | 'info';
 
@@ -58,7 +58,7 @@ function signalProblems(model: Model, out: Problem[]): void {
       if (emissionsFor(model, l.npc, l.signal).length > 0) continue;
       const dialogue = model.dialogues.npcDialogue.get(l.npc);
       const text = dialogue
-        ? `chờ tín hiệu "${l.signal}" từ ${l.npc}, nhưng lời thoại ${dialogue} không câu nào gửi`
+        ? `chờ tín hiệu "${l.signal}" từ ${speakerName(model, l.npc)}, nhưng lời thoại ${dialogueTitle(model, dialogue)} không câu nào gửi`
         : `chờ tín hiệu "${l.signal}" từ "${l.npc}", mà NPC này không có lời thoại`;
       out.push({ severity: 'error', kind: KIND.waiting, text, where: { text: `${questTitle(q.def)} (${q.id}${l.objective ? `.${l.objective}` : ''})`, hash: hashQuest(q.id) } });
     }
@@ -68,19 +68,19 @@ function signalProblems(model: Model, out: Problem[]): void {
     const key = `${e.dialogue}/${e.signal}`;
     if (seen.has(key) || listenersOf(model, e.dialogue, e.signal).length > 0) continue;
     seen.add(key);
-    out.push({ severity: 'info', kind: KIND.unheard, text: `"${e.signal}" (${e.dialogue}/${e.node}): không quest, sổ sưu tầm hay trả giá nào nghe`, where: { text: `${e.dialogue}/${e.node}`, hash: hashDialogue(e.dialogue, e.node) } });
+    out.push({ severity: 'info', kind: KIND.unheard, text: `"${e.signal}" (${dialogueTitle(model, e.dialogue)}/${e.node}): không quest, sổ sưu tầm hay trả giá nào nghe`, where: { text: `${dialogueTitle(model, e.dialogue)}/${e.node}`, hash: hashDialogue(e.dialogue, e.node) } });
   }
 }
 
 function dialogueProblems(model: Model, out: Problem[]): void {
   for (const g of model.dialogues.graphs.values()) {
-    if (g.speakers.length === 0) out.push({ severity: 'info', kind: KIND.unusedDialogue, text: `${g.id}: không NPC hay danh bạ nào trỏ tới`, where: { text: g.id, hash: hashDialogue(g.id) } });
+    if (g.speakers.length === 0) out.push({ severity: 'info', kind: KIND.unusedDialogue, text: `${dialogueTitle(model, g.id)} (${g.id}): không NPC hay danh bạ nào trỏ tới`, where: { text: g.id, hash: hashDialogue(g.id) } });
     for (const id of Object.keys(g.def.nodes)) {
-      if (!g.reachable.has(id)) out.push({ severity: 'warn', kind: KIND.unreachable, text: `${g.id}/${id}: không đi tới được từ ô đầu hay ô gọi điện`, where: { text: `${g.id}/${id}`, hash: hashDialogue(g.id, id) } });
+      if (!g.reachable.has(id)) out.push({ severity: 'warn', kind: KIND.unreachable, text: `${dialogueTitle(model, g.id)}/${id}: không đi tới được từ ô đầu hay ô gọi điện`, where: { text: `${dialogueTitle(model, g.id)}/${id}`, hash: hashDialogue(g.id, id) } });
     }
     for (const e of g.edges) {
       if (!(e.to in g.def.nodes) && e.to !== DIALOGUE_END) {
-        out.push({ severity: 'error', kind: KIND.dangling, text: `${g.id}/${e.from} (câu trả lời ${e.choice + 1}) nối tới "${e.to}", ô này không có`, where: { text: `${g.id}/${e.from}`, hash: hashDialogue(g.id, e.from) } });
+        out.push({ severity: 'error', kind: KIND.dangling, text: `${dialogueTitle(model, g.id)}/${e.from} (câu trả lời ${e.choice + 1}) nối tới "${e.to}", ô này không có`, where: { text: `${dialogueTitle(model, g.id)}/${e.from}`, hash: hashDialogue(g.id, e.from) } });
       }
     }
   }

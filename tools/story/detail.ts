@@ -1,6 +1,6 @@
 import { OBJECTIVE_NAMES, lineName, originChips, rewardsSummary } from './cards';
 import { badge, h, link, type Child } from './dom';
-import { emissionsFor, hashDialogue, hashQuest, outcomeFlag, questTitle, type CapSource, type Model, type QuestNode } from './model';
+import { speakerName, dialogueTitle, emissionsFor, hashDialogue, hashQuest, outcomeFlag, questTitle, type CapSource, type Model, type QuestNode } from './model';
 import { state, tx } from './state';
 import type { Objective, QuestText, Rewards } from './types';
 
@@ -27,7 +27,7 @@ function capSourceText(model: Model, s: CapSource): Child {
 /** Where an objective points: an NPC (to its dialogue) or a place. */
 function atText(model: Model, at: string): Child {
   const dialogue = model.dialogues.npcDialogue.get(at);
-  if (dialogue) return link(at, hashDialogue(dialogue), 'npc');
+  if (dialogue) return link(speakerName(model, at), hashDialogue(dialogue), 'npc');
   const place = model.content.places.find((p) => p.id === at);
   return place ? `${place.name?.vi ?? at} (${at})` : at;
 }
@@ -61,7 +61,7 @@ function signalSources(model: Model, o: Objective): HTMLElement | null {
     for (const e of found) {
       const node = model.dialogues.graphs.get(e.dialogue)?.def.nodes[e.node];
       const answer = e.choice >= 0 ? tx(node?.choices?.[e.choice]?.text) : '(ô này tự gửi khi tới)';
-      list.append(h('li', {}, badge(s.signal, 'signal'), ' ', link(`${e.dialogue} / ${e.node}`, hashDialogue(e.dialogue, e.node)), h('span', { class: 'quote' }, ` “${answer}”`)));
+      list.append(h('li', {}, badge(s.signal, 'signal'), ' ', link(`${dialogueTitle(model, e.dialogue)} / ${e.node}`, hashDialogue(e.dialogue, e.node)), h('span', { class: 'quote' }, ` “${answer}”`)));
     }
   }
   return list;

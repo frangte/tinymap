@@ -4,12 +4,14 @@ export interface PanZoom {
   fit(): void;
   /** scales to a readable size and centres on a box */
   focusOn(x: number, y: number, w: number, h: number): void;
+  /** 100% with a point of the content at the top left of the frame */
+  anchorAt(x: number, y: number): void;
 }
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 2.5;
 const FIT_MARGIN = 24;
-const FOCUS_SCALE = 0.9;
+const FOCUS_SCALE = 1;
 /** a long graph is shown at a size that can be read from its first node, not squeezed into the frame */
 const MIN_FIT_SCALE = 0.6;
 
@@ -19,7 +21,11 @@ export function attachPanZoom(viewport: HTMLElement, world: HTMLElement): PanZoo
   let tx = 0;
   let ty = 0;
   let content = { w: 1, h: 1 };
-  const apply = () => (world.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`);
+  let onScale: (percent: number) => void = () => {};
+  const apply = () => {
+    world.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    onScale(Math.round(scale * 100));
+  };
   const zoomAt = (px: number, py: number, factor: number) => {
     const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
     tx = px - ((px - tx) * next) / scale;
@@ -82,6 +88,12 @@ export function attachPanZoom(viewport: HTMLElement, world: HTMLElement): PanZoo
       if (content.w * scale > vw) ty = FIT_MARGIN;
       apply();
     },
+    anchorAt(x, y) {
+      scale = 1;
+      tx = FIT_MARGIN - x;
+      ty = FIT_MARGIN - y;
+      apply();
+    },
     focusOn(x, y, w, h) {
       scale = FOCUS_SCALE;
       tx = viewport.clientWidth / 2 - (x + w / 2) * scale;
@@ -92,10 +104,12 @@ export function attachPanZoom(viewport: HTMLElement, world: HTMLElement): PanZoo
   button('+', 'Phóng to', () => zoomAt(...centre(), 1.25));
   button('−', 'Thu nhỏ', () => zoomAt(...centre(), 0.8));
   button('Vừa khung', 'Vừa cả sơ đồ', () => api.fit());
-  button('100%', 'Cỡ thật', () => {
+  button('100%', 'Về cỡ thật (100%)', () => {
     scale = 1;
     apply();
   });
+  const label = buttons.lastElementChild as HTMLButtonElement;
+  onScale = (percent) => (label.textContent = `${percent}%`);
   viewport.append(buttons);
   return api;
 }
