@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -187,6 +188,7 @@ const (
 	// from the gameplay services, by character
 	evDeliver
 	evQuests
+	evFlags
 	evTitle
 	// from the connection, by peer
 	evCaps
@@ -206,6 +208,7 @@ type event struct {
 	character string
 	frame     []byte
 	quests    map[string]bool
+	flags     map[string]bool
 	title     string
 	caps      capability.Set
 	done      func()
@@ -232,9 +235,11 @@ type member struct {
 	arch      string
 	look      protocol.Look
 	caps      capability.Set
-	// title is the title it carries ("" for none); quests the quests it has running (answers can depend on them)
+	// title is the title it carries ("" for none); quests the quests it has running and flags the story flags it
+	// holds (answers and lines can depend on them)
 	title  string
 	quests map[string]bool
+	story  map[string]bool
 	home   protocol.Pose
 	gait   gait
 	// owns is the vehicle that came with this player (nil for none), riding the one they sit on
@@ -369,6 +374,12 @@ func (w *World) SetQuests(character string, quests map[string]bool) bool {
 	return w.submit(event{kind: evQuests, character: character, quests: quests})
 }
 
+// SetFlags says which story flags the character holds (answers and lines can depend on them); a conversation it
+// is in shows its current line again if that changed.
+func (w *World) SetFlags(character string, flags map[string]bool) bool {
+	return w.submit(event{kind: evFlags, character: character, flags: flags})
+}
+
 // SetTitle changes the title the character carries; everyone hears of it.
 func (w *World) SetTitle(character, title string) bool {
 	return w.submit(event{kind: evTitle, character: character, title: title})
@@ -434,7 +445,7 @@ func (w *World) handle(e event) {
 		}
 	case evArch:
 		w.onArch(e.p, *e.change, e.reply)
-	case evDeliver, evQuests, evTitle:
+	case evDeliver, evQuests, evFlags, evTitle:
 		w.onService(e)
 	case evDone:
 		e.done()
@@ -452,6 +463,17 @@ func (w *World) onService(e event) {
 		w.sendTo(p, e.frame)
 	case evQuests:
 		m.quests = e.quests
+	case evFlags:
+		changed := !maps.Equal(m.story, e.flags)
+		m.story = e.flags
+		// the answer that set a flag was rendered before the service heard of it: show the line as it is now
+		switch {
+		case !changed || m.talk == nil:
+		case m.talk.members[0] == m:
+			w.showAll(m.talk) // the leader's answers are everyone's
+		default:
+			w.show(m.talk, m)
+		}
 	case evTitle:
 		if m.title == e.title {
 			return

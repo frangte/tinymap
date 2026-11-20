@@ -49,7 +49,16 @@ func (e *Engine) progress(b *Book, news []News, now int64) []byte {
 			msg.Achievements = append(msg.Achievements, protocol.AchievementState{ID: t.id[len(achievementPrefix):], N: n, Done: done})
 			continue
 		}
-		q := protocol.QuestState{ID: t.id, Done: done}
+		q := protocol.QuestState{ID: t.id, Done: done, Outcome: r.Outcome}
+		if !done && len(t.outcomes) > 0 && t.goalsDone(r) {
+			for _, o := range t.outcomes {
+				n := 0
+				if p := r.Objectives[o.id]; p != nil {
+					n = p.N
+				}
+				q.Outcomes = append(q.Outcomes, protocol.OutcomeState{ID: o.id, N: n})
+			}
+		}
 		if !done {
 			q.N = map[string]int{}
 			for _, g := range t.goals {

@@ -5,7 +5,7 @@ import { archetypeById } from '../archetypes';
 import { BODY_NAMES, HAT_NAMES, outfitStyle } from '../outfits';
 import { MiniMap } from '../phone/miniMap';
 import { badge } from '../badge';
-import { current, isDone, type ActiveQuest, type QuestLog } from '../questLog';
+import { alternatives, current, isDone, outcomeCount, type ActiveQuest, type QuestLog } from '../questLog';
 import { BOOK_STAMPS, STREAK_STAMPS, countText, titleName, type StampDef } from '../quests';
 import { button, h } from '../phone/dom';
 import type { AppFactory } from '../phone/apps';
@@ -132,6 +132,19 @@ function questCard(q: ActiveQuest, log: QuestLog, tracked: ActiveQuest | null): 
     goals.append(li);
   }
   card.append(goals);
+  const ways = alternatives(q);
+  if (ways.length > 0) {
+    card.append(h('small', 'quest-or', L.chooseOne));
+    const list = h('ul', 'quest-goals');
+    ways.forEach((o, i) => {
+      const li = h('li', 'is-now');
+      li.append(h('span', '', (i > 0 ? `${L.or} ` : '') + tx(o.text)));
+      const count = countText(o, outcomeCount(q, o));
+      if (count) li.append(h('small', '', count));
+      list.append(li);
+    });
+    card.append(list);
+  }
   if (q.def.xu > 0) card.append(h('small', 'quest-reward', L.reward(money(q.def.xu))));
   card.append(q.def === tracked?.def ? h('small', 'quest-tracking', L.tracking) : button(L.track, () => log.track(q.def.id)));
   return card;
@@ -208,7 +221,12 @@ export const quests: AppFactory = (root, ctx) => {
       });
       box.append(h('summary', '', L.questsDone(done.length)));
       const ol = h('ol', 'app-list');
-      for (const d of done) ol.append(h('li', 'landmark is-seen', tx(d.title)));
+      for (const d of done) {
+        const li = h('li', 'landmark is-seen', tx(d.title));
+        const ending = log.outcomeOf(d.id);
+        if (ending) li.append(h('small', 'quest-ending', ` · ${L.endedWith(tx(ending.title))}`));
+        ol.append(li);
+      }
       box.append(ol);
       root.append(box);
     }

@@ -37,6 +37,11 @@ export interface Objective {
   errand: Errand | null;
 }
 
+/** One way a quest can end (docs/design/15-flags-outcomes.md): an objective, live once the quest's objectives are done. */
+export interface OutcomeDef extends Objective {
+  title: Text;
+}
+
 export interface QuestDef {
   id: string;
   questline: string;
@@ -44,6 +49,8 @@ export interface QuestDef {
   about: Text;
   flow: Flow;
   objectives: readonly Objective[];
+  /** the ways it can end (empty for a quest with one ending) */
+  outcomes: readonly OutcomeDef[];
   /** starts over every day (midnight in Saigon); the server only sends today's */
   daily: boolean;
   /** an odd job: a daily done once a day, apart from the streak of dailies */
@@ -107,13 +114,19 @@ function objective(o: RawObjective): Objective {
   return { id: o.id ?? '', type: o.type, count: Math.max(1, o.count ?? 1), text: o.text ?? { vi: '' }, at: spotOf(o.at), errand: errandOf(o) };
 }
 
+interface RawOutcome extends RawObjective {
+  title?: Text;
+}
+
 export const QUESTS: readonly QuestDef[] = data.quests.map((q): QuestDef => {
   const flow = FLOWS.find((f) => f === q.flow);
   if (!flow) throw new Error(`server/content/quests.json: bad flow in "${q.id}"`);
   const daily = 'repeat' in q && q.repeat === 'daily';
   const job = 'job' in q && q.job === true;
   const xu = 'xu' in q.rewards && typeof q.rewards.xu === 'number' ? q.rewards.xu : 0;
-  return { id: q.id, questline: q.questline, title: q.title, about: q.about, flow, objectives: q.objectives.map(objective), daily, job, xu };
+  const rawOutcomes = (q as { outcomes?: RawOutcome[] }).outcomes ?? [];
+  const outcomes = rawOutcomes.map((o): OutcomeDef => ({ ...objective(o), title: o.title ?? { vi: '' } }));
+  return { id: q.id, questline: q.questline, title: q.title, about: q.about, flow, objectives: q.objectives.map(objective), outcomes, daily, job, xu };
 });
 
 export const ACHIEVEMENTS: readonly AchievementDef[] = data.achievements.map((a): AchievementDef => ({

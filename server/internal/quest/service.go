@@ -21,6 +21,8 @@ type World interface {
 	Deliver(character string, frame []byte) bool
 	SetQuests(character string, quests map[string]bool) bool
 	SetTitle(character, title string) bool
+	// SetFlags gives the character's member the story flags it holds now (the map is the world's to keep)
+	SetFlags(character string, flags map[string]bool) bool
 }
 
 // Config tunes the service.
@@ -295,7 +297,7 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 	if out.Empty() {
 		return false
 	}
-	c := Commit{Grants: out.Grants, Title: out.Title, Streak: out.Streak, Texts: out.Texts, At: now}
+	c := Commit{Grants: out.Grants, Title: out.Title, Streak: out.Streak, Texts: out.Texts, Flags: out.Flags, At: now}
 	for _, r := range out.Changed {
 		c.Records = append(c.Records, *r)
 	}
@@ -383,6 +385,7 @@ func (s *Service) chooseTitle(ctx context.Context, character string, p *player, 
 func (s *Service) send(character string, b *Book, news []News, now int64) {
 	s.world.Deliver(character, s.engine.progress(b, news, now))
 	s.world.SetQuests(character, b.Active())
+	s.world.SetFlags(character, maps.Clone(b.Flags))
 }
 
 // news is what the game celebrates: quests and achievements completed, and the rewards actually given (a grant

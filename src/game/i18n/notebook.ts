@@ -32,6 +32,12 @@ const vi = {
   hoursMinutes: (hours: number, minutes: number) => `${hours} giờ ${minutes} phút`,
   minutes: (minutes: number) => `${minutes} phút`,
   reward: (xu: string) => `Thưởng ${xu}`,
+  /** over the ways a quest can still end (any one of them ends it) */
+  chooseOne: 'Chọn một cách kết thúc:',
+  /** between those ways */
+  or: 'hoặc',
+  /** after a finished quest's name, the way it ended */
+  endedWith: (outcome: string) => `kết cục: ${outcome}`,
   tracking: 'Đang theo dõi trên màn hình',
   track: 'Theo dõi',
   daily: 'Hằng ngày',
@@ -89,6 +95,9 @@ const en: typeof vi = {
   hoursMinutes: (hours, minutes) => `${hours} h ${minutes} min`,
   minutes: (minutes) => `${minutes} min`,
   reward: (xu) => `Reward: ${xu}`,
+  chooseOne: 'Pick one way to end it:',
+  or: 'or',
+  endedWith: (outcome) => `ending: ${outcome}`,
   tracking: 'Tracking on screen',
   track: 'Track',
   daily: 'Daily',

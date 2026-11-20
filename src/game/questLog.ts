@@ -1,7 +1,7 @@
 // The player's quests as the server last told it (the `progress` message), and which one the tracker follows.
 // Nothing here decides progress: the server does, from what it saw the player do.
 import type { AchievementState, Progress, QuestState } from '../net/protocol';
-import { ACHIEVEMENTS, QUESTS, type AchievementDef, type Objective, type QuestDef } from './quests';
+import { ACHIEVEMENTS, QUESTS, questById, type AchievementDef, type Objective, type OutcomeDef, type QuestDef } from './quests';
 
 const TRACK_KEY = 'sg.track.v1';
 
@@ -123,6 +123,12 @@ export class QuestLog {
     return QUESTS.filter((q) => ids.has(q.id) && !q.daily);
   }
 
+  /** The outcome a done quest ended with, undefined for a quest without outcomes. */
+  outcomeOf(id: string): OutcomeDef | undefined {
+    const ended = this.progress?.quests.find((q) => q.id === id && q.done)?.outcome;
+    return ended ? questById(id)?.outcomes.find((o) => o.id === ended) : undefined;
+  }
+
   /** Today's dailies (not the odd jobs), running or done, in the order of quests.json. */
   dailies(): ActiveQuest[] {
     return this.today((def) => def.daily && !def.job);
@@ -174,12 +180,26 @@ export function countOf(q: ActiveQuest, o: Objective): number {
   return Object.prototype.hasOwnProperty.call(q.state.n, o.id) ? q.state.n[o.id] : 0;
 }
 
+/** How far a live outcome's objective got. */
+export function outcomeCount(q: ActiveQuest, o: OutcomeDef): number {
+  return q.state.outcomes?.find((s) => s.id === o.id)?.n ?? 0;
+}
+
+/**
+ * The outcomes live now: once the objectives are done, the ways the quest can end, shown as alternatives (the first
+ * to complete ends it). Empty before that and for a quest without outcomes.
+ */
+export function alternatives(q: ActiveQuest): OutcomeDef[] {
+  const live = q.state.outcomes;
+  return live ? q.def.outcomes.filter((o) => live.some((s) => s.id === o.id)) : [];
+}
+
 export function isDone(q: ActiveQuest, o: Objective): boolean {
   return countOf(q, o) >= o.count;
 }
 
 /**
- * The objectives to do now: in a sequence the first not done (the others wait their turn); otherwise every one not
+ * The objectives to do now (the live outcomes are `alternatives`): in a sequence the first not done (the others wait their turn); otherwise every one not
  * done yet.
  */
 export function current(q: ActiveQuest): Objective[] {

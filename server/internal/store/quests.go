@@ -14,7 +14,7 @@ import (
 // LoadQuests is everything kept of a character's quests.
 func (db *DB) LoadQuests(ctx context.Context, character string) (quest.Saved, error) {
 	var s quest.Saved
-	rows, err := db.sql.QueryContext(ctx, `select quest_id, cycle, def_version, state, objectives, started_at, coalesce(completed_at, 0)
+	rows, err := db.sql.QueryContext(ctx, `select quest_id, cycle, def_version, state, outcome, objectives, started_at, coalesce(completed_at, 0)
 		from quest_progress where character_id = ?`, character)
 	if err != nil {
 		return s, fmt.Errorf("store: load quests: %w", err)
@@ -23,7 +23,7 @@ func (db *DB) LoadQuests(ctx context.Context, character string) (quest.Saved, er
 	for rows.Next() {
 		var r quest.Record
 		var objectives string
-		if err := rows.Scan(&r.ID, &r.Cycle, &r.Version, &r.State, &objectives, &r.StartedAt, &r.CompletedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.Cycle, &r.Version, &r.State, &r.Outcome, &objectives, &r.StartedAt, &r.CompletedAt); err != nil {
 			return s, fmt.Errorf("store: load quests: %w", err)
 		}
 		if err := json.Unmarshal([]byte(objectives), &r.Objectives); err != nil {
@@ -53,6 +53,21 @@ func (db *DB) LoadQuests(ctx context.Context, character string) (quest.Saved, er
 	if err := earned.Err(); err != nil {
 		return s, fmt.Errorf("store: load earned: %w", err)
 	}
+	flags, err := db.sql.QueryContext(ctx, `select flag from story_flags where character_id = ? order by set_at, flag`, character)
+	if err != nil {
+		return s, fmt.Errorf("store: load flags: %w", err)
+	}
+	defer flags.Close()
+	for flags.Next() {
+		var f string
+		if err := flags.Scan(&f); err != nil {
+			return s, fmt.Errorf("store: load flags: %w", err)
+		}
+		s.Flags = append(s.Flags, f)
+	}
+	if err := flags.Err(); err != nil {
+		return s, fmt.Errorf("store: load flags: %w", err)
+	}
 	var title, streakDay sql.NullString
 	if err := db.sql.QueryRowContext(ctx, `select title_id, streak_days, streak_day from characters where id = ?`, character).
 		Scan(&title, &s.Streak.Days, &streakDay); err != nil {
@@ -80,12 +95,19 @@ func (db *DB) SaveQuests(ctx context.Context, character string, c quest.Commit) 
 		if r.CompletedAt != 0 {
 			completed = r.CompletedAt
 		}
-		if _, err := tx.ExecContext(ctx, `insert into quest_progress (character_id, quest_id, cycle, def_version, state, objectives, started_at, completed_at)
-			values (?, ?, ?, ?, ?, ?, ?, ?)
+		if _, err := tx.ExecContext(ctx, `insert into quest_progress (character_id, quest_id, cycle, def_version, state, outcome, objectives, started_at, completed_at)
+			values (?, ?, ?, ?, ?, ?, ?, ?, ?)
 			on conflict (character_id, quest_id, cycle) do update set def_version = excluded.def_version, state = excluded.state,
-				objectives = excluded.objectives, completed_at = excluded.completed_at`,
-			character, r.ID, r.Cycle, r.Version, r.State, string(objectives), r.StartedAt, completed); err != nil {
+				outcome = excluded.outcome, objectives = excluded.objectives, completed_at = excluded.completed_at`,
+			character, r.ID, r.Cycle, r.Version, r.State, r.Outcome, string(objectives), r.StartedAt, completed); err != nil {
 			return out, fmt.Errorf("store: save quest %s: %w", r.ID, err)
+		}
+	}
+	// flags in the same transaction as the progress and rewards that earned them; a flag held already stays as it was
+	for _, f := range c.Flags {
+		if _, err := tx.ExecContext(ctx, `insert into story_flags (character_id, flag, set_at) values (?, ?, ?)
+			on conflict do nothing`, character, f, c.At); err != nil {
+			return out, fmt.Errorf("store: set flag %s: %w", f, err)
 		}
 	}
 	for _, g := range c.Grants {

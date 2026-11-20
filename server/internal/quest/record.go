@@ -27,8 +27,12 @@ type Record struct {
 	// Cycle is "" for a quest done once, the day (gameday) for a daily
 	Cycle string
 	// Version is the quest's version when the record started
-	Version     int
-	State       string
+	Version int
+	State   string
+	// Outcome is the outcome the quest ended with ("" for a quest without outcomes, or one still running)
+	Outcome string
+	// Objectives is the progress of the quest's objectives and, once those are done, of its outcomes (their ids
+	// share one space)
 	Objectives  map[string]*objective.Progress
 	StartedAt   int64
 	CompletedAt int64
@@ -68,6 +72,8 @@ type Saved struct {
 	Stamps []string
 	Title  string
 	Streak Streak
+	// Flags are the story flags the character holds
+	Flags []string
 }
 
 // Commit is everything one event changed for one character, stored in one transaction.
@@ -78,6 +84,8 @@ type Commit struct {
 	Title *string
 	// Streak, when set, is the character's new streak of dailies
 	Streak *Streak
+	// Flags are story flags the event sets (one set before stays as it was), stored with the records
+	Flags []string
 	// Texts are the text messages the event sends (their senders' numbers are kept with them)
 	Texts []Message
 	// At is when (unix milliseconds)
