@@ -147,6 +147,16 @@ export interface QuestState {
    * (-1: no time limit); missing while it is not taken.
    */
   left?: Record<string, number>;
+  /** the outcome a done quest ended with (the quest's `outcomes` in quests.json); missing for none */
+  outcome?: string;
+  /** a running quest whose objectives are done: its live outcomes, the first to complete ends the quest */
+  outcomes?: OutcomeState[];
+}
+
+/** A live outcome of a running quest: how far its objective got. */
+export interface OutcomeState {
+  id: string;
+  n: number;
 }
 
 export interface AchievementState {
@@ -356,6 +366,14 @@ function lefts(v: unknown): Record<string, number> | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+const OUTCOMES_MAX = 6;
+
+/** the live outcomes of a quest, none when it has none */
+function outcomeStates(v: unknown): OutcomeState[] | undefined {
+  const out = (list(v, (o) => (isObj(o) && ID_RE.test(String(o.id)) && Number.isInteger(o.n) && (o.n as number) >= 0 ? { id: String(o.id), n: o.n as number } : null)) ?? []).slice(0, OUTCOMES_MAX);
+  return out.length > 0 ? out : undefined;
+}
+
 function counts(v: unknown): Record<string, number> {
   // no prototype: an objective id can never find an inherited property
   const out: Record<string, number> = Object.create(null) as Record<string, number>;
@@ -373,7 +391,11 @@ function distinct<T extends { id: string }>(items: T[], max: number): T[] {
 }
 
 function progress(m: Obj): Progress | null {
-  const quests = list(m.quests, (q) => (isObj(q) && questId(q.id) ? { id: questId(q.id), done: q.done === true, n: counts(q.n), left: lefts(q.left) } : null));
+  const quests = list(m.quests, (q) =>
+    isObj(q) && questId(q.id)
+      ? { id: questId(q.id), done: q.done === true, n: counts(q.n), left: lefts(q.left), outcome: idOf(q.outcome) || undefined, outcomes: outcomeStates(q.outcomes) }
+      : null,
+  );
   const achievements = list(m.achievements, (a) =>
     isObj(a) && idOf(a.id) && Number.isInteger(a.n) && (a.n as number) >= 0 ? { id: idOf(a.id), n: a.n as number, done: a.done === true } : null,
   );

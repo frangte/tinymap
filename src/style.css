@@ -821,6 +821,8 @@ body.is-picking .offer { display: none !important; }
 .quest-goals small { font: 500 11px/1 var(--mono); white-space: nowrap; }
 .quest-card > button { justify-self: start; padding: 7px 11px; font-size: 12px; }
 .quest-tracking { font: 600 11px/1.2 var(--body); color: var(--brick); }
+.quest-or { font: 700 11px/1.2 var(--body); color: var(--ink-soft); }
+.quest-ending { font: 600 11px/1.2 var(--body); color: var(--ink-soft); }
 .quest-reward { font: 700 11px/1.2 var(--body); color: var(--ink-soft); }
 .quest-card.is-done { gap: 3px; border-style: dashed; color: var(--ink-soft); background: transparent; }
 .mute-section { display: grid; gap: 8px; margin-top: 6px; }

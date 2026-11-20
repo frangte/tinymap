@@ -4,8 +4,8 @@
 // textContent.
 import * as THREE from 'three';
 import { el } from './hud';
-import { current, type QuestLog } from './questLog';
-import type { Spot } from './quests';
+import { alternatives, current, outcomeCount, type ActiveQuest, type QuestLog } from './questLog';
+import { countText, type OutcomeDef, type Spot } from './quests';
 import { goalLine, goalSpot } from './jobs';
 import type { Guide } from './rides';
 import { onLangChange, tx } from './i18n';
@@ -19,6 +19,16 @@ const EVERY = 200;
 const TICK = 500;
 /** the arrow is rewritten when it turned more than this (degrees) */
 const TURN_STEP = 1;
+
+/** The live outcomes as alternatives: "Trả xe hoặc Giữ xe". */
+function alternativesLine(q: ActiveQuest, ways: readonly OutcomeDef[]): string {
+  return ways
+    .map((o) => {
+      const count = countText(o, outcomeCount(q, o));
+      return count ? `${tx(o.text)} · ${count}` : tx(o.text);
+    })
+    .join(` ${L.or} `);
+}
 
 export class QuestTracker {
   private readonly root = el<HTMLButtonElement>('tracker');
@@ -140,9 +150,16 @@ export class QuestTracker {
     const q = this.log.tracked();
     this.root.hidden = !q;
     const goals = q ? current(q) : [];
-    this.spots = q ? goals.map((o) => goalSpot(this.log, q, o)) : [];
+    const ways = q ? alternatives(q) : [];
+    this.spots = q ? (goals.length > 0 ? goals.map((o) => goalSpot(this.log, q, o)) : ways.map((o) => o.at)) : [];
     this.timed = false;
     if (!q) return;
+    if (goals.length === 0 && ways.length > 0) {
+      const title = tx(q.def.title);
+      const goal = alternativesLine(q, ways);
+      this.show(title, goal, L.label(title, goal));
+      return;
+    }
     const o = goals[0];
     const line = o ? goalLine(this.log, q, o) : null;
     this.timed = line?.timed ?? false;
