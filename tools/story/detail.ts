@@ -38,7 +38,7 @@ function paramText(key: string, value: unknown): string {
 }
 
 /** The dialogue nodes and answers that send the signal an objective waits for. */
-function signalSources(model: Model, o: Objective): HTMLElement | null {
+export function signalSources(model: Model, o: Objective): HTMLElement | null {
   const p = o.params ?? {};
   const signals: { npc: string; signal: string }[] = [];
   if (o.type === 'dialogue_signal' && typeof p.npc === 'string' && typeof p.signal === 'string') {

@@ -87,7 +87,7 @@ export function questCard(model: Model, q: QuestNode, options: CardOptions): HTM
   const def = q.def;
   const dim = (state.origin !== '' && !q.effective.has(state.origin)) || !matchesSearch(q, state.search);
   const only = q.origins.size === 1 ? [...q.origins][0] : '';
-  const card = h('a', { class: `card kind-${q.kind}${dim ? ' dim' : ''}${options.selected ? ' selected' : ''}`, href: hashQuest(q.id), 'data-quest': q.id });
+  const card = h('a', { class: `card kind-${q.kind}${dim ? ' dim' : ''}${options.selected ? ' selected' : ''}${state.marks.has(hashQuest(q.id)) ? ' broken' : ''}`, href: hashQuest(q.id), 'data-quest': q.id });
   if (only) card.style.setProperty('--c', originColor(model, only));
   const meta = h('div', { class: 'badges' }, originChips(model, q));
   for (const c of def.requires_caps ?? []) meta.append(badge(`cần ${c}`, 'cap', 'Chỉ mời khi đang có quyền này'));

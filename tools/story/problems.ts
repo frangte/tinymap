@@ -1,4 +1,5 @@
 import { DIALOGUE_END } from './types';
+import { contentRules } from './rules';
 import { dialogueTitle, emissionsFor, speakerName, hashDialogue, hashQuest, listenersOf, questTitle, type Model, type Place } from './model';
 
 export type Severity = 'error' | 'warn' | 'info';
@@ -103,6 +104,7 @@ export function findProblems(model: Model): Problem[] {
   signalProblems(model, out);
   dialogueProblems(model, out);
   flagProblems(model, out);
+  contentRules(model, out);
   const rank: Record<Severity, number> = { error: 0, warn: 1, info: 2 };
   return out.sort((a, b) => rank[a.severity] - rank[b.severity] || a.kind.localeCompare(b.kind));
 }

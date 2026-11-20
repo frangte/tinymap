@@ -10,6 +10,8 @@ export interface ViewState {
   showSide: boolean;
   /** which kinds of arrow the overview draws */
   show: { requires: boolean; cap: boolean; flag: boolean };
+  /** hashes (#/quest/…, #/dialogue/…/node) with an error or a warning on them: drawn with a red mark */
+  marks: Set<string>;
 }
 
 export const state: ViewState = {
@@ -18,6 +20,7 @@ export const state: ViewState = {
   search: '',
   showSide: false,
   show: { requires: true, cap: true, flag: true },
+  marks: new Set(),
 };
 
 /** A text in the chosen language, falling back to the other one. */

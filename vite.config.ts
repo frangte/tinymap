@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { storyEditor } from './tools/story/vite-plugin';
 
 /** keep the offline copy of fonts for a year; the stylesheet that names them is refreshed in the background */
 const FONT_MAX_AGE = 365 * 24 * 60 * 60;
@@ -45,6 +46,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: mode === 'single' ? { output: { inlineDynamicImports: true } } : {},
   },
   plugins: [
+    // the Xưởng truyện's load, save and check endpoints (tools/story/); dev server only
+    storyEditor(),
     VitePWA({
       disable: mode === 'single',
       // src/pwa.ts registers the worker once the map has loaded, and decides when a new version takes over
