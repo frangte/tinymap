@@ -38,6 +38,15 @@ Hai việc: (1) engine cho phép truyện có twist, rẽ nhánh, hậu quả; (
 
 Đề xuất làm trước: 1, 2, 3.
 
+### Đã làm (2026-11-20): cờ truyện và nhiều kết cục
+
+Cơ chế 1 và 2 đã có engine (chưa có truyện nào dùng, test dùng fixture `server/internal/quest/testdata/branching_story.json`);
+chi tiết, định dạng và cách viết một nhánh: [15-flags-outcomes.md](15-flags-outcomes.md) (tiếng Anh). Tóm tắt: quest có
+`outcomes` (2 đến 6 kết cục, mỗi cái là một mục tiêu có `title`, `flags`, `rewards`); khi xong các mục tiêu thì mọi kết cục
+cùng mở, cái nào xong trước thì kết thúc quest và đặt cờ `<id quest>:<id kết cục>`. Quest có `requires_flags` và `unless_flags`;
+câu trả lời có `if_flags` và `unless_flags`; câu thoại có biến thể `"flag:<cờ>"`. Cờ lưu trong bảng `story_flags` cùng giao dịch
+với việc hoàn thành quest. Chưa làm: cờ có giá trị (số), sự kiện trễ, manh mối, biến thể riêng, quest ẩn.
+
 ### Ví dụ twist dùng nhân vật có sẵn (mẫu, Khoa là tác giả)
 
 - **Chiếc xe của Chú Tám.** Chú Sáu nhìn xe mình mới mua rồi im lặng: đó là chiếc xe ông bị mất trộm mấy năm trước.

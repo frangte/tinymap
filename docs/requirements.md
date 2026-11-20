@@ -186,7 +186,7 @@ lái (chờ duyệt model).
 
 Khoa: truyện hiện quá dễ đoán; cần một UI hay flow để design truyện trên đó, và thêm nhiều tình tiết "không nhặt được
 mồm". Đề xuất (cờ truyện, nhiều kết cục, sự kiện trễ, manh mối, biến thể riêng mỗi người, quest ẩn; trang Xưởng truyện
-chạy cùng `npm run dev`) và các câu cần chốt: [design/14-story-tools.md](design/14-story-tools.md). Chưa làm gì.
+chạy cùng `npm run dev`) và các câu cần chốt: [design/14-story-tools.md](design/14-story-tools.md). Đã làm engine cờ truyện và nhiều kết cục quest (cơ chế 1 và 2, chưa có nội dung truyện, PR chờ duyệt): [design/15-flags-outcomes.md](design/15-flags-outcomes.md). Chưa làm: sự kiện trễ, manh mối, biến thể riêng, quest ẩn, Xưởng truyện.
 
 ## Thứ tự đề xuất
 
