@@ -87,3 +87,19 @@ Không dùng Twine, Ink hay articy: chúng không biết NPC, địa điểm, đ
 2. **Cơ chế:** làm hết 6, hay chọn vài cái trước (đề xuất 1, 2, 3)?
 3. **Tông truyện:** ba twist mẫu có hợp không, hay tông khác (hài, cảm động, noir)?
 4. Có muốn một mockup Xưởng truyện bấm thử được trước khi code thật không?
+
+## Chơi thử (đã làm)
+
+Chọn một quest trong Xưởng truyện, bấm "Chơi thử", game mở ở tab mới với một nhân vật thử đã ở đúng trạng thái trước quest đó, khỏi chơi lại hàng giờ.
+
+**Chạy:** `SG_DEV_TOOLS=1 npm run server` (có thể thêm `DB_PATH=/tmp/test.db` để khỏi đụng DB dev) và `npm run story`; mở tab "Chơi thử" (hoặc link "Chơi thử từ đây" ở bảng chi tiết của quest), chọn quest và bấm nút. Không đặt `SG_DEV_TOOLS` thì route không tồn tại (404).
+
+**Trang tự điền:** xuất phát; các quest phải xong (`requires`, cộng quest đặt các cờ trong `requires_flags`), mỗi quest có kết cục thì chọn được kết cục (mặc định là cái thỏa điều kiện của quest đã chọn); đồ cần để có quyền mà các quest đọc (`requires_caps`: điện thoại, xe, đồng phục); cờ thêm; tiền thêm; chỗ đứng (đích đầu tiên của quest, thường là NPC giao quest).
+
+**Server (`server/internal/playtest`, route `server/internal/web/playtest.go`):** `POST /api/dev/playtest` tạo một tài khoản mới và nhân vật tên `Thử: …`, không bao giờ đụng tài khoản có sẵn. Quest "xong" đi qua `quest.Engine.Complete`: cùng đường code với lúc chơi thật (bản ghi và kết cục, cờ `<quest>:<kết cục>`, `rewards.flags`, thưởng xu/danh hiệu/tem/quyền, tin nhắn, và quest hay thành tích mở ra sau đó), nên chơi thử không lệch luật; test Go so sánh với chơi thật bằng sự kiện. Đồ và tiền ghi bằng đúng các dòng mua đồ sẽ ghi (giá 0). Quest chưa mở được (thiếu quyền, cờ) thì thử lại sau các quest khác, hết lượt mà vẫn không mở thì từ chối và nói thiếu gì. Từ chối: id lạ, kết cục không thuộc quest, quest lặp hằng ngày, quest thiếu `requires`.
+
+**Cổng an toàn:** tắt mặc định; chỉ nhận kết nối từ loopback và không có header `X-Forwarded-*` (nginx cùng máy cũng bị chặn); Vite dev (nghe cả LAN) chặn `/api/dev/` với máy khác bằng middleware chỉ chạy khi dev (`vite.config.ts`); Origin lạ bị chặn như các API khác.
+
+**Client:** `/?playtest=<token>&ptarch=…&ptname=…&ptlook=…` (giữ `lang`, `debug`). Tab đó thay `localStorage` bằng bộ nhớ (token và hồ sơ test), nên nhân vật đã lưu của người chơi không bị đọc hay ghi đè; có nhãn "NHÂN VẬT THỬ" (`src/game/i18n/playtest.ts`).
+
+**Chưa làm:** quyền `exam.a1.*` (cấp bởi phí thi, không có item) không tự điền được; tin nhắn của quest xong nằm chờ trong Tin nhắn như lúc chơi thật; quest mà server chưa có (ví dụ trong `?fixture`) bị server từ chối.

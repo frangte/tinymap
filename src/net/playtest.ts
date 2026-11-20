@@ -7,12 +7,16 @@
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
 const ID_RE = /^[a-z0-9_]{1,32}$/;
+/** a quest id: words joined by dots (quests.json) */
+const QUEST_RE = /^[a-z0-9_]+(\.[a-z0-9_]+)*$/;
 /** the profile's name limit (src/game/profile.ts NAME_MAX) */
 const NAME_MAX = 16;
 
 /** the storage keys the game uses for the token and the profile (src/net/auth.ts, src/game/profile.ts) */
 const TOKEN_KEY = 'sg.token.v1';
 const PROFILE_KEY = 'sg.profile.v1';
+/** the quest the tracker follows (src/game/questLog.ts) */
+const TRACK_KEY = 'sg.track.v1';
 
 /** A Storage that lives in memory. */
 class MemoryStorage implements Storage {
@@ -44,7 +48,7 @@ export interface PlaytestSession {
   name: string;
 }
 
-function readSession(): { session: PlaytestSession; profile: string } | null {
+function readSession(): { session: PlaytestSession; profile: string; track: string } | null {
   const q = new URLSearchParams(window.location.search);
   const token = q.get('playtest') ?? '';
   if (!TOKEN_RE.test(token)) return null;
@@ -52,7 +56,8 @@ function readSession(): { session: PlaytestSession; profile: string } | null {
   const [body, outfit, hat] = (q.get('ptlook') ?? '').split('.');
   const name = Array.from(q.get('ptname') ?? '').slice(0, NAME_MAX).join('').trim();
   if (!ID_RE.test(arch) || ![body, outfit, hat].every((s) => s !== undefined && ID_RE.test(s)) || !name) return null;
-  return { session: { token, name }, profile: JSON.stringify({ name, look: { body, outfit, hat }, archetype: arch }) };
+  const quest = q.get('ptquest') ?? '';
+  return { session: { token, name }, track: QUEST_RE.test(quest) ? quest : '', profile: JSON.stringify({ name, look: { body, outfit, hat }, archetype: arch }) };
 }
 
 function install(): PlaytestSession | null {
@@ -61,6 +66,7 @@ function install(): PlaytestSession | null {
   const memory = new MemoryStorage();
   memory.setItem(TOKEN_KEY, found.session.token);
   memory.setItem(PROFILE_KEY, found.profile);
+  if (found.track) memory.setItem(TRACK_KEY, found.track);
   try {
     Object.defineProperty(window, 'localStorage', { value: memory, configurable: true });
   } catch {

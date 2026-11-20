@@ -119,11 +119,12 @@ export function labelFor(questId: string): string {
 }
 
 /** The game's address for a test character the server made. */
-export function gameUrl(res: { token: string; archetype: string; name: string; look: { body?: string; outfit: string; hat: string } }): string {
+export function gameUrl(quest: string, res: { token: string; archetype: string; name: string; look: { body?: string; outfit: string; hat: string } }): string {
   const q = new URLSearchParams({
     playtest: res.token,
     ptarch: res.archetype,
     ptname: res.name,
+    ptquest: quest,
     ptlook: [res.look.body || DEFAULT_BODY, res.look.outfit, res.look.hat].join('.'),
     lang: 'vi',
   });
@@ -192,7 +193,7 @@ function planPanel(model: Model, q: QuestNode): HTMLElement {
       redo(true);
     });
     const button = h('button', { class: 'pt-go' }, 'Chơi thử');
-    button.addEventListener('click', () => void launch(request(m, quest, s), status, button));
+    button.addEventListener('click', () => void launch(quest.id, request(m, quest, s), status, button));
     return [
       row('Xuất phát', origin),
       ...(warnings.length ? [h('ul', { class: 'pt-warn' }, warnings.map((w) => h('li', {}, w)))] : []),
@@ -279,7 +280,7 @@ function standSelect(model: Model, s: PanelState): HTMLElement {
   return select;
 }
 
-async function launch(req: PlaytestRequest, status: HTMLElement, button: HTMLButtonElement): Promise<void> {
+async function launch(quest: string, req: PlaytestRequest, status: HTMLElement, button: HTMLButtonElement): Promise<void> {
   // the tab is opened now, while the click still counts for the popup blocker, and pointed at the game after
   const tab = window.open('', '_blank');
   button.disabled = true;
@@ -291,8 +292,8 @@ async function launch(req: PlaytestRequest, status: HTMLElement, button: HTMLBut
     const body = (await res.json()) as { error?: string; token: string; archetype: string; name: string; look: { body?: string; outfit: string; hat: string } };
     if (!res.ok) throw new Error(body.error ?? `lỗi ${res.status}`);
     status.textContent = `Đã tạo ${body.name}.`;
-    if (tab) tab.location.href = gameUrl(body);
-    else status.append(' ', h('a', { href: gameUrl(body), target: '_blank' }, 'Mở game'));
+    if (tab) tab.location.href = gameUrl(quest, body);
+    else status.append(' ', h('a', { href: gameUrl(quest, body), target: '_blank' }, 'Mở game'));
   } catch (err) {
     tab?.close();
     status.className = 'pt-status bad';
