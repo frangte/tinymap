@@ -297,10 +297,7 @@ func (s *Service) apply(ctx context.Context, character string, p *player, step f
 	if out.Empty() {
 		return false
 	}
-	c := Commit{Grants: out.Grants, Title: out.Title, Streak: out.Streak, Texts: out.Texts, Flags: out.Flags, At: now}
-	for _, r := range out.Changed {
-		c.Records = append(c.Records, *r)
-	}
+	c := out.Commit(now)
 	stored, err := s.save(ctx, character, c)
 	if err != nil {
 		s.log.Error("saving quests failed, progress not kept", "character", character, "err", err)

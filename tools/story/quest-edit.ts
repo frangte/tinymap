@@ -144,7 +144,7 @@ export function renderQuestEditor(model: Model, ed: QuestEditor, q: QuestNode): 
     ed.closeQuest();
   });
   panel.append(
-    h('div', { class: 'detail-head' }, h('a', { class: 'close', href: '#/', title: 'Đóng' }, '×'), h('h2', {}, questTitle(real)), h('div', { class: 'id' }, `${real.id} · ${real.questline}`), del),
+    h('div', { class: 'detail-head' }, h('a', { class: 'close', href: '#/', title: 'Đóng' }, '×'), h('h2', {}, questTitle(real)), h('div', { class: 'id' }, `${real.id} · ${real.questline}`), h('a', { class: 'playtest-link', href: `#/playtest/${encodeURIComponent(real.id)}` }, 'Chơi thử từ đây'), del),
     section('Tên và mô tả', row('tên', textPair(real.title, (lang, v) => ed.commit(() => setQuestText(real, 'title', lang, v), true), LIMITS.questTitle)), row('mô tả', textPair(real.about, (lang, v) => ed.commit(() => setQuestText(real, 'about', lang, v), true), LIMITS.about))),
   );
   const exists = (id: string) => model.quests.has(id);

@@ -407,25 +407,37 @@ func (t *track) availableTo(p Player, b *Book) bool {
 // tracks that completions open up.
 func (e *Engine) Apply(p Player, b *Book, ev events.Event, now int64) Outcome {
 	var out Outcome
-	day := gameday.OfMilli(now)
-	queue := []events.Event{ev}
-	for steps := 0; len(queue) > 0 && steps < maxChain; steps++ {
-		ev, queue = queue[0], queue[1:]
-		ev.At = now
-		for _, id := range e.step(b, ev, now, &out) {
-			if isAchievement(id) || isCollection(id) {
-				continue
-			}
-			queue = append(queue, events.Event{Kind: events.QuestDone, Character: ev.Character, Quest: id})
-			if t := e.byID[id]; t.daily && !t.job && b.streakUp(day) {
-				s := b.Streak
-				out.Streak = &s
-				queue = append(queue, events.Event{Kind: events.DailyStreak, Character: ev.Character, Days: s.Days})
-			}
-		}
-		e.refresh(p, b, now, &out)
-	}
+	e.drain(p, b, []events.Event{ev}, now, &out)
 	return out
+}
+
+// drain runs the queued events, and the events their completions set off, until none is left.
+func (e *Engine) drain(p Player, b *Book, queue []events.Event, now int64, out *Outcome) {
+	day := gameday.OfMilli(now)
+	for steps := 0; len(queue) > 0 && steps < maxChain; steps++ {
+		ev := queue[0]
+		queue = queue[1:]
+		ev.At = now
+		for _, id := range e.step(b, ev, now, out) {
+			queue = e.followUp(b, ev.Character, id, day, queue, out)
+		}
+		e.refresh(p, b, now, out)
+	}
+}
+
+// followUp queues what the completion of a track sets off: a quest done is an event of its own, and a daily done
+// may raise the streak.
+func (e *Engine) followUp(b *Book, character, id, day string, queue []events.Event, out *Outcome) []events.Event {
+	if isAchievement(id) || isCollection(id) {
+		return queue
+	}
+	queue = append(queue, events.Event{Kind: events.QuestDone, Character: character, Quest: id})
+	if t := e.byID[id]; t.daily && !t.job && b.streakUp(day) {
+		s := b.Streak
+		out.Streak = &s
+		queue = append(queue, events.Event{Kind: events.DailyStreak, Character: character, Days: s.Days})
+	}
+	return queue
 }
 
 // streakUp counts a daily done on day: the streak goes on from yesterday, or starts again. False when a daily
@@ -469,20 +481,26 @@ func (e *Engine) step(b *Book, ev events.Event, now int64, out *Outcome) []strin
 		if won == nil {
 			continue
 		}
-		r.State, r.CompletedAt = StateDone, now
+		e.finish(t, r, won, now, b, out)
 		completed = append(completed, t.id)
-		out.Completed = append(out.Completed, t.id)
-		out.send(t, r, "done", t.texts.OnDone)
-		e.reward(t.rewards, t.rewardFrom+r.Cycle, b, out)
-		b.setFlags(t.rewards.Flags, out)
-		if won.id != "" {
-			r.Outcome = won.id
-			out.send(t, r, "done:"+won.id, won.texts)
-			e.reward(won.rewards, t.rewardFrom+"outcome:"+won.id, b, out)
-			b.setFlags(append([]string{content.OutcomeFlag(t.id, won.id)}, won.flags...), out)
-		}
 	}
 	return completed
+}
+
+// finish ends a track with the outcome won ({} with no id for a quest without outcomes): the record is done, and
+// the messages, rewards and flags of the quest and of its outcome are given.
+func (e *Engine) finish(t *track, r *Record, won *outcome, now int64, b *Book, out *Outcome) {
+	r.State, r.CompletedAt = StateDone, now
+	out.Completed = append(out.Completed, t.id)
+	out.send(t, r, "done", t.texts.OnDone)
+	e.reward(t.rewards, t.rewardFrom+r.Cycle, b, out)
+	b.setFlags(t.rewards.Flags, out)
+	if won.id != "" {
+		r.Outcome = won.id
+		out.send(t, r, "done:"+won.id, won.texts)
+		e.reward(won.rewards, t.rewardFrom+"outcome:"+won.id, b, out)
+		b.setFlags(append([]string{content.OutcomeFlag(t.id, won.id)}, won.flags...), out)
+	}
 }
 
 // setFlags gives the character the flags and tells the outcome (all of them, held before or not: storing one twice

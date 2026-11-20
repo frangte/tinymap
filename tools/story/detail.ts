@@ -113,7 +113,7 @@ export function renderDetail(model: Model, q: QuestNode): HTMLElement {
   const def = q.def;
   const panel = h('aside', { class: 'detail' });
   panel.append(
-    h('div', { class: 'detail-head' }, h('a', { class: 'close', href: '#/', title: 'Đóng' }, '×'), h('h2', {}, tx(def.title, def.id)), h('div', { class: 'id' }, `${def.id} · ${lineName(q.line)}`), originChips(model, q)),
+    h('div', { class: 'detail-head' }, h('a', { class: 'close', href: '#/', title: 'Đóng' }, '×'), h('h2', {}, tx(def.title, def.id)), h('div', { class: 'id' }, `${def.id} · ${lineName(q.line)}`), originChips(model, q), h('a', { class: 'playtest-link', href: `#/playtest/${encodeURIComponent(def.id)}` }, 'Chơi thử từ đây')),
   );
   if (def.about) panel.append(h('p', { class: 'about' }, tx(def.about)));
   const gates: Child[] = [];

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { storyEditor } from './tools/story/vite-plugin';
 
@@ -28,6 +28,27 @@ function mapFile(): string {
 // The production build is an installable app (PWA): a manifest and a service worker that keeps the page, the code
 // and the map on the device (src/pwa.ts registers it). Each file is precached under its content hash, so a new GLB
 // under the same name still reaches every player with the next version. Off in dev and in the single-file build.
+/**
+ * Dev only (`apply: 'serve'`, so it is not in the build): the dev server listens on the LAN and its proxy reaches the
+ * Go server from loopback, so the Go route's own loopback check could not tell a phone on the Wi-Fi from this
+ * machine. This answers 403 to /api/dev/ for anyone who is not on this machine, before the proxy sees it. The Go
+ * route is also off unless the server runs with SG_DEV_TOOLS=1 (server/internal/web/playtest.go).
+ */
+function localOnlyDevApi(): Plugin {
+  const loopback = /^(127\.\d+\.\d+\.\d+|::1|::ffff:127\.\d+\.\d+\.\d+)$/;
+  return {
+    name: 'sg-local-only-dev-api',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/api/dev', (req, res, next) => {
+        if (loopback.test(req.socket.remoteAddress ?? '')) return next();
+        res.statusCode = 403;
+        res.end('local only');
+      });
+    },
+  };
+}
+
 const serverPort = process.env.SG_SERVER_PORT ?? '8787';
 
 export default defineConfig(({ mode }) => ({
@@ -46,8 +67,9 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: mode === 'single' ? { output: { inlineDynamicImports: true } } : {},
   },
   plugins: [
-    // the Xưởng truyện's load, save and check endpoints (tools/story/); dev server only
+    // the Xưởng truyện's load, save and check endpoints (tools/story/), and /api/dev for this machine only; dev server only
     storyEditor(),
+    localOnlyDevApi(),
     VitePWA({
       disable: mode === 'single',
       // src/pwa.ts registers the worker once the map has loaded, and decides when a new version takes over
