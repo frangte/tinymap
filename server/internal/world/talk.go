@@ -31,7 +31,7 @@ type session struct {
 }
 
 func (m *member) speaker() dialogue.Speaker {
-	sp := dialogue.Speaker{Name: m.name, Arch: m.arch, Body: m.look.Body, Caps: m.caps, Quests: m.quests}
+	sp := dialogue.Speaker{Name: m.name, Arch: m.arch, Body: m.look.Body, Caps: m.caps, Quests: m.quests, Flags: m.story}
 	if m.talk != nil {
 		if m.talk.marks == nil {
 			m.talk.marks = map[string]int{}

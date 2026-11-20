@@ -1,0 +1,121 @@
+{
+  "about": "Test fixture for story flags and quest outcomes (docs/design/15-flags-outcomes.md), not game content. test.fork: reach the market (objective), then three outcomes go live (the NPC test_npc's answers keep, hand_over and ask); the first one picked ends the quest. test.pure_choice has no objectives: its outcomes are live at once. test.after_hand_over, test.after_keep and test.unless_ask read the flags the outcomes set. The dialogue fork_talk has an answer gated by if_flags/unless_flags and lines with flag: variants.",
+  "stamps": [
+    { "id": "test_stamp", "name": { "vi": "Tem thử", "en": "Test stamp" } }
+  ],
+  "quests": [
+    {
+      "id": "test.fork",
+      "version": 1,
+      "questline": "test",
+      "title": { "vi": "Ngã ba", "en": "Fork" },
+      "about": { "vi": "Một quest rẽ ba nhánh.", "en": "A quest with three endings." },
+      "flow": "sequence",
+      "objectives": [
+        { "id": "go", "type": "reach_place", "params": { "place": "cho_ben_thanh" }, "text": { "vi": "Đến chợ", "en": "Go to the market" } }
+      ],
+      "outcomes": [
+        {
+          "id": "keep", "type": "dialogue_signal", "params": { "npc": "test_npc", "signal": "keep" },
+          "text": { "vi": "Giữ lại", "en": "Keep it" }, "title": { "vi": "Giữ lại", "en": "Kept it" },
+          "flags": ["kept_it"]
+        },
+        {
+          "id": "hand_over", "type": "dialogue_signal", "params": { "npc": "test_npc", "signal": "hand_over" },
+          "text": { "vi": "Trả lại", "en": "Hand it over" }, "title": { "vi": "Trả lại", "en": "Handed it over" },
+          "flags": ["gave_it", "good_name"], "rewards": { "xu": 5000, "stamps": ["test_stamp"] },
+          "texts": { "on_done": [{ "from": "co_ba", "text": { "vi": "Cảm ơn cháu đã trả lại.", "en": "Thank you for returning it." } }] }
+        },
+        {
+          "id": "ask", "type": "dialogue_signal", "params": { "npc": "test_npc", "signal": "ask" },
+          "text": { "vi": "Đi hỏi", "en": "Ask around" }, "title": { "vi": "Đi hỏi", "en": "Asked around" }
+        }
+      ],
+      "rewards": { "xu": 1000, "flags": ["fork_done"] },
+      "texts": { "on_done": [{ "from": "co_ba", "text": { "vi": "Xong chuyện rồi.", "en": "That is done." } }] }
+    },
+    {
+      "id": "test.pure_choice",
+      "version": 1,
+      "questline": "test",
+      "title": { "vi": "Chọn ngay", "en": "Choose now" },
+      "about": { "vi": "Không có mục tiêu, chỉ có kết cục.", "en": "No objectives, only outcomes." },
+      "flow": "sequence",
+      "objectives": [],
+      "outcomes": [
+        {
+          "id": "left", "type": "reach_place", "params": { "place": "ho_con_rua" },
+          "text": { "vi": "Bên trái", "en": "Left" }, "title": { "vi": "Bên trái", "en": "Left" }
+        },
+        {
+          "id": "right", "type": "reach_place", "params": { "place": "bitexco" },
+          "text": { "vi": "Bên phải", "en": "Right" }, "title": { "vi": "Bên phải", "en": "Right" }
+        }
+      ],
+      "rewards": {}
+    },
+    {
+      "id": "test.after_hand_over",
+      "version": 1,
+      "questline": "test",
+      "title": { "vi": "Sau khi trả", "en": "After handing over" },
+      "about": { "vi": "Chỉ cho ai đã trả lại.", "en": "Only for those who handed it over." },
+      "flow": "sequence",
+      "requires_flags": ["test.fork:hand_over"],
+      "objectives": [
+        { "id": "go", "type": "reach_place", "params": { "place": "cho_ben_thanh" }, "text": { "vi": "Đến chợ", "en": "Go to the market" } }
+      ],
+      "rewards": {}
+    },
+    {
+      "id": "test.after_keep",
+      "version": 1,
+      "questline": "test",
+      "title": { "vi": "Sau khi giữ", "en": "After keeping" },
+      "about": { "vi": "Chỉ cho ai đã giữ lại.", "en": "Only for those who kept it." },
+      "flow": "sequence",
+      "requires_flags": ["kept_it", "fork_done"],
+      "objectives": [
+        { "id": "go", "type": "reach_place", "params": { "place": "cho_ben_thanh" }, "text": { "vi": "Đến chợ", "en": "Go to the market" } }
+      ],
+      "rewards": {}
+    },
+    {
+      "id": "test.unless_ask",
+      "version": 1,
+      "questline": "test",
+      "title": { "vi": "Trừ khi đã hỏi", "en": "Unless asked" },
+      "about": { "vi": "Mất đi nếu đã đi hỏi.", "en": "Closed to those who asked around." },
+      "flow": "sequence",
+      "requires": ["test.fork"],
+      "unless_flags": ["test.fork:ask"],
+      "objectives": [
+        { "id": "go", "type": "reach_place", "params": { "place": "cho_ben_thanh" }, "text": { "vi": "Đến chợ", "en": "Go to the market" } }
+      ],
+      "rewards": {}
+    }
+  ],
+  "npc": { "id": "test_npc", "dialogue": "fork_talk" },
+  "dialogues": {
+    "fork_talk": {
+      "id": "fork_talk",
+      "start": "a",
+      "nodes": {
+        "a": {
+          "say": {
+            "default": { "vi": "Cháu cầm cái gì đó?", "en": "What do you have there?" },
+            "flag:test.fork:hand_over": { "vi": "Cháu ngoan lắm.", "en": "Good kid." },
+            "flag:kept_it": { "vi": "Cháu vẫn giữ nó à?", "en": "You still keep it?" }
+          },
+          "choices": [
+            { "text": { "vi": "Giữ", "en": "Keep" }, "goto": "end", "emit": "keep", "unless_flags": ["fork_done"] },
+            { "text": { "vi": "Trả", "en": "Hand over" }, "goto": "end", "emit": "hand_over", "unless_flags": ["fork_done"] },
+            { "text": { "vi": "Hỏi", "en": "Ask" }, "goto": "end", "emit": "ask", "unless_flags": ["fork_done"] },
+            { "text": { "vi": "Cháu đã trả rồi mà", "en": "I handed it over" }, "goto": "end", "if_flags": ["test.fork:hand_over"] },
+            { "text": { "vi": "Tạm biệt", "en": "Bye" }, "goto": "end" }
+          ]
+        }
+      }
+    }
+  }
+}

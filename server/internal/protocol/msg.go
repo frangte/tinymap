@@ -700,6 +700,17 @@ type QuestState struct {
 	// Left, for an objective that is taken and then timed (an odd job): the seconds left of a run that is on, -1 when
 	// it has no time limit; missing while the job is not taken. The game counts down from when it got this.
 	Left map[string]int `json:"left,omitempty"`
+	// Outcome is the outcome a done quest ended with (content: the quest's outcomes), missing for none
+	Outcome string `json:"outcome,omitempty"`
+	// Outcomes, for a running quest whose objectives are done, are the outcomes that are live now, in quest order:
+	// the first to complete ends the quest. Missing before that, and for a quest without outcomes.
+	Outcomes []OutcomeState `json:"outcomes,omitempty"`
+}
+
+// OutcomeState is a live outcome of a running quest: how far its objective got.
+type OutcomeState struct {
+	ID string `json:"id"`
+	N  int    `json:"n"`
 }
 
 type AchievementState struct {

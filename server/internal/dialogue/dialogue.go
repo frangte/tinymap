@@ -27,6 +27,9 @@ type Speaker struct {
 	Caps capability.Set
 	// Quests are the ids of the quests the speaker has running
 	Quests map[string]bool
+	// Flags are the story flags the speaker holds (set by quests, never by this package): answers and lines can
+	// depend on them
+	Flags map[string]bool
 	// Marks are the conversation's tallies (a quiz's wrong answers); Choose adds to them and a node may reset
 	// them. The world keeps the map with the conversation; nil counts nothing.
 	Marks map[string]int
@@ -168,7 +171,8 @@ func (s *Script) Choose(graph, node string, who Speaker, choice int) (Step, erro
 func offered(n content.DialogueNode, who Speaker) []content.Choice {
 	out := make([]content.Choice, 0, len(n.Choices))
 	for _, ch := range n.Choices {
-		if who.Caps.HasAll(ch.Requires) && !hasAny(who.Caps, ch.Unless) && (ch.RequiresQuest == "" || who.Quests[ch.RequiresQuest]) {
+		if who.Caps.HasAll(ch.Requires) && !hasAny(who.Caps, ch.Unless) && (ch.RequiresQuest == "" || who.Quests[ch.RequiresQuest]) &&
+			holdsAll(who.Flags, ch.IfFlags) && !holdsAny(who.Flags, ch.UnlessFlags) {
 			out = append(out, ch)
 		}
 	}
@@ -186,23 +190,47 @@ func fill(t protocol.Text, who Speaker) protocol.Text {
 	return protocol.Text{VI: vi, EN: strings.ReplaceAll(t.EN, content.PlaceholderName, who.Name)}
 }
 
-// variant is the line for the speaker: the one for its archetype, else the one for a capability it has (a key
+// variant is the line for the speaker: the one for a story flag it holds (a key "flag:<id>"; the first in
+// alphabetical order), else the one for its archetype, else the one for a capability it has (a key
 // with a dot, such as "ridehail.drive"; the first in alphabetical order), else the default.
 func variant(n content.DialogueNode, who Speaker) protocol.Text {
-	if say, ok := n.Say[who.Arch]; ok {
-		return say
-	}
 	keys := make([]string, 0, len(n.Say))
 	for k := range n.Say {
 		keys = append(keys, k)
 	}
 	slices.Sort(keys)
 	for _, k := range keys {
+		if flag, ok := strings.CutPrefix(k, content.SayFlagPrefix); ok && who.Flags[flag] {
+			return n.Say[k]
+		}
+	}
+	if say, ok := n.Say[who.Arch]; ok {
+		return say
+	}
+	for _, k := range keys {
 		if who.Caps.Has(k) {
 			return n.Say[k]
 		}
 	}
 	return n.Say[content.DefaultVariant]
+}
+
+func holdsAll(flags map[string]bool, ids []string) bool {
+	for _, id := range ids {
+		if !flags[id] {
+			return false
+		}
+	}
+	return true
+}
+
+func holdsAny(flags map[string]bool, ids []string) bool {
+	for _, id := range ids {
+		if flags[id] {
+			return true
+		}
+	}
+	return false
 }
 
 func hasAny(caps capability.Set, ids []string) bool {

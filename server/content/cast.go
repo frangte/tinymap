@@ -88,8 +88,8 @@ type Dialogue struct {
 	Nodes map[string]DialogueNode `json:"nodes"`
 }
 
-// DialogueNode is one line of the NPC and the answers to it. Say has a variant per archetype id, and
-// DefaultVariant for everyone else: the archetype changes the tone, not the language (01-gameplay.md).
+// DialogueNode is one line of the NPC and the answers to it. Say has a variant per archetype id, per capability,
+// per story flag ("flag:<flag id>", picked first) and DefaultVariant for everyone else: the archetype changes the tone, not the language (01-gameplay.md).
 // "{name}" in a line becomes the player's name. A node without choices ends the conversation: only goodbye is
 // left.
 type DialogueNode struct {
@@ -133,6 +133,10 @@ type Choice struct {
 	GotoIf *GotoIf `json:"goto_if,omitempty"`
 	// RequiresQuest: only players with this quest running (quests.json) are offered it
 	RequiresQuest string `json:"requires_quest,omitempty"`
+	// IfFlags: only players holding every one of these story flags are offered it; UnlessFlags: not those holding
+	// any of them (flags.go: each must be set by some quest)
+	IfFlags     []string `json:"if_flags,omitempty"`
+	UnlessFlags []string `json:"unless_flags,omitempty"`
 }
 
 // Limits on what NPCs say (characters).
@@ -204,8 +208,9 @@ func (c *Catalog) checkCast(caps, places map[string]bool) error {
 	for _, k := range c.Contacts {
 		used[k.Dialogue] = true
 	}
+	setters := c.FlagSetters()
 	for _, id := range sortedKeys(c.Dialogues) {
-		if err := c.checkDialogue(c.Dialogues[id], caps); err != nil {
+		if err := c.checkDialogue(c.Dialogues[id], caps, setters); err != nil {
 			return fmt.Errorf("dialogue/%s.json: %w", id, err)
 		}
 		if !used[id] {
@@ -269,7 +274,7 @@ func (c *Catalog) checkNPC(n NPC, places map[string]bool) error {
 	return nil
 }
 
-func (c *Catalog) checkDialogue(d Dialogue, caps map[string]bool) error {
+func (c *Catalog) checkDialogue(d Dialogue, caps map[string]bool, setters map[string][]string) error {
 	if !idPattern.MatchString(d.ID) {
 		return errors.New("id must be lower_snake_case ascii")
 	}
@@ -280,7 +285,7 @@ func (c *Catalog) checkDialogue(d Dialogue, caps map[string]bool) error {
 		if !idPattern.MatchString(id) || id == DialogueEnd {
 			return fmt.Errorf("node %q: ids must be lower_snake_case ascii, and not %q", id, DialogueEnd)
 		}
-		if err := c.checkNode(d, d.Nodes[id], caps); err != nil {
+		if err := c.checkNode(d, d.Nodes[id], caps, setters); err != nil {
 			return fmt.Errorf("node %q: %w", id, err)
 		}
 	}
@@ -318,13 +323,17 @@ func (c *Catalog) checkDialogue(d Dialogue, caps map[string]bool) error {
 	return nil
 }
 
-func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) error {
+func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool, setters map[string][]string) error {
 	if _, ok := n.Say[DefaultVariant]; !ok {
 		return fmt.Errorf("say needs a %q line", DefaultVariant)
 	}
 	for _, k := range sortedKeys(n.Say) {
-		if k != DefaultVariant && c.byID[k].ID == "" && !caps[k] {
-			return fmt.Errorf("say has a line for %q, which is neither an archetype nor a capability", k)
+		if flag, ok := sayFlag(k); ok {
+			if err := checkFlagsRead("say "+k, []string{flag}, setters, ""); err != nil {
+				return err
+			}
+		} else if k != DefaultVariant && c.byID[k].ID == "" && !caps[k] {
+			return fmt.Errorf("say has a line for %q, which is neither an archetype nor a capability (a line for a flag has the key flag:<id>)", k)
 		}
 		if err := checkText(n.Say[k], SayMax, true); err != nil {
 			return fmt.Errorf("say %q: %w", k, err)
@@ -368,6 +377,17 @@ func (c *Catalog) checkNode(d Dialogue, n DialogueNode, caps map[string]bool) er
 			}
 			if _, ok := d.Nodes[g.Goto]; !ok {
 				return fmt.Errorf("choice %d: goto_if goes to %q, which is not a node", i, g.Goto)
+			}
+		}
+		if err := checkFlagsRead(fmt.Sprintf("choice %d if_flags", i), ch.IfFlags, setters, ""); err != nil {
+			return err
+		}
+		if err := checkFlagsRead(fmt.Sprintf("choice %d unless_flags", i), ch.UnlessFlags, setters, ""); err != nil {
+			return err
+		}
+		for _, f := range ch.IfFlags {
+			if slices.Contains(ch.UnlessFlags, f) {
+				return fmt.Errorf("choice %d: if_flags and unless_flags both name %q: it would never be offered", i, f)
 			}
 		}
 		if _, ok := c.questByID[ch.RequiresQuest]; ch.RequiresQuest != "" && !ok {

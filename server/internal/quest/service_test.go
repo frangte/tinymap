@@ -80,6 +80,11 @@ func (m *memStore) SaveQuests(_ context.Context, character string, c Commit) (St
 		out.Texts = append(out.Texts, protocol.PhoneText{ID: msg.Key, From: msg.From, Say: msg.Say, At: c.At})
 		out.Contacts = append(out.Contacts, msg.From)
 	}
+	for _, f := range c.Flags {
+		if !slices.Contains(s.Flags, f) {
+			s.Flags = append(s.Flags, f)
+		}
+	}
 	if c.Title != nil {
 		s.Title = *c.Title
 	}
@@ -95,6 +100,7 @@ type fakeWorld struct {
 	frames map[string][]protocol.Progress
 	titles map[string]string
 	quests map[string]map[string]bool
+	flags  map[string]map[string]bool
 	// wallets are the balances sent, in order
 	wallets  map[string][]int64
 	received chan struct{}
@@ -110,7 +116,7 @@ type phoneFrame struct {
 }
 
 func newFakeWorld() *fakeWorld {
-	return &fakeWorld{frames: map[string][]protocol.Progress{}, titles: map[string]string{}, quests: map[string]map[string]bool{},
+	return &fakeWorld{frames: map[string][]protocol.Progress{}, titles: map[string]string{}, quests: map[string]map[string]bool{}, flags: map[string]map[string]bool{},
 		wallets: map[string][]int64{}, received: make(chan struct{}, 100), phone: map[string][]phoneFrame{}}
 }
 
@@ -145,6 +151,13 @@ func (w *fakeWorld) Deliver(character string, frame []byte) bool {
 func (w *fakeWorld) SetQuests(character string, q map[string]bool) bool {
 	w.mu.Lock()
 	w.quests[character] = q
+	w.mu.Unlock()
+	return true
+}
+
+func (w *fakeWorld) SetFlags(character string, f map[string]bool) bool {
+	w.mu.Lock()
+	w.flags[character] = f
 	w.mu.Unlock()
 	return true
 }

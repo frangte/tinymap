@@ -60,6 +60,9 @@ type Rewards struct {
 	Capability string   `json:"capability,omitempty"`
 	// Xu go into the wallet (a daily pays them every day it is done)
 	Xu int64 `json:"xu,omitempty"`
+	// Flags are story flags set when the quest completes (flags.go); quests only, never dailies, achievements or an
+	// outcome's own rewards (an outcome has its own flags)
+	Flags []string `json:"flags,omitempty"`
 }
 
 // Repeats: how often a quest can be done.
@@ -88,6 +91,24 @@ type QuestTexts struct {
 	OnDone  []QuestText `json:"on_done,omitempty"`
 }
 
+// OutcomeTexts are the messages an outcome sends when the quest ends with it, besides the quest's own.
+type OutcomeTexts struct {
+	OnDone []QuestText `json:"on_done,omitempty"`
+}
+
+// QuestOutcome is one way a quest can end (docs/design/15-flags-outcomes.md). It is an objective (the embedded
+// fields, same types and params): once the quest's objectives are all done the outcomes go live together, and the
+// first whose objective completes ends the quest with it.
+type QuestOutcome struct {
+	Objective
+	// Title names the outcome in the quest log once the quest is done
+	Title Text `json:"title"`
+	// Flags are set besides the flag "<quest id>:<outcome id>", which every outcome sets
+	Flags   []string     `json:"flags,omitempty"`
+	Rewards Rewards      `json:"rewards,omitempty"`
+	Texts   OutcomeTexts `json:"texts,omitempty"`
+}
+
 type Quest struct {
 	ID string `json:"id"`
 	// Version goes up when objectives change meaning; progress records which version it was made under
@@ -103,6 +124,10 @@ type Quest struct {
 	// RequiresCaps: offered only to characters that have every one of these capabilities (a quest that needs a
 	// smartphone waits for one); a quest already running keeps running
 	RequiresCaps []string `json:"requires_caps,omitempty"`
+	// RequiresFlags: offered only to characters holding every one of these flags; UnlessFlags: not offered to one
+	// holding any of them. A quest already running keeps running
+	RequiresFlags []string `json:"requires_flags,omitempty"`
+	UnlessFlags   []string `json:"unless_flags,omitempty"`
 	// Requires are quests to have completed first (never a daily: being done with one only lasts a day)
 	Requires []string `json:"requires,omitempty"`
 	// Repeat is RepeatOnce, or RepeatDaily: it starts over every day (Saigon time, server/internal/gameday)
@@ -115,8 +140,11 @@ type Quest struct {
 	Job        bool        `json:"job,omitempty"`
 	Flow       string      `json:"flow"`
 	Objectives []Objective `json:"objectives"`
-	Rewards    Rewards     `json:"rewards"`
-	Texts      QuestTexts  `json:"texts,omitempty"`
+	// Outcomes, when present (2 or more, never on a daily), are how the quest can end: see QuestOutcome. Objectives
+	// may then be empty (the outcomes are live from the start)
+	Outcomes []QuestOutcome `json:"outcomes,omitempty"`
+	Rewards  Rewards        `json:"rewards"`
+	Texts    QuestTexts     `json:"texts,omitempty"`
 }
 
 // Achievement is a passive quest: one objective, always running for those it is open to.
@@ -134,6 +162,7 @@ const (
 	// TitleMax keeps a title readable under a name tag (characters)
 	TitleMax      = 32
 	objectivesMax = 8
+	outcomesMax   = 6
 	textMax       = 200
 	// XuRewardMax keeps a reward well under a day's top-up (ridehail.json)
 	XuRewardMax = 20_000
@@ -242,8 +271,8 @@ func (r questRefs) quest(q Quest) error {
 		return errors.New("needs a lower_snake_case questline")
 	case !flows[q.Flow]:
 		return fmt.Errorf("flow must be %s, %s or %s", FlowSequence, FlowAll, FlowAny)
-	case len(q.Objectives) == 0 || len(q.Objectives) > objectivesMax:
-		return fmt.Errorf("needs 1 to %d objectives", objectivesMax)
+	case len(q.Objectives) > objectivesMax || (len(q.Objectives) == 0 && len(q.Outcomes) == 0):
+		return fmt.Errorf("needs 1 to %d objectives (or outcomes)", objectivesMax)
 	}
 	if err := r.texts(q.Title, q.About); err != nil {
 		return err
@@ -286,6 +315,23 @@ func (r questRefs) quest(q Quest) error {
 		return errors.New("a job has no pool and no tags: it is open to every character with the capabilities it asks for")
 	case q.Repeat == RepeatDaily && (len(q.Rewards.Titles) > 0 || q.Rewards.Capability != ""):
 		return errors.New("a daily gives xu and stamps, not titles or capabilities (those are earned once)")
+	case q.Repeat == RepeatDaily && (len(q.Outcomes) > 0 || len(q.Rewards.Flags) > 0 || len(q.RequiresFlags) > 0 || len(q.UnlessFlags) > 0):
+		return errors.New("a daily has no outcomes and no flags: flags are never cleared, a daily starts over every day")
+	}
+	setters := r.c.FlagSetters()
+	if err := checkFlagsRead("requires_flags", q.RequiresFlags, setters, q.ID); err != nil {
+		return err
+	}
+	if err := checkFlagsRead("unless_flags", q.UnlessFlags, setters, ""); err != nil {
+		return err
+	}
+	for _, f := range q.RequiresFlags {
+		if slices.Contains(q.UnlessFlags, f) {
+			return fmt.Errorf("requires_flags and unless_flags both name %q: it could never be offered", f)
+		}
+	}
+	if err := checkFlagsWritten("rewards.flags", q.Rewards.Flags); err != nil {
+		return err
 	}
 	ids := map[string]bool{}
 	for _, o := range q.Objectives {
@@ -296,6 +342,9 @@ func (r questRefs) quest(q Quest) error {
 		if err := r.objective(o, true); err != nil {
 			return fmt.Errorf("objective %q: %w", o.ID, err)
 		}
+	}
+	if err := r.outcomes(q, ids); err != nil {
+		return err
 	}
 	if err := r.sentTexts(q.Texts); err != nil {
 		return err
@@ -308,6 +357,46 @@ func (r questRefs) quest(q Quest) error {
 		limit = XuJobRewardMax
 	}
 	return r.rewards(q.Rewards, limit)
+}
+
+// outcomes checks a quest's outcomes: each is an objective with an id unique among the quest's objectives and
+// outcomes (their progress is stored together), a title, flags and rewards that, with the quest's own, stay within
+// the quest's caps.
+func (r questRefs) outcomes(q Quest, ids map[string]bool) error {
+	if len(q.Outcomes) == 0 {
+		return nil
+	}
+	if len(q.Outcomes) < 2 || len(q.Outcomes) > outcomesMax {
+		return fmt.Errorf("outcomes: needs 2 to %d (one is just an objective)", outcomesMax)
+	}
+	for _, o := range q.Outcomes {
+		if !idPattern.MatchString(o.ID) || ids[o.ID] {
+			return fmt.Errorf("outcome %q: needs an id unique among the quest's objectives and outcomes", o.ID)
+		}
+		ids[o.ID] = true
+		if err := r.objective(o.Objective, true); err != nil {
+			return fmt.Errorf("outcome %q: %w", o.ID, err)
+		}
+		if err := checkText(o.Title, TitleMax*2, false); err != nil {
+			return fmt.Errorf("outcome %q: title: %w", o.ID, err)
+		}
+		if err := checkFlagsWritten("outcome "+o.ID+": flags", o.Flags); err != nil {
+			return err
+		}
+		if len(o.Rewards.Flags) > 0 {
+			return fmt.Errorf("outcome %q: rewards.flags is for the quest: an outcome has its own flags", o.ID)
+		}
+		if err := r.rewards(o.Rewards, XuStoryRewardMax); err != nil {
+			return fmt.Errorf("outcome %q: %w", o.ID, err)
+		}
+		if q.Rewards.Xu+o.Rewards.Xu > XuStoryRewardMax {
+			return fmt.Errorf("outcome %q: its xu and the quest's together must be at most %d", o.ID, XuStoryRewardMax)
+		}
+		if err := r.sentTexts(QuestTexts{OnDone: o.Texts.OnDone}); err != nil {
+			return fmt.Errorf("outcome %q: %w", o.ID, err)
+		}
+	}
+	return nil
 }
 
 // sentTexts checks the messages a quest sends: every sender is a contact.
@@ -340,6 +429,9 @@ func (r questRefs) achievement(a Achievement, seen map[string]bool) error {
 	}
 	if err := r.tagList(a.TagsAny); err != nil {
 		return err
+	}
+	if len(a.Rewards.Flags) > 0 {
+		return errors.New("an achievement sets no flags")
 	}
 	if err := r.objective(a.Objective, false); err != nil {
 		return fmt.Errorf("objective: %w", err)

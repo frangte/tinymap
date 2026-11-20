@@ -10,6 +10,7 @@ package quest
 import (
 	"fmt"
 	"hash/fnv"
+	"maps"
 	"slices"
 	"strings"
 
@@ -44,17 +45,29 @@ type track struct {
 	unlessCaps   []string
 	requiresCaps []string
 	requires     []string
+	requiresFlag []string
+	unlessFlags  []string
 	flow         string
 	goals        []goal
-	rewards      content.Rewards
-	texts        content.QuestTexts
-	listens      map[events.Kind]bool
-	rewardFrom   string
+	// outcomes are the ways the quest can end; they go live once the goals are all done
+	outcomes   []outcome
+	rewards    content.Rewards
+	texts      content.QuestTexts
+	listens    map[events.Kind]bool
+	rewardFrom string
 	// daily: it starts over every day; pool, when set, is the pool it takes turns in
 	daily bool
 	pool  string
 	// job: an odd job (a daily that does not count toward the streak)
 	job bool
+}
+
+// outcome is one way a quest ends: its goal, and what ending with it gives.
+type outcome struct {
+	goal
+	flags   []string
+	rewards content.Rewards
+	texts   []content.QuestText
 }
 
 type goal struct {
@@ -95,7 +108,7 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 	}
 	refs := catalogRefs{c}
 	for _, q := range c.Quests {
-		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, unlessCaps: q.UnlessCaps, requiresCaps: q.RequiresCaps, requires: q.Requires, flow: q.Flow,
+		t := &track{id: q.ID, quest: true, version: q.Version, tagsAny: q.TagsAny, unlessCaps: q.UnlessCaps, requiresCaps: q.RequiresCaps, requires: q.Requires, requiresFlag: q.RequiresFlags, unlessFlags: q.UnlessFlags, flow: q.Flow,
 			rewards: q.Rewards, texts: q.Texts, rewardFrom: "quest:" + q.ID + ":", daily: q.Repeat == content.RepeatDaily, pool: q.Pool, job: q.Job}
 		if t.pool != "" {
 			e.pools[t.pool] = append(e.pools[t.pool], t.id)
@@ -104,6 +117,13 @@ func NewEngine(c *content.Catalog) (*Engine, error) {
 			if err := t.add(o.ID, o, refs); err != nil {
 				return nil, fmt.Errorf("quest %s: objective %s: %w", q.ID, o.ID, err)
 			}
+		}
+		for _, o := range q.Outcomes {
+			g, err := t.compile(o.ID, o.Objective, refs)
+			if err != nil {
+				return nil, fmt.Errorf("quest %s: outcome %s: %w", q.ID, o.ID, err)
+			}
+			t.outcomes = append(t.outcomes, outcome{goal: g, flags: o.Flags, rewards: o.Rewards, texts: o.Texts.OnDone})
 		}
 		e.add(t)
 	}
@@ -144,13 +164,23 @@ func (e *Engine) onToday(t *track, day string) bool {
 }
 
 func (t *track) add(id string, o content.Objective, refs objective.Refs) error {
+	g, err := t.compile(id, o, refs)
+	if err != nil {
+		return err
+	}
+	t.goals = append(t.goals, g)
+	return nil
+}
+
+// compile makes an objective's goal and has the track listen for the events it counts.
+func (t *track) compile(id string, o content.Objective, refs objective.Refs) (goal, error) {
 	typ, ok := objective.Lookup(o.Type)
 	if !ok {
-		return fmt.Errorf("unknown type %q (known: %v)", o.Type, objective.Kinds())
+		return goal{}, fmt.Errorf("unknown type %q (known: %v)", o.Type, objective.Kinds())
 	}
 	m, err := typ.Compile(o.Params, o.Times(), refs)
 	if err != nil {
-		return fmt.Errorf("%s: %w", o.Type, err)
+		return goal{}, fmt.Errorf("%s: %w", o.Type, err)
 	}
 	if t.listens == nil {
 		t.listens = map[events.Kind]bool{}
@@ -158,8 +188,7 @@ func (t *track) add(id string, o content.Objective, refs objective.Refs) error {
 	for _, k := range m.Listens() {
 		t.listens[k] = true
 	}
-	t.goals = append(t.goals, goal{id: id, count: o.Times(), match: m})
-	return nil
+	return goal{id: id, count: o.Times(), match: m}, nil
 }
 
 // Player is what the engine needs to know about a character: the tags of its archetype and what it may do.
@@ -179,11 +208,16 @@ type Book struct {
 	Title string
 	// Streak is the days in a row with a daily done
 	Streak Streak
+	// Flags are the story flags the character holds
+	Flags map[string]bool
 }
 
 // NewBook makes a book from what the store kept.
 func NewBook(s Saved) *Book {
-	b := &Book{Records: map[string]*Record{}, Titles: map[string]bool{}, Stamps: map[string]bool{}, Title: s.Title, Streak: s.Streak}
+	b := &Book{Records: map[string]*Record{}, Titles: map[string]bool{}, Stamps: map[string]bool{}, Title: s.Title, Streak: s.Streak, Flags: map[string]bool{}}
+	for _, f := range s.Flags {
+		b.Flags[f] = true
+	}
 	for i := range s.Records {
 		r := s.Records[i]
 		// a daily has a row a day: the latest is the one that counts (days sort by date, and "" first)
@@ -211,7 +245,7 @@ func NewBook(s Saved) *Book {
 
 func (b *Book) clone() *Book {
 	c := &Book{Records: make(map[string]*Record, len(b.Records)), Titles: make(map[string]bool, len(b.Titles)),
-		Stamps: make(map[string]bool, len(b.Stamps)), Title: b.Title, Streak: b.Streak}
+		Stamps: make(map[string]bool, len(b.Stamps)), Title: b.Title, Streak: b.Streak, Flags: maps.Clone(b.Flags)}
 	for k, r := range b.Records {
 		c.Records[k] = r.clone()
 	}
@@ -255,11 +289,13 @@ type Outcome struct {
 	Streak *Streak
 	// Texts are the messages the quests started and completed send
 	Texts []Message
+	// Flags are the story flags the quests completed set (some may be held already)
+	Flags []string
 }
 
 // Empty: nothing changed.
 func (o Outcome) Empty() bool {
-	return len(o.Changed) == 0 && len(o.Grants) == 0 && o.Title == nil && len(o.Dropped) == 0 && o.Streak == nil
+	return len(o.Changed) == 0 && len(o.Grants) == 0 && o.Title == nil && len(o.Dropped) == 0 && o.Streak == nil && len(o.Flags) == 0
 }
 
 func (o *Outcome) changed(r *Record) {
@@ -303,6 +339,9 @@ func (e *Engine) refresh(p Player, b *Book, now int64, out *Outcome) {
 		for _, g := range t.goals {
 			r.Objectives[g.id] = &objective.Progress{}
 		}
+		for _, o := range t.outcomes {
+			r.Objectives[o.id] = &objective.Progress{}
+		}
 		b.Records[t.id] = r
 		out.changed(r)
 		out.send(t, r, "start", t.texts.OnStart)
@@ -345,6 +384,16 @@ func (t *track) availableTo(p Player, b *Book) bool {
 	}
 	if !p.Caps.HasAll(t.requiresCaps) {
 		return false
+	}
+	for _, f := range t.requiresFlag {
+		if !b.Flags[f] {
+			return false
+		}
+	}
+	for _, f := range t.unlessFlags {
+		if b.Flags[f] {
+			return false
+		}
 	}
 	for _, id := range t.requires {
 		if r := b.Records[id]; r == nil || r.State != StateDone {
@@ -416,21 +465,57 @@ func (e *Engine) step(b *Book, ev events.Event, now int64, out *Outcome) []strin
 			continue
 		}
 		out.changed(r)
-		if !t.complete(r) {
+		won := t.ended(r)
+		if won == nil {
 			continue
 		}
 		r.State, r.CompletedAt = StateDone, now
 		completed = append(completed, t.id)
 		out.Completed = append(out.Completed, t.id)
 		out.send(t, r, "done", t.texts.OnDone)
-		e.reward(t, r, b, out)
+		e.reward(t.rewards, t.rewardFrom+r.Cycle, b, out)
+		b.setFlags(t.rewards.Flags, out)
+		if won.id != "" {
+			r.Outcome = won.id
+			out.send(t, r, "done:"+won.id, won.texts)
+			e.reward(won.rewards, t.rewardFrom+"outcome:"+won.id, b, out)
+			b.setFlags(append([]string{content.OutcomeFlag(t.id, won.id)}, won.flags...), out)
+		}
 	}
 	return completed
 }
 
-// advance moves the objectives whose turn it is; true when any moved.
+// setFlags gives the character the flags and tells the outcome (all of them, held before or not: storing one twice
+// changes nothing).
+func (b *Book) setFlags(flags []string, out *Outcome) {
+	for _, f := range flags {
+		b.Flags[f] = true
+		if !slices.Contains(out.Flags, f) {
+			out.Flags = append(out.Flags, f)
+		}
+	}
+}
+
+// advance moves the objectives whose turn it is, or, once they are all done, the outcomes (all live together);
+// true when any moved.
 func (t *track) advance(r *Record, ev events.Event) bool {
 	moved := false
+	if len(t.outcomes) > 0 && t.goalsDone(r) {
+		for _, o := range t.outcomes {
+			p := r.Objectives[o.id]
+			if p == nil {
+				p = &objective.Progress{}
+				r.Objectives[o.id] = p
+			}
+			if p.N < o.count {
+				moved = o.match.Advance(ev, p, o.count) || moved
+			}
+		}
+		if moved {
+			r.Version = t.version
+		}
+		return moved
+	}
 	for _, g := range t.goals {
 		p := r.Objectives[g.id]
 		if p == nil {
@@ -451,6 +536,31 @@ func (t *track) advance(r *Record, ev events.Event) bool {
 	return moved
 }
 
+// ended is the outcome the quest ended with ({} with no id for a quest without outcomes that is complete), or nil
+// while it goes on: the first outcome (in file order) whose objective is done.
+func (t *track) ended(r *Record) *outcome {
+	if len(t.outcomes) == 0 {
+		if t.complete(r) {
+			return &outcome{}
+		}
+		return nil
+	}
+	if !t.goalsDone(r) {
+		return nil
+	}
+	for i, o := range t.outcomes {
+		if p := r.Objectives[o.id]; p != nil && p.N >= o.count {
+			return &t.outcomes[i]
+		}
+	}
+	return nil
+}
+
+// goalsDone: the objectives are done as the flow asks (at once when there are none).
+func (t *track) goalsDone(r *Record) bool {
+	return len(t.goals) == 0 || t.complete(r)
+}
+
 func (t *track) complete(r *Record) bool {
 	done := 0
 	for _, g := range t.goals {
@@ -464,12 +574,11 @@ func (t *track) complete(r *Record) bool {
 	return done == len(t.goals)
 }
 
-func (e *Engine) reward(t *track, r *Record, b *Book, out *Outcome) {
-	w := t.rewards
+func (e *Engine) reward(w content.Rewards, source string, b *Book, out *Outcome) {
 	if len(w.Titles) == 0 && len(w.Stamps) == 0 && w.Capability == "" && w.Xu == 0 {
 		return
 	}
-	g := Grant{Source: t.rewardFrom + r.Cycle, Titles: w.Titles, Stamps: w.Stamps, Capability: w.Capability, Xu: w.Xu}
+	g := Grant{Source: source, Titles: w.Titles, Stamps: w.Stamps, Capability: w.Capability, Xu: w.Xu}
 	out.Grants = append(out.Grants, g)
 	for _, s := range w.Stamps {
 		b.Stamps[s] = true
