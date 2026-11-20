@@ -10,7 +10,9 @@
 //	MAX_PLAYERS      player cap (default 150)
 //	DB_PATH          the SQLite database file (default data/game.db, from the working directory)
 //	BACKUP_DIR       where database backups go (default: a backup folder next to the database)
-//	LOG_LEVEL        debug | info | warn | error (default info)
+//	SG_DEV_TOOLS     1 turns on POST /api/dev/playtest (loopback callers only) for the Xưởng truyện's "Chơi thử từ đây";
+//	                 never set it on a public server (default: off, and the route does not exist)
+//	LOG_LEVEL       debug | info | warn | error (default info)
 package main
 
 import (
@@ -37,6 +39,7 @@ import (
 	"saigon-noir/server/internal/identity"
 	"saigon-noir/server/internal/moderation"
 	"saigon-noir/server/internal/phone"
+	"saigon-noir/server/internal/playtest"
 	"saigon-noir/server/internal/quest"
 	"saigon-noir/server/internal/ridehail"
 	"saigon-noir/server/internal/shop"
@@ -201,6 +204,10 @@ func run() error {
 	go phones.Run(ctx)
 	go w.Run(ctx)
 
+	if os.Getenv("SG_DEV_TOOLS") == "1" {
+		opt.Playtest = &playtest.Maker{Catalog: catalog, Engine: engine, Accounts: accounts, Store: db, Now: time.Now}
+		log.Warn("dev tools on: POST /api/dev/playtest makes test characters (loopback only); never run this on a public server")
+	}
 	router, err := web.NewRouter(w, sockets, accounts, opt)
 	if err != nil {
 		return err
