@@ -128,6 +128,10 @@ Interface text never goes straight into the code or `index.html`; `npm run i18n:
 
 Coordinates: Blender is metres with Z up; three.js is Y up, so Blender (x, y, z) is three (x, z, -y). Places, NPC spots and `server/content/map.json` are in Blender XY.
 
+## Story map
+
+`npm run story` opens the Xưởng truyện at http://localhost:5173/tools/story/ (dev only: `npm run build` builds `index.html` alone, so nothing of `tools/` ships). It is a read-only page, in Vietnamese, that draws the story from `server/content/` (quests, dialogue, NPCs, contacts, items, archetypes, collection): questlines as columns with quests as cards and arrows for `requires`, capabilities and flags/outcomes; a side panel per quest; each NPC's dialogue as a graph; a problems list (signals waited for and never sent, unreachable nodes, quests no origin is offered, ...); and a flags table. Editing a content JSON reloads it. `?fixture` lays `tools/story/fixture.json` (a sample with outcomes and flags, no real content) over the real content. The code is `tools/story/`: `model.ts`, `dialogues.ts`, `problems.ts` load and index the content and know nothing of the page; the rest draws it. It is type-checked with `npm run typecheck`.
+
 ## Changing the map
 
 1. Edit the map. The current one is Sài Gòn mini, `models/saigon_mini.blend`, built by

@@ -67,6 +67,7 @@ Không dùng Twine, Ink hay articy: chúng không biết NPC, địa điểm, đ
 ## Thứ tự đề xuất
 
 1. **Bản đồ truyện chỉ xem**, vẽ từ JSON hiện có. Nhỏ, làm nhanh, thấy ngay chỗ truyện thẳng.
+   - **Đã làm** (`tools/story/`, chạy bằng `npm run story`, mở http://localhost:5173/tools/story/): bản đồ các chương (cột là chương, thẻ là quest, mũi tên `requires`, quyền, cờ và kết cục), lọc "Xem như" theo xuất phát, tìm quest, bật vi/en; bấm quest ra bảng chi tiết (mục tiêu, và ô thoại nào gửi tín hiệu mà mục tiêu đang chờ); sơ đồ lời thoại từng NPC (kéo, phóng to thu nhỏ); bảng Vấn đề; bảng Cờ. Chỉ xem, chưa ghi vào JSON. Thêm `?fixture` để xem mẫu có kết cục và cờ (`tools/story/fixture.json`). Tầng mô hình (`model.ts`, `dialogues.ts`, `problems.ts`) tách khỏi phần vẽ để bước 3 dùng lại khi sửa.
 2. **Engine:** cờ, kết cục, sự kiện trễ, manh mối, có test Go. Làm song song với bước 1.
 3. **Xưởng truyện sửa được**, có kiểm lỗi và chơi thử. Phần lớn nhất.
 4. Viết thử chương "Chiếc xe của Chú Tám" bằng Xưởng truyện để thử công cụ; sau đó Khoa viết tiếp.
