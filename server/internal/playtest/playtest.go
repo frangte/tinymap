@@ -105,8 +105,9 @@ type Maker struct {
 
 // plan is a request that checked out against the content.
 type plan struct {
-	req   Request
-	arch  content.Archetype
+	req  Request
+	arch content.Archetype
+	// order is the done quests as asked; completeAll finds the order they open in
 	order []DoneQuest
 	items []content.Item
 	pose  *protocol.Pose
@@ -202,19 +203,40 @@ func (m *Maker) apply(ctx context.Context, character string, p plan, player ques
 			return nil, err
 		}
 	}
-	for _, d := range p.order {
-		out, err := m.Engine.Complete(player, book, character, d.Quest, d.Outcome, now)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrInvalid, err)
-		}
-		if err := store(out); err != nil {
-			return nil, err
-		}
+	if err := m.completeAll(p.order, player, book, character, now, store); err != nil {
+		return nil, err
 	}
 	return book, store(m.Engine.Refresh(player, book, now))
 }
 
-// check validates the request against the content and puts the done quests in an order they can be completed in.
+// completeAll completes the quests, each in its own transaction. A quest may wait for a capability or flag that
+// another quest of the list gives, so a quest that is not open yet is tried again after the others, until a whole
+// pass opens none: then the last refusal says what is missing.
+func (m *Maker) completeAll(todo []DoneQuest, player quest.Player, book *quest.Book, character string, now int64, store func(quest.Outcome) error) error {
+	for len(todo) > 0 {
+		var waiting []DoneQuest
+		var lastErr error
+		for _, d := range todo {
+			out, err := m.Engine.Complete(player, book, character, d.Quest, d.Outcome, now)
+			if serr := store(out); serr != nil {
+				return serr
+			}
+			switch {
+			case errors.Is(err, quest.ErrNotOpen):
+				waiting, lastErr = append(waiting, d), err
+			case err != nil:
+				return fmt.Errorf("%w: %v", ErrInvalid, err)
+			}
+		}
+		if len(waiting) == len(todo) {
+			return fmt.Errorf("%w: %v", ErrInvalid, lastErr)
+		}
+		todo = waiting
+	}
+	return nil
+}
+
+// check validates the request against the content.
 func (m *Maker) check(req Request) (plan, error) {
 	c := m.Catalog
 	p := plan{req: req}
@@ -235,10 +257,11 @@ func (m *Maker) check(req Request) (plan, error) {
 		}
 		byQuest[d.Quest] = d
 	}
-	var err error
-	if p.order, err = m.sorted(req.Done, byQuest); err != nil {
+	p.order = req.Done
+	if err := m.checkRequires(req.Done, byQuest); err != nil {
 		return p, err
 	}
+	var err error
 	setters := c.FlagSetters()
 	for _, f := range req.Flags {
 		if _, known := setters[f]; !known {
@@ -281,34 +304,17 @@ func (m *Maker) checkDone(d DoneQuest, seen map[string]DoneQuest) error {
 	return nil
 }
 
-// sorted orders the done quests so each comes after the ones it requires; a quest that requires one that is not
-// in the list is refused, since the character could never have done it.
-func (m *Maker) sorted(done []DoneQuest, byQuest map[string]DoneQuest) ([]DoneQuest, error) {
+// checkRequires refuses a done quest whose required quest is not in the list: the character could never have done it.
+func (m *Maker) checkRequires(done []DoneQuest, byQuest map[string]DoneQuest) error {
 	for _, d := range done {
 		q, _ := m.quest(d.Quest)
 		for _, r := range q.Requires {
 			if _, ok := byQuest[r]; !ok {
-				return nil, invalid("quest %q needs %q done first", d.Quest, r)
+				return invalid("quest %q needs %q done first", d.Quest, r)
 			}
 		}
 	}
-	var out []DoneQuest
-	placed := map[string]bool{}
-	for len(out) < len(done) {
-		before := len(out)
-		for _, d := range done {
-			q, _ := m.quest(d.Quest)
-			if placed[d.Quest] || slices.ContainsFunc(q.Requires, func(r string) bool { return !placed[r] }) {
-				continue
-			}
-			placed[d.Quest] = true
-			out = append(out, d)
-		}
-		if len(out) == before {
-			return nil, invalid("the done quests need each other: no order to do them in")
-		}
-	}
-	return out, nil
+	return nil
 }
 
 // stand is the pose of a place or of the spot beside an NPC, facing it; nil for "" (the archetype's start).

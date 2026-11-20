@@ -26,7 +26,8 @@ func (o Outcome) Commit(now int64) Commit {
 // done, and the quest ends through the same code that ends it in play, so the record, its rewards, flags and
 // texts, and the quests and achievements the completion opens, are what the character would have stored. outcome
 // is "" for a quest without outcomes; character is the id the events carry. The quest must be open to the character (Refresh starts it); a daily or
-// an achievement cannot be completed this way.
+// an achievement cannot be completed this way. When it errs, the Outcome still holds the quests the refresh
+// started (already in the book): store it all the same.
 func (e *Engine) Complete(p Player, b *Book, character, id, outcome string, now int64) (Outcome, error) {
 	var out Outcome
 	t := e.byID[id]
@@ -37,13 +38,13 @@ func (e *Engine) Complete(p Player, b *Book, character, id, outcome string, now 
 	r := b.Records[id]
 	switch {
 	case r == nil:
-		return Outcome{}, fmt.Errorf("%w: %s (%s)", ErrNotOpen, id, t.whyNot(p, b))
+		return out, fmt.Errorf("%w: %s (%s)", ErrNotOpen, id, t.whyNot(p, b))
 	case r.State == StateDone:
-		return Outcome{}, fmt.Errorf("quest %q is done already", id)
+		return out, fmt.Errorf("quest %q is done already", id)
 	}
 	chosen, err := t.pick(outcome)
 	if err != nil {
-		return Outcome{}, err
+		return out, err
 	}
 	for _, g := range t.goals {
 		r.Objectives[g.id] = fullProgress(g.count)

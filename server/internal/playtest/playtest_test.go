@@ -237,6 +237,30 @@ func TestEveryTestCharacterIsNew(t *testing.T) {
 	}
 }
 
+// A quest may wait for a capability that a quest listed after it gives: the order asked for does not matter.
+func TestMakeFindsTheOrderQuestsOpenIn(t *testing.T) {
+	r := newRig(t)
+	res := r.make(Request{
+		Archetype: "citizen",
+		Done:      []DoneQuest{{Quest: "driver.dang_ky_crab"}, {Quest: "driver.thi_bang_a1"}, {Quest: "citizen.chu_sau_ke_chuyen"}},
+		Items:     []string{"ifone_x", "xe_so_110"},
+	})
+	book := r.saved(res)
+	for _, id := range []string{"driver.dang_ky_crab", "driver.thi_bang_a1", "citizen.chu_sau_ke_chuyen"} {
+		if rec := book.Records[id]; rec == nil || rec.State != quest.StateDone {
+			t.Errorf("%s: %+v", id, rec)
+		}
+	}
+}
+
+func TestMakeSaysWhatIsMissing(t *testing.T) {
+	r := newRig(t)
+	_, err := r.maker.Make(context.Background(), Request{Archetype: "citizen", Done: []DoneQuest{{Quest: "driver.thi_bang_a1"}}})
+	if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "needs capability chapter.crab") {
+		t.Fatalf("error %v", err)
+	}
+}
+
 func TestTestNameFitsTheGame(t *testing.T) {
 	for _, label := range []string{"", "   ", "một cái tên rất là dài dòng văn tự", "a\x00b\n"} {
 		got := testName(label)
